@@ -1,34 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
-import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../players/presentation/providers/player_provider.dart';
-import '../../../shows/presentation/providers/show_provider.dart';
-import '../../../shows/presentation/widgets/mobile/show_card.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
-import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../users/presentation/providers/user_provider.dart';
+import '../widgets/favorite_collections.dart';
 import '../widgets/web/favorites_desktop_view.dart';
 
-// =============================================================================
-// MOBİL "KOLEKSİYONUM" (FAVORİLER) SAYFASI — GERÇEK VERİ
-// =============================================================================
-//
-// Önceden burada `itemCount: 8` sabit, üçüncü parti stok görselli, uydurma
-// isimli ("Favori Oyun $index" vb.) kartlar vardı ve dokunulduğunda HER
-// zaman aynı sahte id ('0') ile detay sayfasına gidilirdi. Artık masaüstü
-// karşılığı `favorites_desktop_view.dart`'taki gibi `userProfileProvider`'
-// dan gelen gerçek `User.favoriteShows` / `favoriteStages` / `favoritePlayers`
-// ID listeleri `showsByIdsProvider` / `stagesByIdsProvider` /
-// `playersByIdsProvider` ile gerçek Firestore kayıtlarına çevriliyor. Bir ID
-// artık Firestore'da yoksa (silinmiş kayıt) o kart sessizce listeden düşer
-// — sahte bir yer tutucuyla doldurulmaz. Mobil arayüz kabuğu (BasePageWrapper,
-// 3 sekmeli TabController/_FavoriteTabSelector, GridView.builder,
-// ShowCard/CustomStageCard) AYNEN korunuyor; sadece veri katmanı gerçek.
+/// FAVORİLER — kullanıcının kenara ayırdığı oyunlar, sahneler, sanatçılar.
+///
+/// - Masaüstü (≥1024): `FavoritesDesktopPage` — solda tür seçici kenar
+///   çubuğu, sağda seçili türün içeriği.
+/// - Tablet (768–1023): üç sekme; oyunlar bilet koçanlı kart ızgarası,
+///   sahne/sanatçılar iki sütunlu satırlar.
+/// - Mobil (<768): üç sekme; oyunlar kompakt bilet satırları
+///   (`ShowTicketRow`), sahne/sanatçılar sade liste.
+///
+/// Sabit görüntü alanlı bir sayfa: her sekme kendi içinde kayar, Footer yok.
+/// Veri: `userProfileProvider` → `User.favorite*` ID listeleri (bkz.
+/// `favorite_collections.dart`).
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
 
@@ -43,7 +33,8 @@ class _FavoritesPageState extends State<FavoritesPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController =
+        TabController(length: FavoriteKind.values.length, vsync: this);
   }
 
   @override
@@ -54,51 +45,87 @@ class _FavoritesPageState extends State<FavoritesPage>
 
   @override
   Widget build(final BuildContext context) {
-    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
-    // "premium" web deneyimi kullanılır (bkz. FavoritesDesktopPage). Mobil/
-    // tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
-    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
     if (context.isDesktop) return const FavoritesDesktopPage();
 
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final bool tablet = context.isTablet;
+    final FavoriteLayout layout =
+        tablet ? FavoriteLayout.tablet : FavoriteLayout.mobile;
+    final double gutter = tablet ? AppSpacing.xxxl : AppSpacing.lg;
+    final EdgeInsets listPadding =
+        EdgeInsets.fromLTRB(gutter, AppSpacing.lg, gutter, 120);
 
-    return DefaultTabController(
-      length: 3,
-      child: BasePageWrapper(
-        title: 'KOLEKSİYONUM',
-        subtitle: 'Kalbinde yer eden tüm sahneler...',
-        showBackButton: true,
-        rightIcon: Icons.favorite_rounded,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.colors.surface,
-          safeAreaTop: true,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-                maxWidth: isLargeScreen ? 1200 : double.infinity),
-            child: Column(
-              children: [
-                // 1. MODERNIZE EDILMIŞ TAB SEÇİCİ
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
-                  child: _FavoriteTabSelector(controller: _tabController),
-                ),
+    return BasePageWrapper(
+      title: 'Favorilerim',
+      showBackButton: true,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: context.colors.surface,
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
+        safeAreaTop: true,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxWidth: tablet ? 960 : double.infinity),
+          child: Consumer(
+            builder: (final context, final ref, final _) {
+              final userAsync = ref.watch(userProfileProvider);
+              final user = userAsync.value;
 
-                // 2. RESPONSIVE GRID ALANI — GERÇEK VERİ
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: const [
-                      _FavoriteShowsTab(),
-                      _FavoriteStagesTab(),
-                      _FavoritePlayersTab(),
-                    ],
+              final Widget body;
+              if (userAsync.isLoading && !userAsync.hasValue) {
+                // Profil gelene kadar oyun sekmesinin şeklinde iskelet.
+                body = FavoriteSkeletonView(
+                    layout: layout, padding: listPadding);
+              } else if (userAsync.hasError && !userAsync.hasValue) {
+                body = _Centered(
+                  child: FavoriteErrorNotice(
+                    onRetry: () => ref.invalidate(userProfileProvider),
                   ),
-                ),
-              ],
-            ),
+                );
+              } else if (user == null) {
+                body = const _Centered(child: FavoriteSignInNotice());
+              } else {
+                final Map<FavoriteKind, List<String>> ids = {
+                  FavoriteKind.shows: user.favoriteShows,
+                  FavoriteKind.stages: user.favoriteStages,
+                  FavoriteKind.players: user.favoritePlayers,
+                };
+                body = TabBarView(
+                  controller: _tabController,
+                  children: [
+                    for (final kind in FavoriteKind.values)
+                      FavoriteKindView(
+                        kind: kind,
+                        ids: ids[kind]!,
+                        layout: layout,
+                        padding: listPadding,
+                      ),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                    child: _FavoriteTabs(
+                      controller: _tabController,
+                      counts: user == null
+                          ? null
+                          : [
+                              user.favoriteShows.length,
+                              user.favoriteStages.length,
+                              user.favoritePlayers.length,
+                            ],
+                      enabled: user != null,
+                    ),
+                  ),
+                  Expanded(child: body),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -106,359 +133,63 @@ class _FavoritesPageState extends State<FavoritesPage>
   }
 }
 
-// --- ORTAK RESPONSIVE GRID SARMALAYICI ---
-class _FavoriteGrid extends StatelessWidget {
-  final int itemCount;
-  final double aspectRatio;
-  final Widget Function(BuildContext, int) itemBuilder;
+/// Giriş/hata bildirimi — sekmeler yerine tek parça.
+class _Centered extends StatelessWidget {
+  final Widget child;
+  const _Centered({required this.child});
 
-  const _FavoriteGrid({
-    required this.itemCount,
-    required this.aspectRatio,
-    required this.itemBuilder,
+  @override
+  Widget build(final BuildContext context) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xxxl,
+            AppSpacing.lg, AppSpacing.xxxl),
+        child: Center(child: child),
+      );
+}
+
+/// Biletlerim'deki sekme diliyle aynı: altı çizili, sade; yanında gerçek
+/// sayı.
+class _FavoriteTabs extends StatelessWidget {
+  final TabController controller;
+  final List<int>? counts;
+  final bool enabled;
+
+  const _FavoriteTabs({
+    required this.controller,
+    required this.counts,
+    required this.enabled,
   });
 
-  @override
-  Widget build(final BuildContext context) {
-    // 💡 Ekran genişliğine göre sütun sayısı: Mobil 2, Tablet 3, Web 4-5
-    final int crossAxisCount =
-        context.responsive(mobile: 2, tablet: 3, desktop: 4);
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: AppSpacing.xl,
-        crossAxisSpacing: AppSpacing.xl,
-        childAspectRatio: aspectRatio,
-      ),
-      itemCount: itemCount,
-      itemBuilder: itemBuilder,
-    );
+  String _label(final int i) {
+    final String name = FavoriteKind.values[i].label;
+    final int? n = counts?[i];
+    return n == null || n == 0 ? name : '$name  $n';
   }
-}
-
-// --- SEKME 1: FAVORİ OYUNLAR ---
-class _FavoriteShowsTab extends ConsumerWidget {
-  const _FavoriteShowsTab();
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final userAsync = ref.watch(userProfileProvider);
-
-    return userAsync.when(
-      loading: () => const _FavoriteLoadingIndicator(),
-      error: (final _, final __) =>
-          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
-      data: (final user) {
-        if (user == null) return const _FavoriteSignInNotice();
-
-        final ids = user.favoriteShows;
-        if (ids.isEmpty) {
-          return const _FavoriteEmptyState(
-            icon: Icons.theater_comedy_rounded,
-            message: 'Henüz favori oyununuz yok.',
-          );
-        }
-
-        final showsAsync = ref.watch(showsByIdsProvider(ids));
-        return showsAsync.when(
-          loading: () => const _FavoriteLoadingIndicator(),
-          error: (final _, final __) => const _FavoriteErrorNotice(
-              message: 'Favori oyunların yüklenemedi.'),
-          data: (final shows) {
-            if (shows.isEmpty) {
-              return const _FavoriteEmptyState(
-                icon: Icons.theater_comedy_rounded,
-                message: 'Favori oyunların artık bulunamıyor.',
-              );
-            }
-
-            return _FavoriteGrid(
-              itemCount: shows.length,
-              aspectRatio: 0.75,
-              itemBuilder: (final context, final index) {
-                final show = shows[index];
-                return ShowCard(
-                  key: ValueKey('fav-show-${show.id}'),
-                  imageUrl: show.imageUrl,
-                  gameName: show.name,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    NavigationHandler.goToShow(context, show.id, show.name);
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-// --- SEKME 2: FAVORİ SAHNELER ---
-class _FavoriteStagesTab extends ConsumerWidget {
-  const _FavoriteStagesTab();
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final userAsync = ref.watch(userProfileProvider);
-
-    return userAsync.when(
-      loading: () => const _FavoriteLoadingIndicator(),
-      error: (final _, final __) =>
-          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
-      data: (final user) {
-        if (user == null) return const _FavoriteSignInNotice();
-
-        final ids = user.favoriteStages;
-        if (ids.isEmpty) {
-          return const _FavoriteEmptyState(
-            icon: Icons.location_on_rounded,
-            message: 'Henüz favori sahneniz yok.',
-          );
-        }
-
-        final stagesAsync = ref.watch(stagesByIdsProvider(ids));
-        return stagesAsync.when(
-          loading: () => const _FavoriteLoadingIndicator(),
-          error: (final _, final __) => const _FavoriteErrorNotice(
-              message: 'Favori sahnelerin yüklenemedi.'),
-          data: (final stages) {
-            if (stages.isEmpty) {
-              return const _FavoriteEmptyState(
-                icon: Icons.location_on_rounded,
-                message: 'Favori sahnelerin artık bulunamıyor.',
-              );
-            }
-
-            return _FavoriteGrid(
-              itemCount: stages.length,
-              aspectRatio: 1.1,
-              itemBuilder: (final context, final index) {
-                final stage = stages[index];
-                return CustomStageCard(
-                  key: ValueKey('fav-stage-${stage.id}'),
-                  text: stage.name,
-                  imageUrl: stage.imageUrl,
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    NavigationHandler.goToStage(context, stage.id, stage.name);
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-// --- SEKME 3: FAVORİ SANATÇILAR ---
-class _FavoritePlayersTab extends ConsumerWidget {
-  const _FavoritePlayersTab();
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final userAsync = ref.watch(userProfileProvider);
-
-    return userAsync.when(
-      loading: () => const _FavoriteLoadingIndicator(),
-      error: (final _, final __) =>
-          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
-      data: (final user) {
-        if (user == null) return const _FavoriteSignInNotice();
-
-        final ids = user.favoritePlayers;
-        if (ids.isEmpty) {
-          return const _FavoriteEmptyState(
-            icon: Icons.person_rounded,
-            message: 'Henüz favori sanatçınız yok.',
-          );
-        }
-
-        final playersAsync = ref.watch(playersByIdsProvider(ids));
-        return playersAsync.when(
-          loading: () => const _FavoriteLoadingIndicator(),
-          error: (final _, final __) => const _FavoriteErrorNotice(
-              message: 'Favori sanatçıların yüklenemedi.'),
-          data: (final players) {
-            if (players.isEmpty) {
-              return const _FavoriteEmptyState(
-                icon: Icons.person_rounded,
-                message: 'Favori sanatçıların artık bulunamıyor.',
-              );
-            }
-
-            return _FavoriteGrid(
-              itemCount: players.length,
-              aspectRatio: 1.1,
-              itemBuilder: (final context, final index) {
-                final player = players[index];
-                final fullName =
-                    '${player.firstName} ${player.lastName}'.trim();
-                return CustomStageCard(
-                  key: ValueKey('fav-player-${player.id}'),
-                  text: fullName.isEmpty ? 'Sanatçı' : fullName,
-                  imageUrl: player.imageUrl,
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    NavigationHandler.goToPlayer(
-                      context,
-                      player.id,
-                      fullName.isEmpty ? player.id : fullName,
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-// --- ORTAK DURUMLAR (Yükleniyor / Hata / Boş / Giriş Gerekli) ---
-class _FavoriteLoadingIndicator extends StatelessWidget {
-  const _FavoriteLoadingIndicator();
-
-  @override
-  Widget build(final BuildContext context) => Center(
-        child: CircularProgressIndicator(color: context.colors.primary),
-      );
-}
-
-class _FavoriteErrorNotice extends StatelessWidget {
-  final String message;
-
-  const _FavoriteErrorNotice({required this.message});
-
-  @override
-  Widget build(final BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style:
-                TextStyle(color: context.colors.onSurfaceVariant, fontSize: 14),
-          ),
-        ),
-      );
-}
-
-class _FavoriteEmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-
-  const _FavoriteEmptyState({required this.icon, required this.message});
-
-  @override
-  Widget build(final BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 56, color: context.colors.onSurfaceVariant),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.colors.onSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Beğendiğin oyun, sahne ve sanatçıları kalp ikonuna dokunarak buraya ekleyebilirsin.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: context.colors.onSurfaceVariant, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      );
-}
-
-class _FavoriteSignInNotice extends StatelessWidget {
-  const _FavoriteSignInNotice();
-
-  @override
-  Widget build(final BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.person_outline_rounded,
-                  size: 56, color: context.colors.onSurfaceVariant),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Koleksiyonunu görmek için giriş yapmalısın.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.colors.onSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-}
-
-// --- TAB SEÇİCİ BİLEŞENİ ---
-class _FavoriteTabSelector extends StatelessWidget {
-  final TabController controller;
-
-  const _FavoriteTabSelector({required this.controller});
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      height: 54,
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(18),
-        border:
-            Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
-      ),
+    final cs = context.colors;
+    return IgnorePointer(
+      ignoring: !enabled,
       child: TabBar(
         controller: controller,
-        dividerColor: Colors.transparent,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: LinearGradient(
-            colors: [
-              context.colors.primary,
-              context.colors.primary.withOpacity(0.8)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: AppShadows.level1(context.colors.primary),
+        indicatorSize: TabBarIndicatorSize.label,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: cs.primary, width: 2.5),
         ),
-        labelColor: context.colors.onPrimary,
-        unselectedLabelColor: context.colors.onSurfaceVariant,
-        labelStyle: const TextStyle(
-            fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
+        labelColor: cs.onSurface,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        labelStyle:
+            const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        indicatorSize: TabBarIndicatorSize.tab,
-        tabs: const [
-          Tab(text: "Oyunlar"),
-          Tab(text: "Sahneler"),
-          Tab(text: "Sanatçılar"),
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        dividerColor: cs.outlineVariant,
+        overlayColor: WidgetStateProperty.resolveWith((final states) =>
+            states.contains(WidgetState.focused)
+                ? cs.primary.withOpacity(0.14)
+                : null),
+        tabs: [
+          for (int i = 0; i < FavoriteKind.values.length; i++)
+            Tab(height: 48, text: _label(i)),
         ],
       ),
     );

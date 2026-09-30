@@ -1,19 +1,34 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/services/deeplink/deeplink_service.dart';
-import '../../../../core/util/comminucation_actions.dart';
-import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
-import '../../../../shared/widgets/custom_dots_indicator.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../discovery/presentation/widgets/browse_controls.dart';
+import '../widgets/campaign_coupon.dart';
 import '../widgets/web/campaign_showcase_desktop_view.dart';
 
+/// KAMPANYALAR — her kampanya bir kupon (bkz. `campaign_coupon.dart`).
+///
+/// - Mobil (<768): kuponlar arasında yatay kaydırıcı; tek birincil aksiyon
+///   ("Kampanyayı incele") başparmak bölgesinde, alt çubukta.
+/// - Tablet (768–1023): öne çıkan kupon yatay (koçan sağda), altında diğer
+///   kampanyalar iki sütunlu seçici satırlar; web'de sonunda Footer.
+/// - Masaüstü (≥1024): `CampaignShowcaseDesktopPage`.
+///
+/// `initialIndex` (URL `?index=`) korunur ve her zaman listeye göre
+/// sınırlandırılır. Önceki sürümdeki "Hızlı Bilet / Güvenli Ödeme / Koltuk
+/// Seçimi" ikonları ve "tüm anlaşmalı sahnelerde geçerli" gibi metinler
+/// kampanya verisinde olmayan, uydurma iddialardı — kaldırıldı.
 class CampaignShowcasePage extends ConsumerStatefulWidget {
   final int initialIndex;
 
@@ -24,331 +39,411 @@ class CampaignShowcasePage extends ConsumerStatefulWidget {
       _CampaignShowcasePageState();
 }
 
-class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
-    with GlobalScrollMixin {
-  late PageController _pageController;
+class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage> {
+  PageController? _pageController;
   late int _currentPage;
-  bool _isControllerInitialized = false;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.initialIndex;
+    _currentPage = widget.initialIndex < 0 ? 0 : widget.initialIndex;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isControllerInitialized) {
-      _pageController = PageController(
-        viewportFraction:
-            context.responsive(mobile: 0.85, tablet: 0.75, desktop: 0.6),
-        initialPage: widget.initialIndex,
-      );
-      _isControllerInitialized = true;
-    }
+    _reduceMotion = MediaQuery.of(context).disableAnimations;
   }
 
   @override
   void dispose() {
-    if (_isControllerInitialized) _pageController.dispose();
+    _pageController?.dispose();
     super.dispose();
   }
 
+  PageController _controllerFor(final int count) =>
+      _pageController ??= PageController(
+        viewportFraction: 0.86,
+        initialPage: _currentPage.clamp(0, count - 1),
+      );
+
+  void _goTo(final int page) {
+    final c = _pageController;
+    if (c == null || !c.hasClients) return;
+    if (_reduceMotion) {
+      c.jumpToPage(page);
+    } else {
+      c.animateToPage(page,
+          duration: AppMotion.normal, curve: AppMotion.standard);
+    }
+  }
+
+  void _retry() => ref.invalidate(campaignsProvider);
+
   @override
   Widget build(final BuildContext context) {
-    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
-    // "premium" web deneyimi kullanılır (bkz. CampaignShowcaseDesktopPage).
-    // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
-    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
     if (context.isDesktop)
       return CampaignShowcaseDesktopPage(initialIndex: widget.initialIndex);
 
+    final bool tablet = context.isTablet;
     final campaignsAsync = ref.watch(campaignsProvider);
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final List<Campaign>? campaigns = campaignsAsync.value;
+    final double gutter = tablet ? AppSpacing.xxxl : AppSpacing.lg;
+
+    final Widget content;
+    if (campaignsAsync.isLoading && campaigns == null) {
+      content = _Skeleton(tablet: tablet, gutter: gutter);
+    } else if (campaigns == null) {
+      content = _Notice(
+        gutter: gutter,
+        child: TicketNotice(
+          label: 'BAĞLANTI',
+          title: 'Kampanyalar yüklenemedi',
+          message: 'Kampanya listesine ulaşamadık. İnternet bağlantını '
+              'kontrol edip tekrar dene.',
+          actionLabel: 'Tekrar dene',
+          actionIcon: Icons.refresh_rounded,
+          onAction: _retry,
+        ),
+      );
+    } else if (campaigns.isEmpty) {
+      content = _Notice(
+        gutter: gutter,
+        child: TicketNotice(
+          label: 'KAMPANYA',
+          title: 'Şu an aktif kampanya yok',
+          message: 'Yeni fırsatlar eklendiğinde burada kupon olarak '
+              'görünür. Bu arada sahnedeki oyunlara göz atabilirsin.',
+          actionLabel: 'Oyunlara göz at',
+          actionIcon: Icons.explore_outlined,
+          onAction: () => NavigationHandler.goToDiscover(context),
+        ),
+      );
+    } else {
+      final int safeIndex = _currentPage.clamp(0, campaigns.length - 1);
+      content = tablet
+          ? _TabletShowcase(
+              campaigns: campaigns,
+              selectedIndex: safeIndex,
+              gutter: gutter,
+              onSelect: (final i) => setState(() => _currentPage = i),
+            )
+          : _MobileShowcase(
+              campaigns: campaigns,
+              currentIndex: safeIndex,
+              controller: _controllerFor(campaigns.length),
+              reduceMotion: _reduceMotion,
+              onPageChanged: (final i) => setState(() => _currentPage = i),
+              onDotTap: _goTo,
+            );
+    }
 
     return BasePageWrapper(
-      // 🎯 Merkezi Header Yönetimi
-      title: "AVANTAJLAR",
-      subtitle: "Sanat dolu fırsatları keşfet...",
+      title: 'Kampanyalar',
+      subtitle: campaigns == null || campaigns.isEmpty
+          ? null
+          : (campaigns.length == 1
+              ? '1 aktif kampanya'
+              : '${campaigns.length} aktif kampanya'),
       showBackButton: true,
-      rightIcon: Icons.support_agent_rounded,
-      // 💡 Yardım ikonu artık header'da
-      showFab: true,
-      customScrollController: scrollController,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
         safeAreaTop: true,
       ),
-      child: campaignsAsync.when(
-        loading: () =>
-            const Center(child: ShimmerLoading(height: 500, width: 350)),
-        error: (final err, final _) => Center(child: Text("Hata: $err")),
-        data: (final campaigns) {
-          if (campaigns.isEmpty) return _buildEmptyState();
-
-          // 🖥️ Web'de içeriği ortalamak için kısıt koyuyoruz
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxWidth: isLargeScreen ? 1000 : double.infinity),
-              child: _buildBody(context, campaigns),
-            ),
-          );
-        },
-      ),
+      child: content,
     );
   }
+}
 
-  Widget _buildBody(
-      final BuildContext context, final List<Campaign> campaigns) {
-    // 🔥 DÜZELTME: `_currentPage` — URL'deki `?index=` parametresinden
-    // (bkz. app_router.dart) ya da `PageView.onPageChanged`'tan geliyor,
-    // hiçbir şekilde `campaigns.length`e karşı doğrulanmıyordu. Kampanya
-    // listesi filtrelendiği (bkz. `campaign_provider.dart` — taslak
-    // kayıtlar elenir) ya da URL'deki index artık geçersiz olduğu an
-    // `campaigns[_currentPage]` doğrudan bir `RangeError` fırlatıp bu
-    // sayfayı çökertiyordu. Masaüstü sürümü (`campaign_showcase_desktop_
-    // view.dart`) bunu zaten `clamp` ile güvenceye almıştı — mobil aynı
-    // korumadan yoksundu.
-    final int safeIndex = campaigns.isEmpty
-        ? 0
-        : _currentPage.clamp(0, campaigns.length - 1);
-    final currentCampaign = campaigns[safeIndex];
+// ─────────────────────────────────────────────────────────────────────────
+// Mobil: kupon kaydırıcı + alt aksiyon çubuğu
+// ─────────────────────────────────────────────────────────────────────────
 
-    return ListView(
-      // 💡 ListView kullanarak scrollController'ı buraya bağlıyoruz
-      controller: scrollController,
-      physics: const BouncingScrollPhysics(),
+class _MobileShowcase extends StatelessWidget {
+  final List<Campaign> campaigns;
+  final int currentIndex;
+  final PageController controller;
+  final bool reduceMotion;
+  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int> onDotTap;
+
+  const _MobileShowcase({
+    required this.campaigns,
+    required this.currentIndex,
+    required this.controller,
+    required this.reduceMotion,
+    required this.onPageChanged,
+    required this.onDotTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final Campaign current = campaigns[currentIndex];
+    final VoidCallback? open = campaignOpenAction(current);
+    final bool expired = CampaignValidity.of(current).expired;
+    final cs = context.colors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. HERO SECTION (Pager Area)
-        Stack(
-          children: [
-            _buildBackgroundGradientEffect(),
-            Column(
-              children: [
-                SizedBox(
-                  height: context.hp(65),
-                  // 💡 Header geldiği için yüksekliği biraz daralttık
-                  child: _buildCampaignPager(campaigns),
-                ),
-                _buildCampaignInfoOverlay(currentCampaign, campaigns.length),
-              ],
+        Expanded(
+          child: Semantics(
+            label: 'Kampanya ${currentIndex + 1} / ${campaigns.length}',
+            child: PageView.builder(
+              controller: controller,
+              itemCount: campaigns.length,
+              onPageChanged: onPageChanged,
+              itemBuilder: (final context, final index) {
+                final Widget coupon = Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.sm,
+                      AppSpacing.md, AppSpacing.sm, AppSpacing.xl),
+                  child: CampaignCoupon(
+                    key: ValueKey('campaign-${campaigns[index].id}'),
+                    campaign: campaigns[index],
+                  ),
+                );
+                if (reduceMotion) return coupon;
+                // Yandaki kuponlar hafifçe geride: kaydırmanın yönünü söyler.
+                return AnimatedBuilder(
+                  animation: controller,
+                  builder: (final context, final child) {
+                    double scale = 1;
+                    if (controller.position.haveDimensions &&
+                        controller.page != null) {
+                      final double d = (controller.page! - index).abs();
+                      scale = (1 - d * 0.06).clamp(0.94, 1.0);
+                    }
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: coupon,
+                );
+              },
             ),
-          ],
+          ),
         ),
-
-        // 2. DYNAMIC CONTENT SECTION
-        _buildDetailedContent(context, currentCampaign),
-
-        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
-        if (context.isDesktop) const Footer(),
+        if (campaigns.length > 1)
+          _PageDots(
+            count: campaigns.length,
+            current: currentIndex,
+            onTap: onDotTap,
+          ),
+        // Başparmak bölgesi: tek birincil aksiyon + ikincil paylaş.
+        Container(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(top: BorderSide(color: cs.outlineVariant)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TicketStampButton(
+                  label: expired ? 'Kampanyayı gör' : 'Kampanyayı incele',
+                  leading: const Icon(Icons.local_offer_outlined),
+                  onTap: open,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Semantics(
+                button: true,
+                label: 'Kampanyayı paylaş',
+                excludeSemantics: true,
+                child: IconButton(
+                  tooltip: 'Paylaş',
+                  onPressed: () => shareCampaign(current),
+                  icon: Icon(Icons.ios_share_rounded, color: cs.onSurface),
+                  constraints:
+                      const BoxConstraints(minWidth: 56, minHeight: 56),
+                  style: IconButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
+                      side: BorderSide(color: cs.outlineVariant),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
+}
 
-  // --- İyileştirilmiş UI Bileşenleri ---
+/// Konum noktaları; her nokta 48dp dokunma alanında (kaydırmanın buton
+/// karşılığı).
+class _PageDots extends StatelessWidget {
+  final int count;
+  final int current;
+  final ValueChanged<int> onTap;
 
-  Widget _buildDetailedContent(
-      final BuildContext context, final Campaign campaign) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(Icons.info_outline, "KAMPANYA DETAYLARI"),
-          const SizedBox(height: 12),
-          Text(
-            "Seçili sahnelerde geçerli olan bu fırsatı kaçırmayın. Tiyatrol ile sanata bir adım daha yakınlaşın.",
-            style: context.textTheme.bodyMedium
-                ?.copyWith(color: context.colors.onSurfaceVariant),
+  const _PageDots({
+    required this.count,
+    required this.current,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = context.colors;
+    // Çok sayıda kampanyada noktalar sığmaz → "3 / 12" yazısı.
+    if (count > 7) {
+      return SizedBox(
+        height: 32,
+        child: Center(
+          child: Text(
+            '${current + 1} / $count',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 32),
-
-          // İkonlu Bilgi Kartları (Responsive Düzen)
-          Row(
-            children: [
-              _buildInfoChip(Icons.confirmation_num_outlined, "Hızlı Bilet"),
-              _buildInfoChip(Icons.verified_user_outlined, "Güvenli Ödeme"),
-              _buildInfoChip(Icons.event_seat_outlined, "Koltuk Seçimi"),
-            ],
+        ),
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i < count; i++)
+          Semantics(
+            button: true,
+            selected: i == current,
+            label: 'Kampanya ${i + 1}',
+            excludeSemantics: true,
+            child: InkResponse(
+              onTap: () => onTap(i),
+              radius: 20,
+              child: SizedBox(
+                width: 36,
+                height: 40,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: AppMotion.fast,
+                    curve: AppMotion.standard,
+                    width: i == current ? 20 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: i == current ? cs.primary : cs.outlineVariant,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 40),
-
-          _buildSectionHeader(
-              Icons.share_location_outlined, "GEÇERLİ SAHNELER"),
-          const SizedBox(height: 12),
-          Text(
-            "Bu kampanya tüm Tiyatrol anlaşmalı sahnelerde ve mobil uygulamada geçerlidir.",
-            style: context.textTheme.bodySmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 80),
-        ],
-      ),
+      ],
     );
   }
+}
 
-  Widget _buildCampaignInfoOverlay(final Campaign campaign, final int total) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          children: [
-            DotsIndicator(
-              itemCount: total,
-              currentIndex: _currentPage,
-              onPageSelected: (final page) => _pageController.animateToPage(
-                  page,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOut),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              campaign.title.toUpperCase(),
-              style: context.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            _buildActionButtons(campaign),
-          ],
-        ),
-      );
+// ─────────────────────────────────────────────────────────────────────────
+// Tablet: öne çıkan yatay kupon + seçici satırlar
+// ─────────────────────────────────────────────────────────────────────────
 
-  Widget _buildActionButtons(final Campaign campaign) => Row(
+class _TabletShowcase extends StatelessWidget {
+  final List<Campaign> campaigns;
+  final int selectedIndex;
+  final double gutter;
+  final ValueChanged<int> onSelect;
+
+  const _TabletShowcase({
+    required this.campaigns,
+    required this.selectedIndex,
+    required this.gutter,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(final BuildContext context) => ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(gutter, AppSpacing.lg, gutter, 0),
         children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => NavigationHandler.globalGoTo(campaign.url),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.primaryColor,
-                foregroundColor: context.colors.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                elevation: 8,
-                shadowColor: context.primaryColor.withOpacity(0.4),
-              ),
-              child: const Text("ŞİMDİ İNCELE",
-                  style:
-                      TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
-            ),
+          CampaignFeaturedCoupon(
+            key: ValueKey('featured-${campaigns[selectedIndex].id}'),
+            campaign: campaigns[selectedIndex],
           ),
-          const SizedBox(width: 16),
-          _buildShareButton(campaign),
-        ],
-      );
-
-  Widget _buildShareButton(final Campaign campaign) => GestureDetector(
-        onTap: () => TiyatrolDeeplinkService.shareShow(
-            id: campaign.id, name: campaign.title),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceVariant.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.colors.outlineVariant),
-          ),
-          child: Icon(Icons.share_outlined,
-              color: context.colors.onSurface, size: 24),
-        ),
-      );
-
-  Widget _buildSectionHeader(final IconData icon, final String title) => Row(
-        children: [
-          Icon(icon, color: context.primaryColor, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: context.textTheme.labelSmall?.copyWith(
-              color: context.primaryColor,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
-        ],
-      );
-
-  Widget _buildInfoChip(final IconData icon, final String label) => Expanded(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: context.primaryColor.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: context.primaryColor, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(label,
-                style: context.textTheme.labelSmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      );
-
-  Widget _buildBackgroundGradientEffect() => Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.topCenter,
-              colors: [
-                context.primaryColor.withOpacity(0.12),
-                Colors.transparent
+          if (campaigns.length > 1) ...[
+            const SizedBox(height: AppSpacing.huge),
+            BrowseSectionTitle(
+                title: 'Tüm kampanyalar', count: campaigns.length),
+            BrowseColumns(
+              minItemWidth: 320,
+              runSpacing: AppSpacing.md,
+              children: [
+                for (int i = 0; i < campaigns.length; i++)
+                  CampaignPickerRow(
+                    key: ValueKey('pick-${campaigns[i].id}'),
+                    campaign: campaigns[i],
+                    selected: i == selectedIndex,
+                    onTap: () => onSelect(i),
+                  ),
               ],
-              radius: 1.5,
             ),
-          ),
-        ),
-      );
-
-  Widget _buildEmptyState() => Center(
-      child: Text("Aktif kampanya bulunamadı.",
-          style: context.textTheme.titleMedium));
-
-  Widget _buildCampaignPager(final List<Campaign> campaigns) =>
-      PageView.builder(
-        controller: _pageController,
-        itemCount: campaigns.length,
-        onPageChanged: (final index) => setState(() => _currentPage = index),
-        itemBuilder: (final context, final index) {
-          return AnimatedBuilder(
-            animation: _pageController,
-            builder: (final context, final child) {
-              double value = 1.0;
-              if (_pageController.position.haveDimensions) {
-                value = (_pageController.page! - index).abs();
-                value = (1 - (value * 0.2)).clamp(0.8, 1.0);
-              }
-              return Transform.scale(scale: value, child: child);
-            },
-            child: _buildCampaignCard(campaigns[index]),
-          );
-        },
-      );
-
-  Widget _buildCampaignCard(final Campaign campaign) => Container(
-        margin: EdgeInsets.symmetric(vertical: context.hp(5), horizontal: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(context.borderRadius(2)),
-          boxShadow: [
-            BoxShadow(
-              color: context.colors.shadow.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            )
           ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(context.borderRadius(2)),
-          child: CachedNetworkImage(
-            imageUrl: campaign.imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (final _, final __) =>
-                Container(color: context.colors.surfaceContainer),
-          ),
+          const SizedBox(height: AppSpacing.section),
+          if (kIsWeb) const Footer(),
+          const SizedBox(height: AppSpacing.xxl),
+        ],
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Durumlar
+// ─────────────────────────────────────────────────────────────────────────
+
+class _Notice extends StatelessWidget {
+  final double gutter;
+  final Widget child;
+  const _Notice({required this.gutter, required this.child});
+
+  @override
+  Widget build(final BuildContext context) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+            gutter, AppSpacing.xxl, gutter, AppSpacing.xxxl),
+        child: Align(alignment: Alignment.topLeft, child: child),
+      );
+}
+
+class _Skeleton extends StatelessWidget {
+  final bool tablet;
+  final double gutter;
+  const _Skeleton({required this.tablet, required this.gutter});
+
+  @override
+  Widget build(final BuildContext context) => ExcludeSemantics(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              tablet ? gutter : AppSpacing.xxl,
+              AppSpacing.md,
+              tablet ? gutter : AppSpacing.xxl,
+              AppSpacing.xxl),
+          child: tablet
+              ? const Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ShimmerLoading(
+                        width: double.infinity,
+                        height: 420,
+                        borderRadius: AppRadius.md),
+                    SizedBox(height: AppSpacing.huge),
+                    ShimmerLoading(
+                        width: double.infinity,
+                        height: 80,
+                        borderRadius: AppRadius.sm),
+                  ],
+                )
+              : LayoutBuilder(
+                  builder: (final context, final c) => ShimmerLoading(
+                    width: c.maxWidth,
+                    height: c.maxHeight,
+                    borderRadius: AppRadius.md,
+                  ),
+                ),
         ),
       );
 }
