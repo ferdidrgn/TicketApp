@@ -15,7 +15,6 @@ import 'core/services/deeplink/deeplink_listener_service.dart';
 import 'core/services/fcm_manager_service.dart';
 import 'core/theme/theme_manager.dart';
 import 'core/theme/theme_notifier.dart';
-import 'core/theme/web_theme.dart';
 import 'core/util/platform_checker.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 import 'l10n/app_localizations.dart';
@@ -82,8 +81,11 @@ class _MyAppState extends ConsumerState<MyApp> {
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
         theme: lightTheme,
-        darkTheme: isWeb ? WebTheme.darkTheme : darkTheme,
-        themeMode: isWeb ? ThemeMode.dark : themeNotifier.themeMode,
+        // Web de mobil ile aynı 5 tema + Özel renk zincirini kullanır
+        // (eskiden web sabit koyu temaya kilitliydi; Ayarlar'daki tema
+        // seçici web'de hiçbir şey değiştirmiyordu).
+        darkTheme: darkTheme,
+        themeMode: themeNotifier.themeMode,
         locale: localeAsync.value ?? const Locale('tr'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

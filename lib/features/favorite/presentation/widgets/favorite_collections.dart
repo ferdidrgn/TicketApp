@@ -85,7 +85,7 @@ Widget _box(final Widget child) => SliverToBoxAdapter(child: child);
 
 Widget _gap(final double h) => SliverToBoxAdapter(child: SizedBox(height: h));
 
-Widget _notice(final TicketNotice notice) =>
+Widget _notice(final Widget notice) =>
     _box(Align(alignment: Alignment.topLeft, child: notice));
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -144,7 +144,12 @@ class TicketBottomNavBar extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
+          // `heightFactor: 1` şart: Scaffold alt çubuğa ekranın tamamı kadar
+          // gevşek yükseklik veriyor; çarpansız `Center` o yüksekliğin
+          // hepsini kaplayıp sayfa gövdesini 0 px'e düşürüyordu (boş sayfa,
+          // ortada duran menü).
           child: Center(
+            heightFactor: 1,
             // Tablette dört sekme ekranın iki ucuna savrulmasın.
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
