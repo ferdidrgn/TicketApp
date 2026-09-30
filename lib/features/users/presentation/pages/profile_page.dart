@@ -297,6 +297,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           onTap: () => NavigationHandler.goToSettings(context),
         ),
         PreferenceRow(
+          icon: Icons.theater_comedy_outlined,
+          title: 'Tanıtımı yeniden izle',
+          subtitle: 'Üç perdelik kısa tur ve tema seçimi',
+          onTap: () => context.push('/onboarding'),
+        ),
+        PreferenceRow(
           icon: Icons.help_outline_rounded,
           title: 'Yardım ve destek',
           subtitle: 'Sorularına hızlıca cevap bul',
