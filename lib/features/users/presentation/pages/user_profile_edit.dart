@@ -549,10 +549,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         barrierDismissible: false,
         builder: (final dialogContext) => CustomSuccessDialog(
           message: 'Profilin güncellendi.',
-          onConfirm: () {
-            // ✅ Sadece Pop-up'ı kapatıyoruz (Geri dönünce siyah ekran olmaması için)
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-          },
+          // Diyalog kendini kapatır; ikinci bir pop düzenleme sayfasını da
+          // kapatıyordu. Kullanıcı sayfada kalır.
+          onConfirm: null,
         ),
       );
 

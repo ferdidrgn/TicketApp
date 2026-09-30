@@ -173,9 +173,12 @@ class _AdminPlayerFormPageState extends ConsumerState<AdminPlayerFormPage> {
         barrierDismissible: false,
         builder: (final dialogContext) => CustomSuccessDialog(
           message: _isEditing ? 'Oyuncu güncellendi.' : 'Oyuncu oluşturuldu.',
+          // Diyalog kendini kapatır (CustomSuccessDialog); burada ikinci
+          // kez kapatmak admin panelini de kapatıp ana sayfaya atıyordu.
+          // Güncellemede kaydın sayfasında kalınır, yeni kayıtta admin
+          // listesine dönülür.
           onConfirm: () {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-            if (mounted) Navigator.of(context).pop();
+            if (!_isEditing && mounted) Navigator.of(context).pop();
           },
         ),
       );

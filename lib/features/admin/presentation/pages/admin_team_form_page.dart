@@ -99,9 +99,12 @@ class _AdminTeamFormPageState extends ConsumerState<AdminTeamFormPage> {
         builder: (final dialogContext) => CustomSuccessDialog(
           message:
               _isEditing ? 'Topluluk güncellendi.' : 'Topluluk oluşturuldu.',
+          // Diyalog kendini kapatır (CustomSuccessDialog); burada ikinci
+          // kez kapatmak admin panelini de kapatıp ana sayfaya atıyordu.
+          // Güncellemede kaydın sayfasında kalınır, yeni kayıtta admin
+          // listesine dönülür.
           onConfirm: () {
-            Navigator.of(dialogContext, rootNavigator: true).pop();
-            if (mounted) Navigator.of(context).pop();
+            if (!_isEditing && mounted) Navigator.of(context).pop();
           },
         ),
       );
