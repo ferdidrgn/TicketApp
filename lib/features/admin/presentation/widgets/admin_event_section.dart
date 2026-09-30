@@ -129,8 +129,9 @@ class _AdminEventSectionState extends ConsumerState<AdminEventSection> {
   @override
   Widget build(final BuildContext context) {
     final colors = context.colors;
-    final eventsAsync =
-        ref.watch(eventsByShowIdsProvider([widget.show.id]));
+    // Tek String anahtarlı sağlayıcı: liste anahtarı her çizimde yeni
+    // sorgu başlatıp sonsuz yüklemeye sokuyordu.
+    final eventsAsync = ref.watch(eventsForShowProvider(widget.show.id));
     final stagesAsync = ref.watch(stagesProvider(isLimit: false));
     final isSaving = ref.watch(eventMutationProvider).isLoading;
 

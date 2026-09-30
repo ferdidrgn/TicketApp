@@ -216,7 +216,13 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
       );
     }
 
-    final String rule = data.show.eventRule.trim();
+    // `eventRule` Firebase'den gelen serbest metin; "yok", "-" gibi yer
+    // tutucular not olarak gösterilmez.
+    final String rawRule = data.show.eventRule.trim();
+    final String rule =
+        const {'yok', '-', '—', 'none', 'null'}.contains(rawRule.toLowerCase())
+            ? ''
+            : rawRule;
     final int total = data.sessions.length;
     final int visible =
         _expanded ? total : (total < _initialCount ? total : _initialCount);

@@ -85,8 +85,10 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
           if (_selectedShowId != null)
             Consumer(
               builder: (final context, final ref, final _) {
-                final eventsAsync = ref
-                    .watch(eventsByShowIdsProvider([_selectedShowId!]));
+                // Tek String anahtarlı sağlayıcı: liste anahtarı her çizimde
+                // yeni sorgu başlatıp sonsuz yüklemeye sokuyordu.
+                final eventsAsync =
+                    ref.watch(eventsForShowProvider(_selectedShowId!));
                 return eventsAsync.when(
                   loading: () => const Padding(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
@@ -102,7 +104,7 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
                       value: _selectedEventId,
                       items: events
                           .map((final e) => DropdownMenuItem(
-                              value: e.id, child: Text(e.date)))
+                              value: e.id, child: Text(_sessionLabel(e))))
                           .toList(),
                       onChanged: (final v) =>
                           setState(() => _selectedEventId = v),
@@ -122,6 +124,15 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
       ),
     );
   }
+}
+
+/// Seans seçicideki okunur etiket: "3 Eki 2026 Cmt, 15:30" — geçmiş
+/// seanslar "(geçti)" ile işaretlenir. Tarih okunamazsa ham değer.
+String _sessionLabel(final Event e) {
+  final DateTime? d = DateFormatter.parseDateString(e.date);
+  if (d == null) return e.date.isEmpty ? 'Tarihsiz seans' : e.date;
+  final String label = DateFormat('d MMM y EEE, HH:mm', 'tr').format(d);
+  return d.isBefore(DateTime.now()) ? '$label (geçti)' : label;
 }
 
 // ==============================================================================
@@ -401,7 +412,12 @@ class _SeatCell extends ConsumerWidget {
     return Semantics(
       button: true,
       label: '$seatId koltuğu, '
-          '${isAdminBlocked ? 'admin bloğu' : status}',
+          '${isAdminBlocked ? 'admin bloğu' : switch (status) {
+              'sold' => 'satıldı',
+              'reserved' => 'rezerve',
+              'available' => 'boş',
+              _ => status,
+            }}',
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xs),
         onTap: () => _showSeatSheet(context, ref, status, isAdminBlocked),

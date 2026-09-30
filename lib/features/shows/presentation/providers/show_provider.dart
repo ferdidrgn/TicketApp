@@ -321,3 +321,51 @@ final showsActiveFirstProvider =
   final split = _splitActiveShows(shows, nearestByShow);
   return [...split.active, ...split.inactive];
 });
+
+/// 🎟️ TEK BİR OYUNUN seansları — ekranlarda (widget'larda) kullanmak için.
+///
+/// `eventsByShowIdsProvider([id])` bir widget'ın `build`'inde çağrılınca her
+/// çizimde YENİ bir liste nesnesi oluşur; liste eşitliği kimliğe göre
+/// olduğu için Riverpod bunu her seferinde yeni bir sağlayıcı sanır →
+/// veri gelir, ekran yeniden çizilir, yeni sorgu başlar: sonsuz yükleme
+/// (admin koltuk denetimi ve oyun formundaki seans bölümü böyle
+/// takılıyordu). Bu sağlayıcı tek bir `String` ile anahtarlanır.
+///
+/// Show↔Event kuralı (CLAUDE.md): `Event.showId` doluysa tek doğruluk
+/// kaynağı odur; `Show.eventsId` dizisi yalnızca `showId`'si boş
+/// etkinlikler için yedektir. Sonuç tarihe göre artan sıralıdır
+/// (tarihi okunamayanlar sonda).
+final eventsForShowProvider = FutureProvider.autoDispose
+    .family<List<Event>, String>((final ref, final showId) async {
+  if (showId.isEmpty) return const [];
+
+  final direct = await ref
+      .read(_getEventsByShowIdsUseCaseProvider)
+      .call([showId]).getOrThrow();
+
+  final shows =
+      await ref.read(getShowsByIdsUseCaseProvider).call([showId]).getOrThrow();
+  final directIds = direct.map((final e) => e.id).toSet();
+  final arrayIds = shows
+      .expand((final s) => s.eventsId)
+      .where((final id) => id.isNotEmpty && !directIds.contains(id))
+      .toSet()
+      .toList();
+  final fromArray = arrayIds.isEmpty
+      ? const <Event>[]
+      : (await ref.read(getEventsByIdsUseCaseProvider).call(arrayIds))
+          .getOrThrow()
+          // Başka bir oyuna ait olduğunu söyleyen etkinlik buraya girmez.
+          .where((final e) => e.showId.isEmpty || e.showId == showId)
+          .toList();
+
+  final all = [...direct, ...fromArray]..sort((final a, final b) {
+      final da = DateFormatter.parseDateString(a.date);
+      final db = DateFormatter.parseDateString(b.date);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+  return all;
+});

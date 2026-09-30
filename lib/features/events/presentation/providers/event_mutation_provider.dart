@@ -40,6 +40,7 @@ class EventMutationNotifier extends Notifier<AsyncValue<void>> {
       // `eventsByShowIdsProvider` üzerinden besleniyor (bkz.
       // `show_provider.dart`) — family'nin tamamı invalidate edilir.
       ref.invalidate(eventsByShowIdsProvider);
+      ref.invalidate(eventsForShowProvider);
     });
   }
 
