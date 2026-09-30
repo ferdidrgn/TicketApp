@@ -859,17 +859,24 @@ class AuthWipeReveal extends StatelessWidget {
     this.alignment = Alignment.centerLeft,
   });
 
+  // Dıştaki Align genişlik kısıtını gevşetir: tam genişliğe zorlanan bir
+  // yerde (ör. stretch Column) içteki `widthFactor` yok sayılıyor ve metin
+  // hiç açılmadan görünüyordu. `heightFactor: 1` yüksekliği metne eşitler.
   @override
-  Widget build(final BuildContext context) => AnimatedBuilder(
-        animation: reveal,
-        builder: (final context, final child) => ClipRect(
-          child: Align(
-            alignment: alignment,
-            widthFactor: reveal.value.clamp(0.0001, 1.0),
-            child: child,
+  Widget build(final BuildContext context) => Align(
+        alignment: alignment,
+        heightFactor: 1,
+        child: AnimatedBuilder(
+          animation: reveal,
+          builder: (final context, final child) => ClipRect(
+            child: Align(
+              alignment: alignment,
+              widthFactor: reveal.value.clamp(0.0001, 1.0),
+              child: child,
+            ),
           ),
+          child: child,
         ),
-        child: child,
       );
 }
 
