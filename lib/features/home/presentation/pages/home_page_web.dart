@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../shared/widgets/admin_test_entry.dart';
 
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
@@ -246,7 +247,16 @@ class _HomePageState extends ConsumerState<HomePage>
 
     return Scaffold(
       backgroundColor: cs.surface,
-      body: TicketStage(themed: true, child: body),
+      body: TicketStage(
+        themed: true,
+        child: Column(
+          children: [
+            // Geçici: admin test girişi (release derlemesinde görünmez).
+            const AdminTestStrip(),
+            Expanded(child: body),
+          ],
+        ),
+      ),
     );
   }
 }

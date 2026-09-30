@@ -11,6 +11,7 @@ import '../services/app_check_service.dart';
 import '../services/remote_config_service.dart';
 import '../util/date_formatter.dart';
 import '../util/platform_checker.dart';
+import '../../features/onboarding/data/onboarding_gate.dart';
 import 'firebase_options.dart';
 
 abstract final class AppInitializer {
@@ -27,6 +28,7 @@ abstract final class AppInitializer {
     await Future.wait([
       _safeInitializeRemoteConfig(),
       _safeInitializeAdEngine(),
+      OnboardingGate.load(),
     ]);
 
     debugPrint('🚀 TiyatRol Sistemleri Hazır.');

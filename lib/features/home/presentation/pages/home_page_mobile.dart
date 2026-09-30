@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/admin_test_entry.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -197,6 +198,9 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Geçici: admin panelini rol kontrolü olmadan test
+                      // etme girişi (release derlemesinde görünmez).
+                      const AdminTestStrip(),
                       if (!isLargeScreen)
                         _MobileTopBar(
                           unreadCount: _unreadCount(),

@@ -20,6 +20,7 @@ import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page.dart';
 import '../../../features/notifications/presentation/pages/notification_inbox_page.dart';
+import '../../../features/onboarding/data/onboarding_gate.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
@@ -95,6 +96,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       // Login değilse korumalı sayfaya giremez
       if (!loggedIn && protectedRoutes.any((final r) => path.startsWith(r)))
         return '/login';
+
+      // İlk açılış (sadece mobil, cihazda bir kez): tanıtım.
+      if (OnboardingGate.shouldShow && path == '/app') return '/onboarding';
 
       // Login olmuşsa login sayfasına gidemez
       if (loggedIn && (path == '/login' || path == '/phone-login'))

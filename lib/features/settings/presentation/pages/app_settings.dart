@@ -16,6 +16,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/app_version_provider.dart';
 import '../widgets/preference_widgets.dart';
+import '../../../../shared/widgets/admin_test_entry.dart';
 
 /// AYARLAR — sade bir "tercihler" sayfası. Sahibinin en sevdiği özellik
 /// (5 tema + özel vurgu rengi) en üstte ve artık her seçenek o temanın
@@ -50,7 +51,7 @@ class AppSettingsPage extends ConsumerWidget {
   // `AdminGuard(allowDebugBypass: true)` üstte "TEST MODU" şeridi gösterir.
   void _handleVersionFooterLongPress(
       final BuildContext context, final WidgetRef ref) {
-    if (!ref.read(isUserPrivilegedProvider) && !kDebugMode) return;
+    if (!ref.read(isUserPrivilegedProvider) && !AdminTestAccess.enabled) return;
     HapticFeedback.mediumImpact();
     context.push('/admin');
   }

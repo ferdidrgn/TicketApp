@@ -37,6 +37,13 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   görünüyordu ("basıklıktan kurtar") → afiş 2:3 tam oranında solda, oyun adı
   sağda. Sahibi: "oyunun afişleri de çıksın" — afiş her zaman görünür kalmalı.
 
+- Onboarding "Oyun programı" (I-II-III. perde; gerçek afiş yelpazesi, koltuk
+  sırası, CANLI tema seçimi). Sadece mobilde, ilk açılışta bir kez
+  (`OnboardingGate`). Web'de gösterilmez.
+- "Başa dön": sayfa başına FAB yerine kökte tek global buton
+  (`StageScrollTop`) — temanın vurgu renginde küçük bilet koçanı, "BAŞA".
+  Eski gri yuvarlak (`fab_scroll_up.dart`) artık kullanılmıyor.
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".

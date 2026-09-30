@@ -49,6 +49,7 @@ class _CuratorSeatingAuditPageState
     final seatsStatusAsync = ref.watch(eventSeatsProvider(widget.eventId!));
 
     return AdminGuard(
+      allowDebugBypass: true,
       child: Scaffold(
         backgroundColor: cs.surface,
         body: TicketStage(

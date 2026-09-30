@@ -15,6 +15,7 @@ import 'core/services/deeplink/deeplink_listener_service.dart';
 import 'core/services/fcm_manager_service.dart';
 import 'core/theme/theme_manager.dart';
 import 'core/theme/theme_notifier.dart';
+import 'shared/widgets/button/stage_scroll_top.dart';
 import 'core/util/platform_checker.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 import 'l10n/app_localizations.dart';
@@ -98,7 +99,12 @@ class _MyAppState extends ConsumerState<MyApp> {
               loadingMessage: authMutation.hasError
                   ? 'Bir hata oluştu, lütfen tekrar deneyin.'
                   : 'TiyatRol Sahnesi Hazırlanıyor...',
-              child: isWeb ? child : _MobileSystemUIWrapper(child: child),
+              // Her sayfada çalışan "başa dön" koçanı (tek, global).
+              child: StageScrollTop(
+                routeChanges: _router.routerDelegate,
+                child:
+                    isWeb ? child : _MobileSystemUIWrapper(child: child),
+              ),
             ),
           );
         },

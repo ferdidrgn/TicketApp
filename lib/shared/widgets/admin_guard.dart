@@ -5,11 +5,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/users/presentation/providers/user_provider.dart';
+import 'admin_test_entry.dart';
 
 class AdminGuard extends ConsumerWidget {
   final Widget child;
 
-  /// Sadece geliştirme derlemesinde (`kDebugMode`, yani `flutter run`)
+  /// Sadece test derlemelerinde ([AdminTestAccess.enabled]: `flutter run`)
   /// yetkisiz/girişsiz kullanıcıyı da içeri alır ve üstte "TEST MODU"
   /// şeridi gösterir — admin arayüzünü giriş/rol ayarlamadan test
   /// edebilmek için. Release derlemesinde hiçbir etkisi yok. Bu bir
@@ -25,7 +26,7 @@ class AdminGuard extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final bool debugBypass = kDebugMode && allowDebugBypass;
+    final bool debugBypass = AdminTestAccess.enabled && allowDebugBypass;
 
     // 1. Profil verisini izle
     final userAsync = ref.watch(userProfileProvider);
