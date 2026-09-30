@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../../shared/widgets/ticket/ticket_search.dart';
 
 import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
@@ -89,10 +90,10 @@ class HomeSectionHeader extends StatelessWidget {
   }
 }
 
-/// Sade, temaya bağlı arama "alanı" — dokununca arama sayfasına gider
-/// (gerçek yazma arama sayfasında). Cam/bulanıklık yok; klavye odağında
-/// vurgu renginde kalın kenarlık.
-class HomeSearchField extends StatefulWidget {
+/// Ana sayfanın arama "düğmesi" — ortak "gişe arama fişi"
+/// ([TicketSearchButton]): vurgu renginde arama damgası + dönen gerçek
+/// örnekler. Dokununca arama sayfasına gider (gerçek yazma orada).
+class HomeSearchField extends StatelessWidget {
   final VoidCallback onTap;
   final String hint;
   final bool compact;
@@ -105,64 +106,11 @@ class HomeSearchField extends StatefulWidget {
   });
 
   @override
-  State<HomeSearchField> createState() => _HomeSearchFieldState();
-}
-
-class _HomeSearchFieldState extends State<HomeSearchField> {
-  bool _focused = false;
-  bool _hovered = false;
-
-  @override
-  Widget build(final BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final Color border = _focused
-        ? cs.primary
-        : (_hovered ? cs.outline : cs.outlineVariant);
-    return Semantics(
-      button: true,
-      label: widget.hint,
-      excludeSemantics: true,
-      child: Material(
-        color: cs.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          side: BorderSide(color: border, width: _focused ? 2 : 1),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: widget.onTap,
-          onHover: (final v) => setState(() => _hovered = v),
-          onFocusChange: (final v) => setState(() => _focused = v),
-          mouseCursor: SystemMouseCursors.click,
-          child: SizedBox(
-            height: widget.compact ? 48 : 56,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
-                children: [
-                  Icon(Icons.search_rounded,
-                      size: 22,
-                      color: _focused ? cs.primary : cs.onSurfaceVariant),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      widget.hint,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => TicketSearchButton(
+        onTap: onTap,
+        semanticLabel: hint,
+        compact: compact,
+      );
 }
 
 /// Yatay şerit: dokunma + FARE + trackpad ile sürüklenir; [showArrows]

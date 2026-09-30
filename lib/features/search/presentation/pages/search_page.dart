@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../shared/widgets/ticket/ticket_search.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -8,7 +9,8 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -70,6 +72,7 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage>
     with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
+  bool _fieldFocused = false;
 
   @override
   void dispose() {
@@ -129,47 +132,55 @@ class _SearchPageState extends ConsumerState<SearchPage>
   // Arama kutusu
   // ─────────────────────────────────────────────────────────────────────
 
+  /// Ortak "gişe arama fişi" ([TicketSearchShell]): vurgu renginde arama
+  /// damgası + delik çizgisi + gerçek yazı alanı. Alan boşken dönen gerçek
+  /// örnekler ("Ara: …") gösterilir; yazmaya başlayınca kaybolur.
   Widget _searchField(final BuildContext context, {final bool autofocus = true}) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final OutlineInputBorder base = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      borderSide: BorderSide(color: cs.outlineVariant),
-    );
-    return TextField(
-      controller: _textController,
-      autofocus: autofocus,
-      onChanged: _onQueryChanged,
-      onSubmitted: (final _) => FocusScope.of(context).unfocus(),
-      textInputAction: TextInputAction.search,
-      style: TextStyle(
-        color: cs.onSurface,
-        fontSize: 15.5,
-        fontWeight: FontWeight.w600,
-      ),
-      cursorColor: cs.primary,
-      decoration: InputDecoration(
-        hintText: 'Oyun, oyuncu, sahne ya da ekip ara',
-        hintStyle: TextStyle(color: cs.onSurfaceVariant),
-        filled: true,
-        fillColor: cs.surfaceContainer,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.md + 2),
-        prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
-        suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _textController,
-          builder: (final context, final value, final _) => value.text.isEmpty
-              ? const SizedBox.shrink()
+    return Focus(
+      onFocusChange: (final v) => setState(() => _fieldFocused = v),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _textController,
+        builder: (final context, final value, final _) => TicketSearchShell(
+          focused: _fieldFocused,
+          trailing: value.text.isEmpty
+              ? null
               : IconButton(
                   tooltip: 'Aramayı temizle',
                   icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant),
                   onPressed: _clearQuery,
                 ),
-        ),
-        border: base,
-        enabledBorder: base,
-        focusedBorder: base.copyWith(
-          borderSide: BorderSide(color: cs.primary, width: 1.6),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              if (value.text.isEmpty)
+                const IgnorePointer(child: RotatingSearchHint()),
+              Semantics(
+                label: 'Oyun, oyuncu, sahne ya da ekip ara',
+                textField: true,
+                child: TextField(
+                  controller: _textController,
+                  autofocus: autofocus,
+                  onChanged: _onQueryChanged,
+                  onSubmitted: (final _) => FocusScope.of(context).unfocus(),
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  cursorColor: cs.primary,
+                  decoration: const InputDecoration(
+                    isCollapsed: true,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -467,8 +478,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         _boxed(
           gutter,
           BrowseRail(
-            height: 132,
-            itemWidth: 96,
+            height: _PlayerAvatar.cellHeight,
+            itemWidth: _PlayerAvatar.cellWidth,
             children: [
               for (final p in data.players.take(12)) _PlayerAvatar(player: p),
             ],
@@ -552,8 +563,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
             gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
         sliver: SliverGrid.builder(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 120,
-            mainAxisExtent: 136,
+            maxCrossAxisExtent: _PlayerAvatar.cellWidth + AppSpacing.lg,
+            mainAxisExtent: _PlayerAvatar.cellHeight,
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
           ),
@@ -693,14 +704,36 @@ class _ResultsHeadline extends StatelessWidget {
   }
 }
 
-/// Oyuncu: yuvarlak portre + ad (kişi — bilet değil).
-class _PlayerAvatar extends StatelessWidget {
+/// Oyuncu: eski "el aynası" kartı (sahibinin isteğiyle geri getirildi) —
+/// 84x128 dikey oval portre, ince çerçeve, altta iki satırlık ad. Üzerine
+/// gelince / klavye odağında çerçeve belirginleşir, fotoğraf hafifçe
+/// büyür. `BoxShape.circle` + `ClipOval` kutunun oranına göre elips çizer;
+/// dikey kutu otomatik olarak el aynası ovaline dönüşür. Renkler temadan
+/// (eski sürümdeki sabit altın yerine vurgu rengi).
+class _PlayerAvatar extends StatefulWidget {
   final Player player;
   const _PlayerAvatar({required this.player});
+
+  static const double mirrorWidth = 84;
+  static const double mirrorHeight = 128;
+  static const double cellWidth = 104;
+  static const double cellHeight = mirrorHeight + AppSpacing.md + 32 + 8;
+
+  @override
+  State<_PlayerAvatar> createState() => _PlayerAvatarState();
+}
+
+class _PlayerAvatarState extends State<_PlayerAvatar> {
+  bool _active = false;
+
+  void _set(final bool v) {
+    if (_active != v) setState(() => _active = v);
+  }
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final player = widget.player;
     final String name = '${player.firstName} ${player.lastName}'.trim();
     final String initials = [
       if (player.firstName.isNotEmpty) player.firstName[0],
@@ -713,46 +746,84 @@ class _PlayerAvatar extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          focusColor: cs.primary.withOpacity(0.16),
-          hoverColor: cs.onSurface.withOpacity(0.04),
           onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
+          onHover: _set,
+          onFocusChange: _set,
+          mouseCursor: SystemMouseCursors.click,
+          customBorder: const StadiumBorder(),
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          focusColor: Colors.transparent,
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xs),
+            padding: const EdgeInsets.only(top: 4),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 76,
-                  height: 76,
-                  child: OptimizedCachedImage(
-                    imageUrl: player.imageUrl,
-                    width: 76,
-                    height: 76,
-                    isCircular: true,
-                    errorBuilder: (final _, final __, final ___) => CircleAvatar(
-                      backgroundColor: cs.primary.withOpacity(0.12),
-                      child: Text(
-                        initials,
-                        style: TextStyle(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20,
+                AnimatedContainer(
+                  duration: AppMotion.fast,
+                  curve: AppMotion.standard,
+                  width: _PlayerAvatar.mirrorWidth,
+                  height: _PlayerAvatar.mirrorHeight,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _active
+                          ? cs.primary
+                          : cs.primary.withValues(alpha: 0.28),
+                      width: _active ? 2 : 1,
+                    ),
+                    boxShadow: _active
+                        ? AppShadows.level2(cs.primary)
+                        : AppShadows.level0,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: ClipOval(
+                      child: AnimatedScale(
+                        scale: _active ? 1.08 : 1.0,
+                        duration: AppMotion.normal,
+                        curve: AppMotion.standard,
+                        child: ColoredBox(
+                          color: cs.primary.withValues(alpha: 0.12),
+                          child: OptimizedCachedImage(
+                            imageUrl: player.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (final _, final __, final ___) =>
+                                Center(
+                              child: Text(
+                                initials,
+                                style: TextStyle(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 22,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  name,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    height: 1.2,
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: _PlayerAvatar.cellWidth,
+                  // Sabit yükseklik: iki satırlık uzun isimlerde ızgara
+                  // hücresi taşmasın.
+                  height: 32,
+                  child: Text(
+                    name,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _active ? cs.primary : cs.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                      letterSpacing: 0.1,
+                    ),
                   ),
                 ),
               ],

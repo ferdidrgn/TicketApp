@@ -50,6 +50,12 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   (`kTicketNavBarExtent`); çubuğa asla tüm yüksekliği kaplayan Center/Align
   koyma.
 
+- Arama (01.10.2026): ortak "gişe arama fişi" (`ticket_search.dart`) —
+  vurgu renkli arama damgası + delik çizgisi + dönen GERÇEK örnekler.
+- Arama sayfasında oyuncular: sahibi yeni yuvarlak portreyi beğenmedi,
+  eski "el aynası" (84x128 dikey oval) kart geri getirildi — "çok daha
+  tatlıydı". Oyuncu portreleri için bu dili koru.
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".
