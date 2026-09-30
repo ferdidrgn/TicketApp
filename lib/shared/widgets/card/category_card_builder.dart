@@ -60,9 +60,7 @@ class CategoryCardBuilder extends StatelessWidget {
                           children: [
                             Icon(icon,
                                 size: 50,
-                                color: context.isDarkMode
-                                    ? Colors.white
-                                    : Colors.red),
+                                color: context.colors.primary),
                             const SizedBox(height: 10),
                             Text(title,
                                 style: const TextStyle(

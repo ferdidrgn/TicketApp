@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
+import '../../core/theme/app_spacing.dart';
 import '../navigation/widgets/navigation_button.dart';
 
+/// Bölüm başlığı: (varsa) küçük bilet etiketi + Playfair Display başlık +
+/// (varsa) "tümünü gör" düğmesi. Eski dikey vurgu çubuğu kaldırıldı;
+/// renkler temadan. Genel API aynı.
 class SectionHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -12,11 +17,11 @@ class SectionHeader extends StatelessWidget {
   final Color backgroundColor;
   final Color? textColor;
 
-  /// Ana başlığın rengi (ör. web'in premium temasında altın/beyaz).
-  /// null ise mevcut Material temasındaki gibi davranır.
+  /// Ana başlığın rengi. null ise temanın `onSurface` rengi.
   final Color? titleColor;
 
-  /// Sol taraftaki vurgu çubuğunun rengi. null ise `context.colors.primary`.
+  /// Üst etiketin (subtitle) rengi. null ise `textColor`, o da yoksa
+  /// temanın `primary` rengi.
   final Color? accentColor;
 
   const SectionHeader({
@@ -35,39 +40,54 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final effectiveColor = textColor ?? context.primaryColor.withOpacity(0.8);
-    final effectiveAccent = accentColor ?? context.colors.primary;
-    final effectiveTitleColor = titleColor ?? context.colors.onSurface;
+    final cs = context.colors;
+    final Color labelColor = textColor ?? accentColor ?? cs.primary;
+    final Color effectiveTitleColor = titleColor ?? cs.onSurface;
 
-    final textStyle = context.textTheme.headlineMedium!.copyWith(
-        color: effectiveColor, fontSize: fontSize, fontWeight: fontWeight);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5)
-          .copyWith(top: 30),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(width: 4, height: 24, color: effectiveAccent),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (subtitle != null)
-                  Text(subtitle!.toUpperCase(),
-                      style: textStyle.copyWith(letterSpacing: 2.0)),
-                Text(title,
-                    style: TextStyle(
+    return ColoredBox(
+      color: backgroundColor,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl, AppSpacing.xxxl, AppSpacing.lg, AppSpacing.xs),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (subtitle != null) ...[
+                    Text(
+                      subtitle!.toUpperCase(),
+                      style: TextStyle(
+                        color: labelColor,
+                        fontSize: fontSize,
+                        fontWeight: fontWeight,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                  ],
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      title,
+                      style: GoogleFonts.playfairDisplay(
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                         color: effectiveTitleColor,
-                        letterSpacing: -0.5)),
-              ],
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (onTap != null) NavigationButton(onTap: onTap),
-        ],
+            if (onTap != null) ...[
+              const SizedBox(width: AppSpacing.md),
+              NavigationButton(onTap: onTap),
+            ],
+          ],
+        ),
       ),
     );
   }

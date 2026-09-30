@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
-import 'button/back_button_glassmorphism.dart';
+import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_spacing.dart';
+import '../navigation/widgets/nav_handler.dart';
 
+/// Geri butonlu ortak sayfa başlığı (`BasePageWrapper` ve birkaç detay
+/// sayfası kullanıyor). Bilet dilindeki başlıklarla aynı: Playfair Display,
+/// temanın metin renginde — eski gradyan boyalı (ShaderMask) yazı ve buzlu
+/// cam geri butonu kaldırıldı. Genel API (title/subtitle/rightIcon/
+/// showBackButton) aynı.
 class TopHeaderWithBackButton extends StatelessWidget {
   final String? title;
   final String? subtitle;
@@ -23,58 +31,58 @@ class TopHeaderWithBackButton extends StatelessWidget {
     if (!hasTitle && !hasSubtitle && !showBackButton)
       return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+    final cs = context.colors;
+    // Akışkan başlık: 360px telefonda 28, geniş ekranda 34.
+    final double w = MediaQuery.sizeOf(context).width;
+    final double titleSize =
+        28 + 6 * ((w - 360) / (1024 - 360)).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.xl, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 💡 Row'u CrossAxisAlignment.center yaparak tüm elemanları
-          // dikeyde tek bir çizgiye (merkeze) oturtuyoruz.
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 1. Sol Kısım: Geri Butonu
               if (showBackButton)
                 const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: GlassmorphismBackButton(),
+                  padding: EdgeInsets.only(right: AppSpacing.md),
+                  child: _HeaderBackButton(),
                 ),
 
               // 2. Orta Kısım: Başlık
               if (hasTitle)
                 Expanded(
-                  child: ShaderMask(
-                    shaderCallback: (final Rect bounds) => LinearGradient(
-                      colors: context.appGradient(isActive: true),
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ).createShader(bounds),
+                  child: Semantics(
+                    header: true,
                     child: Text(
                       title!,
-                      // 💡 Center hizalamada yazının alt/üst boşlukları (leading)
-                      // dengeyi bozmaması için height: 1.0 kritik.
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        fontFamily: 'Serif',
-                        letterSpacing: -1.5,
-                        color: Colors.white,
-                        height: 1.0,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.w800,
+                        color: cs.onSurface,
+                        letterSpacing: -0.5,
+                        height: 1.08,
                       ),
                     ),
                   ),
-                ),
+                )
+              else
+                const Spacer(),
 
-              // 3. Sağ Kısım: İkon
+              // 3. Sağ Kısım: İkon (bilgi amaçlı, soluk)
               if (rightIcon != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Icon(
-                    rightIcon,
-                    color: context.colors.primary.withOpacity(0.5),
-                    size: 28,
+                  padding: const EdgeInsets.only(left: AppSpacing.md),
+                  child: ExcludeSemantics(
+                    child: Icon(rightIcon,
+                        color: cs.onSurfaceVariant, size: 24),
                   ),
                 ),
             ],
@@ -82,21 +90,60 @@ class TopHeaderWithBackButton extends StatelessWidget {
 
           // Alt Başlık (Subtitle)
           if (hasSubtitle) ...[
-            const SizedBox(height: 12),
-            // Boşluğu biraz artırarak ferahlık sağladık
+            const SizedBox(height: AppSpacing.sm),
             Padding(
-              padding: EdgeInsets.only(left: showBackButton ? 52 : 0),
+              // Geri butonu (48) + aralık (12) hizasında başlar.
+              padding: EdgeInsets.only(
+                  left: showBackButton ? 48 + AppSpacing.md : 0),
               child: Text(
                 subtitle!,
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant.withOpacity(0.7),
-                  fontStyle: FontStyle.italic,
-                  height: 1.2,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 14,
+                  height: 1.4,
                 ),
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 48×48 geri butonu: temanın çizgi rengiyle ince çerçeve, hover'da hafif
+/// zemin, klavye odağında vurgu tonu.
+class _HeaderBackButton extends StatelessWidget {
+  const _HeaderBackButton();
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = context.colors;
+    return Semantics(
+      button: true,
+      label: 'Geri',
+      excludeSemantics: true,
+      child: Tooltip(
+        message: 'Geri',
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Material(
+            type: MaterialType.transparency,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              side: BorderSide(color: cs.outlineVariant),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => NavigationHandler.smartGoBack(context),
+              focusColor: cs.primary.withOpacity(0.16),
+              hoverColor: cs.onSurface.withOpacity(0.05),
+              child: Icon(Icons.arrow_back_rounded,
+                  size: 22, color: cs.onSurface),
+            ),
+          ),
+        ),
       ),
     );
   }

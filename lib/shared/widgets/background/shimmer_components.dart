@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 
+
+/// İskelet tonları temanın kendi yüzeyinden türetilir (5 tema + web'in
+/// koyu teması): zemin = yüzey üstünde hafif mürekkep, parıltı = biraz daha
+/// koyu/açık. Sabit gri kullanılmıyor — koyu temada açık gri bir blok
+/// (eski `FullPageShimmer`) göz alıyordu.
+Color shimmerBaseOf(final BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+  return Color.alphaBlend(cs.onSurface.withOpacity(0.07), cs.surface);
+}
+
+Color shimmerHighlightOf(final BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+  return Color.alphaBlend(cs.onSurface.withOpacity(0.14), cs.surface);
+}
+
 // --- 1. TEMEL PARLAMA EFEKTİ (Shimmer Box) ---
 class ShimmerLoading extends StatelessWidget {
   final double height;
@@ -19,9 +34,8 @@ class ShimmerLoading extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Shimmer.fromColors(
-        baseColor: context.isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-        highlightColor:
-            context.isDarkMode ? Colors.grey[600]! : Colors.grey[100]!,
+        baseColor: shimmerBaseOf(context),
+        highlightColor: shimmerHighlightOf(context),
         child: Container(
           width: width,
           height: height,
@@ -128,8 +142,8 @@ class FullPageShimmer extends StatelessWidget {
   Widget build(final BuildContext context) {
     // Shimmer.fromColors en üstte olursa, içindeki tüm alt elemanlar senkronize parlar.
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: shimmerBaseOf(context),
+      highlightColor: shimmerHighlightOf(context),
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         child: Column(
@@ -227,9 +241,8 @@ class ArtisticPageShimmer extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Shimmer.fromColors(
-        baseColor: context.isDarkMode ? Colors.grey[900]! : Colors.grey[300]!,
-        highlightColor:
-            context.isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
+        baseColor: shimmerBaseOf(context),
+        highlightColor: shimmerHighlightOf(context),
         child: SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Column(
@@ -313,9 +326,8 @@ class ArtisticWebShimmer extends StatelessWidget {
   Widget build(final BuildContext context) {
     // Tek bir Shimmer.fromColors tüm sayfayı senkronize parlatır
     return Shimmer.fromColors(
-      baseColor: context.isDarkMode ? Colors.grey[900]! : Colors.grey[300]!,
-      highlightColor:
-          context.isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
+      baseColor: shimmerBaseOf(context),
+      highlightColor: shimmerHighlightOf(context),
       child: CustomScrollView(
         physics: const NeverScrollableScrollPhysics(),
         slivers: [

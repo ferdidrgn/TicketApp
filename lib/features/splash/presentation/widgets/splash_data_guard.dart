@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_motion.dart';
 import '../pages/splash_page.dart';
 
 /// Bu widget, verilen provider'ların yüklenme durumunu kontrol eder.
@@ -43,7 +44,7 @@ class _DataSplashGuardState extends ConsumerState<SplashDataGuard> {
     if (oldWidget.isLoading && !widget.isLoading)
       // Küçük bir gecikme ekleyerek "yanıp sönme" efektini engelle
       // ve transition'ın pürüzsüz olmasını sağla
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(AppMotion.normal, () {
         if (mounted) setState(() => _showContent = true);
       });
   }
@@ -61,8 +62,8 @@ class _DataSplashGuardState extends ConsumerState<SplashDataGuard> {
           // 1. Gerçek Sayfa (Altta durur, hazır olunca görünür olur)
           // Offstage yerine Opacity veya Visibility kullanıyoruz ki tree'de olsun ama görünmesin
           AnimatedOpacity(
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeInOut,
+            duration: AppMotion.slow,
+            curve: AppMotion.symmetric,
             opacity: _showContent ? 1.0 : 0.0,
             child: widget.child,
           ),
@@ -73,8 +74,8 @@ class _DataSplashGuardState extends ConsumerState<SplashDataGuard> {
             ignoring: _showContent,
             // İçerik göründüyse splash'e tıklanamasın (zaten yok olacak)
             child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeInOut,
+              duration: AppMotion.slow,
+              curve: AppMotion.symmetric,
               opacity: _showContent ? 0.0 : 1.0,
               child: SplashPage(loadingMessage: widget.loadingMessage),
             ),

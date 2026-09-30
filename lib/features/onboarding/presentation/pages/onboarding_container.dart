@@ -1,16 +1,69 @@
-import 'dart:math';
-
-import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/base/base_page_wrapper.dart';
-import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
-import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import 'package:ticketapp/shared/widgets/ticket/ticket_kit.dart';
 
+/// Bir tanıtım adımı: gerçek bir sıra (bul → seç → al), bu yüzden
+/// numaralı.
+class _OnboardingStep {
+  final String kind;
+  final String title;
+  final String message;
+  final IconData icon;
+
+  const _OnboardingStep({
+    required this.kind,
+    required this.title,
+    required this.message,
+    required this.icon,
+  });
+}
+
+/// Uygulamanın gerçekte yaptığı üç iş — başka bir şey vaat edilmiyor.
+const List<_OnboardingStep> _kSteps = [
+  _OnboardingStep(
+    kind: 'KEŞFET',
+    title: 'Oyunu bul',
+    message:
+        'Sahnelerde ne oynuyor, tek yerde gör: oyunlar, topluluklar, '
+        'oyuncular ve sahneler.',
+    icon: Icons.explore_rounded,
+  ),
+  _OnboardingStep(
+    kind: 'SEANS',
+    title: 'Seansını seç',
+    message:
+        'Tarihe ve saate göre seansları karşılaştır; Yakındakiler ile '
+        'sana en yakın sahneleri haritada bul.',
+    icon: Icons.event_rounded,
+  ),
+  _OnboardingStep(
+    kind: 'BİLET',
+    title: 'Koltuğunu al',
+    message:
+        'Koltuk planından yerini seç; biletin QR koduyla Biletlerim\'de '
+        'hazır. Bazı oyunların biletleri resmi satış sitesinde — seni '
+        'oraya yönlendiririz.',
+    icon: Icons.confirmation_number_rounded,
+  ),
+];
+
+/// ONBOARDING — "bilet dili".
+///
+/// Karanlık sahnede (giriş ekranı gibi bir "an") tek bir fiziksel bilet:
+/// gövdesinde adımın başlığı ve açıklaması, koçanında adım numarası + TEK
+/// birincil aksiyon (damga butonu). Son adımda koçan yırtılır ve ana
+/// sayfaya geçilir. Her adımda sağ üstte "Atla" var; Android geri tuşu /
+/// "Geri" bir önceki adıma döner.
+///
+/// Yönlendirme mantığı korunuyor: tamamlanınca (ve atlanınca)
+/// `NavigationHandler.goToHome`. Eski konfeti ve 7.7MB'lık
+/// `main_theatre.png` arka planı kaldırıldı.
 class OnboardingContainer extends ConsumerStatefulWidget {
   const OnboardingContainer({super.key});
 
@@ -20,211 +73,325 @@ class OnboardingContainer extends ConsumerStatefulWidget {
 }
 
 class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
-    with SingleTickerProviderStateMixin {
-  // 🎉 Onboarding tamamlandığında kısa bir kutlama patlaması için.
-  late final ConfettiController _confettiController;
+    with TickerProviderStateMixin {
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final AnimationController _headline =
+      AnimationController(vsync: this, duration: AppMotion.normal);
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.normal);
 
-  // 🎬 Girişte içeriğin (başlık/alt başlık/buton) sahneye deliberate bir
-  // şekilde süzülerek gelmesi için — show_detail sayfasındaki reveal
-  // animasyonuyla aynı hareket dilini (AppMotion) kullanır.
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _ticketIn =
+      CurvedAnimation(parent: _entrance, curve: AppMotion.standard);
+  late final Animation<double> _headlineCurve =
+      CurvedAnimation(parent: _headline, curve: AppMotion.dramatic);
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
+
+  int _step = 0;
+  bool _started = false;
+  bool _leaving = false;
+
+  bool get _reduceMotion => MediaQuery.of(context).disableAnimations;
+  bool get _isLast => _step == _kSteps.length - 1;
 
   @override
-  void initState() {
-    super.initState();
-    _confettiController = ConfettiController(duration: AppMotion.slow);
-
-    _entranceController =
-        AnimationController(duration: AppMotion.slow, vsync: this);
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
-    );
-    _entranceController.forward();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (_reduceMotion) {
+      _entrance.value = 1;
+      _headline.value = 1;
+    } else {
+      _entrance.forward();
+      _headline.forward();
+    }
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();
-    _entranceController.dispose();
+    _entrance.dispose();
+    _headline.dispose();
+    _tear.dispose();
     super.dispose();
   }
 
-  // 🎉 Onboarding'in tamamlandığı TEK an burası: kullanıcı "KEŞFETMEYE
-  // BAŞLA"ya bastığında konfeti patlatılır, kısa bir süre görünür kalması
-  // için beklenir ve ardından ana sayfaya geçilir.
-  Future<void> _completeOnboarding(final BuildContext context) async {
-    _confettiController.play();
-    await Future.delayed(AppMotion.slow);
-    if (!context.mounted) return;
+  void _goTo(final int step) {
+    if (step < 0 || step >= _kSteps.length || step == _step) return;
+    HapticFeedback.selectionClick();
+    setState(() => _step = step);
+    if (_reduceMotion) {
+      _headline.value = 1;
+    } else {
+      _headline.forward(from: 0);
+    }
+  }
+
+  // Onboarding'in tamamlandığı TEK an: koçan yırtılır, ana sayfaya geçilir.
+  Future<void> _completeOnboarding() async {
+    if (_leaving) return;
+    _leaving = true;
+    HapticFeedback.lightImpact();
+    if (!_reduceMotion) await _tear.forward(from: 0);
+    if (!mounted) return;
     NavigationHandler.goToHome(context);
+  }
+
+  void _skip() {
+    if (_leaving) return;
+    _leaving = true;
+    NavigationHandler.goToHome(context);
+  }
+
+  void _onPrimary() {
+    if (_isLast) {
+      _completeOnboarding();
+    } else {
+      _goTo(_step + 1);
+    }
   }
 
   @override
   Widget build(final BuildContext context) {
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final bool wide = MediaQuery.sizeOf(context).width >= 768;
+    final _OnboardingStep step = _kSteps[_step];
 
-    return BasePageWrapper(
-      showBackButton: false, // Onboarding'de geri butonu olmaz
-      showFab: false,
-      layoutConfig: const BasePageLayoutConfig(
-        safeAreaTop: false,
-        safeAreaBottom: false,
-        extendBody: true,
+    final Widget ticket = AdmitTicket(
+      direction: wide ? Axis.horizontal : Axis.vertical,
+      stubExtent: 240,
+      tear: _tearCurve,
+      body: _StepBody(
+        step: step,
+        index: _step,
+        headline: _headlineCurve,
       ),
-      child: Stack(
-        children: [
-          // 1. TAM EKRAN ARKA PLAN (Görsel Derinlik)
-          _buildHeroBackground(),
+      stub: _StepStub(
+        index: _step,
+        count: _kSteps.length,
+        primaryLabel: _isLast ? 'Keşfetmeye başla' : 'Devam',
+        onPrimary: _onPrimary,
+        onBack: _step > 0 ? () => _goTo(_step - 1) : null,
+        wide: wide,
+      ),
+    );
 
-          // 2. GRADIENT OVERLAY (Yazıların okunması için)
-          _buildGradientOverlay(),
-
-          // 3. İÇERİK (Responsive ve Ortalı)
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 500 : double.infinity),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxxl, vertical: AppSpacing.huge),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTitle(context),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildSubtitle(context),
-                          const SizedBox(height: AppSpacing.massive),
-                          _buildStartButton(context),
-                        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (final didPop, final _) {
+          if (didPop) return;
+          if (_step > 0) {
+            _goTo(_step - 1);
+          } else {
+            NavigationHandler.smartGoBack(context);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: WebColors.darkBlueBackground,
+          body: TicketStage(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Üst satır: marka + Atla (her adımda).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
+                        AppSpacing.sm, AppSpacing.sm, 0),
+                    child: Row(
+                      children: [
+                        Text(
+                          'TİYATROL',
+                          style: GoogleFonts.playfairDisplay(
+                            color: TicketInk.paper,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _skip,
+                          style: TextButton.styleFrom(
+                            foregroundColor: TicketInk.paper,
+                            minimumSize: const Size(64, 48),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg),
+                          ),
+                          child: const Text(
+                            'Atla',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      // Kaydırma jesti — butonların kısayolu, tek yol değil.
+                      onHorizontalDragEnd: (final d) {
+                        final double v = d.primaryVelocity ?? 0;
+                        if (v < -250 && !_isLast) _goTo(_step + 1);
+                        if (v > 250) _goTo(_step - 1);
+                      },
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                              AppSpacing.xl, AppSpacing.lg, AppSpacing.huge),
+                          child: SizedBox(
+                            width: wide ? 680 : 400,
+                            child: AnimatedBuilder(
+                              animation: _ticketIn,
+                              builder: (final context, final child) => Opacity(
+                                opacity: _ticketIn.value,
+                                child: Transform.translate(
+                                  offset:
+                                      Offset(0, (1 - _ticketIn.value) * 48),
+                                  child: child,
+                                ),
+                              ),
+                              child: ticket,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
 
-          // 4. KUTLAMA KONFETİSİ (Onboarding tamamlanma anı)
-          _buildConfetti(context),
+class _StepBody extends StatelessWidget {
+  final _OnboardingStep step;
+  final int index;
+  final Animation<double> headline;
+
+  const _StepBody({
+    required this.step,
+    required this.index,
+    required this.headline,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final Color accent = TicketInk.accentOf(context);
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TicketHeaderStrip(kind: step.kind),
+          const SizedBox(height: AppSpacing.xxl),
+          Icon(step.icon, size: 28, color: accent),
+          const SizedBox(height: AppSpacing.lg),
+          Semantics(
+            header: true,
+            // Align: sütun "stretch" iken sıkı genişlik perde açılışını
+            // (widthFactor) etkisiz bırakırdı.
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: AuthWipeReveal(
+                reveal: headline,
+                child: Text(step.title, style: TicketInk.headline(34)),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AnimatedSwitcher(
+            duration: AppMotion.fast,
+            layoutBuilder: (final current, final previous) => Stack(
+              alignment: Alignment.topLeft,
+              children: [...previous, if (current != null) current],
+            ),
+            child: Text(
+              step.message,
+              key: ValueKey(index),
+              style: TextStyle(
+                color: TicketInk.inkSoft(0.75),
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  // 🔥 DÜZELTME: `assets/images/onboarding_hero.jpg` HİÇ VAR OLMAYAN bir
-  // dosyaydı ("Kendi görselinle değiştir abi" yorumu bunun bilinçli bir
-  // yer tutucu olduğunu gösteriyor) — bu yüzden uygulamanın ilk açılış
-  // ekranı her zaman kırık/boş bir görselle render ediliyordu. `pubspec.
-  // yaml`'da zaten deklare edilmiş ama kodda HİÇBİR YERDE kullanılmayan
-  // gerçek bir tiyatro fotoğrafı (`main_theatre.png`) vardı — yeni bir
-  // görsel icat etmek yerine onu bağladık.
-  Widget _buildHeroBackground() => Positioned.fill(
-        child: Image.asset(
-          'assets/images/main_theatre.png',
-          fit: BoxFit.cover,
-        ),
-      );
+class _StepStub extends StatelessWidget {
+  final int index;
+  final int count;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final VoidCallback? onBack;
+  final bool wide;
 
-  Widget _buildGradientOverlay() => Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.2),
-                Colors.black.withOpacity(0.5),
-                Colors.black.withOpacity(0.9),
-              ],
-            ),
-          ),
-        ),
-      );
+  const _StepStub({
+    required this.index,
+    required this.count,
+    required this.primaryLabel,
+    required this.onPrimary,
+    required this.onBack,
+    required this.wide,
+  });
 
-  Widget _buildTitle(final BuildContext context) => const Text(
-        'SANATIN\nKAPILARI\nAÇILIYOR',
-        style: TextStyle(
-          fontSize: 42,
-          height: 0.9,
-          fontWeight: FontWeight.w900,
-          color: Colors.white,
-          letterSpacing: -1.5,
-        ),
-      );
+  @override
+  Widget build(final BuildContext context) {
+    final Color accent = TicketInk.accentOf(context);
+    final String number = '${index + 1}'.padLeft(2, '0');
+    final String total = '$count'.padLeft(2, '0');
 
-  Widget _buildSubtitle(final BuildContext context) => Opacity(
-        opacity: 0.8,
-        child: Text(
-          'Şehrin en iyi sahneleri, küratör seçkileri ve benzersiz deneyimler koleksiyonunda seni bekliyor.',
-          style: context.textTheme.bodyLarge?.copyWith(
-            color: Colors.white,
-            height: 1.5,
-          ),
-        ),
-      );
-
-  Widget _buildStartButton(final BuildContext context) => Semantics(
-        button: true,
-        label: 'Keşfetmeye başla',
-        child: GestureDetector(
-          onTap: () => _completeOnboarding(context),
-          child: Container(
-            width: double.infinity,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [context.colors.primary, context.colors.secondary],
-              ),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadows.level3(context.colors.primary),
-            ),
-            child: const Center(
-              child: Text(
-                'KEŞFETMEYE BAŞLA',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                ),
+    final Widget progress = Semantics(
+      label: 'Adım ${index + 1} / $count',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          for (int i = 0; i < count; i++) ...[
+            if (i > 0) const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: AnimatedContainer(
+                duration: AppMotion.fast,
+                height: 3,
+                color: i <= index ? accent : TicketInk.inkSoft(0.15),
               ),
             ),
-          ),
-        ),
-      );
+          ],
+        ],
+      ),
+    );
 
-  // 🎉 Konfeti, ekranın üst ortasından aşağı doğru kısa ve zarif bir patlama
-  // yapar. Sayfanın Material tema renkleriyle (buton gradyanıyla aynı)
-  // uyumlu olsun diye context.colors kullanılıyor.
-  Widget _buildConfetti(final BuildContext context) => Align(
-        alignment: Alignment.topCenter,
-        child: IgnorePointer(
-          child: ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirection: pi / 2, // aşağı doğru
-            maxBlastForce: 10,
-            minBlastForce: 4,
-            emissionFrequency: 0.08,
-            numberOfParticles: 16,
-            gravity: 0.3,
-            shouldLoop: false,
-            colors: [
-              context.colors.primary,
-              context.colors.secondary,
-              Colors.white,
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TicketField(label: 'ADIM', value: '$number / $total'),
+              ),
+              if (onBack != null)
+                TicketTextLink(label: 'Geri', onTap: onBack),
             ],
           ),
-        ),
-      );
+          const SizedBox(height: AppSpacing.md),
+          progress,
+          SizedBox(height: wide ? AppSpacing.xxl : AppSpacing.xl),
+          TicketStampButton(label: primaryLabel, onTap: onPrimary),
+        ],
+      ),
+    );
+  }
 }

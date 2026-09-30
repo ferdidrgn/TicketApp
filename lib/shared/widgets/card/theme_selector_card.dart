@@ -2,114 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/common/enum/enums.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../core/theme/app_motion.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_notifier.dart';
 
+/// Tema seçici (Profil sayfası). 6 seçenek (5 hazır stil + Özel renk) —
+/// hepsi AYNI anda etiketleriyle görünür; seçili olan, bilet dilindeki gibi
+/// temanın vurgusuyla çerçevelenmiş bir "damga" kutusu. Eski parlayan
+/// hale (glow) ve sadece seçilince beliren etiketler kaldırıldı. Seçim
+/// mantığı (`themeProvider.setTheme`) aynı.
 class ThemeSelectorCard extends ConsumerWidget {
   const ThemeSelectorCard({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final currentStyle = ref.watch(themeProvider);
-    final isDark = context.isDarkMode;
+    final cs = context.colors;
 
     // Sistemden gelen dinamik renk (Yoksa varsayılan tema rengi)
-    final systemColor = context.colors.primary;
+    final systemColor = cs.primary;
     // Kullanıcının Ayarlar > Tema Rengi'nden seçtiği özel renk (henüz
     // seçilmediyse null — bu durumda systemColor'a düşer)
     final customColor = ref.watch(customAccentColorProvider);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, // Başlığı sola alır
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // --- BAŞLIK ---
         Padding(
-          padding: const EdgeInsets.only(left: 16.0, bottom: 16.0),
-          child: Text(
-            "TEMA",
-            style: TextStyle(
-              fontSize: 11,
-              letterSpacing: 3,
-              fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white54 : Colors.black54,
+          padding: const EdgeInsets.only(
+              left: AppSpacing.lg, bottom: AppSpacing.md),
+          child: Semantics(
+            header: true,
+            child: Text(
+              "TEMA",
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 2.4,
+                fontWeight: FontWeight.w800,
+                color: cs.onSurfaceVariant,
+              ),
             ),
           ),
         ),
 
-        // --- TUVAL (KAPSAYICI) ---
+        // --- SEÇENEKLER ---
         Center(
-          child: Container(
-            height: 75,
-            // 5 buton için hafif yükseklik artışı
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 400),
+          child: ConstrainedBox(
             // Tablette aşırı uzamasın
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color:
-                  isDark ? Colors.black.withOpacity(0.4) : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(50), // Daha modern oval
-              border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.08) : Colors.white,
-                width: 1.5,
-              ),
-              boxShadow: [
-                if (!isDark)
-                  BoxShadow(
-                    color: Colors.grey.shade300,
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 1. KATMAN: GLOW (SEÇİM IŞIĞI)
-                AnimatedAlign(
-                  duration: const Duration(milliseconds: 450),
-                  curve: Curves.easeOutBack, // Elastik geçiş
-                  alignment: currentStyle.alignment,
-                  child: Container(
-                    width: 70,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: currentStyle
-                              .getGlowColor(systemColor)
-                              .withOpacity(0.5),
-                          blurRadius: 25,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                      gradient: RadialGradient(
-                        colors: [
-                          currentStyle
-                              .getGlowColor(systemColor)
-                              .withOpacity(0.4),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 2. KATMAN: BUTONLAR (6 ADET — 5 hazır stil + Özel renk)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: AppThemeStyle.values.map((final style) {
-                    return _ArtisticButton(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Row(
+                children: AppThemeStyle.values.map((final style) {
+                  return Expanded(
+                    child: _ArtisticButton(
                       style: style,
                       isSelected: currentStyle == style,
-                      activeColor:
-                          style.getGlowColor(systemColor, customColor: customColor),
+                      activeColor: style.getGlowColor(systemColor,
+                          customColor: customColor),
                       onTap: () =>
                           ref.read(themeProvider.notifier).setTheme(style),
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
@@ -196,6 +154,8 @@ extension AppThemeStyleUI on AppThemeStyle {
 }
 
 /// --- ALT BİLEŞEN: BUTON ---
+/// Renk örneği (seçeneğin kendi rengi — bilgi taşır) + her zaman görünen
+/// etiket. Seçiliyse temanın vurgusuyla 2px çerçeve.
 class _ArtisticButton extends StatelessWidget {
   final AppThemeStyle style;
   final bool isSelected;
@@ -211,55 +171,70 @@ class _ArtisticButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactiveColor = isDark ? Colors.white24 : Colors.black26;
+    final cs = context.colors;
+    final Color onSwatch =
+        ThemeData.estimateBrightnessForColor(activeColor) == Brightness.dark
+            ? Colors.white
+            : Colors.black;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque, // Tıklama alanını genişletir
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        // Seçili ikon yukarı doğru hafifçe süzülür
-        transform: Matrix4.translationValues(0, isSelected ? -4 : 0, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // İkon Kutusu
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? activeColor.withOpacity(0.1) // Hafif renkli background
-                    : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                style.icon,
-                size: isSelected ? 22 : 20,
-                color: isSelected ? activeColor : inactiveColor,
-              ),
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Tema: ${style.label}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Material(
+          type: MaterialType.transparency,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+            side: BorderSide(
+              color: isSelected ? cs.primary : Colors.transparent,
+              width: 2,
             ),
-
-            // Etiket Animasyonu
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: isSelected ? 1.0 : 0.0,
-              child: Container(
-                margin: const EdgeInsets.only(top: 4),
-                child: Text(
-                  style.label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: activeColor,
-                  ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            focusColor: cs.primary.withOpacity(0.16),
+            hoverColor: cs.onSurface.withOpacity(0.05),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 72),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: AppMotion.fast,
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      child: Icon(style.icon, size: 16, color: onSwatch),
+                    ),
+                    const SizedBox(height: AppSpacing.xs + 2),
+                    Text(
+                      style.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w500,
+                        color:
+                            isSelected ? cs.onSurface : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
