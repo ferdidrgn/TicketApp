@@ -266,7 +266,7 @@ class FavoriteShowsView extends ConsumerWidget {
         _notice(FavoriteErrorNotice(
           title: 'Favori oyunların yüklenemedi',
           onRetry: () => ref.invalidate(showsByIdsProvider(ids)),
-        ) as TicketNotice),
+        )),
       ],
       data: (final shows) {
         if (shows.isEmpty) {
@@ -393,7 +393,7 @@ class FavoriteStagesView extends ConsumerWidget {
         _notice(FavoriteErrorNotice(
           title: 'Favori sahnelerin yüklenemedi',
           onRetry: () => ref.invalidate(stagesByIdsProvider(ids)),
-        ) as TicketNotice),
+        )),
       ],
       data: (final List<Stage> stages) => stages.isEmpty
           ? [_notice(_emptyNotice(context, FavoriteKind.stages, missing: true))]
@@ -453,7 +453,7 @@ class FavoritePlayersView extends ConsumerWidget {
         _notice(FavoriteErrorNotice(
           title: 'Favori sanatçıların yüklenemedi',
           onRetry: () => ref.invalidate(playersByIdsProvider(ids)),
-        ) as TicketNotice),
+        )),
       ],
       data: (final List<Player> players) => players.isEmpty
           ? [
