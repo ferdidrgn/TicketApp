@@ -28,10 +28,17 @@ Sahibinin güncel kararları (28.09.2026):
   kart, her ekranda perde/spot/parlama süsü, hotlink stok fotoğraf.
 
 Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
-(asymSm/asymLg HARİÇ), `AppMotion`, `AppShadows.levelN(tint)` — ham
+(asymSm/asymLg 30.09.2026'da tamamen kaldırıldı), `AppMotion`,
+`AppShadows.levelN(tint)` — ham
 `EdgeInsets`/`BorderRadius.circular(N)`/`BoxShadow`/`Duration` yerine bunlar.
 
 ## Yerleşik desenler
+
+- **Bilet dili (onaylı imza):** `lib/shared/widgets/ticket/` — `ticket_kit.dart`
+  (temel parçalar), `ticket_listing.dart` (oyun/seans bilet satırları, boş/hata
+  durumu), `seat_plan.dart` (salon planı), `ticket_profile.dart` (oyuncu/sahne/
+  topluluk künye sayfaları). Oyun kartı: `lib/shared/widgets/theatre_show_card.dart`.
+  Yeni ekran bunları kullanır; yeni bir görsel dil icat edilmez.
 
 - **Footer**: `lib/shared/widgets/footers/footer.dart` — web sayfalarının
   kayan içeriğinin en altına `const Footer()`. Sabit viewport'lu sayfalara
