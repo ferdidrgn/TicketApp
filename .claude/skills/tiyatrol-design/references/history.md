@@ -44,6 +44,12 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   (`StageScrollTop`) — temanın vurgu renginde küçük bilet koçanı, "BAŞA".
   Eski gri yuvarlak (`fab_scroll_up.dart`) artık kullanılmıyor.
 
+- Alt menü (01.10.2026, "sıfırdan farklı"): yüzen "bilet şeridi" — iki yanda
+  zımba çentikleri, aktif sekme vurgu renginde kayan koçan. Eski düz şerit
+  + üst çizgideki zımba çentiği değiştirildi. Yükseklik sabit
+  (`kTicketNavBarExtent`); çubuğa asla tüm yüksekliği kaplayan Center/Align
+  koyma.
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".

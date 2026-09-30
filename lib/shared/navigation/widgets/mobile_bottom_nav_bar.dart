@@ -75,8 +75,8 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        // Sistem gezinme şeridi çubukla aynı renkte — tek parça görünür.
-        systemNavigationBarColor: cs.surfaceContainer,
+        // Sistem gezinme şeridi sayfa zemininde — bilet şeridi üstünde yüzer.
+        systemNavigationBarColor: cs.surface,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarIconBrightness:
             context.isDarkMode ? Brightness.light : Brightness.dark,

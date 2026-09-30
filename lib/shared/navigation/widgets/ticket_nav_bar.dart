@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_motion.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Kabuğun (shell) dört sekmesi — mobil alt çubuk, dar web alt çubuğu ve
@@ -117,10 +119,26 @@ class _PunchPainter extends CustomPainter {
       old.hole != hole || old.rim != rim || old.opensDown != opensDown;
 }
 
-/// Alt gezinme çubuğu (mobil uygulama + dar web). Temanın yüzeyinde,
-/// üst kenarında ince çizgi; aktif sekme dolu ikon + kalın etiket + çizgiye
-/// açılmış zımba çentiğiyle belli olur. Etiketler her zaman görünür,
-/// her hedef en az 64×48.
+/// Alt çubuğun ekranda kapladığı toplam yükseklik (güvenli alan hariç) —
+/// üstündeki yüzen öğeler (ör. "başa dön" koçanı) buna göre konumlanır.
+const double kTicketNavBarExtent = _barHeight + _barTop + _barBottom;
+
+const double _barHeight = 64;
+const double _barTop = AppSpacing.sm - 2;
+const double _barBottom = AppSpacing.md;
+const double _barNotch = 7;
+
+/// Alt gezinme çubuğu (mobil uygulama + dar web) — "bilet şeridi".
+///
+/// Ekranın dibine yapışık düz bir şerit değil: kenarlardan içeride yüzen,
+/// iki yan kenarında zımba çentikleri olan bir bilet. Aktif sekme, temanın
+/// vurgu renginde küçük bir KOÇAN ile işaretlenir; sekme değişince koçan
+/// yeni yerine kayar (iki yanında minik zımba delikleri). Etiketler her
+/// zaman görünür, her hedef ≥ 48dp. Renkler tamamen temadan.
+///
+/// Yükseklik sabittir ([kTicketNavBarExtent] + güvenli alan): Scaffold alt
+/// çubuğa tüm ekran kadar gevşek yükseklik verir; burada hiçbir şey o
+/// yüksekliği kaplamaz (bkz. eski "boş sayfa" hatası).
 class TicketBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -136,36 +154,70 @@ class TicketBottomNavBar extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: cs.surfaceContainer,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: cs.outlineVariant)),
-        ),
-        child: SafeArea(
-          top: false,
-          // `heightFactor: 1` şart: Scaffold alt çubuğa ekranın tamamı kadar
-          // gevşek yükseklik veriyor; çarpansız `Center` o yüksekliğin
-          // hepsini kaplayıp sayfa gövdesini 0 px'e düşürüyordu (boş sayfa,
-          // ortada duran menü).
-          child: Center(
+    final bool reduce = MediaQuery.of(context).disableAnimations;
+    final Duration slide = reduce ? Duration.zero : AppMotion.normal;
+    final int n = destinations.length;
+    const shape = _TicketStripBorder();
+
+    return ColoredBox(
+      color: cs.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md, _barTop, AppSpacing.md, _barBottom),
+          child: Align(
             heightFactor: 1,
-            // Tablette dört sekme ekranın iki ucuna savrulmasın.
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
+              // Tablette dört sekme ekranın iki ucuna savrulmasın.
+              constraints: const BoxConstraints(maxWidth: 520),
               child: SizedBox(
-                height: 64,
-                child: Row(
-                  children: [
-                    for (int i = 0; i < destinations.length; i++)
-                      Expanded(
-                        child: _BottomNavItem(
-                          destination: destinations[i],
-                          active: i == currentIndex,
-                          onTap: () => onTap(i),
-                        ),
-                      ),
-                  ],
+                height: _barHeight,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    shape: shape,
+                    color: cs.surfaceContainerHigh,
+                    shadows: AppShadows.level2(cs.shadow),
+                  ),
+                  child: LayoutBuilder(
+                    builder: (final context, final c) {
+                      // Çentiklerin içine öğe taşmasın.
+                      const double inset = _barNotch + AppSpacing.xs;
+                      final double slot = (c.maxWidth - inset * 2) / n;
+                      return Stack(
+                        children: [
+                          AnimatedPositioned(
+                            duration: slide,
+                            curve: AppMotion.standard,
+                            left: inset + slot * currentIndex + 3,
+                            width: slot - 6,
+                            top: AppSpacing.xs + 2,
+                            bottom: AppSpacing.xs + 2,
+                            child: _ActiveStub(
+                                color: cs.primary,
+                                holeColor: cs.surfaceContainerHigh),
+                          ),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: inset),
+                            child: Row(
+                              children: [
+                                for (int i = 0; i < n; i++)
+                                  Expanded(
+                                    child: _BottomNavItem(
+                                      destination: destinations[i],
+                                      active: i == currentIndex,
+                                      duration: slide,
+                                      onTap: () => onTap(i),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -176,20 +228,63 @@ class TicketBottomNavBar extends StatelessWidget {
   }
 }
 
+/// Aktif sekmenin koçanı: vurgu renginde dolu, iki yan kenarında minik
+/// zımba delikleri (delik, çubuğun zemin rengini gösterir).
+class _ActiveStub extends StatelessWidget {
+  final Color color;
+  final Color holeColor;
+  const _ActiveStub({required this.color, required this.holeColor});
+
+  @override
+  Widget build(final BuildContext context) => ExcludeSemantics(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+            for (final bool left in const [true, false])
+              Positioned(
+                left: left ? -3 : null,
+                right: left ? null : -3,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration:
+                        BoxDecoration(color: holeColor, shape: BoxShape.circle),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
 class _BottomNavItem extends StatelessWidget {
   final TicketNavDestination destination;
   final bool active;
+  final Duration duration;
   final VoidCallback onTap;
 
   const _BottomNavItem({
     required this.destination,
     required this.active,
+    required this.duration,
     required this.onTap,
   });
 
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final Color fg = active ? cs.onPrimary : cs.onSurfaceVariant;
     return Semantics(
       button: true,
       selected: active,
@@ -197,50 +292,40 @@ class _BottomNavItem extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        focusColor: cs.primary.withOpacity(0.14),
-        hoverColor: cs.onSurface.withOpacity(0.04),
-        splashColor: cs.primary.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        focusColor: cs.primary.withValues(alpha: 0.16),
+        hoverColor: cs.onSurface.withValues(alpha: 0.04),
+        splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Positioned(
-              // Merkez üst çizginin üstünde: çentik 1px'lik çizgiyi de örter.
-              top: -1,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: TicketPunchMark(visible: active, opensDown: true),
+            TweenAnimationBuilder<Color?>(
+              tween: ColorTween(end: fg),
+              duration: duration,
+              builder: (final context, final color, final _) => Icon(
+                active ? destination.activeIcon : destination.icon,
+                size: 22,
+                color: color,
               ),
             ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: AppSpacing.xs + 2),
-                  Icon(
-                    active ? destination.activeIcon : destination.icon,
-                    size: 24,
-                    color: active ? cs.primary : cs.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                    child: Text(
-                      destination.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.2,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                        color: active ? cs.onSurface : cs.onSurfaceVariant,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 3),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: AnimatedDefaultTextStyle(
+                duration: duration,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                  color: fg,
+                  letterSpacing: 0.2,
+                ),
+                child: Text(
+                  destination.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
@@ -248,4 +333,39 @@ class _BottomNavItem extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Yüzen şeridin silueti: yuvarlak köşeli bilet, iki yan kenarın
+/// ortasında yarım daire zımba çentikleri.
+class _TicketStripBorder extends ShapeBorder {
+  const _TicketStripBorder();
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  Path _path(final Rect r) {
+    final Path body = Path()
+      ..addRRect(
+          RRect.fromRectAndRadius(r, const Radius.circular(AppRadius.lg)));
+    final double y = r.center.dy;
+    final Path holes = Path()
+      ..addOval(Rect.fromCircle(center: Offset(r.left, y), radius: _barNotch))
+      ..addOval(Rect.fromCircle(center: Offset(r.right, y), radius: _barNotch));
+    return Path.combine(PathOperation.difference, body, holes);
+  }
+
+  @override
+  Path getOuterPath(final Rect rect, {final TextDirection? textDirection}) =>
+      _path(rect);
+
+  @override
+  Path getInnerPath(final Rect rect, {final TextDirection? textDirection}) =>
+      _path(rect);
+
+  @override
+  void paint(final Canvas canvas, final Rect rect,
+      {final TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(final double t) => this;
 }

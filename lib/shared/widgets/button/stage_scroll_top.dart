@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../navigation/widgets/ticket_nav_bar.dart';
 
 /// Uygulama genelinde "başa dön" — HER sayfada, sayfaya ayrıca bir şey
 /// eklemeden çalışır.
@@ -108,7 +109,7 @@ class _StageScrollTopState extends State<StageScrollTop> {
     // Telefonda alt menünün (64) ve varsa sayfanın alt aksiyon çubuğunun
     // üstünde durur; geniş ekranda köşeye yakın.
     final double bottom = narrow
-        ? 64 + AppSpacing.xxl + mq.viewPadding.bottom
+        ? kTicketNavBarExtent + AppSpacing.lg + mq.viewPadding.bottom
         : AppSpacing.xxxl;
     final double right = narrow ? AppSpacing.lg : AppSpacing.xxxl;
 
