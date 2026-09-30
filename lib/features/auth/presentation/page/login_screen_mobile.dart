@@ -130,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   Positioned.fill(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                          AppSpacing.section, AppSpacing.lg, AppSpacing.section),
+                          AppSpacing.sm, AppSpacing.lg, AppSpacing.section),
                       child: Center(
                         // Büyük tablet ekranında bilet gerilmesin; gerçek bir
                         // bilet boyutunda kalıp ortalansın.
@@ -139,9 +139,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              FadeTransition(
-                                opacity: _ticketIn,
-                                child: const BoxOfficeCaption(),
+                              // Geri butonu biletle birlikte kayar; eskiden
+                              // sabit katmanda durup kaydırınca biletin
+                              // başlığının üstüne biniyordu.
+                              Row(
+                                children: [
+                                  Semantics(
+                                    label: 'Geri dön',
+                                    button: true,
+                                    child: GlassmorphismBackButton(
+                                      onPressed: () => NavigationHandler.smartGoBack(context),
+                                      size: 44,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: FadeTransition(
+                                      opacity: _ticketIn,
+                                      child: const BoxOfficeCaption(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 44),
+                                ],
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               AnimatedBuilder(
@@ -173,18 +191,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: AppSpacing.sm,
-                    left: AppSpacing.lg,
-                    child: Semantics(
-                      label: 'Geri dön',
-                      button: true,
-                      child: GlassmorphismBackButton(
-                        onPressed: () => NavigationHandler.smartGoBack(context),
-                        size: 44,
                       ),
                     ),
                   ),

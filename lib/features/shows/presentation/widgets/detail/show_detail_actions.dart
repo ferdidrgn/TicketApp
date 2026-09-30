@@ -6,6 +6,7 @@ import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/ticket/stage_moments.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
 import '../../../../users/presentation/providers/user_mutation_provider.dart';
@@ -146,6 +147,8 @@ class _ShowFavoriteButtonState extends ConsumerState<ShowFavoriteButton> {
       _optimistic = next;
       _saving = true;
     });
+    // Sahneye gül: favoriye eklemenin küçük keyif anı (sadece eklerken).
+    if (next) tossRose(context);
     await ref.read(userMutationProvider.notifier).save(
           user.copyWith(favoriteShows: favorites),
           user.imageUrl,
@@ -162,7 +165,9 @@ class _ShowFavoriteButtonState extends ConsumerState<ShowFavoriteButton> {
       ..showSnackBar(SnackBar(
         content: Text(failed
             ? 'Favori kaydedilemedi. Bağlantını kontrol edip tekrar dene.'
-            : (next ? 'Favorilere eklendi.' : 'Favorilerden çıkarıldı.')),
+            : (next
+                ? 'Sahneye gülünü attın — favorilere eklendi.'
+                : 'Favorilerden çıkarıldı.')),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
         shape: RoundedRectangleBorder(

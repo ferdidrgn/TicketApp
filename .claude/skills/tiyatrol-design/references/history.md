@@ -26,6 +26,17 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   bilinçli olarak kullanılıyor (sahibinin onayı, gerçek biletin
   dili) — ama ölçülü: bilet alanlarında, her başlığın üstünde değil.
 
+## Oyunlaştırma / sahne anları (30.09.2026, sahibinin isteği: "bir oyunmuş gibi")
+- Profil: "Seyirci karnesi" — izlenen her oyun için mürekkep damgası, rütbe
+  (Yeni Seyirci → Seyirci → Müdavim → Tiyatro Kurdu → Sahne Tozu Yutmuş),
+  zımba delikleriyle sonraki rütbe. Tamamen gerçek bilet verisinden.
+- Favoriye eklerken sahneye gül atılır (`stage_moments.dart` → `tossRose`).
+- Yükleme: "Üç Gong" (`ThreeGongIndicator`) — Türk tiyatrosunda perde üç
+  gongla açılır.
+- Giriş biletindeki afiş bandı: yatay bantta dikey afişler basık/kırpık
+  görünüyordu ("basıklıktan kurtar") → afiş 2:3 tam oranında solda, oyun adı
+  sağda. Sahibi: "oyunun afişleri de çıksın" — afiş her zaman görünür kalmalı.
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".

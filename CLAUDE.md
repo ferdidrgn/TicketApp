@@ -65,12 +65,19 @@ Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
   (dizi) ve `Event.showId` (alan). `Event.showId` doluysa TEK doğruluk
   kaynağı odur; dizi sadece o alan boşsa yedek. Bu, "yanlış oyun
   gösteriliyor" tarzı bug'ların en sık kök nedeni — önce buraya bak.
-- Bu sandbox'ta Flutter SDK YOK (`flutter` komutu bulunamıyor). Hiçbir
-  değişiklik burada derlenip/çalıştırılıp doğrulanamıyor — sadece statik
-  okuma + parantez/süslü parantez/köşeli parantez denge kontrolü
-  (python one-liner) yapılabiliyor. Gerçek görsel/işlevsel test için
-  kullanıcının kendi makinesinde `flutter pub get && flutter run` (mobil)
-  veya `flutter run -d chrome` (web) çalıştırması gerekiyor.
+- Flutter SDK sandbox'ta hazır gelmiyor ama KURULABİLİYOR (30.09.2026'da
+  yapıldı): storage.googleapis.com'dan stable linux tarball'ı scratchpad'e
+  indir → `flutter pub get` → `flutter analyze` (derleme hatası 0 olmalı)
+  → `flutter build web --profile --no-web-resources-cdn`. Chromium
+  (Playwright) ile sayfaları açıp ekran görüntüsü alarak doğrula.
+  Sandbox ağ notları: gstatic (Firebase JS SDK) ve www.google.com
+  (reCAPTCHA) engelli, proxy Firestore'un akış bağlantısını tamponluyor —
+  bu yüzden test, Firestore/Auth EMÜLATÖRÜ + uydurma (sentetik) veriyle
+  yapılır; üretim verisi kopyalanmaz. Emülatöre bağlanan satırlar sadece
+  test derlemesinde geçici eklenir, asla commit edilmez.
+- Derleyiciyle doğrulanmamış büyük değişiklik "bitti" sayılmaz: 62
+  commit'lik rollout'ta alt menüdeki tek bir `Center` (heightFactor yok)
+  mobilde tüm sekmeleri boş gösterdi — ancak tarayıcıda açınca görüldü.
 
 ## Agent/subagent kullanımı
 

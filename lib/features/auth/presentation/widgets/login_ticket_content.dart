@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
@@ -335,87 +336,126 @@ class _TicketPosterBannerState extends ConsumerState<TicketPosterBanner> {
     );
   }
 
+  /// Afişler dikey (2:3); yatay bir banda sığdırmak onları ortadan
+  /// kırpıp basıklaştırıyordu. Artık afiş kendi oranında, tam olarak solda
+  /// duruyor; oyun adı bilet kağıdına basılı gibi sağda. Bant [height]
+  /// kadar yer kaplar (afişin yüksekliği).
   Widget _banner(final List<Show> shows) {
     _ensureRotation(shows.length);
-    final Show show = shows[_index % shows.length];
+    final int i = _index % shows.length;
+    final Show show = shows[i];
+    final String kind = show.category.trim();
 
     return Semantics(
       label: 'Bu sezon sahnede: ${show.name}',
       image: true,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: SizedBox(
-          height: widget.height,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              AnimatedSwitcher(
-                duration: AppMotion.slow,
-                switchInCurve: AppMotion.standard,
-                switchOutCurve: AppMotion.standard,
-                layoutBuilder: (final current, final previous) => Stack(
-                  fit: StackFit.expand,
-                  children: [...previous, if (current != null) current],
+      child: SizedBox(
+        height: widget.height,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 2 / 3,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                  boxShadow: AppShadows.level2(TicketInk.ink),
                 ),
-                child: OptimizedCachedImage(
-                  key: ValueKey(show.id),
-                  imageUrl: show.imageUrl,
-                  fit: BoxFit.cover,
-                  borderRadius: 0,
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: widget.height * 0.6,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        TicketInk.ink.withOpacity(0),
-                        TicketInk.ink.withOpacity(0.85),
-                      ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                  child: ColoredBox(
+                    color: TicketInk.inkSoft(0.08),
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.slow,
+                      switchInCurve: AppMotion.standard,
+                      switchOutCurve: AppMotion.standard,
+                      layoutBuilder: (final current, final previous) => Stack(
+                        fit: StackFit.expand,
+                        children: [...previous, if (current != null) current],
+                      ),
+                      child: OptimizedCachedImage(
+                        key: ValueKey(show.id),
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
                     ),
                   ),
                 ),
               ),
-              Positioned(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: AppSpacing.md,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'BU SEZON SAHNEDE',
-                      style: TicketInk.label(
-                          color: TicketInk.paper.withOpacity(0.8)),
-                    ),
-                    const SizedBox(height: 2),
-                    AnimatedSwitcher(
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('BU SEZON SAHNEDE', style: TicketInk.label()),
+                  const SizedBox(height: AppSpacing.sm),
+                  Expanded(
+                    child: AnimatedSwitcher(
                       duration: AppMotion.normal,
-                      child: Text(
-                        show.name,
+                      // Eski ad hemen çekilir; iki ad üst üste binmez.
+                      switchOutCurve: const Threshold(0),
+                      layoutBuilder: (final current, final previous) => Stack(
+                        alignment: Alignment.topLeft,
+                        children: [...previous, if (current != null) current],
+                      ),
+                      child: Column(
                         key: ValueKey(show.id),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.playfairDisplay(
-                          color: TicketInk.paper,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            show.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.playfairDisplay(
+                              color: TicketInk.ink,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                            ),
+                          ),
+                          if (kind.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              kind.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TicketInk.label(
+                                  color: TicketInk.accentOf(context)),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  if (shows.length > 1)
+                    ExcludeSemantics(
+                      child: Row(
+                        children: [
+                          for (int k = 0; k < shows.length; k++) ...[
+                            if (k > 0) const SizedBox(width: AppSpacing.xs + 2),
+                            AnimatedContainer(
+                              duration: AppMotion.fast,
+                              width: k == i ? 14 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: k == i
+                                    ? TicketInk.accentOf(context)
+                                    : TicketInk.inkSoft(0.22),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

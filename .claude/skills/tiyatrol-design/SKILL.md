@@ -179,6 +179,8 @@ olacağını söyler ("Bilet al", "Koltuğu seç"); akış boyunca aynı ad kal�
   `BasePageWrapper` kullanmayan web sayfası kendi `Scaffold`'unu kurmalı
   (yoksa TextField "No Material widget found" ile çöker, metinler sarı çift
   alt çizgili görünür); çocuksuz `CustomPaint` gevşek kısıtta 0 boyuta düşer;
-  `IntrinsicHeight` altında `LayoutBuilder` çöker.
+  `IntrinsicHeight` altında `LayoutBuilder` çöker; `Scaffold.bottomNavigationBar`
+  içinde çarpansız `Center`/`Align` tüm ekran yüksekliğini kaplar ve sayfa
+  gövdesini 0 px'e düşürür (boş sayfa) — `heightFactor: 1` ver.
 - `build_runner` çalışmaz: codegen'li dosyaya yeni `@riverpod` ekleme;
   klasik `Provider`/`FutureProvider`/`NotifierProvider` kullan.

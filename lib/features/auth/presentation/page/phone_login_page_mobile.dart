@@ -197,17 +197,34 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
                   Positioned.fill(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                          AppSpacing.section, AppSpacing.lg, AppSpacing.section),
+                          AppSpacing.sm, AppSpacing.lg, AppSpacing.section),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 440),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              FadeTransition(
-                                opacity: _ticketIn,
-                                child: const BoxOfficeCaption(
-                                    text: 'BİLETİN BASILIYOR'),
+                              // Geri butonu biletle birlikte kayar; eskiden
+                              // sabit katmanda durup kaydırınca biletin
+                              // başlığının üstüne biniyordu.
+                              Row(
+                                children: [
+                                  Semantics(
+                                    label: _isCodeSent ? 'Numarayı düzenle' : 'Geri dön',
+                                    button: true,
+                                    child: GlassmorphismBackButton(
+                                      onPressed: _handleBack,
+                                      size: 44,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: FadeTransition(
+                                      opacity: _ticketIn,
+                                      child: const BoxOfficeCaption(text: 'BİLETİN BASILIYOR'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 44),
+                                ],
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               AnimatedBuilder(
@@ -250,18 +267,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: AppSpacing.sm,
-                    left: AppSpacing.lg,
-                    child: Semantics(
-                      label: _isCodeSent ? 'Numarayı düzenle' : 'Geri dön',
-                      button: true,
-                      child: GlassmorphismBackButton(
-                        onPressed: _handleBack,
-                        size: 44,
                       ),
                     ),
                   ),

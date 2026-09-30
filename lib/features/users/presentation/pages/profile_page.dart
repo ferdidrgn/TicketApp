@@ -22,6 +22,7 @@ import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../users/domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
+import '../widgets/spectator_record.dart';
 
 /// PROFİLİM — üyenin "abone kartı".
 ///
@@ -172,6 +173,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             user: user,
             onOpen: () => NavigationHandler.goToMyTickets(context, user.id),
           ),
+          _record(user),
           if (tablet)
             _twoColumns(
               left: [_accountSection(user)],
@@ -226,6 +228,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         memberSince: _memberSinceLabel(user.createdAt),
         horizontal: horizontal,
         onTickets: () => NavigationHandler.goToMyTickets(context, user.id),
+      );
+
+  Widget _record(final entity.User user) => SpectatorRecord(
+        userId: user.id,
+        hasTickets: user.ticketsId.isNotEmpty,
       );
 
   Widget _errorNotice() => Align(
@@ -401,6 +408,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             left: [
               _pass(user, horizontal: true),
               const SizedBox(height: AppSpacing.section),
+              _record(user),
               _appearanceSection(compact: false),
             ],
             right: [

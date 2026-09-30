@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/ticket/stage_moments.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 
 /// Yönlendirme mantığı (go_router) içermeyen, sadece görsel Splash tasarımı.
@@ -231,15 +232,8 @@ class _SplashTicketStub extends StatelessWidget {
               style: TicketInk.value(size: 13),
             ),
             const SizedBox(height: AppSpacing.md),
-            // İnce, belirsiz yükleme çizgisi — biletin üstüne basılı.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.xs),
-              child: LinearProgressIndicator(
-                minHeight: 2,
-                color: TicketInk.accentOf(context),
-                backgroundColor: TicketInk.inkSoft(0.12),
-              ),
-            ),
+            // Üç gong: Türk tiyatrosunda perde üç gongla açılır.
+            ThreeGongIndicator(color: TicketInk.accentOf(context)),
           ],
         ),
       );
