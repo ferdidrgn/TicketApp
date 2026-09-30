@@ -32,9 +32,9 @@ const List<(String, String)> _kFaqEntries = [
   ),
   (
     'Uygulamanın görünümünü nasıl değiştiririm?',
-    'Profil sayfasındaki Tema bölümünden Gündüz, Gece, Oto (sistem), Doğa, '
-        'Ahenk ya da Özel seçebilirsin. Özel temanın vurgu rengini '
-        'Ayarlar\'dan belirlersin.'
+    'Profil sayfasından Ayarlar\'a gir; Tema bölümünden Gündüz, Gece, Oto '
+        '(cihazına göre), Doğa, Ahenk ya da Özel seçebilirsin. Özel temada '
+        'vurgu rengini de orada belirlersin.'
   ),
   (
     'Bildirimlerimi nereden görürüm?',
