@@ -260,12 +260,35 @@ final activeShowsProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final active =
-      shows.where((final s) => nearestByShow.containsKey(s.id)).toList();
-  active.sort((final a, final b) =>
-      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
-  return active;
+  return _splitActiveShows(shows, nearestByShow).active;
 });
+
+/// "Aktif" tanımı TEK yerde: takviminde gelecek bir GERÇEK etkinliği olan
+/// oyunlar VE biletleri başka bir platformda satılan (`hasExternalTicketing`)
+/// oyunlar. İkincilerin bizde Event kaydı olmadığı için eskiden "geçmiş"
+/// sayılıyorlardı — Keşfet "1 aktif oyun" gösteriyordu. Sıralama: önce
+/// gerçek etkinliği olanlar (en yakın tarih önce), sonra yalnızca harici
+/// linki olanlar (en yeni eklenen önce).
+({List<Show> active, List<Show> inactive}) _splitActiveShows(
+    final List<Show> shows, final Map<String, DateTime> nearestByShow) {
+  final withEvents = <Show>[];
+  final externalOnly = <Show>[];
+  final inactive = <Show>[];
+  for (final show in shows) {
+    if (nearestByShow.containsKey(show.id)) {
+      withEvents.add(show);
+    } else if (show.hasExternalTicketing) {
+      externalOnly.add(show);
+    } else {
+      inactive.add(show);
+    }
+  }
+  withEvents.sort((final a, final b) =>
+      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
+  sortShowsByCreatedAtDescending(externalOnly);
+  sortShowsByCreatedAtDescending(inactive);
+  return (active: [...withEvents, ...externalOnly], inactive: inactive);
+}
 
 /// 🔴 GEÇMİŞ OYUNLAR — tüm etkinlikleri geçmişte kalmış (ya da hiç
 /// etkinliği hiç olmamış) oyunlar. "Geçmiş Oyunlar" arşiv görünümü gibi
@@ -277,10 +300,7 @@ final pastShowsProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final past =
-      shows.where((final s) => !nearestByShow.containsKey(s.id)).toList();
-  sortShowsByCreatedAtDescending(past);
-  return past;
+  return _splitActiveShows(shows, nearestByShow).inactive;
 });
 
 /// 🟢➡️🔴 TÜM OYUNLAR, AKTİF ÖNCE — genel oyun listeleme/keşfet
@@ -298,12 +318,54 @@ final showsActiveFirstProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final active = <Show>[];
-  final inactive = <Show>[];
-  for (final show in shows)
-    (nearestByShow.containsKey(show.id) ? active : inactive).add(show);
-  active.sort((final a, final b) =>
-      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
-  sortShowsByCreatedAtDescending(inactive);
-  return [...active, ...inactive];
+  final split = _splitActiveShows(shows, nearestByShow);
+  return [...split.active, ...split.inactive];
+});
+
+/// 🎟️ TEK BİR OYUNUN seansları — ekranlarda (widget'larda) kullanmak için.
+///
+/// `eventsByShowIdsProvider([id])` bir widget'ın `build`'inde çağrılınca her
+/// çizimde YENİ bir liste nesnesi oluşur; liste eşitliği kimliğe göre
+/// olduğu için Riverpod bunu her seferinde yeni bir sağlayıcı sanır →
+/// veri gelir, ekran yeniden çizilir, yeni sorgu başlar: sonsuz yükleme
+/// (admin koltuk denetimi ve oyun formundaki seans bölümü böyle
+/// takılıyordu). Bu sağlayıcı tek bir `String` ile anahtarlanır.
+///
+/// Show↔Event kuralı (CLAUDE.md): `Event.showId` doluysa tek doğruluk
+/// kaynağı odur; `Show.eventsId` dizisi yalnızca `showId`'si boş
+/// etkinlikler için yedektir. Sonuç tarihe göre artan sıralıdır
+/// (tarihi okunamayanlar sonda).
+final eventsForShowProvider = FutureProvider.autoDispose
+    .family<List<Event>, String>((final ref, final showId) async {
+  if (showId.isEmpty) return const [];
+
+  final direct = await ref
+      .read(_getEventsByShowIdsUseCaseProvider)
+      .call([showId]).getOrThrow();
+
+  final shows =
+      await ref.read(getShowsByIdsUseCaseProvider).call([showId]).getOrThrow();
+  final directIds = direct.map((final e) => e.id).toSet();
+  final arrayIds = shows
+      .expand((final s) => s.eventsId)
+      .where((final id) => id.isNotEmpty && !directIds.contains(id))
+      .toSet()
+      .toList();
+  final fromArray = arrayIds.isEmpty
+      ? const <Event>[]
+      : (await ref.read(getEventsByIdsUseCaseProvider).call(arrayIds))
+          .getOrThrow()
+          // Başka bir oyuna ait olduğunu söyleyen etkinlik buraya girmez.
+          .where((final e) => e.showId.isEmpty || e.showId == showId)
+          .toList();
+
+  final all = [...direct, ...fromArray]..sort((final a, final b) {
+      final da = DateFormatter.parseDateString(a.date);
+      final db = DateFormatter.parseDateString(b.date);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+  return all;
 });

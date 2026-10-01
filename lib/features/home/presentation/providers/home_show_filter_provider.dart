@@ -87,16 +87,33 @@ final homeShowsActiveFirstProvider =
 });
 
 /// `activeShowsProvider`ın ana sayfaya süzülmüş hâli — mobil ana
-/// sayfanın "Aktif Oyunlar" şeridi bunu kullanır. Bu şerit ÖZELLİKLE
-/// "takviminde gerçek yaklaşan etkinliği olan" oyunları anlatıyor, bu
-/// yüzden kendi orijinal sıralamasını (en yakın etkinlik tarihine göre
-/// artan) korur — harici biletli oyunlar zaten gerçek `Event` kaydı
-/// olmadığından bu şeride hiç girmez, recency sıralaması burada
-/// gerekmiyor.
+/// sayfanın "Aktif Oyunlar" şeridi bunu kullanır.
+///
+/// Kullanıcının kendi talebi (birebir): "anasayfada başka sitelerde olan
+/// oyunları aktif oyunlar kısmında göstersin çünkü başka platformda...
+/// o da aktif sayılması lazım." Harici biletli oyunlar (bkz.
+/// `Show.hasExternalTicketing`) bizim sistemimizde asla gerçek `Event`
+/// kaydına sahip olamayacağı için `activeShowsProvider` onları hiçbir
+/// zaman döndürmez — bu yüzden burada AYRICA ekleniyor. Gerçek yaklaşan
+/// etkinliği olan oyunlar kendi sıralamasını (en yakın etkinlik tarihine
+/// göre artan) korur ve ÖNCE gelir; harici biletli oyunlar bunların
+/// ARDINDAN, en yeni eklenenden eskiye sıralanarak eklenir — "aktif"
+/// olduklarını göstermek asıl amaç, sırası ikincil.
 final homeActiveShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final allowedTeamIds = await ref.watch(homeAllowedTeamIdsProvider.future);
   if (allowedTeamIds.isEmpty) return [];
-  final shows = await ref.watch(activeShowsProvider(isLimit).future);
-  return _filterToHomeTeams(shows, allowedTeamIds);
+
+  final activeShows = await ref.watch(activeShowsProvider(isLimit).future);
+  final homeActive = _filterToHomeTeams(activeShows, allowedTeamIds);
+  final homeActiveIds = homeActive.map((final s) => s.id).toSet();
+
+  final allShows = await ref.watch(showsProvider(isLimit: isLimit).future);
+  final externalActive = allShows
+      .where((final s) =>
+          s.hasExternalTicketing && !homeActiveIds.contains(s.id))
+      .toList();
+  sortShowsByCreatedAtDescending(externalActive);
+
+  return [...homeActive, ...externalActive];
 });

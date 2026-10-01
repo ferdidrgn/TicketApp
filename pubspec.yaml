@@ -2,7 +2,7 @@ name: ticketapp
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+18
+version: 1.0.0+19
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
@@ -59,6 +59,7 @@ dependencies:
   geolocator: ^13.0.2
 
   app_links: ^6.1.1
+  package_info_plus: ^8.1.2
 
   # UI Components
   curved_navigation_bar:
@@ -81,6 +82,7 @@ dependencies:
   skeletonizer: ^3.0.0
   flutter_staggered_animations: ^1.1.1
   flutter_svg: ^2.0.10+1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
@@ -93,6 +95,7 @@ dev_dependencies:
   freezed:
   riverpod_generator: ^3.0.3
   json_serializable:
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -104,6 +107,7 @@ flutter:
     - assets/images/book_logo.jpg
     - assets/images/tiyatrol_logo.png
     - assets/images/main_theatre.png
+    - assets/images/app_icon_master.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -133,25 +137,58 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 # ================================================
+# APP ICON — TÜM PLATFORMLAR (Android/iOS/Web)
+# ================================================
+# Kaynak: assets/images/app_icon_master.png (2000x2000, düz köşeli, arka
+# planı zaten koyu lacivert #0A1628 dolu kare).
+# 🔥 DÜZELTME: Android 8.0+ (API 26+) launcher'ları KENDİ maskesini
+# (bu ekranda dairesel) uyguluyor — `adaptive_icon_background` hiç
+# verilmeyince flutter_launcher_icons bu maskenin arkasını beyaz/gri
+# bırakıyordu, bu yüzden kare ikonun etrafında logoyla alakasız gri bir
+# daire görünüyordu ("yuvarlak arkaplan neden logo rengini almıyor"
+# şikayetinin kök nedeni). `adaptive_icon_background` artık logonun
+# kendi zemin rengiyle (#0A1628) birebir aynı — maskenin dışında kalan
+# alan artık logoyla aynı lacivert, kare/daire kenarında görünmez geçiş.
+# ÇALIŞTIRMAK GEREKİYOR (bu sandbox'ta Flutter SDK yok, derlenemedi):
+#   flutter pub get
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon_master.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0A1628"
+  adaptive_icon_foreground: "assets/images/app_icon_master.png"
+  web:
+    generate: true
+    image_path: "assets/images/app_icon_master.png"
+    background_color: "#0A1628"
+    theme_color: "#0A1628"
+
+# ================================================
 # NATIVE SPLASH SCREEN CONFIGURATION
 # ================================================
+# 🔥 DÜZELTME: `background_image` eskiden var olmayan bir dosyaya
+# ("app_logo.jpg.png" — gerçek asset "app_logo.jpg", .png uzantısı
+# yanlışlıkla eklenmişti) işaret ediyordu; flutter_native_splash bunu
+# sessizce atlayıp düz beyaz arka plana düşüyordu ("küçücük bembeyaz"
+# şikayetinin kök nedeni). Artık yeni logo (zaten kendi koyu lacivert
+# arka planıyla geliyor) tek başına yeterli — ayrı bir background_image
+# katmanına hiç gerek yok, `color` onunla birebir eşleşiyor (#0A1628).
+# ÇALIŞTIRMAK GEREKİYOR: dart run flutter_native_splash:create
 flutter_native_splash:
   color: "#0A1628"
-  background_image: "assets/images/app_logo.jpg.png"
-  image: "assets/images/tiyatrol_logo.png"
+  image: "assets/images/app_icon_master.png"
 
   android_12:
-    image: "assets/images/tiyatrol_logo.png"
+    image: "assets/images/app_icon_master.png"
     color: "#0A1628"
-    image_dark: "assets/images/tiyatrol_logo.png"
+    image_dark: "assets/images/app_icon_master.png"
     color_dark: "#0A1628"
     icon_background_color: "#0A1628"
 
   color_dark: "#0A1628"
-  background_image_dark: "assets/images/app_logo.jpg"
-  image_dark: "assets/images/tiyatrol_logo.png"
-  android_navbar_color: "#0A1628"
-
+  image_dark: "assets/images/app_icon_master.png"
 
   android: true
   ios: true

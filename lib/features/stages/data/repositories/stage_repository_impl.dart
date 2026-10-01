@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -34,4 +35,25 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
         final models = await remoteDataSource.getStagesByIds(stagesIds);
         return models.map((final m) => m.toEntity()).toList();
       });
+
+  @override
+  Future<Either<Failure, bool>> addStage(
+          final Stage stage, final File? imageFile) =>
+      execute(() async {
+        final model = stage.toModel();
+        return remoteDataSource.addStage(model, imageFile);
+      });
+
+  @override
+  Future<Either<Failure, bool>> updateStage(final String stageId,
+          final Map<String, dynamic> updatedData, final File? imageFile) =>
+      execute(
+          () => remoteDataSource.updateStage(stageId, updatedData, imageFile));
+
+  @override
+  Future<Either<Failure, bool>> deleteStage(final String stageId) {
+    if (stageId.isEmpty)
+      return Future.value(const Left(ServerFailure('Invalid ID')));
+    return execute(() => remoteDataSource.deleteStage(stageId));
+  }
 }

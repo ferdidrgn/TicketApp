@@ -42,12 +42,19 @@ class NearbyLocationPermissionView extends ConsumerWidget {
     final bool isDeniedForever =
         failure is LocationPermissionDeniedForeverFailure;
     final bool isServiceDisabled = failure is LocationServiceDisabledFailure;
+    // Zaman aşımı (zayıf GPS sinyali) bir izin sorunu DEĞİL — bu yüzden
+    // "Konum İzni Ver" yerine gerçek bir "Tekrar Dene" aksiyonu sunuyoruz;
+    // izin isteme diyaloğunu tekrar tetiklemenin bir anlamı yok, sadece
+    // `devicePositionProvider`'ı yeniden tetiklemek yeterli.
+    final bool isTimeout = failure is LocationTimeoutFailure;
 
     final String actionLabel = isDeniedForever
         ? 'Uygulama Ayarlarını Aç'
         : isServiceDisabled
             ? 'Konum Ayarlarını Aç'
-            : 'Konum İzni Ver';
+            : isTimeout
+                ? 'Tekrar Dene'
+                : 'Konum İzni Ver';
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -55,10 +62,15 @@ class NearbyLocationPermissionView extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.location_off_rounded, size: 44, color: accentColor),
+          Icon(
+              isTimeout
+                  ? Icons.gps_not_fixed_rounded
+                  : Icons.location_off_rounded,
+              size: 44,
+              color: accentColor),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Konumunuza İhtiyacımız Var',
+            isTimeout ? 'Konumunuz Alınamadı' : 'Konumunuza İhtiyacımız Var',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: foregroundColor,
@@ -98,7 +110,9 @@ class NearbyLocationPermissionView extends ConsumerWidget {
                 }
                 ref.invalidate(devicePositionProvider);
               },
-              icon: const Icon(Icons.my_location_rounded, size: 18),
+              icon: Icon(
+                  isTimeout ? Icons.refresh_rounded : Icons.my_location_rounded,
+                  size: 18),
               label: Text(actionLabel),
             ),
           ),

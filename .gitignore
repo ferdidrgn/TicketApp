@@ -37,6 +37,13 @@
 /android/app/profile/
 /android/app/release/
 
+# R8/ProGuard build çıktıları (release derlemesinde otomatik üretilir,
+# mapping.txt tek başına 60MB+ olabiliyor — repoyu şişirmesin diye asla
+# commit edilmez)
+/android/app/mapping.txt
+/android/app/seeds.txt
+/android/app/unused.txt
+
 # Gizli Anahtarlar (GÜVENLİK İÇİN ÖNEMLİ)
 /android/local.properties
 /android/key.properties
@@ -106,9 +113,11 @@ firebase-debug.*.log
 !.env.example
 
 # -----------------------
-# CLAUDE CODE (yerel agent worktree'leri — repo içeriği değil)
+# CLAUDE CODE — yerel agent worktree'leri vb. dışlanır, AMA proje
+# skill'leri (.claude/skills/) repoya dahildir.
 # -----------------------
-.claude/
+.claude/*
+!.claude/skills/
 
 # -----------------------
 # IDE & EDİTÖR DOSYALARI
@@ -138,6 +147,7 @@ desktop.ini
 *.log
 *.tmp
 *.temp
+*~
 coverage/
 .lcov.info
 
@@ -150,3 +160,5 @@ fastlane/screenshots
 fastlane/test_output
 node_modules/
 .pnpm-store/
+# Widget Preview related
+.widget_preview/

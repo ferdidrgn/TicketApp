@@ -33,15 +33,22 @@
 #
 #   5. PLAY_STORE_SERVICE_ACCOUNT_JSON
 #      Play Console API erişimi için servis hesabı JSON key'i.
-#      Elde etmek için:
-#        a) Play Console > Setup > API access.
-#        b) "Create new service account" (Google Cloud Console'a
-#           yönlendirir) -> yeni bir servis hesabı oluştur, JSON key
-#           indir.
-#        c) Play Console > API access sayfasına dön, yeni servis
-#           hesabına en azından "Release manager" / "Release to
-#           production, exclude devices, and use Play App Signing"
-#           iznini ver.
+#      🔥 DÜZELTME: Play Console > API access sayfasındaki eski
+#      "Create new service account" (Google Cloud Console'a otomatik
+#      yönlendiren) akışı artık YOK/değişti — bu yüzden doğrudan Google
+#      Cloud Console'dan oluşturulup Play Console'a "Users and
+#      permissions" üzerinden kullanıcı olarak davet edilmesi gerekiyor:
+#        a) Google Cloud Console (console.cloud.google.com) > IAM &
+#           Admin > Service Accounts > "Create Service Account" -> isim
+#           ver -> Cloud rolü atlanabilir (gerekmiyor) -> Done.
+#        b) Oluşan servis hesabına tıkla > Keys sekmesi > "Add Key" >
+#           "Create new key" > JSON -> dosya iner.
+#        c) Play Console > Users and permissions (Kullanıcılar ve
+#           izinler) > "Invite new users" -> servis hesabının e-postasını
+#           (...@...iam.gserviceaccount.com) yapıştır -> release
+#           izinlerini ver (bu yöntemde, eski API access akışından
+#           farklı olarak, istenirse "uygulama ekleyebilir" hakkı da
+#           verilebiliyor).
 #        d) İndirilen JSON dosyasının TÜM içeriğini GitHub repo >
 #           Settings > Secrets and variables > Actions altında
 #           PLAY_STORE_SERVICE_ACCOUNT_JSON adıyla ekle.
@@ -74,12 +81,33 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.5"
+          # 🔥 DÜZELTME: Sabit "3.24.5" (Dart 3.5.4) artık pubspec.yaml'daki
+          # riverpod_generator ^3.0.3'ün gerektirdiği Dart ^3.7.0'ı
+          # karşılamıyor — "stable" kanalının güncelini kullanıyoruz.
           channel: "stable"
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
+
+      # google-services.json BİLEREK .gitignore'da (Firebase config dosyası,
+      # repo'ya commit edilmiyor) — bu yüzden CI runner'ında hiç yok ve
+      # Google Services Gradle plugin'i onsuz derleyemiyor ("File
+      # google-services.json is missing" ile Gradle build'i düşürüyordu,
+      # gerçek bir CI eksikliği, kodda bir hata değil). Signing keystore'un
+      # aksine bu adım OPSİYONEL DEĞİL — Firebase olmadan uygulama zaten
+      # derlenemiyor, bu yüzden secret eksikse build burada net bir hatayla
+      # duruyor (aşağıdaki koşul sadece daha okunabilir bir hata mesajı
+      # için, build'i "başarılı" gibi göstermiyor).
+      - name: Write google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON secret'ı tanımlı değil — Firebase config dosyası olmadan Android build'i derlenemez."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
       # Keystore + key.properties: sadece ANDROID_KEYSTORE_BASE64 secret'ı
       # tanımlıysa çalışır. Secret yoksa bu adım atlanır ve appbundle
@@ -87,14 +115,23 @@ jobs:
       # boşsa signingConfig uygulanmaz) — bu, CI'nin secret eklenmeden de
       # kırılmadan "derlenebilirlik" kontrolü yapmasını sağlar.
       - name: Decode signing keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        # 🔥 DÜZELTME: GitHub Actions `if:` koşulunda doğrudan `secrets`
+        # context'ine izin vermiyor ("Unrecognized named-value: 'secrets'"
+        # ile workflow doğrulama hatası veriyor) — secret önce bir `env:`
+        # değişkenine atanıp `if:` koşulunda `env.*` üzerinden okunuyor.
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
           cat > android/key.properties <<EOF
           storeFile=$RUNNER_TEMP/release-keystore.jks
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
           EOF
 
       - name: Build App Bundle
@@ -107,12 +144,13 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
-      # Play Console'a otomatik yükleme — VARSAYILAN OLARAK KAPALI.
-      # Yukarıdaki gerekli secret'ları (PLAY_STORE_SERVICE_ACCOUNT_JSON,
-      # ANDROID_KEYSTORE_BASE64 vb.) ekledikten sonra `if: false`
-      # satırını silip bu adımı devreye alabilirsin.
+      # Play Console'a otomatik yükleme — tüm gerekli secret'lar
+      # (ANDROID_KEYSTORE_BASE64, PLAY_STORE_SERVICE_ACCOUNT_JSON vb.)
+      # eklendi, artık aktif. `continue-on-error: true` bilerek kalıyor:
+      # bu adım (ör. Play Console'da uygulama henüz hiç manuel
+      # yayınlanmamışsa "no application found" gibi) başarısız olsa bile
+      # asıl appbundle build+upload-artifact adımları etkilenmesin diye.
       - name: Upload to Play Console (internal track)
-        if: false
         continue-on-error: true
         uses: r0adkll/upload-google-play@v1
         with:

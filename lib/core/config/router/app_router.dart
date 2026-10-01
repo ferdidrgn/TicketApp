@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
+import 'package:ticketapp/features/admin/presentation/pages/admin_home_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
@@ -19,6 +20,7 @@ import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page.dart';
 import '../../../features/notifications/presentation/pages/notification_inbox_page.dart';
+import '../../../features/onboarding/data/onboarding_gate.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
@@ -94,6 +96,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       // Login değilse korumalı sayfaya giremez
       if (!loggedIn && protectedRoutes.any((final r) => path.startsWith(r)))
         return '/login';
+
+      // İlk açılış (sadece mobil, cihazda bir kez): tanıtım.
+      if (OnboardingGate.shouldShow && path == '/app') return '/onboarding';
 
       // Login olmuşsa login sayfasına gidemez
       if (loggedIn && (path == '/login' || path == '/phone-login'))
@@ -262,6 +267,24 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: AppSettingsPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      // 🕵️ GİZLİ ADMİN PANELİ GİRİŞİ:
+      // Menüde/nav'da GÖRÜNMÜYOR — tek erişim yolu Ayarlar sayfasındaki
+      // versiyon metnine UZUN BASMA (bkz. `app_settings.dart`), ve o da
+      // sadece `isUserPrivilegedProvider` true ise buraya yönlendiriyor.
+      // Bu route'un kendisi güvenlik sınırı DEĞİL — gerçek yetki kontrolü
+      // `AdminGuard` (bkz. `admin_home_page.dart`) + Firestore `isAdmin()`
+      // kuralları (server-side) tarafından yapılıyor.
+      GoRoute(
+        path: '/admin',
+        name: 'admin',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AdminHomePage(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

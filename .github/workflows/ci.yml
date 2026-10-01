@@ -33,7 +33,11 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.5"
+          # 🔥 DÜZELTME: Sabit "3.24.5" (Dart 3.5.4 taşıyor) artık pubspec.yaml
+          # riverpod_generator ^3.0.3'ün gerektirdiği Dart ^3.7.0'ı
+          # karşılamıyor ("version solving failed" ile CI kırılıyordu) —
+          # proje zamanla ilerledi ama CI sabit kaldı. Belirli bir sürüme
+          # sabitlemek yerine "stable" kanalının GÜNCELİNİ kullanıyoruz.
           channel: "stable"
           cache: true
 

@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../core/util/decorative_elements.dart';
 
+/// Sayfaların ortak zemini: temanın yüzeyi, SADE.
+///
+/// Eskiden her sayfanın köşesinde bir "ortam ışığı" halkası ve ekrana
+/// serpilmiş parlayan parçacıklar vardı — sahibi "her ekranda parlama/spot
+/// süsü"nü reddetti (bkz. tiyatrol-design `history.md`). Bilet dilinde
+/// zemin sakin, nesne (bilet) konuşur. `ambientColor`/`particleColor`
+/// parametreleri mevcut çağıranlar bozulmasın diye duruyor ama artık bir şey
+/// çizmiyor.
 class CustomAppBackground extends StatelessWidget {
   final Widget child;
   final Color? backgroundColor;
@@ -26,13 +33,12 @@ class CustomAppBackground extends StatelessWidget {
             ),
           ),
 
-          // 2. Işık Efekti (Parametreli)
-          AmbientLightEffect(color: ambientColor),
+          // 2. Yerleşim sabitleyici: eski parçacık katmanı (SizedBox.expand)
+          // Stack'i tüm alana yayıyordu; içerik aynı (gevşek) kısıtlarla
+          // aynı boyutta çizilmeye devam etsin diye korunuyor.
+          const SizedBox.expand(),
 
-          // 3. Parçacıklar (Parametreli)
-          FloatingParticles(color: particleColor),
-
-          // 4. İçerik
+          // 3. İçerik
           child,
         ],
       );

@@ -1,15 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/admin_test_entry.dart';
+
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/util/decorative_elements.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/widgets/custom_search_bar.dart';
-import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/theatre_show_card.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -18,17 +19,25 @@ import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
-import '../widgets/mobile/category_grid.dart';
+import '../widgets/common/home_ticket_widgets.dart';
+import '../widgets/common/home_ui.dart';
 import '../widgets/mobile/home_teams_strip.dart';
-import '../widgets/mobile/quick_actions_grid.dart';
-import '../widgets/mobile/show_collage.dart';
-import '../widgets/mobile/stage_carousel.dart';
-import '../widgets/mobile/stroy_circles.dart';
-import '../widgets/mobile/subsrice_widget.dart';
-import '../widgets/mobile/ticket_stub_card.dart';
-import '../widgets/mobile/trending_widgets.dart';
 
+/// ANA SAYFA — MOBİL (Android/iOS; tablet dahil). Dikey anlatı, "bilet
+/// dili"yle:
+///
+/// 1. Üst satır: marka + Biletlerim + Bildirimler (telefon).
+/// 2. Tek başlık anı (Playfair, soldan sağa açılış) + arama.
+/// 3. Sıradaki gerçek seansın DİKEY giriş bileti — birincil aksiyon
+///    koçandaki "Bilet al" damgası (başparmak bölgesi); basınca koçan yırtılır.
+/// 4. Yaklaşan seanslar: gün şeridi + seans koçanları.
+/// 5. Şu an sahnede (aktif oyunlar şeridi) ve 6. Repertuvar (kalan oyunlar).
+/// 7. Kampanyalar, 8. Şehrin sahneleri, 9. Sahne toplulukları — veri varsa.
+///
+/// Tablette (≥768) içerik 760'ta ortalanır, bilet YATAY olur, seanslar 2,
+/// repertuvar 3 sütun; arama ve bildirimler üst çubuktadır.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -36,9 +45,20 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage>
+    with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   bool _showSearchInAppBar = false;
+
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic));
+  late final Animation<double> _rest = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
+  bool _started = false;
 
   @override
   void initState() {
@@ -47,7 +67,20 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.of(context).disableAnimations) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
+  }
+
+  @override
   void dispose() {
+    _entrance.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -63,25 +96,53 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   void _openSearch() => NavigationHandler.goToSearch(context);
 
+  void _openShow(final Show show) =>
+      NavigationHandler.goToShow(context, show.id, show.name);
+
+  void _openTickets() {
+    if (ref.read(isLoggedInProvider)) {
+      NavigationHandler.goToMyTickets(
+          context, ref.read(currentUserIdProvider) ?? '');
+    } else {
+      NavigationHandler.goToLogin(context);
+    }
+  }
+
+  void _openNotifications() {
+    if (ref.read(isLoggedInProvider)) {
+      NavigationHandler.goToNotifications(context);
+    } else {
+      NavigationHandler.goToLogin(context);
+    }
+  }
+
+  Widget _settle(final Widget child) => AnimatedBuilder(
+        animation: _rest,
+        builder: (final context, final c) => Opacity(
+          opacity: _rest.value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - _rest.value) * 28),
+            child: c,
+          ),
+        ),
+        child: child,
+      );
+
   @override
   Widget build(final BuildContext context) {
-    // Orijinal Riverpod Sağlayıcı hatlarınız %100 aynen korunuyor
+    final l10n = AppLocalizations.of(context)!;
+    final cs = context.colors;
     final campaignState = ref.watch(campaignsProvider);
-    // 🔥 DÜZELTME: Ana sayfa artık TÜM Firestore kataloğunu değil, SADECE
-    // TiyatRol ve Ataşehir Tiyatro Topluluğu'na ait gösterileri gösteriyor
-    // (bkz. home_show_filter_provider.dart) — "dışarıdan aldığımız
-    // oyunlar ana sayfada görünmemeli" talebi. Arama/keşfet sayfaları
-    // BİLEREK bu filtreye tabi DEĞİL, tüm katalog orada kalıyor.
-    // Önce aktif (takviminde gelecek etkinliği olan) oyunlar, ardından
-    // (yer kaldıysa) aktif olmayanlar.
+    // Ana sayfa filtresi: SADECE TiyatRol + Ataşehir Tiyatro Topluluğu
+    // oyunları (+ harici biletli konuk oyunlar), en yeni eklenen önce (bkz.
+    // home_show_filter_provider.dart). Arama/keşfet bu filtreye tabi değil.
     final showState = ref.watch(homeShowsActiveFirstProvider(true));
-    // "Aktif Oyunlar" şeridinin gerçek verisi — SADECE takviminde gelecek
-    // etkinliği olan oyunlar (`homeShowsActiveFirstProvider`'ın TÜM sonucu
-    // DEĞİL). İkincil bir bölüm; sayfanın genel loading/error durumunu
-    // etkilemez, boşsa (henüz yüklenmemiş ya da gerçekten aktif oyun yoksa)
-    // bölüm build() içinde tamamen gizlenir.
+    // "Şu an sahnede" şeridinin gerçek verisi — takviminde gelecek etkinliği
+    // olan oyunlar + harici biletli oyunlar. İkincil: boşsa bölüm gizlenir.
     final activeShowState = ref.watch(homeActiveShowsProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
+    // Gerçek yaklaşan seanslar (öne çıkan bilet + seans panosu). İkincil.
+    final sessionsState = ref.watch(homeUpcomingSessionsProvider);
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     final bool isLoading =
@@ -89,16 +150,38 @@ class _HomePageState extends ConsumerState<HomePage> {
     final hasError =
         campaignState.hasError || showState.hasError || stageState.hasError;
 
+    final List<Campaign> campaigns = campaignState.value ?? const [];
+    final List<Show> shows = showState.value ?? const [];
+    final List<Show> activeShows = activeShowState.value ?? const [];
+    final List<Stage> stages = stageState.value ?? const [];
+    final List<HomeSession> sessions = sessionsState.value ?? const [];
+    final bool sessionsPending =
+        sessionsState.isLoading && sessionsState.value == null;
+
+    // Repertuvar: "şu an sahnede" şeridinde olmayan ana sayfa oyunları —
+    // aynı oyun iki kez gösterilmez.
+    final activeIds = activeShows.map((final s) => s.id).toSet();
+    final List<Show> repertoire = shows
+        .where((final s) => !activeIds.contains(s.id))
+        .take(isLargeScreen ? 6 : 4)
+        .toList();
+
+    final HomeTicketLayout ticketLayout =
+        isLargeScreen ? HomeTicketLayout.medium : HomeTicketLayout.compact;
+    final HomeFeatured? featured =
+        sessionsPending ? null : pickHomeFeatured(sessions, shows);
+
+    const EdgeInsets gutter = EdgeInsets.symmetric(horizontal: AppSpacing.xl);
+
     return BasePageWrapper(
       showBackButton: false,
       showFab: true,
       customScrollController: _scrollController,
-      // 💡 Web'de AppBar sabit durabilir, Mobilde dinamik
       appBar: isLargeScreen ? _buildWebAppBar(context) : _buildDynamicAppBar(),
       isLoading: isLoading && (campaignState.value == null),
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
-        ambientColor: context.colors.primary.withOpacity(0.05),
+        backgroundColor: cs.surface,
+        ambientColor: cs.primary.withOpacity(0.05),
         extendBody: true,
       ),
       child: hasError
@@ -106,78 +189,176 @@ class _HomePageState extends ConsumerState<HomePage> {
           : Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 1100 : double.infinity),
+                    maxWidth: isLargeScreen ? 760 : double.infinity),
                 child: SingleChildScrollView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.only(bottom: 100),
+                  // Alt gezinme çubuğu (extendBody) içeriğin üstünde yüzüyor.
+                  padding: const EdgeInsets.only(bottom: 120),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 20),
-                      const HeroSection(),
+                      // Geçici: admin panelini rol kontrolü olmadan test
+                      // etme girişi (release derlemesinde görünmez).
+                      const AdminTestStrip(),
+                      if (!isLargeScreen)
+                        _MobileTopBar(
+                          unreadCount: _unreadCount(),
+                          onTickets: _openTickets,
+                          onNotifications: _openNotifications,
+                        )
+                      else
+                        const SizedBox(height: AppSpacing.xxl),
 
-                      // Arama Çubuğu (Üstteki Arama)
+                      // Sayfanın tek başlık anı.
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: CustomSearchbar(onTap: _openSearch),
+                        padding: gutter,
+                        child: Semantics(
+                          header: true,
+                          child: AuthWipeReveal(
+                            reveal: _headline,
+                            child: Text(
+                              l10n.homeHeroHeadline,
+                              style: GoogleFonts.playfairDisplay(
+                                color: cs.onSurface,
+                                fontSize: isLargeScreen ? 44 : 34,
+                                fontWeight: FontWeight.w800,
+                                height: 1.05,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-
-                      const SizedBox(height: 32),
-
-                      // 0. Aktif Oyunlar — takviminde gelecek etkinliği
-                      // olan gerçek oyunlar (web'deki `_HeroBand`/"sıradaki
-                      // oyun" kavramının mobildeki karşılığı, ama mobilin
-                      // kendi collage/şerit diliyle). Hiç aktif oyun yoksa
-                      // (`activeShowState.value` boş/null) bölüm ve
-                      // ayırıcısı tamamen gizlenir — sahte/placeholder
-                      // içerik gösterilmez.
-                      if ((activeShowState.value ?? const []).isNotEmpty) ...[
-                        _PerformantActiveShowsSection(
-                            shows: activeShowState.value!),
-                        const DividerWithAccent(),
+                      if (!isLargeScreen) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: gutter,
+                          child: _settle(HomeSearchField(
+                            onTap: _openSearch,
+                            hint: l10n.homeHeroSearchPlaceholder,
+                          )),
+                        ),
                       ],
 
-                      // 1. Öne Çıkanlar (Story) - Performans Sınıfına Bölündü
-                      _PerformantStorySection(
-                          campaigns: campaignState.value ?? []),
+                      // Öne çıkan bilet: sıradaki gerçek seans.
+                      if (sessionsPending || featured != null) ...[
+                        const SizedBox(height: AppSpacing.xxxl),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg),
+                          child: _settle(sessionsPending
+                              ? HomeFeaturedTicketSkeleton(layout: ticketLayout)
+                              : HomeFeaturedTicket(
+                                  key: ValueKey(featured!.session?.event.id ??
+                                      featured!.show.id),
+                                  featured: featured!,
+                                  layout: ticketLayout,
+                                  onOpen: () => _openShow(featured!.show),
+                                )),
+                        ),
+                      ],
 
-                      const DividerWithAccent(),
+                      if (sessions.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(
+                              context, 'Yaklaşan seanslar', 'Upcoming performances'),
+                          child: HomeSessionBoard(
+                            sessions: sessions,
+                            onOpenShow: _openShow,
+                            columns: isLargeScreen ? 2 : 1,
+                            stripPadding: gutter,
+                            listPadding: gutter,
+                          ),
+                        ),
 
-                      // 2. Kategoriler - Sabit Düzen Katmanı
-                      _PerformantCategorySection(),
+                      if (activeShows.isNotEmpty)
+                        _MobileSection(
+                          title: l10n.homeActiveShowsSubtitle,
+                          actionLabel: l10n.homeSeeAll,
+                          onAction: () =>
+                              NavigationHandler.goToDiscover(context),
+                          child: HomeRail(
+                            itemCount: activeShows.length,
+                            itemWidth: 168,
+                            height: 256,
+                            padding: gutter,
+                            itemBuilder: (final context, final i) =>
+                                TheatreShowCard(
+                              show: activeShows[i],
+                              onTap: () => _openShow(activeShows[i]),
+                            ),
+                          ),
+                        ),
 
-                      const DividerWithAccent(),
+                      if (repertoire.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(context, 'Repertuvar', 'Repertoire'),
+                          actionLabel: l10n.homeSeeAll,
+                          onAction: () =>
+                              NavigationHandler.goToDiscover(context),
+                          child: Padding(
+                            padding: gutter,
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              itemCount: repertoire.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isLargeScreen ? 3 : 2,
+                                mainAxisSpacing: AppSpacing.xl,
+                                crossAxisSpacing: AppSpacing.lg,
+                                childAspectRatio: 0.64,
+                              ),
+                              itemBuilder: (final context, final i) =>
+                                  TheatreShowCard(
+                                show: repertoire[i],
+                                onTap: () => _openShow(repertoire[i]),
+                              ),
+                            ),
+                          ),
+                        ),
 
-                      // 3. Keşfet (Show Collage)
-                      _PerformantCollageSection(shows: showState.value ?? []),
+                      if (campaigns.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(context, 'Kampanyalar', 'Offers'),
+                          child: HomeRail(
+                            itemCount: campaigns.length,
+                            itemWidth: 280,
+                            height: 210,
+                            padding: gutter,
+                            itemBuilder: (final context, final i) =>
+                                HomeCampaignCard(
+                              campaign: campaigns[i],
+                              onTap: () => NavigationHandler.goToCampaigns(
+                                  context,
+                                  index: i),
+                            ),
+                          ),
+                        ),
 
-                      const DividerWithAccent(),
+                      if (stages.isNotEmpty)
+                        _MobileSection(
+                          title: l10n.homeVenuesSubtitle,
+                          child: HomeRail(
+                            itemCount: stages.length,
+                            itemWidth: 240,
+                            height: 210,
+                            padding: gutter,
+                            itemBuilder: (final context, final i) =>
+                                HomeStageCard(
+                              stage: stages[i],
+                              onTap: () => NavigationHandler.goToStage(
+                                  context, stages[i].id, stages[i].name),
+                            ),
+                          ),
+                        ),
 
-                      // 4. Mekanlar (Carousel)
-                      _PerformantStageCarouselSection(
-                          stages: stageState.value ?? []),
-
-                      const DividerWithAccent(),
-
-                      // 4.5 Sahne Toplulukları (Teams)
-                      const _PerformantTeamsSection(),
-
-                      const DividerWithAccent(),
-
-                      // 5. Özel Kartlar, Aksiyonlar ve Kapanış Alanı
-                      _PerformantSpecialCardsAndActionsSection(
-                          campaigns: campaignState.value ?? []),
-
-                      _PerformantQuickActionsGridSection(),
-
-                      const SizedBox(height: 40),
-                      const TrendingNowSection(),
-                      const SizedBox(height: 40),
-                      const NewsletterSubscribe(),
-                      const SizedBox(height: 60),
-                      const BottomQuote(),
-                      const SizedBox(height: 40),
+                      _MobileSection(
+                        title: l10n.homeTeamsTitle,
+                        child: const HomeTeamsStrip(),
+                      ),
                     ],
                   ),
                 ),
@@ -186,45 +367,62 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  // --- APPBAR TASARIMLARI (Birebir Aynı Tutuldu) ---
+  int _unreadCount() {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final uid = ref.watch(currentUserIdProvider) ?? '';
+    return isLoggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
+  }
 
+  // --- APPBAR ---
+
+  /// Telefon: aşağı kaydırılınca üstte kompakt arama belirir.
   PreferredSizeWidget _buildDynamicAppBar() => AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        toolbarHeight: _showSearchInAppBar ? 80 : 0,
+        toolbarHeight: _showSearchInAppBar ? 72 : 0,
         flexibleSpace: SafeArea(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
+            duration: AppMotion.fast,
             child: _showSearchInAppBar
-                ? Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl, vertical: AppSpacing.sm + 4),
+                    child: HomeSearchField(
+                      onTap: _openSearch,
+                      hint: AppLocalizations.of(context)!
+                          .homeHeroSearchPlaceholder,
+                      compact: true,
+                    ),
                   )
                 : const SizedBox.shrink(),
           ),
         ),
       );
 
+  /// Tablet: sabit üst çubuk — arama + bildirimler + ayarlar.
   PreferredSizeWidget _buildWebAppBar(final BuildContext context) {
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    final uid = ref.watch(currentUserIdProvider) ?? '';
-    final unreadCount =
-        isLoggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
-
+    final unreadCount = _unreadCount();
     return AppBar(
-      backgroundColor: context.colors.surface.withOpacity(0.8),
+      backgroundColor: context.colors.surface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       title: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: HomeSearchField(
+          onTap: _openSearch,
+          hint: AppLocalizations.of(context)!.homeHeroSearchPlaceholder,
+          compact: true,
+        ),
       ),
       actions: [
         IconButton(
+          tooltip: homeText(context, 'Biletlerim', 'My tickets'),
+          onPressed: _openTickets,
+          icon: const Icon(Icons.confirmation_number_outlined),
+        ),
+        IconButton(
           tooltip: AppLocalizations.of(context)!.homeTooltipNotifications,
-          onPressed: () => isLoggedIn
-              ? NavigationHandler.goToNotifications(context)
-              : NavigationHandler.goToLogin(context),
+          onPressed: _openNotifications,
           icon: Badge(
             isLabelVisible: unreadCount > 0,
             label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
@@ -235,7 +433,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             tooltip: AppLocalizations.of(context)!.homeTooltipSettings,
             onPressed: () => NavigationHandler.goToSettings(context),
             icon: const Icon(Icons.person_outline_rounded)),
-        const SizedBox(width: 20),
+        const SizedBox(width: AppSpacing.lg),
       ],
     );
   }
@@ -243,18 +441,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildErrorWidget(final BuildContext context, final WidgetRef ref) =>
       Center(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.theater_comedy_outlined,
                   size: 80, color: context.colors.outline),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text(AppLocalizations.of(context)!.homeErrorTitleMobile,
                   textAlign: TextAlign.center,
                   style: context.textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               ElevatedButton.icon(
                 onPressed: () {
                   ref.invalidate(campaignsProvider);
@@ -270,216 +468,94 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
 }
 
-// --- ARKA PLANDA HIZLANMAYI SAĞLAYAN PERFORMANS WIDGET SINIFLARI ---
+/// Telefonun üst satırı: marka + Biletlerim + Bildirimler (48dp hedefler).
+class _MobileTopBar extends StatelessWidget {
+  final int unreadCount;
+  final VoidCallback onTickets;
+  final VoidCallback onNotifications;
 
-class _PerformantStorySection extends StatelessWidget {
-  final List<Campaign> campaigns;
-
-  const _PerformantStorySection({required this.campaigns});
-
-  @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: AppLocalizations.of(context)!.homeFeaturedTitle,
-              subtitle: AppLocalizations.of(context)!.homeFeaturedSubtitle,
-              onTap: () => NavigationHandler.goToCampaigns(context)),
-          StoryCircles(
-              campaigns: campaigns,
-              onStoryTap: (final index) =>
-                  NavigationHandler.goToCampaigns(context, index: index)),
-        ],
-      );
-}
-
-class _PerformantCategorySection extends StatelessWidget {
-  const _PerformantCategorySection();
-
-  @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: AppLocalizations.of(context)!.homeCategoriesTitle,
-              subtitle: AppLocalizations.of(context)!.homeCategoriesSubtitle),
-          const CategoryGrid(),
-        ],
-      );
-}
-
-/// "Aktif Oyunlar" — sadece takviminde GELECEK tarihli en az bir etkinliği
-/// olan oyunlar (`activeShowsProvider(true)`'dan gelen gerçek liste,
-/// `showsActiveFirstProvider`'ın toplam uzunluğu DEĞİL). Bu widget'a
-/// verilen `shows` her zaman zaten filtrelenmiş/gerçek "aktif" listedir —
-/// aktiflik mantığı burada tekrar YAZILMIYOR, `show_provider.dart`'taki
-/// `_activeShowIdsFromEvents`'ten türeyen provider'lar tüketiliyor.
-///
-/// Kart tasarımı `theatre_show_card.dart`'taki paylaşılan
-/// `TheatreShowCard`'ı birebir kullanıyor (aynı gölge/köşe/hover dili) —
-/// web'in hover-perde tekniği dokunmatik'te tetiklenmez ama kart zaten
-/// dokunma ile `onTap` üzerinden çalışır, tasarım dili tutarlı kalır.
-class _PerformantActiveShowsSection extends StatelessWidget {
-  final List<Show> shows;
-
-  const _PerformantActiveShowsSection({required this.shows});
+  const _MobileTopBar({
+    required this.unreadCount,
+    required this.onTickets,
+    required this.onNotifications,
+  });
 
   @override
   Widget build(final BuildContext context) {
-    if (shows.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(
-            title: AppLocalizations.of(context)!.homeActiveShowsTitle,
-            subtitle: AppLocalizations.of(context)!.homeActiveShowsSubtitle,
-            onTap: () => NavigationHandler.goToDiscover(context)),
-        SizedBox(
-          height: 248,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            physics: const BouncingScrollPhysics(),
-            itemCount: shows.length,
-            separatorBuilder: (final _, final __) =>
-                const SizedBox(width: AppSpacing.md),
-            itemBuilder: (final context, final index) {
-              final show = shows[index];
-              return SizedBox(
-                width: 168,
-                child: Semantics(
-                  button: true,
-                  label: '${show.name}, ${show.category}',
-                  child: TheatreShowCard(
-                    show: show,
-                    onTap: () => NavigationHandler.goToShow(
-                        context, show.id, show.name),
-                  ),
-                ),
-              );
-            },
+    final cs = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.sm, AppSpacing.sm, AppSpacing.lg),
+      child: Row(
+        children: [
+          Icon(Icons.theater_comedy_rounded, size: 20, color: cs.primary),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            'TİYATROL',
+            style: GoogleFonts.playfairDisplay(
+              color: cs.onSurface,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+            ),
           ),
+          const Spacer(),
+          IconButton(
+            tooltip: homeText(context, 'Biletlerim', 'My tickets'),
+            onPressed: onTickets,
+            icon: const Icon(Icons.confirmation_number_outlined),
+            color: cs.onSurface,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
+          IconButton(
+            tooltip: AppLocalizations.of(context)!.homeTooltipNotifications,
+            onPressed: onNotifications,
+            color: cs.onSurface,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
+              child: const Icon(Icons.notifications_none_rounded),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Mobil bölüm: başlık (yan boşluklu) + içerik (şeritler kendi iç
+/// boşluklarını taşır, ekran kenarına kadar akar).
+class _MobileSection extends StatelessWidget {
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final Widget child;
+
+  const _MobileSection({
+    required this.title,
+    required this.child,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.huge + AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, 0, AppSpacing.sm, AppSpacing.md),
+              child: HomeSectionHeader(
+                title: title,
+                actionLabel: actionLabel,
+                onAction: onAction,
+              ),
+            ),
+            child,
+          ],
         ),
-      ],
-    );
-  }
-}
-
-class _PerformantCollageSection extends StatelessWidget {
-  final List<Show> shows;
-
-  const _PerformantCollageSection({required this.shows});
-
-  @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: AppLocalizations.of(context)!.homeDiscoverTitle,
-              subtitle: AppLocalizations.of(context)!.homeCuratedForYou),
-          ShowCollage(shows: shows),
-        ],
       );
-}
-
-class _PerformantStageCarouselSection extends StatelessWidget {
-  final List<Stage> stages;
-
-  const _PerformantStageCarouselSection({required this.stages});
-
-  @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: AppLocalizations.of(context)!.homeVenuesTitle,
-              subtitle: AppLocalizations.of(context)!.homeVenuesSubtitle),
-          StageCarousel(
-            stages: stages,
-            onStageTap: (final stageId) {
-              final stage = stages.firstWhere((final e) => e.id == stageId);
-              NavigationHandler.goToStage(context, stage.id, stage.name);
-            },
-          ),
-        ],
-      );
-}
-
-class _PerformantTeamsSection extends StatelessWidget {
-  const _PerformantTeamsSection();
-
-  @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: AppLocalizations.of(context)!.homeTeamsTitle,
-              subtitle: AppLocalizations.of(context)!.homeTeamsSubtitle,
-              onTap: () => NavigationHandler.goToSearch(context)),
-          const HomeTeamsStrip(),
-        ],
-      );
-}
-
-class _PerformantSpecialCardsAndActionsSection extends StatelessWidget {
-  final List<Campaign> campaigns;
-
-  const _PerformantSpecialCardsAndActionsSection({required this.campaigns});
-
-  @override
-  Widget build(final BuildContext context) {
-    // Daha önce burada sabit/uydurma bir "Romeo & Juliet %20 İndirim"
-    // kartı vardı (gerçek bir Firestore kampanyasına bağlı değildi, stok
-    // görsel kullanıyordu, tıklanamazdı). Artık `campaignsProvider`'dan
-    // (bu sayfa zaten build() başında çekiyor) gelen gerçek ilk kampanya
-    // gösteriliyor; hiç kampanya yoksa kart tamamen gizleniyor — sahte bir
-    // yer tutucuyla doldurulmuyor.
-    if (campaigns.isEmpty) return const SizedBox.shrink();
-    final campaign = campaigns.first;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: TicketStubCard(
-        title: campaign.title,
-        subtitle: AppLocalizations.of(context)!.homeCampaignDiscoverSubtitle,
-        imageUrl: campaign.imageUrl,
-        onTap: () => NavigationHandler.goToCampaigns(
-            context, index: campaigns.indexOf(campaign)),
-      ),
-    );
-  }
-}
-
-class _PerformantQuickActionsGridSection extends ConsumerWidget {
-  const _PerformantQuickActionsGridSection();
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    final uid = ref.watch(currentUserIdProvider) ?? '';
-    final unreadCount =
-        isLoggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 32.0),
-      child: QuickActionsGrid(
-        notificationBadgeCount: unreadCount,
-        onNotificationsTap: () {
-          if (isLoggedIn)
-            NavigationHandler.goToNotifications(context);
-          else
-            NavigationHandler.goToLogin(context);
-        },
-        onFavoritesTap: () => NavigationHandler.goToFavorites(context),
-        onTicketsTap: () {
-          if (isLoggedIn)
-            NavigationHandler.goToMyTickets(context, uid);
-          else
-            NavigationHandler.goToLogin(context);
-        },
-        onCalendarTap: () {},
-      ),
-    );
-  }
 }

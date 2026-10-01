@@ -1,33 +1,30 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
-import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
-import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
-import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/services/deeplink/deeplink_service.dart';
-import '../../../../shared/widgets/gallery_section.dart';
-import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
-import '../../../events/presentation/widgets/events_card.dart';
-import '../../../players/domain/entities/player.dart';
-import '../../../players/presentation/widgets/players_bubble_card.dart';
-import '../../../stages/domain/entities/stage.dart';
-import '../../../users/presentation/providers/user_provider.dart'
-    show userProfileProvider;
-import '../../domain/entities/show.dart';
-import '../widgets/mobile/show_info_section.dart';
-import '../widgets/show_team_credit.dart';
+import '../widgets/detail/show_detail_actions.dart';
+import '../widgets/detail/show_detail_data.dart';
+import '../widgets/detail/show_detail_layouts.dart';
+import '../widgets/detail/show_detail_skeleton.dart';
 
+/// OYUN DETAYI — MOBİL UYGULAMA (Android/iOS, telefon + tablet).
+///
+/// "Tiyatro programı + bilet": gerçek afiş bandının üstüne binen oyun
+/// bileti (ad perde gibi açılır; SÜRE / YAŞ SINIRI / TÜR alanları; koçanda
+/// en yakın seans + fiyat), altında program (seanslar = yırtılabilir
+/// koçanlar, hikâye, oyuncular, sahne, galeri, benzer oyunlar) ve
+/// başparmak bölgesinde yapışkan alt "bilet çubuğu" — sayfanın TEK birincil
+/// aksiyonu. Paylaş/favori üstte sessiz ikonlar.
+///
+/// Büyük yatay tablette (≥1024) masaüstündeki iki bölmeli düzen: solda
+/// yapışkan bilet + aksiyon, sağda kayan program.
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 
@@ -38,1209 +35,167 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
-    with SingleTickerProviderStateMixin, GlobalScrollMixin {
-  bool _isScrolled = false;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+    with TickerProviderStateMixin, GlobalScrollMixin {
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.normal);
+
+  late final Animation<double> _ticketIn = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.55, curve: AppMotion.standard));
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.3, 0.9, curve: AppMotion.dramatic));
+  late final Animation<double> _details = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.55, 1.0, curve: AppMotion.standard));
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
+
+  /// Afiş bandı geçildi mi — üst ikonların zemini buna göre değişir.
+  final ValueNotifier<bool> _scrolled = ValueNotifier(false);
+  final GlobalKey _sessionsKey = GlobalKey();
+
+  bool _reduceMotion = false;
+  bool _entranceStarted = false;
+  bool _openingExternal = false;
 
   @override
   void initState() {
     super.initState();
+    scrollController.addListener(_onScroll);
+  }
 
-    // Scroll listener
-    scrollController.addListener(() {
-      final isScrolledNow = scrollController.offset > 250;
-      if (isScrolledNow != _isScrolled)
-        setState(() => _isScrolled = isScrolledNow);
-    });
-
-    // Animations
-    _animationController =
-        AnimationController(duration: AppMotion.slow, vsync: this);
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: AppMotion.standard),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: AppMotion.standard),
-    );
-    _animationController.forward();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (_reduceMotion) _entrance.value = 1;
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
-    scrollController.dispose();
+    // `scrollController` GlobalScrollMixin tarafından dispose ediliyor.
+    // (Önceden burada bir kez daha dispose ediliyordu → mixin'in
+    // removeListener'ı dispose edilmiş controller'a çağrılıyordu.)
+    _entrance.dispose();
+    _tear.dispose();
+    _scrolled.dispose();
     super.dispose();
   }
+
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
+    _scrolled.value = scrollController.offset > 280;
+  }
+
+  void _startEntrance() {
+    if (_entranceStarted || !mounted) return;
+    _entranceStarted = true;
+    if (_reduceMotion) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
+  }
+
+  /// "Bilet al" → seanslar (koltuk seçimi seansın koçanından başlar).
+  void _scrollToSessions() {
+    final BuildContext? target = _sessionsKey.currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: _reduceMotion ? Duration.zero : AppMotion.slow,
+      curve: AppMotion.dramatic,
+      alignment: 0.08,
+    );
+  }
+
+  Future<void> _openExternal(final String url) async {
+    if (_openingExternal) return;
+    setState(() => _openingExternal = true);
+    final Future<void> tearing =
+        _reduceMotion ? Future<void>.value() : _tear.forward(from: 0);
+    await openExternalTickets(context, url);
+    await tearing;
+    if (!mounted) return;
+    setState(() => _openingExternal = false);
+    if (_reduceMotion) {
+      _tear.value = 0;
+    } else {
+      _tear.reverse();
+    }
+  }
+
+  void _goToSeats(final ShowSession session) {
+    // Auth'dan gelen UID'yi doğrudan alıyoruz (misafir: koltuk ekranı
+    // "guest" kimliğini kendisi ele alıyor).
+    final userId = ref.read(currentUserIdProvider) ?? "guest";
+    NavigationHandler.goToSeatSelection(
+        context, widget.showId, session.event.id, userId);
+  }
+
+  ShowDetailViewArgs _args(final ShowDetailData data) => ShowDetailViewArgs(
+        data: data,
+        controller: scrollController,
+        sessionsKey: _sessionsKey,
+        ticketIn: _ticketIn,
+        headline: _headline,
+        details: _details,
+        tear: _tearCurve,
+        onBuy: _scrollToSessions,
+        onExternal: () => _openExternal(data.show.externalTicketUrl),
+        externalBusy: _openingExternal,
+        onSelectSession: _goToSeats,
+        // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
+        // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher).
+        chatBubble: ShowChatBubbleButton(
+            showId: data.show.id, showName: data.show.name),
+      );
 
   @override
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(showDetailProvider(widget.showId));
     final colors = context.colors;
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final bool twoPane = context.isDesktop;
 
     return BasePageWrapper(
       showBackButton: false,
-      showFab: !isLargeScreen,
+      // Yukarı-kaydır FAB'ı yapışkan alt çubukla çakışıyordu; kaldırıldı.
+      showFab: false,
       customScrollController: scrollController,
       isLoading: detailAsync.isLoading && !detailAsync.hasValue,
+      shimmerSkeleton: ShowDetailSkeleton(twoPane: twoPane),
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: colors.surface,
-        ambientColor: colors.primary.withOpacity(0.04),
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
+        // Afiş durum çubuğunun altına uzanır; güvenli alanı düzen kendisi
+        // uygular (üst ikonlar + alt çubuk).
+        safeAreaTop: false,
+        safeAreaBottom: false,
       ),
       child: detailAsync.when(
-        loading: () =>
-            Center(child: CircularProgressIndicator(color: colors.primary)),
-        error: (final err, final stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline_rounded, size: 64, color: colors.error),
-              const SizedBox(height: AppSpacing.lg),
-              Text("Bir hata oluştu",
-                  style: context.textTheme.titleLarge?.copyWith(
-                    color: colors.error,
-                    fontWeight: FontWeight.bold,
-                  )),
-              const SizedBox(height: AppSpacing.sm),
-              Text("$err",
-                  textAlign: TextAlign.center,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  )),
-            ],
+        loading: () => ShowDetailSkeleton(twoPane: twoPane),
+        error: (final err, final stack) => SafeArea(
+          child: ShowDetailError(
+            onRetry: () => ref.invalidate(showDetailProvider(widget.showId)),
           ),
         ),
-        data: (final state) => Stack(
-          children: [
-            isLargeScreen
-                ? _buildWebLayout(context, state)
-                : _buildMobileLayout(context, state),
-            // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
-            // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher). Mobilde
-            // sağda zaten "yukarı kaydır" FAB'ı ve alt "Bilet Al" çubuğu
-            // olduğu için sol tarafta, çubuğun üstünde konumlandırılır;
-            // büyük ekranda (alt çubuk yok) sağ-altta yer alır.
-            Positioned(
-              bottom: isLargeScreen ? 30 : 110,
-              left: isLargeScreen ? null : AppSpacing.xl,
-              right: isLargeScreen ? AppSpacing.xl : null,
-              child: ShowChatBubbleButton(
-                  showId: state.show.id, showName: state.show.name),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT
-  // ═══════════════════════════════════════════════════════════════
-  Widget _buildMobileLayout(final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-
-    return Stack(
-      children: [
-        CustomScrollView(
-          controller: scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Hero Header
-            _buildMobileSliverHeader(context, state.show.imageUrl),
-
-            // Content Body
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Transform.translate(
-                    offset: const Offset(0, -40),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(AppRadius.xl),
-                        ),
-                        boxShadow: AppShadows.level2(colors.shadow),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Drag Handle
-                          Center(
-                            child: Container(
-                              margin: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.sm),
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: colors.onSurfaceVariant.withOpacity(0.3),
-                                borderRadius: AppRadius.asymSm,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: AppSpacing.sm),
-
-                          // Header Section
-                          _buildMobileHeaderSection(context, state),
-
-                          // Quick Stats
-                          _buildMobileQuickStats(context, state),
-
-                          const SizedBox(height: AppSpacing.xxxl),
-
-                          // Description
-                          if (state.show.description.isNotEmpty) ...[
-                            _buildSectionHeader(
-                                context, "Hikaye", Icons.auto_stories_rounded),
-                            const SizedBox(height: AppSpacing.lg),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                              child: ShowInfoSection(
-                                title: "",
-                                description: state.show.description,
-                                type: state.show.type,
-                                duration: state.show.duration,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.xxxl),
-                          ],
-
-                          // Events
-                          if (state.events.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Seanslar & Biletler",
-                                Icons.event_rounded),
-                            const SizedBox(height: AppSpacing.lg),
-                            _buildMobileEventsList(context, state),
-                            const SizedBox(height: AppSpacing.xxxl),
-                          ],
-
-                          // Current Cast
-                          if (state.show.nowPlayersId.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Oyuncu Kadrosu",
-                                Icons.people_rounded),
-                            const SizedBox(height: AppSpacing.lg),
-                            PlayersBubbleCard(
-                              players: (state.players as List<Player>)
-                                  .where((final p) =>
-                                      state.show.nowPlayersId.contains(p.id))
-                                  .toList(),
-                              isGrayscale: false,
-                            ),
-                            const SizedBox(height: AppSpacing.xxxl),
-                          ],
-
-                          // Past Cast
-                          if (state.show.oldPlayersId.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Geçmiş Kadrolar",
-                                Icons.history_rounded),
-                            const SizedBox(height: AppSpacing.lg),
-                            PlayersBubbleCard(
-                              players: (state.players as List<Player>)
-                                  .where((final p) =>
-                                      state.show.oldPlayersId.contains(p.id))
-                                  .toList(),
-                              isGrayscale: true,
-                            ),
-                            const SizedBox(height: AppSpacing.xxxl),
-                          ],
-
-                          // Gallery
-                          if (state.show.photosShowId.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Sahne Arkası",
-                                Icons.photo_library_rounded),
-                            const SizedBox(height: AppSpacing.lg),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                              child: GallerySection(
-                                  photos: state.show.photosShowId),
-                            ),
-                          ],
-
-                          const SizedBox(height: 120),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        // Top Bar
-        _buildMobileTopBar(context),
-
-        // Floating Bottom Bar
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: _buildFloatingBottomBar(context, state),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileSliverHeader(
-      final BuildContext context, final String imageUrl) {
-    final colors = context.colors;
-
-    return SliverAppBar(
-      expandedHeight: 420,
-      pinned: false,
-      stretch: true,
-      backgroundColor: colors.surface,
-      automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [
-          StretchMode.zoomBackground,
-          StretchMode.blurBackground,
-        ],
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 1. Resim (Hero)
-            Hero(
-              tag: 'show_${widget.showId}',
-              child: OptimizedCachedImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-              ),
-            ),
-            // 2. Sadeleştirilmiş Gradyan (Sadece yazının okunması için dipte hafif geçiş)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.3),
-                    // Üstteki ikonlar görünsün diye hafif koyuluk
-                    Colors.transparent,
-                    // Resmin ortası tamamen net
-                    Colors.transparent,
-                    colors.surface,
-                    // En altta sayfa rengine yumuşak geçiş
-                  ],
-                  stops: const [0.0, 0.2, 0.8, 1.0],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileTopBar(final BuildContext context) {
-    final colors = context.colors;
-
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const GlassmorphismBackButton(),
-              Row(
-                children: [
-                  // Favorite Button
-                  Semantics(
-                    label: 'Favorilere ekle',
-                    button: true,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _isScrolled
-                            ? colors.surfaceContainerHighest.withOpacity(0.95)
-                            : Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _isScrolled
-                              ? colors.outline.withOpacity(0.1)
-                              : Colors.white.withOpacity(0.2),
-                        ),
-                        boxShadow: AppShadows.level1(colors.shadow),
-                      ),
-                      child: IconButton(
-                        tooltip: 'Favorilere ekle',
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          Icons.favorite_border_rounded,
-                          size: 22,
-                          color: _isScrolled ? colors.primary : Colors.white,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  // Share Button
-                  Semantics(
-                    label: 'Bu gösteriyi paylaş',
-                    button: true,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _isScrolled
-                            ? colors.surfaceContainerHighest.withOpacity(0.95)
-                            : Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _isScrolled
-                              ? colors.outline.withOpacity(0.1)
-                              : Colors.white.withOpacity(0.2),
-                        ),
-                        boxShadow: AppShadows.level1(colors.shadow),
-                      ),
-                      child: IconButton(
-                        tooltip: 'Paylaş',
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          Icons.share_rounded,
-                          size: 22,
-                          color: _isScrolled ? colors.onSurface : Colors.white,
-                        ),
-                        onPressed: () {
-                          final currentState =
-                              ref.read(showDetailProvider(widget.showId));
-                          if (currentState.hasValue &&
-                              currentState.value != null) {
-                            final show = currentState.value!.show;
-                            TiyatrolDeeplinkService.shareShow(
-                                id: show.id, name: show.name);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Gerçek `Show.category`, boşsa `Show.type` — ikisi de boşsa kategori
-  /// çipi tamamen gizlenir (uydurma bir "TİYATRO" sabiti asla gösterilmez).
-  String _categoryLabel(final dynamic show) {
-    final category = (show.category as String).trim();
-    if (category.isNotEmpty) return category.toUpperCase();
-    final type = (show.type as String).trim();
-    return type.isNotEmpty ? type.toUpperCase() : '';
-  }
-
-  Widget _buildMobileHeaderSection(
-      final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Kategori — gerçek Show.category/type, sabit "TİYATRO" DEĞİL.
-          // Uydurma bir "4.8" reyting rozeti vardı; Show entity'sinde hiç
-          // rating alanı yok, uydurma veri göstermek yerine tamamen
-          // kaldırıldı (bkz. show_info_section.dart'taki aynı düzeltme).
-          if (_categoryLabel(state.show).isNotEmpty)
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    border: Border.all(
-                      color: colors.primary.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.theater_comedy_rounded,
-                        size: 16,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _categoryLabel(state.show),
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // Title
-          Text(
-            state.show.name,
-            style: context.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colors.onSurface,
-              height: 1.2,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Prodüksiyon / Topluluk
-          ShowTeamCredit(teamId: state.show.teamId),
-        ],
-      ),
-    );
-  }
-
-  /// Önceden burada HER oyunda sabit "Süre: 120 dakika" / "Dil: Türkçe" /
-  /// "Yaş Sınırı: 13+" gösteriliyordu — üçü de uydurma/sabit veriydi.
-  /// "Dil" için Show entity'sinde hiç gerçek bir alan olmadığından tamamen
-  /// kaldırıldı; "Süre" ve "Yaş Sınırı" artık gerçek `Show.duration`/
-  /// `Show.ageLimit` alanlarından geliyor. Gerçek veri hiç yoksa kart
-  /// tamamen gizlenir.
-  Widget _buildMobileQuickStats(
-      final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-    final String duration = (state.show.duration as String).trim();
-    final String ageLimit = (state.show.ageLimit as String).trim();
-
-    final rows = <Widget>[
-      if (duration.isNotEmpty)
-        _buildStatRow(context, Icons.access_time_rounded, "Süre", duration),
-      if (ageLimit.isNotEmpty)
-        _buildStatRow(
-            context, Icons.child_care_rounded, "Yaş Sınırı", ageLimit),
-    ];
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xl, AppSpacing.xxl, 0),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: colors.outlineVariant.withOpacity(0.5),
-          width: 1,
-        ),
-        boxShadow: AppShadows.level1(colors.shadow),
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < rows.length; i++) ...[
-            if (i > 0) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Divider(
-                color: colors.outlineVariant.withOpacity(0.3),
-                height: 1,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            rows[i],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatRow(
-    final BuildContext context,
-    final IconData icon,
-    final String label,
-    final String value,
-  ) {
-    final colors = context.colors;
-
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: colors.primary,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: context.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: context.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colors.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(
-    final BuildContext context,
-    final String title,
-    final IconData icon,
-  ) {
-    final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: colors.primaryContainer,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-            ),
-            child: Icon(icon, size: 20, color: colors.primary),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Text(
-            title,
-            style: context.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colors.onSurface,
-              letterSpacing: -0.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 🔗 Biletleri bizim sistemimiz dışında, başka bir platformda satılan
-  // "konuk" oyunlar için: kendi Event/koltuk-seçimi akışımız yerine
-  // doğrudan o platforma yönlendiren tek bir CTA kartı.
-  Widget _buildExternalTicketCta(
-      final BuildContext context, final Show show) {
-    final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: colors.tertiaryContainer.withOpacity(0.5),
-          borderRadius: AppRadius.asymLg,
-          border: Border.all(color: colors.tertiary.withOpacity(0.4)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.open_in_new_rounded, color: colors.tertiary),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'Bu oyunun biletleri başka bir platformda satılıyor',
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final uri = Uri.tryParse(show.externalTicketUrl);
-                  if (uri == null) return;
-                  try {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } catch (_) {}
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.tertiary,
-                  foregroundColor: colors.onTertiary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
-                ),
-                icon: const Icon(Icons.confirmation_number_outlined),
-                label: const Text('Biletleri Görüntüle'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileEventsList(
-          final BuildContext context, final dynamic state) =>
-      state.show.hasExternalTicketing
-          ? _buildExternalTicketCta(context, state.show)
-          : SizedBox(
-        height: 340,
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: state.events.length,
-          itemBuilder: (final context, final index) {
-            final event = state.events[index];
-            final stage = state.stages.firstWhere(
-              (final s) => s.id == event.stageId,
-              orElse: () => Stage(
-                id: "",
-                name: "Sahne",
-                address: "",
-                imageUrl: "",
-                capacity: "",
-                description: "",
-                communication: "",
-                locationLat: 0,
-                locationLng: 0,
-                createdAt: "",
-                updatedAt: "",
-                showsId: [],
-              ),
-            );
-
-            String dateText = event.date;
-            String timeText = "--:--";
-            try {
-              if (event.date.contains(',')) {
-                final parts = event.date.split(',');
-                final dParts = parts[0].split('.');
-                if (dParts.length == 3) {
-                  dateText =
-                      "${dParts[0]} ${_getMonthName(int.tryParse(dParts[1]) ?? 1)}";
-                  timeText = parts.length > 1 ? parts[1] : "";
-                }
-              }
-            } catch (_) {}
-
-            return EventsCard(
-              width: 270,
-              margin: const EdgeInsets.only(right: AppSpacing.lg),
-              imageUrl: state.show.imageUrl,
-              showName: state.show.name,
-              category: _categoryLabel(state.show),
-              fullDateString: dateText,
-              timeString: timeText,
-              stage: stage.name,
-              price: double.tryParse(event.price.toString()) ?? 0.0,
-              onTap: () {
-                // Auth'dan gelen UID'yi doğrudan alıyoruz
-                final userId = ref.read(currentUserIdProvider) ?? "guest";
-                NavigationHandler.goToSeatSelection(
-                    context, widget.showId, event.id, userId);
-              },
-            );
-          },
-        ),
-      );
-
-  Widget _buildFloatingBottomBar(
-      final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-    double minPrice = 0;
-    if (state.events.isNotEmpty)
-      minPrice = double.tryParse(state.events.first.price.toString()) ?? 0;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colors.surfaceContainer.withOpacity(0.98),
-            colors.surfaceContainerHighest.withOpacity(0.95),
-          ],
-        ),
-        borderRadius: AppRadius.asymLg,
-        boxShadow: AppShadows.level4(colors.shadow),
-        border: Border.all(
-          color: colors.outlineVariant.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: AppRadius.asymLg,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                // Price Section
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Başlayan",
-                        style: context.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "₺${minPrice.toStringAsFixed(0)}",
-                        style: context.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colors.primary,
-                          height: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                // Button
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      boxShadow: AppShadows.level3(colors.primary),
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () => scrollController.animateTo(
-                        800,
-                        duration: AppMotion.slow,
-                        curve: AppMotion.dramatic,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colors.primary,
-                        foregroundColor: colors.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Bilet Al",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Icon(Icons.arrow_forward_rounded, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // WEB/TABLET LAYOUT
-  // ═══════════════════════════════════════════════════════════════
-  Widget _buildWebLayout(final BuildContext context, final dynamic state) =>
-      SingleChildScrollView(
-        controller: scrollController,
-        physics: const BouncingScrollPhysics(),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.huge),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildWebHeader(context, state),
-                    const SizedBox(height: AppSpacing.massive),
-                    _buildWebContent(context, state),
-                    const SizedBox(height: AppSpacing.section),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-  Widget _buildWebHeader(final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Image
-        Expanded(
-          flex: 2,
-          child: Hero(
-            tag: 'show_${widget.showId}',
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-                boxShadow: AppShadows.level3(colors.shadow),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-                child: AspectRatio(
-                  aspectRatio: 2 / 3,
-                  child: OptimizedCachedImage(
-                    imageUrl: state.show.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.massive),
-        // Info
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Kategori — gerçek Show.category/type. Uydurma "4.8" reyting
-              // rozeti kaldırıldı (Show entity'sinde rating alanı yok).
-              if (_categoryLabel(state.show).isNotEmpty)
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(
-                            color: colors.primary.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.theater_comedy_rounded,
-                              size: 20, color: colors.primary),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            _categoryLabel(state.show),
-                            style: context.textTheme.titleSmall?.copyWith(
-                              color: colors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: AppSpacing.xxl),
-              // Title
-              Text(
-                state.show.name,
-                style: context.textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  height: 1.1,
-                  letterSpacing: -1,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              // Prodüksiyon / Topluluk
-              ShowTeamCredit(teamId: state.show.teamId),
-              const SizedBox(height: AppSpacing.xxl),
-              // Description
-              Text(
-                state.show.description,
-                style: context.textTheme.bodyLarge?.copyWith(
-                  height: 1.6,
-                  color: colors.onSurfaceVariant,
-                ),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: AppSpacing.xxxl),
-              // Stats
-              _buildWebQuickStats(context, state),
-              const SizedBox(height: AppSpacing.xxxl),
-              // CTA Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => scrollController.animateTo(
-                    800,
-                    duration: AppMotion.slow,
-                    curve: AppMotion.dramatic,
-                  ),
-                  icon: const Icon(Icons.confirmation_number_rounded),
-                  label: const Text(
-                    "Bilet Al",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWebQuickStats(final BuildContext context, final dynamic state) {
-    final colors = context.colors;
-    final items = _buildWebStatItems(context, state);
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
-      ),
-      child: Row(
-        children: items,
-      ),
-    );
-  }
-
-  /// Önceden burada HER oyunda sabit "Süre: 120 dk" / "Dil: Türkçe" /
-  /// "Yaş: 13+" gösteriliyordu (aynı sahte veri, mobil sürümüyle -bkz.
-  /// _buildMobileQuickStats- birebir aynı bug). "Dil" için gerçek bir
-  /// Show alanı olmadığından kaldırıldı; "Süre"/"Yaş" artık gerçek
-  /// Show.duration/Show.ageLimit. Gerçek veri yoksa o öğe hiç render
-  /// edilmez.
-  List<Widget> _buildWebStatItems(
-      final BuildContext context, final dynamic state) {
-    final String duration = (state.show.duration as String).trim();
-    final String ageLimit = (state.show.ageLimit as String).trim();
-    final items = <Widget>[
-      if (duration.isNotEmpty)
-        _buildWebStatItem(
-            context, Icons.access_time_rounded, "Süre", duration),
-      if (ageLimit.isNotEmpty)
-        _buildWebStatItem(context, Icons.child_care_rounded, "Yaş", ageLimit),
-    ];
-    return items.map((final item) => Expanded(child: item)).toList();
-  }
-
-  Widget _buildWebStatItem(
-    final BuildContext context,
-    final IconData icon,
-    final String label,
-    final String value,
-  ) {
-    final colors = context.colors;
-
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Icon(icon, size: 24, color: colors.primary),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          label,
-          style: context.textTheme.labelMedium
-              ?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          value,
-          style: context.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWebContent(final BuildContext context, final dynamic state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Events
-        if (state.events.isNotEmpty) ...[
-          _buildSectionHeader(
-            context,
-            "Seanslar & Biletler",
-            Icons.event_rounded,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          _buildWebEventsList(context, state),
-          const SizedBox(height: AppSpacing.massive),
-        ],
-
-        // Cast
-        if (state.show.nowPlayersId.isNotEmpty) ...[
-          _buildSectionHeader(
-            context,
-            "Oyuncu Kadrosu",
-            Icons.people_rounded,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          PlayersBubbleCard(
-            players: (state.players as List<Player>)
-                .where((final p) => state.show.nowPlayersId.contains(p.id))
-                .toList(),
-            isGrayscale: false,
-          ),
-          const SizedBox(height: AppSpacing.massive),
-        ],
-
-        // Gallery
-        if (state.show.photosShowId.isNotEmpty) ...[
-          _buildSectionHeader(
-            context,
-            "Sahne Arkası",
-            Icons.photo_library_rounded,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GallerySection(photos: state.show.photosShowId),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildWebEventsList(final BuildContext context, final dynamic state) =>
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 24,
-          mainAxisSpacing: 24,
-          childAspectRatio: 1.5,
-        ),
-        itemCount: state.events.length,
-        itemBuilder: (final context, final index) {
-          final event = state.events[index];
-          final stage = state.stages.firstWhere(
-            (final s) => s.id == event.stageId,
-            orElse: () => Stage(
-              id: "",
-              name: "Sahne",
-              address: "",
-              imageUrl: "",
-              capacity: "",
-              description: "",
-              communication: "",
-              locationLat: 0,
-              locationLng: 0,
-              createdAt: "",
-              updatedAt: "",
-              showsId: [],
-            ),
-          );
-
-          String dateText = event.date;
-          String timeText = "--:--";
-          try {
-            if (event.date.contains(',')) {
-              final parts = event.date.split(',');
-              final dParts = parts[0].split('.');
-              if (dParts.length == 3) {
-                dateText =
-                    "${dParts[0]} ${_getMonthName(int.tryParse(dParts[1]) ?? 1)}";
-                timeText = parts.length > 1 ? parts[1] : "";
-              }
-            }
-          } catch (_) {}
-
-          return EventsCard(
-            imageUrl: state.show.imageUrl,
-            showName: state.show.name,
-            category: _categoryLabel(state.show),
-            fullDateString: dateText,
-            timeString: timeText,
-            stage: stage.name,
-            price: double.tryParse(event.price.toString()) ?? 0.0,
-            onTap: () {
-              // Auth'dan gelen UID'yi doğrudan alıyoruz
-              final userId = ref.read(currentUserIdProvider) ?? "guest";
-              NavigationHandler.goToSeatSelection(
-                  context, widget.showId, event.id, userId);
-            },
-          );
+        data: (final state) {
+          final data = ShowDetailData.from(state);
+          WidgetsBinding.instance
+              .addPostFrameCallback((final _) => _startEntrance());
+          return twoPane
+              ? SafeArea(child: ShowDetailTwoPaneLayout(args: _args(data)))
+              : ShowDetailStackedLayout(
+                  args: _args(data),
+                  scrolled: _scrolled,
+                  heroPoster: true,
+                );
         },
-      );
-
-  String _getMonthName(final int monthIndex) {
-    const months = [
-      "",
-      "Ocak",
-      "Şubat",
-      "Mart",
-      "Nisan",
-      "Mayıs",
-      "Haziran",
-      "Temmuz",
-      "Ağustos",
-      "Eylül",
-      "Ekim",
-      "Kasım",
-      "Aralık"
-    ];
-    return (monthIndex > 0 && monthIndex <= 12) ? months[monthIndex] : "";
+      ),
+    );
   }
 }

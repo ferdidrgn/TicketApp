@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../providers/location_provider.dart';
@@ -108,17 +110,41 @@ class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        // Uygulamanın imza asimetrik köşesi ("Sahne Köşesi") — bu sayfanın
-        // en büyük, en dramatik panelinde (gerçek, etkileşimli harita)
-        // AppRadius'un `asymLg`'si kullanılıyor; `app_radius.dart`'taki
-        // doc-comment tam bu ölçeği ("hero panel") öneriyor.
-        borderRadius: AppRadius.asymLg,
+        // Düz, eşit köşe ("D harfi" asimetrik köşe reddedildi).
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: widget.borderColor),
         color: widget.surfaceColor,
       ),
       child: positionState.when(
-        loading: () =>
-            Center(child: CircularProgressIndicator(color: widget.accentColor)),
+        // Konum beklenirken harita alanı boyutunda iskelet (spinner yok).
+        loading: () => Stack(
+          fit: StackFit.expand,
+          children: [
+            const ShimmerLoading(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 0,
+            ),
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.my_location_rounded,
+                      size: 18, color: widget.mutedColor),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Konumun alınıyor',
+                    style: TextStyle(
+                      color: widget.mutedColor,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         error: (final err, final _) => SingleChildScrollView(
           child: NearbyLocationPermissionView(
             error: err,
@@ -172,7 +198,11 @@ class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
           };
 
           return GoogleMap(
-            style: kDarkMapStyle,
+            // Koyu harita stili sadece koyu temalarda; açık temalarda
+            // Google'ın standart açık stili (tema ile uyumlu).
+            style: Theme.of(context).brightness == Brightness.dark
+                ? kDarkMapStyle
+                : null,
             initialCameraPosition:
                 CameraPosition(target: userLatLng, zoom: 11),
             markers: markers,

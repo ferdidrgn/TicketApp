@@ -407,7 +407,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.';
 
   @override
-  String get settingsVersionFooter => 'Versiyon 1.0.4 - Sanatla Tasarlandı';
+  String settingsVersionFooter(String version) {
+    return 'Versiyon $version - Sanatla Tasarlandı';
+  }
 
   @override
   String settingsShareMessage(String url) {

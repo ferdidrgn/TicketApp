@@ -1,0 +1,103 @@
+# Denenenler ve sahibinin tepkisi (yeni tasarımdan ÖNCE oku)
+
+Sahibi Türkçe ve doğrudan konuşur; "berbat", "iğrenç", "kullanışsız"
+geri bildirimleri ciddi ret demektir. Beğendiği şeyler de not edildi —
+onları koru.
+
+## ✅ ONAYLANAN YÖN: "BİLET DİLİ" (29.09.2026)
+
+Giriş ekranındaki "bilet gişesi" tasarımı için sahibi: **"çok çok çok
+harika… bunu her sayfaya her logice bağla… İŞTE BÖYLE DEVAM ET… webLERE DE
+EKLE"**. Bu artık uygulamanın imza dilidir:
+- Önemli nesneler fiziksel tiyatro biletidir: fildişi kağıt, delikli koçan
+  (yarım daire çentikler), barkod, mürekkep damgası (YENİ, KOD GÖNDERİLDİ),
+  birincil aksiyon "damga butonu", aksiyonda koçanın yırtılması.
+- Başlıklar Playfair Display ile ve soldan sağa perde açılışı (wipe).
+- Bilgi, bilet alanları gibi (küçük etiket + basılı değer: TARİH, SEANS,
+  KOLTUK) verilir.
+- Kit: `lib/shared/widgets/ticket/ticket_kit.dart` (`TicketPiece`,
+  `TicketPerforation`, `AdmitTicket`, `TicketStampButton`, `TicketField`,
+  `TicketBarcode`, `TicketInkStamp`, `TicketHeaderStrip`, `TicketStage`,
+  `AuthWipeReveal`). Vurgu rengi temadan (`TicketInk.accentOf`); kağıt ve
+  mürekkep sabit. Giriş gibi "an" ekranları koyu sahnede
+  (`TicketStage()`), genel sayfalar temanın zemininde
+  (`TicketStage(themed: true)`).
+- Not: skill'in "BÜYÜK HARF etiket / monospace" uyarıları bu dilde
+  bilinçli olarak kullanılıyor (sahibinin onayı, gerçek biletin
+  dili) — ama ölçülü: bilet alanlarında, her başlığın üstünde değil.
+
+## Oyunlaştırma / sahne anları (30.09.2026, sahibinin isteği: "bir oyunmuş gibi")
+- Profil: "Seyirci karnesi" — izlenen her oyun için mürekkep damgası, rütbe
+  (Yeni Seyirci → Seyirci → Müdavim → Tiyatro Kurdu → Sahne Tozu Yutmuş),
+  zımba delikleriyle sonraki rütbe. Tamamen gerçek bilet verisinden.
+- Favoriye eklerken sahneye gül atılır (`stage_moments.dart` → `tossRose`).
+- Yükleme: "Üç Gong" (`ThreeGongIndicator`) — Türk tiyatrosunda perde üç
+  gongla açılır.
+- Giriş biletindeki afiş bandı: yatay bantta dikey afişler basık/kırpık
+  görünüyordu ("basıklıktan kurtar") → afiş 2:3 tam oranında solda, oyun adı
+  sağda. Sahibi: "oyunun afişleri de çıksın" — afiş her zaman görünür kalmalı.
+
+- Onboarding "Oyun programı" (I-II-III. perde; gerçek afiş yelpazesi, koltuk
+  sırası, CANLI tema seçimi). Sadece mobilde, ilk açılışta bir kez
+  (`OnboardingGate`). Web'de gösterilmez.
+- "Başa dön": sayfa başına FAB yerine kökte tek global buton
+  (`StageScrollTop`) — temanın vurgu renginde küçük bilet koçanı, "BAŞA".
+  Eski gri yuvarlak (`fab_scroll_up.dart`) artık kullanılmıyor.
+
+- Alt menü (01.10.2026, "sıfırdan farklı"): yüzen "bilet şeridi" — iki yanda
+  zımba çentikleri, aktif sekme vurgu renginde kayan koçan. Eski düz şerit
+  + üst çizgideki zımba çentiği değiştirildi. Yükseklik sabit
+  (`kTicketNavBarExtent`); çubuğa asla tüm yüksekliği kaplayan Center/Align
+  koyma.
+
+- Arama (01.10.2026): ortak "gişe arama fişi" (`ticket_search.dart`) —
+  vurgu renkli arama damgası + delik çizgisi + dönen GERÇEK örnekler.
+- Arama sayfasında oyuncular: sahibi yeni yuvarlak portreyi beğenmedi,
+  eski "el aynası" (84x128 dikey oval) kart geri getirildi — "çok daha
+  tatlıydı". Oyuncu portreleri için bu dili koru.
+
+## Beğenilenler (koru)
+- **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
+  Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".
+- **Konser/kalabalık sahne fotoğrafı** (profil sayfası misafir hero'su,
+  Unsplash `photo-1514525253161-7a46d19cd819`) — "bu foto çok iyi".
+- 5 tema özelliği — "asla temalarımı bozma".
+
+## Reddedilenler
+
+### Genel (Eylül 2026)
+- Web ve mobil sayfaların geneli: "çok berbat", "hiç gerçekçi tasarım hissi
+  vermiyor, firmalara sunsam berbat der", "UI'lar birbirine karıştı,
+  sadelik gitti".
+- Renk paleti (koyu lacivert/siyah + koyu kırmızı `#C50337` + fildişi, pembe/
+  mor gradyanlar): "renkler iğrenç". Sahibi paleti değiştirme izni verdi.
+- Oyun detay sayfası: "bir sürü buton var, çok karmaşık".
+- Hazır yönler (Biletix tarzı ticari, Netflix tarzı karanlık sinema, dergi
+  tarzı editöryal) önerildi → hiçbiri seçilmedi: "bize özgü, bunlardan
+  ayrı olsun".
+
+### Oyun kartı (`lib/shared/widgets/theatre_show_card.dart`)
+1. Tek büyük yuvarlak köşeli "taç yaprağı" kart, rozetler afiş üstünde iki
+   köşede → dar kartta "BAŞKA PLATFORMDA" ile "YENİ" üst üste bindi.
+2. Zeytin yaprağı/göz (vesica) şekli sadece afişte → "sen sadece fotoyu öyle
+   yapmışsın, kart tasarımından bahsetmiştim… çok iğrenç".
+3. Vesica şekli tüm kartta → dar bantta RenderFlex taşması, "çok kullanışsız".
+4. İmza asimetrik köşe (`AppRadius.asymLg`) → **"D harfi şeklinde tasarımlar
+   iğrenç"**. `asymSm/asymLg` ~10 dosyada daha kullanılıyor; temizlenmeli.
+
+### Giriş / telefonla giriş
+1. Üst yarı fotoğraf + alt yarı buton platformu (bottom sheet) → "berbat".
+2. Web'de sol fotoğraf paneli + sağ form kartı → "berbat".
+3. Fotoğrafsız editöryal tipografi + numaralı "01 02" satırlar → "berbat"
+   (sadece başlık animasyonu beğenildi).
+4. Referans afiş kompozisyonu (başlık + tam kanama foto + yüzen pill buton)
+   → negatif margin çökmesi; mobilde üstte temanın açık şeridi; web'de
+   Scaffold yok → çöktü; dış foto web'de yüklenmedi.
+5. "Bilet gişesi" (fildişi fiziksel bilet, delikli koçan, yırtılma,
+   koltuk sırası SMS kodu, gerçek afiş bandı) → **ONAYLANDI, çok beğenildi**
+   (bkz. en üst).
+
+### Diğer
+- Geri butonlu ortak başlıkta sabit pembe/kırmızı gradyan yazı → temaya
+  bağlandı (düzeltildi).
+- Her yerde perde/spot/parlama/vignette "tiyatro efekti" — gimmick.

@@ -113,7 +113,20 @@ class AuthMutation extends _$AuthMutation {
           .read(verifyOtpUseCaseProvider)
           .call(_verificationId!, otp)
           .getOrThrow();
-      final userId = ref.read(currentUserIdProvider) ?? '';
+      // 🔥 DÜZELTME: `onVerificationCompleted`'daki AYNI staleness
+      // sorunu burada da vardı — `signInWithCredential` tamamlandığında
+      // Firebase Auth SDK'sının kendi `currentUser`'ı SENKRON olarak
+      // güncellenir, ama `currentUserIdProvider` (authStateProvider'ın
+      // stream'ine dayanan) henüz yeni değeri yaymamış olabilir (stream
+      // dinleyicileri bir sonraki microtask'ta tetiklenir). Bu yüzden
+      // `ref.read(currentUserIdProvider) ?? ''` burada boş string
+      // döndürebiliyordu — sonucunda `_handlePostLogin('', ...)` boş
+      // UID ile bir kullanıcı dokümanı yazmaya çalışıyordu. Artık ham
+      // Firebase Auth örneğinden doğrudan okunuyor.
+      final userId =
+          firebase_auth.FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty)
+        throw Exception('Kullanıcı kimliği doğrulanamadı, lütfen tekrar deneyin.');
       await _handlePostLogin(userId, UserRole.user);
     });
   }

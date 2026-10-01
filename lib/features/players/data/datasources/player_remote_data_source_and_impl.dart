@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
@@ -7,13 +9,27 @@ abstract class PlayerRemoteDataSource {
   Future<List<PlayerModel>> getPlayersByIds(final List<String> playerIds);
 
   Future<List<PlayerModel>> searchPlayers(final String query);
+
+  /// ➕ Admin panelinden yeni bir oyuncu oluşturur.
+  Future<bool> addPlayer(final PlayerModel player, final File? imageFile);
+
+  /// 🔄 Admin panelinden bir oyuncuyu günceller (Phase 2).
+  Future<bool> updatePlayer(final String playerId,
+      final Map<String, dynamic> updatedData, final File? imageFile);
+
+  /// 🗑️ Admin panelinden bir oyuncuyu siler (Phase 2).
+  Future<bool> deletePlayer(final String playerId);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
-  const PlayerRemoteDataSourceImpl({required final FirebaseFirestore firestore})
-      : _firestore = firestore;
+  const PlayerRemoteDataSourceImpl({
+    required final FirebaseFirestore firestore,
+    required final FirebaseStorage storage,
+  })  : _firestore = firestore,
+        _storage = storage;
 
   CollectionReference<Map<String, dynamic>> get _collectionPath =>
       _firestore.collection('Player');
@@ -67,6 +83,70 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
         .get();
 
     return _mapSnapshot(snapshot);
+  }
+
+  @override
+  Future<bool> addPlayer(final PlayerModel player, final File? imageFile) async {
+    try {
+      final data = player.toFirestore()
+        ..['_createdAt'] = FieldValue.serverTimestamp()
+        ..['_updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _collectionPath.add(data);
+      await docRef.update({'_id': docRef.id});
+
+      if (imageFile != null) {
+        final ref = _storage.ref('PlayerImages/${docRef.id}.jpg');
+        await ref.putFile(imageFile);
+        final downloadUrl = await ref.getDownloadURL();
+        await docRef.update({'imageUrl': downloadUrl});
+      }
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (addPlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu eklenemedi: $e');
+    }
+  }
+
+  @override
+  Future<bool> updatePlayer(final String playerId,
+      final Map<String, dynamic> updatedData, final File? imageFile) async {
+    try {
+      final data = Map<String, dynamic>.from(updatedData);
+
+      if (imageFile != null) {
+        final ref = _storage.ref('PlayerImages/$playerId.jpg');
+        await ref.putFile(imageFile);
+        data['imageUrl'] = await ref.getDownloadURL();
+      }
+
+      await _collectionPath.doc(playerId).update({
+        ...data,
+        '_updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (updatePlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu güncellenemedi: $e');
+    }
+  }
+
+  @override
+  Future<bool> deletePlayer(final String playerId) async {
+    try {
+      try {
+        await _storage.ref('PlayerImages/$playerId.jpg').delete();
+      } catch (_) {
+        // Resim yoksa hatayı yut, sorun değil.
+      }
+      await _collectionPath.doc(playerId).delete();
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (deletePlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu silinemedi: $e');
+    }
   }
 
   /// 🔥 KRİTİK METOT: Firestore dökümanlarını modele çevirirken

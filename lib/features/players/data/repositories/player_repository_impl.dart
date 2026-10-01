@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -43,4 +44,25 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
             await remoteDataSource.searchPlayers(query);
         return models.map((final model) => model.toEntity()).toList();
       });
+
+  @override
+  Future<Either<Failure, bool>> addPlayer(
+          final Player player, final File? imageFile) async =>
+      execute(() async {
+        final model = player.toModel();
+        return remoteDataSource.addPlayer(model, imageFile);
+      });
+
+  @override
+  Future<Either<Failure, bool>> updatePlayer(final String playerId,
+          final Map<String, dynamic> updatedData, final File? imageFile) async =>
+      execute(() =>
+          remoteDataSource.updatePlayer(playerId, updatedData, imageFile));
+
+  @override
+  Future<Either<Failure, bool>> deletePlayer(final String playerId) async {
+    if (playerId.isEmpty)
+      return Future.value(const Left(ServerFailure('Invalid ID')));
+    return execute(() => remoteDataSource.deletePlayer(playerId));
+  }
 }

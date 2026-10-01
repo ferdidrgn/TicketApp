@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_spacing.dart';
 
 class GradientStrip extends StatelessWidget {
   final bool isAlignmentCenterLeft;
@@ -13,10 +14,14 @@ class GradientStrip extends StatelessWidget {
               : Alignment.centerRight,
           child: Container(
             width: 10,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
+                colors: [
+                  Colors.transparent,
+                  // Temanın gölge tonu (sabit siyah yerine).
+                  Theme.of(context).colorScheme.shadow.withOpacity(0.3),
+                ],
                 begin: isAlignmentCenterLeft
                     ? Alignment.centerLeft
                     : Alignment.centerRight,

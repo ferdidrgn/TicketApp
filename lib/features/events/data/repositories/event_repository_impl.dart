@@ -19,6 +19,13 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> addEvent(final Event event) async =>
+      execute(() async {
+        final model = event.toModel();
+        return remoteDataSource.addEvent(model);
+      });
+
+  @override
   Future<Either<Failure, List<Event>>> getEventsByIds(
           final List<String> eventIds) async =>
       execute(() async {
@@ -66,5 +73,12 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
       final List<String> seatIds, final String customerId) async {
     return execute(
         () => remoteDataSource.confirmPurchase(eventId, seatIds, customerId));
+  }
+
+  @override
+  Future<Either<Failure, bool>> adminSetSeatBlocked(
+      final String eventId, final String seatId, final bool blocked) async {
+    return execute(
+        () => remoteDataSource.adminSetSeatBlocked(eventId, seatId, blocked));
   }
 }

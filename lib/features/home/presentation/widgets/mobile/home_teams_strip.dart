@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../core/theme/app_radius.dart';
+import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../teams/domain/entities/team.dart';
@@ -40,10 +42,10 @@ class _TeamsCarousel extends StatelessWidget {
   Widget build(final BuildContext context) => SizedBox(
         height: 180,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           scrollDirection: Axis.horizontal,
           itemCount: teams.length,
-          separatorBuilder: (final _, final __) => const SizedBox(width: 15),
+          separatorBuilder: (final _, final __) => const SizedBox(width: AppSpacing.lg),
           itemBuilder: (final context, final index) {
             final team = teams[index];
             return _TeamCard(
@@ -63,10 +65,14 @@ class _TeamCard extends StatelessWidget {
   const _TeamCard({required this.team, required this.onTap});
 
   @override
-  Widget build(final BuildContext context) => GestureDetector(
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        label: team.name,
+        excludeSemantics: true,
+        child: GestureDetector(
         onTap: onTap,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           child: SizedBox(
             width: 140,
             height: 180,
@@ -79,7 +85,7 @@ class _TeamCard extends StatelessWidget {
                   placeholder: (final _, final __) => const ShimmerLoading(
                     height: double.infinity,
                     width: double.infinity,
-                    borderRadius: 20,
+                    borderRadius: AppRadius.md,
                   ),
                   errorWidget: (final _, final __, final ___) => Container(
                     color: context.colors.surfaceContainerHighest,
@@ -123,6 +129,7 @@ class _TeamCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
       );
 }
 
@@ -133,14 +140,14 @@ class _TeamsStripShimmer extends StatelessWidget {
   Widget build(final BuildContext context) => SizedBox(
         height: 180,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           scrollDirection: Axis.horizontal,
           itemCount: 4,
-          separatorBuilder: (final _, final __) => const SizedBox(width: 15),
+          separatorBuilder: (final _, final __) => const SizedBox(width: AppSpacing.lg),
           itemBuilder: (final _, final __) => const ShimmerLoading(
             height: 180,
             width: 140,
-            borderRadius: 20,
+            borderRadius: AppRadius.md,
           ),
         ),
       );

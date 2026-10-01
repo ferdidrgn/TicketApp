@@ -1,34 +1,35 @@
-import 'dart:async';
-import 'dart:math' as math;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/services/deeplink/deeplink_service.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
-import '../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
+import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/footers/footer.dart';
-import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
-import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
-import '../../../events/domain/entities/event.dart';
-import '../../../players/domain/entities/player.dart';
-import '../../../stages/domain/entities/stage.dart';
-import '../../domain/entities/show.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../auth/presentation/providers/auth_provider.dart'
+    show currentUserIdProvider;
+import '../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../providers/show_detail_provider.dart';
-import '../providers/show_provider.dart';
-import '../widgets/show_team_credit.dart';
-import '../widgets/web/player_section.dart';
-import '../widgets/web/show_detail_hero.dart';
+import '../widgets/detail/show_detail_actions.dart';
+import '../widgets/detail/show_detail_data.dart';
+import '../widgets/detail/show_detail_layouts.dart';
+import '../widgets/detail/show_detail_skeleton.dart';
 
+/// OYUN DETAYI — WEB. "Tiyatro programı + bilet", üç gerçek kompozisyon:
+/// - masaüstü (≥1024): iki bölmeli kalıcı ayrım — solda yapışkan oyun
+///   bileti (afiş, ad, alanlar; koçanda en yakın seans + fiyat + TEK
+///   birincil aksiyon), sağda kayan program; footer tam genişlikte.
+/// - tablet (768–1023): yatay bilet (koçan sağda, aksiyon koçanda), altında
+///   ortalanmış okuma sütununda program.
+/// - dar (<768): mobil düzen — afiş bandı + dikey bilet + yapışkan alt
+///   bilet çubuğu.
+///
+/// `BasePageWrapper` kullanılmıyor (web'de mobil çatıyı bindiriyordu); bu
+/// yüzden sayfa kendi `Scaffold`'unu kurar — Material atası olmadan
+/// InkWell/TextField çöker.
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 
@@ -40,916 +41,167 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     with TickerProviderStateMixin, GlobalScrollMixin {
-  late final AnimationController _heroController;
-  late final AnimationController _contentController;
-  late final AnimationController _floatingController;
-  late final Animation<double> _heroFade;
-  late final Animation<Offset> _heroSlide;
-  late final Animation<double> _contentFade;
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.normal);
 
-  final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
-  final GlobalKey _eventsSectionKey = GlobalKey();
+  late final Animation<double> _ticketIn = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.55, curve: AppMotion.standard));
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.3, 0.9, curve: AppMotion.dramatic));
+  late final Animation<double> _details = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.55, 1.0, curve: AppMotion.standard));
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
+
+  final ValueNotifier<bool> _scrolled = ValueNotifier(false);
+  final GlobalKey _sessionsKey = GlobalKey();
+
+  bool _reduceMotion = false;
+  bool _entranceStarted = false;
   bool _scrollToEventsHandled = false;
+  bool _openingExternal = false;
 
   @override
   void initState() {
     super.initState();
-    _initControllers();
-    _initScrollListener();
+    scrollController.addListener(_onScroll);
   }
 
-  void _initControllers() {
-    // 800ms/500ms: `AppMotion.slow`/`AppMotion.normal` bu iki "sahne anı"
-    // ve "standart geçiş" süresinin zaten geldiği kaynaklardan biri
-    // (bkz. `app_motion.dart` yorum: "dramatik/sahne anları ~650-800ms").
-    _heroController = AnimationController(vsync: this, duration: AppMotion.slow);
-    _contentController =
-        AnimationController(vsync: this, duration: AppMotion.normal);
-    _floatingController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3));
-
-    _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
-    _heroSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
-        .animate(CurvedAnimation(
-            parent: _heroController, curve: AppMotion.standard));
-    _contentFade =
-        CurvedAnimation(parent: _contentController, curve: Curves.easeOut);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (_reduceMotion) _entrance.value = 1;
   }
 
-  void _startPageAnimations() {
-    if (!mounted) return;
-    _heroController.forward();
-    _floatingController.repeat(reverse: true);
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted) _contentController.forward();
-    });
+  @override
+  void dispose() {
+    // `scrollController` GlobalScrollMixin tarafından dispose ediliyor.
+    _entrance.dispose();
+    _tear.dispose();
+    _scrolled.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
+    _scrolled.value = scrollController.offset > 280;
+  }
+
+  void _startEntrance() {
+    if (_entranceStarted || !mounted) return;
+    _entranceStarted = true;
+    if (_reduceMotion) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
   }
 
   /// Sezon takviminden ("?scrollTo=etkinlikler" ile) gelindiyse, sayfa
-  /// hazır olur olmaz Etkinlik Takvimi bölümüne kaydırır. Görseller henüz
-  /// yüklenirken layout biraz kayabileceği için kısa bir gecikmeyle tekrar
-  /// dener.
+  /// hazır olur olmaz seanslar bölümüne kaydırır. Görseller yüklenirken
+  /// yerleşim biraz kayabileceği için kısa bir gecikmeyle tekrar dener.
   void _maybeScrollToEvents() {
     if (_scrollToEventsHandled || !mounted) return;
     final scrollTo = GoRouterState.of(context).uri.queryParameters['scrollTo'];
     if (scrollTo != 'etkinlikler') return;
     _scrollToEventsHandled = true;
 
-    void attemptScroll() {
-      final eventsContext = _eventsSectionKey.currentContext;
-      if (eventsContext == null || !mounted) return;
-      Scrollable.ensureVisible(
-        eventsContext,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutCubic,
-        alignment: 0.1,
-      );
+    _scrollToSessions();
+    Future.delayed(AppMotion.normal, _scrollToSessions);
+  }
+
+  /// "Bilet al" → seanslar (koltuk seçimi seansın koçanından başlar).
+  void _scrollToSessions() {
+    if (!mounted) return;
+    final BuildContext? target = _sessionsKey.currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: _reduceMotion ? Duration.zero : AppMotion.slow,
+      curve: AppMotion.dramatic,
+      alignment: 0.06,
+    );
+  }
+
+  Future<void> _openExternal(final String url) async {
+    if (_openingExternal) return;
+    setState(() => _openingExternal = true);
+    final Future<void> tearing =
+        _reduceMotion ? Future<void>.value() : _tear.forward(from: 0);
+    await openExternalTickets(context, url);
+    await tearing;
+    if (!mounted) return;
+    setState(() => _openingExternal = false);
+    if (_reduceMotion) {
+      _tear.value = 0;
+    } else {
+      _tear.reverse();
     }
-
-    attemptScroll();
-    Future.delayed(const Duration(milliseconds: 500), attemptScroll);
   }
 
-  void _initScrollListener() => scrollController.addListener(() {
-        if (mounted) _scrollNotifier.value = scrollController.offset;
-      });
-
-  @override
-  void dispose() {
-    _heroController.dispose();
-    _contentController.dispose();
-    _floatingController.dispose();
-    scrollController.dispose();
-    _scrollNotifier.dispose();
-    super.dispose();
+  /// Önceden web'de seans satırlarının hiç `onTap`'i yoktu — bilet almanın
+  /// tek yolu kopuktu. Mobil ile aynı akış: koltuk seçimi (misafir →
+  /// "guest", koltuk ekranı bunu kendisi ele alıyor).
+  void _goToSeats(final ShowSession session) {
+    final userId = ref.read(currentUserIdProvider) ?? "guest";
+    NavigationHandler.goToSeatSelection(
+        context, widget.showId, session.event.id, userId);
   }
+
+  ShowDetailViewArgs _args(final ShowDetailData data) => ShowDetailViewArgs(
+        data: data,
+        controller: scrollController,
+        sessionsKey: _sessionsKey,
+        ticketIn: _ticketIn,
+        headline: _headline,
+        details: _details,
+        tear: _tearCurve,
+        onBuy: _scrollToSessions,
+        onExternal: () => _openExternal(data.show.externalTicketUrl),
+        externalBusy: _openingExternal,
+        onSelectSession: _goToSeats,
+        footer: const Footer(),
+        // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
+        // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher).
+        chatBubble: ShowChatBubbleButton(
+            showId: data.show.id, showName: data.show.name),
+      );
 
   @override
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(showDetailProvider(widget.showId));
+    final double width = MediaQuery.sizeOf(context).width;
+    final bool desktop = width >= ResponsiveUtils.tabletBreakpoint;
+    final bool tablet = !desktop && width >= ResponsiveUtils.mobileBreakpoint;
 
-    if (detailAsync.hasError)
-      return GlobalErrorWidget(
-          message: detailAsync.error.toString(),
-          onRetry: () => ref.invalidate(showDetailProvider(widget.showId)));
-
-    // `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — bu dosya zaten yalnızca
-    // web derlemesinde kullanılıyor (bkz. show_detail_page.dart'ın koşullu
-    // export'u), yani "mobil mi web mi" ayrımına hiç gerek yok; her render
-    // burada zaten masaüstü. BasePageWrapper'ı sarmak sadece mobil uygulama
-    // çatısını (geri tuşu + gradyanlı başlık çubuğu, "yukarı kaydır" FAB'ı,
-    // CustomAppBackground'ın context.primaryColor renkli — yani marka dışı —
-    // FloatingParticles noktaları) gereksiz yere üstüne bindiriyordu; bu
-    // sayfanın zaten kendi markaya uygun, animasyonlu `_BackgroundParticles`'ı
-    // var, ikisi üst üste anlamsız bir tekrar oluşturuyordu. Üst navigasyon
-    // zaten `WebTopNavigationBar`'dan geliyor.
-    return SplashDataGuard(
-      isLoading: detailAsync.isLoading,
-      loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
-      // 🔥 DÜZELTME: `BasePageWrapper` (Scaffold → Material sağlar)
-      // bilerek atlanıyor, ama aşağıdaki `Footer`'ın `InkWell`'leri hiçbir
-      // Material atasına sahip değildi — web konsolunda "No Material
-      // widget found" ile çöküyordu.
-      child: Material(
-        type: MaterialType.transparency,
-        child: ColoredBox(
-          color: WebColors.darkBlueBackground,
-          child: detailAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (final err, final stack) => const SizedBox.shrink(),
-            data: (final state) {
-              WidgetsBinding.instance.addPostFrameCallback((final _) {
-                _startPageAnimations();
-                _maybeScrollToEvents();
-              });
-              return _buildSuccessState(
-                  state.show, state.events, state.players, state.stages);
-            },
-          ),
-        ),
+    final Widget body = detailAsync.when(
+      loading: () => ShowDetailSkeleton(twoPane: desktop),
+      error: (final err, final stack) => GlobalErrorWidget(
+        message: err.toString(),
+        onRetry: () => ref.invalidate(showDetailProvider(widget.showId)),
       ),
-    );
-  }
-
-  Widget _buildSuccessState(
-    final Show showData,
-    final List<Event> eventList,
-    final List<Player> playerList,
-    final List<Stage> stageList,
-  ) =>
-      Stack(
-        children: [
-          _BackgroundParticles(animation: _floatingController),
-          CustomScrollView(
-            controller: scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: ShowDetailHero(
-                  showData: showData,
-                  scrollNotifier: _scrollNotifier,
-                  fadeAnimation: _heroFade,
-                  slideAnimation: _heroSlide,
-                  floatingAnimation: _floatingController,
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _contentFade,
-                  child: _MainContent(
-                    showData: showData,
-                    events: eventList,
-                    players: playerList,
-                    stages: stageList,
-                    eventsSectionKey: _eventsSectionKey,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: Footer()),
-            ],
-          ),
-          // 🔥 DÜZELTME: `GlassmorphismBackButton` import edilmişti ama hiç
-          // kullanılmıyordu — bu sayfada geri dönmenin tek yolu tarayıcının
-          // kendi geri tuşuydu. Diğer sabit butonlarla (paylaş, SSS) aynı
-          // dilde, sol üstte eklendi.
-          const Positioned(
-            top: 40,
-            left: 20,
-            child: GlassmorphismBackButton(
-                backgroundColor: WebColors.primaryGold),
-          ),
-          // Sabit Butonlar
-          Positioned(
-            top: 40,
-            right: 20,
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: context.colors.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                tooltip: 'Paylaş',
-                padding: EdgeInsets.zero,
-                icon: Icon(Icons.share_outlined,
-                    size: 22, color: context.colors.onSurface),
-                onPressed: () => TiyatrolDeeplinkService.shareShow(
-                    id: showData.id, name: showData.name),
-              ),
-            ),
-          ),
-          // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
-          // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher).
-          Positioned(
-            bottom: 40,
-            right: 20,
-            child: ShowChatBubbleButton(
-                showId: showData.id, showName: showData.name),
-          ),
-        ],
-      );
-}
-
-class _MainContent extends StatelessWidget {
-  final Show showData;
-  final List<Event> events;
-  final List<Player> players;
-  final List<Stage> stages;
-  final GlobalKey eventsSectionKey;
-
-  const _MainContent(
-      {required this.showData,
-      required this.events,
-      required this.players,
-      required this.stages,
-      required this.eventsSectionKey});
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxl, vertical: 60),
-      // landing/style.css bölümlerinde olduğu gibi geniş masaüstü
-      // ekranlarında içerik ~1360px'te sınırlanır, aksi halde satır
-      // uzunluğu ve poster/açıklama oranı ultra geniş monitörlerde bozulur.
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1360),
-          child: context.isDesktop
-              ? _DesktopLayout(
-                  showData: showData,
-                  events: events,
-                  players: players,
-                  stages: stages,
-                  eventsSectionKey: eventsSectionKey)
-              : _MobileLayout(
-                  showData: showData,
-                  events: events,
-                  players: players,
-                  stages: stages,
-                  eventsSectionKey: eventsSectionKey),
-        ),
-      ));
-}
-
-class _DesktopLayout extends StatelessWidget {
-  final Show showData;
-  final List<Event> events;
-  final List<Player> players;
-  final List<Stage> stages;
-  final GlobalKey eventsSectionKey;
-
-  const _DesktopLayout(
-      {required this.showData,
-      required this.events,
-      required this.players,
-      required this.stages,
-      required this.eventsSectionKey});
-
-  @override
-  Widget build(final BuildContext context) {
-    final nowPlayers = players
-        .where((final p) => showData.nowPlayersId.contains(p.id))
-        .toList();
-    final oldPlayers = players
-        .where((final p) => showData.oldPlayersId.contains(p.id))
-        .toList();
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 4,
-          child: Column(
-            children: [
-              _AnimatedPoster(imageUrl: showData.imageUrl),
-              const SizedBox(height: 28),
-              _ShowMetaChips(showData: showData),
-              const SizedBox(height: 28),
-              _GlassDescriptionCard(description: showData.description),
-              const SizedBox(height: AppSpacing.xxl),
-              ShowTeamCredit(teamId: showData.teamId),
-            ],
-          ),
-        ),
-        const SizedBox(width: 60),
-        Expanded(
-          flex: 6,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              KeyedSubtree(
-                key: eventsSectionKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _SectionTitle(
-                        title: 'Etkinlik Takvimi',
-                        icon: Icons.calendar_today_rounded),
-                    _EventRuleNote(eventRule: showData.eventRule),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _EventDateList(events: events, stages: stages),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 50),
-              const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
-              const SizedBox(height: AppSpacing.xxl),
-              PlayerSection(players: nowPlayers, isOld: false),
-              const SizedBox(height: 50),
-              const _SectionTitle(
-                  title: 'Eski Ekip', icon: Icons.history_rounded),
-              const SizedBox(height: AppSpacing.xxl),
-              PlayerSection(players: oldPlayers, isOld: true),
-              const SizedBox(height: 50),
-              const _SectionTitle(
-                  title: 'Galeri', icon: Icons.photo_library_rounded),
-              const SizedBox(height: AppSpacing.xxl),
-              GallerySection(photos: showData.photosShowId),
-              const SizedBox(height: 50),
-              _SimilarShowsSection(currentShow: showData),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MobileLayout extends StatelessWidget {
-  final Show showData;
-  final List<Event> events;
-  final List<Player> players;
-  final List<Stage> stages;
-  final GlobalKey eventsSectionKey;
-
-  const _MobileLayout(
-      {required this.showData,
-      required this.events,
-      required this.players,
-      required this.stages,
-      required this.eventsSectionKey});
-
-  @override
-  Widget build(final BuildContext context) {
-    final nowPlayers = players
-        .where((final p) => showData.nowPlayersId.contains(p.id))
-        .toList();
-    final oldPlayers = players
-        .where((final p) => showData.oldPlayersId.contains(p.id))
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _ShowMetaChips(showData: showData),
-        const SizedBox(height: AppSpacing.xxl),
-        _GlassDescriptionCard(description: showData.description),
-        const SizedBox(height: AppSpacing.xl),
-        ShowTeamCredit(teamId: showData.teamId),
-        const SizedBox(height: AppSpacing.huge),
-        KeyedSubtree(
-          key: eventsSectionKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SectionTitle(
-                  title: 'Etkinlik Takvimi',
-                  icon: Icons.calendar_today_rounded),
-              _EventRuleNote(eventRule: showData.eventRule),
-              const SizedBox(height: AppSpacing.xl),
-              _EventDateList(events: events, stages: stages),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.huge),
-        const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
-        const SizedBox(height: AppSpacing.xl),
-        PlayerSection(players: nowPlayers, isOld: false),
-        const SizedBox(height: AppSpacing.huge),
-        const _SectionTitle(title: 'Eski Ekip', icon: Icons.history_rounded),
-        const SizedBox(height: AppSpacing.xl),
-        PlayerSection(players: oldPlayers, isOld: true),
-        const SizedBox(height: AppSpacing.huge),
-        const _SectionTitle(title: 'Galeri', icon: Icons.photo_library_rounded),
-        const SizedBox(height: AppSpacing.xl),
-        GallerySection(photos: showData.photosShowId),
-        const SizedBox(height: AppSpacing.huge),
-        _SimilarShowsSection(currentShow: showData),
-      ],
-    );
-  }
-}
-
-/// "Benzer Oyunlar" — ana sayfa/keşfet ızgaralarıyla AYNI paylaşılan
-/// `TheatreShowCard`'ı (hover'da perde açılışıyla beliren rastgele galeri
-/// fotoğrafı) kullanır, böylece bu tiyatronun en fotoğraf-zengin sayfasında
-/// da aynı imza etkileşim uygulanmış olur. Aynı kategoride (`Show.category`)
-/// bu gösteri hariç başka oyun yoksa (ya da kategori boşsa) SESSİZCE
-/// gizlenir — uydurma bir "önerilen" listesi asla gösterilmez.
-class _SimilarShowsSection extends ConsumerStatefulWidget {
-  final Show currentShow;
-
-  const _SimilarShowsSection({required this.currentShow});
-
-  @override
-  ConsumerState<_SimilarShowsSection> createState() =>
-      _SimilarShowsSectionState();
-}
-
-class _SimilarShowsSectionState extends ConsumerState<_SimilarShowsSection> {
-  // Fare tekerleği (dikey delta) yatay kaydırmaya çevriliyor — diğer
-  // keşif şeritleriyle (bkz. `discovery_category_showcase.dart`) aynı
-  // teknik; bu bölüm o düzeltme yapılırken atlanmıştı, web'de fare
-  // tekerleğiyle kaydırılamıyordu.
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    final showsAsync = ref.watch(showsActiveFirstProvider(true));
-
-    return showsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (final _, final __) => const SizedBox.shrink(),
-      data: (final allShows) {
-        final category = widget.currentShow.category.trim();
-        final similar = allShows
-            .where((final s) =>
-                s.id != widget.currentShow.id &&
-                category.isNotEmpty &&
-                s.category.trim() == category)
-            .take(10)
-            .toList();
-        if (similar.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _SectionTitle(
-                title: 'Benzer Oyunlar', icon: Icons.auto_awesome_rounded),
-            const SizedBox(height: AppSpacing.xxl),
-            SizedBox(
-              height: 360,
-              child: Listener(
-                onPointerSignal: (final event) {
-                  if (event is! PointerScrollEvent ||
-                      !_scrollController.hasClients) {
-                    return;
-                  }
-                  final double target =
-                      (_scrollController.offset + event.scrollDelta.dy).clamp(
-                    _scrollController.position.minScrollExtent,
-                    _scrollController.position.maxScrollExtent,
-                  );
-                  _scrollController.jumpTo(target);
-                },
-                child: ListView.separated(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: similar.length,
-                  separatorBuilder: (final _, final __) =>
-                      const SizedBox(width: AppSpacing.lg),
-                  itemBuilder: (final context, final index) {
-                    final show = similar[index];
-                    return SizedBox(
-                      width: 240,
-                      child: TheatreShowCard(
-                        show: show,
-                        onTap: () => NavigationHandler.goToShow(
-                            context, show.id, show.name),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        );
+      data: (final state) {
+        final data = ShowDetailData.from(state);
+        WidgetsBinding.instance.addPostFrameCallback((final _) {
+          _startEntrance();
+          _maybeScrollToEvents();
+        });
+        final args = _args(data);
+        if (desktop) return ShowDetailTwoPaneLayout(args: args);
+        if (tablet) return ShowDetailBannerLayout(args: args);
+        return ShowDetailStackedLayout(args: args, scrolled: _scrolled);
       },
     );
-  }
-}
 
-// --- TASARIM VE HATA ÇÖZÜMÜ BÖLÜMÜ ---
-
-class _EventDateList extends StatelessWidget {
-  final List<Event> events;
-  final List<Stage> stages;
-
-  const _EventDateList({required this.events, required this.stages});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (events.isEmpty) return const SizedBox.shrink();
-    return Column(
-      children: events.map((final e) {
-        Stage? stage;
-        for (final s in stages) {
-          if (s.id == e.stageId) {
-            stage = s;
-            break;
-          }
-        }
-        return _EventItemTile(rawDateString: e.date.toString(), stage: stage, price: e.price);
-      }).toList(),
-    );
-  }
-}
-
-class _EventItemTile extends StatelessWidget {
-  final String rawDateString; // Örn: "15.09.2024,19:00"
-  final Stage? stage; // Gerçek sahne verisi varsa mekan adını gösterir
-  final String price; // Ham fiyat verisi (Event.price)
-
-  const _EventItemTile(
-      {required this.rawDateString, this.stage, this.price = ''});
-
-  @override
-  Widget build(final BuildContext context) {
-    // ÖZEL PARSER: Görüntüdeki "15.09.2024,19:00" formatını parçalar
-    String gun = "00", ay = "Oca", saat = "00:00";
-    try {
-      final parts = rawDateString.split(',');
-      final dateParts = parts[0].split('.');
-      gun = dateParts[0];
-      ay = _getAyIsmi(int.parse(dateParts[1]));
-      if (parts.length > 1) saat = parts[1];
-    } catch (e) {
-      debugPrint("Tarih ayrıştırma hatası: $e");
-    }
-
-    final priceValue = double.tryParse(price);
-    final priceLabel =
-        priceValue != null && priceValue > 0 ? '₺${priceValue.toStringAsFixed(0)}' : null;
-    final venueName = (stage?.name ?? '').trim();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.8),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(6),
-          topRight: Radius.circular(22),
-          bottomRight: Radius.circular(6),
-          bottomLeft: Radius.circular(22),
-        ),
-        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: WebColors.primaryGold.withOpacity(0.2),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(14),
-                bottomRight: Radius.circular(4),
-                bottomLeft: Radius.circular(14),
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(gun,
-                    style: const TextStyle(
-                        color: WebColors.primaryGold,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                Text(ay,
-                    style: const TextStyle(
-                        color: WebColors.primaryGold, fontSize: 11)),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(rawDateString.split(',')[0],
-                    style: TextStyle(
-                        color: WebColors.whiteText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    Icon(Icons.access_time,
-                        color: WebColors.whiteText.withOpacity(0.6), size: 14),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(saat,
-                        style: TextStyle(
-                            color: WebColors.whiteText.withOpacity(0.6),
-                            fontSize: 14)),
-                    if (venueName.isNotEmpty) ...[
-                      const SizedBox(width: AppSpacing.md),
-                      Icon(Icons.place_outlined,
-                          color: WebColors.whiteText.withOpacity(0.6),
-                          size: 14),
-                      const SizedBox(width: AppSpacing.xs),
-                      Flexible(
-                        child: Text(venueName,
-                            style: TextStyle(
-                                color: WebColors.whiteText.withOpacity(0.6),
-                                fontSize: 14),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (priceLabel != null) ...[
-                Text(priceLabel,
-                    style: const TextStyle(
-                        color: WebColors.primaryGoldLight,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-              ],
-              const Icon(Icons.arrow_forward_ios,
-                  color: WebColors.primaryGold, size: 14),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getAyIsmi(final int ay) {
-    const aylar = [
-      'Oca',
-      'Şub',
-      'Mar',
-      'Nis',
-      'May',
-      'Haz',
-      'Tem',
-      'Ağu',
-      'Eyl',
-      'Eki',
-      'Kas',
-      'Ara'
-    ];
-    return aylar[ay - 1];
-  }
-}
-
-// --- ESKİ ŞIK TASARIM BİLEŞENLERİ ---
-
-class _AnimatedPoster extends StatelessWidget {
-  final String imageUrl;
-
-  const _AnimatedPoster({required this.imageUrl});
-
-  // Landing sitesindeki köşegen "büyük/küçük" köşe dili (bkz. style.css
-  // .show { border-radius:4px 28px 4px 28px }) — üst-sol & alt-sağ küçük,
-  // üst-sağ & alt-sol büyük.
-  static const _radius = BorderRadius.only(
-    topLeft: Radius.circular(8),
-    topRight: Radius.circular(34),
-    bottomRight: Radius.circular(8),
-    bottomLeft: Radius.circular(34),
-  );
-
-  @override
-  Widget build(final BuildContext context) => Container(
-        constraints: const BoxConstraints(maxWidth: 380),
-        decoration: BoxDecoration(
-          borderRadius: _radius,
-          boxShadow: [
-            BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.4),
-                blurRadius: 50,
-                spreadRadius: 5)
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: _radius,
-          child: AspectRatio(
-              aspectRatio: 9 / 13,
-              child:
-                  OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover)),
-        ),
-      );
-}
-
-class _GlassDescriptionCard extends StatelessWidget {
-  final String description;
-
-  const _GlassDescriptionCard({required this.description});
-
-  @override
-  Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface.withOpacity(0.8),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(6),
-            topRight: Radius.circular(28),
-            bottomRight: Radius.circular(6),
-            bottomLeft: Radius.circular(28),
-          ),
-          border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.1), blurRadius: 30)
-          ],
-        ),
-        child: Text(
-          description.replaceAll('\\n', '\n'),
-          style: TextStyle(
-              color: WebColors.whiteText.withOpacity(0.7),
-              fontSize: 16,
-              height: 1.9,
-              letterSpacing: 0.3),
-        ),
-      );
-}
-
-/// Show.duration / category / type / ageLimit alanlarından — hepsi gerçek
-/// Firestore verisi, önceden bu sayfada hiç gösterilmiyordu. Boş gelen
-/// alanlar sessizce gizlenir, hiçbir metin uydurulmaz.
-class _ShowMetaChips extends StatelessWidget {
-  final Show showData;
-
-  const _ShowMetaChips({required this.showData});
-
-  @override
-  Widget build(final BuildContext context) {
-    final items = <(IconData, String)>[
-      if (showData.duration.trim().isNotEmpty)
-        (Icons.schedule_rounded, showData.duration.trim()),
-      if (showData.category.trim().isNotEmpty)
-        (Icons.theater_comedy_rounded, showData.category.trim()),
-      if (showData.type.trim().isNotEmpty)
-        (Icons.style_rounded, showData.type.trim()),
-      if (showData.ageLimit.trim().isNotEmpty)
-        (Icons.shield_outlined, showData.ageLimit.trim()),
-    ];
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: items
-          .map((final item) => Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                decoration: BoxDecoration(
-                  color: WebColors.darkBlueSurface.withOpacity(0.6),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(16),
-                    bottomRight: Radius.circular(4),
-                    bottomLeft: Radius.circular(16),
-                  ),
-                  border:
-                      Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(item.$1, size: 15, color: WebColors.primaryGoldLight),
-                    const SizedBox(width: 6),
-                    Text(item.$2,
-                        style: TextStyle(
-                            color: WebColors.whiteText.withOpacity(0.85),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ))
-          .toList(),
-    );
-  }
-}
-
-/// Show.eventRule dolu geldiğinde (ör. bilet/iade kuralı) takvim
-/// başlığının hemen altında küçük bir not olarak gösterilir; boşsa hiç yer
-/// kaplamaz.
-class _EventRuleNote extends StatelessWidget {
-  final String eventRule;
-
-  const _EventRuleNote({required this.eventRule});
-
-  @override
-  Widget build(final BuildContext context) {
-    final text = eventRule.trim();
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded,
-              size: 14, color: WebColors.textTertiary),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    color: WebColors.textTertiary,
-                    fontSize: 12.5,
-                    height: 1.5,
-                    fontStyle: FontStyle.italic)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionTitle({required this.title, required this.icon});
-
-  @override
-  Widget build(final BuildContext context) => Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: WebColors.goldButtonGradient,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(18),
-                bottomRight: Radius.circular(4),
-                bottomLeft: Radius.circular(18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                    color: WebColors.primaryGold.withOpacity(0.4),
-                    blurRadius: 15)
-              ],
-            ),
-            child: Icon(icon,
-                color: WebColors.darkBlueBackground, size: 22),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Text(title,
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: WebColors.whiteText,
-                  letterSpacing: 1)),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-              child: Container(
-                  height: 1,
-                  decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                    WebColors.primaryGold.withOpacity(0.5),
-                    Colors.transparent
-                  ])))),
-        ],
-      );
-}
-
-class _BackgroundParticles extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _BackgroundParticles({required this.animation});
-
-  @override
-  Widget build(final BuildContext context) {
-    final random = math.Random(42);
-    final size = MediaQuery.of(context).size;
-    return Stack(
-      children: List.generate(15, (final i) {
-        final x = random.nextDouble() * size.width;
-        final baseY = random.nextDouble() * size.height;
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (final context, final _) {
-            final y = baseY + math.sin(animation.value * math.pi * 2 + i) * 30;
-            return Positioned(
-                left: x,
-                top: y,
-                child: Container(
-                    width: 4,
-                    height: 4,
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: WebColors.primaryGold)));
-          },
-        );
-      }),
+    return Scaffold(
+      backgroundColor: context.colors.surface,
+      body: TicketStage(themed: true, child: body),
     );
   }
 }

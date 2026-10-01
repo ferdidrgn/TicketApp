@@ -1,9 +1,21 @@
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
+import 'ticket_nav_bar.dart';
 
+/// 📱 MOBİL ALT GEZİNME
+///
+/// Eskiden `curved_navigation_bar` kullanılıyordu: etiketsiz beyaz ikonlar,
+/// temanın vurgusuyla boyanmış kalın bir şerit ve seçili sekmede yukarı
+/// fırlayan bir top — hangi sekmede olunduğu ve ikonların ne anlama geldiği
+/// belli değildi. Artık temanın yüzeyinde sade bir çubuk: etiketler hep
+/// görünür, aktif sekme dolu ikon + kalın etiket + çubuğun kenarına açılmış
+/// "zımba çentiği" (bilet dili) ile işaretli (bkz. `TicketBottomNavBar`).
+///
+/// Navigasyon mantığı birebir korunuyor: sabit rota yolları + `context.go`,
+/// aynı sekmeye tekrar dokununca yenileme, dokunsal geri bildirim ve
+/// dışarıdan `goToDiscoverWithCategory`.
 class MobileBottomNavBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -14,9 +26,6 @@ class MobileBottomNavBar extends StatefulWidget {
 }
 
 class MobileBottomNavBarState extends State<MobileBottomNavBar> {
-  final GlobalKey<CurvedNavigationBarState> _navKey =
-      GlobalKey<CurvedNavigationBarState>();
-
   // 🔧 FIX: Direkt route paths tanımla
   static const List<String> _routePaths = [
     '/app', // 0: Ana Sayfa
@@ -51,78 +60,36 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
       HapticFeedback.selectionClick();
       context.go(targetPath);
     }
-
-    // UI güncelleme
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _navKey.currentState?.setPage(index);
-    });
   }
 
   /// 🔑 DIŞARıDAN category ile Discover'a geçiş
   void goToDiscoverWithCategory(final String category) {
     context.go('/discover?category=$category');
-
-    WidgetsBinding.instance
-        .addPostFrameCallback((final _) => _navKey.currentState?.setPage(1));
+    // Çubuk rota değişiminde kabukla birlikte yeniden çizilir; ayrıca
+    // elle sayfa ayarlamaya (eski `setPage`) gerek yok.
   }
 
   @override
   Widget build(final BuildContext context) {
-    final Color vibrantColor = context.isDarkMode
-        ? context.colors.secondaryContainer
-        : context.colors.primary;
+    final cs = context.colors;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-          systemNavigationBarColor: vibrantColor,
-          systemNavigationBarDividerColor: Colors.transparent,
-          // Alt bar üzerindeki tuşların rengini ayarlıyoruz
-          systemNavigationBarIconBrightness:
-              context.isDarkMode ? Brightness.light : Brightness.dark),
+        // Sistem gezinme şeridi sayfa zemininde — bilet şeridi üstünde yüzer.
+        systemNavigationBarColor: cs.surface,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness:
+            context.isDarkMode ? Brightness.light : Brightness.dark,
+      ),
       child: Scaffold(
-        extendBody: true,
-
-        // ❗️ IndexedStack YOK
-        /*body: IndexedStack(
-          index: _selectedIndex,
-          children: _pages,
-        ),*/
+        // Çubuk artık opak; içerik arkasına taşmaz, son satır çubuğun
+        // altında kalmaz. Çentiğin içinden bu zemin görünür.
+        extendBody: false,
+        backgroundColor: cs.surface,
         body: widget.navigationShell,
-        bottomNavigationBar: SafeArea(
-          top: false, // Üstten boşluk bırakma
-          child: CurvedNavigationBar(
-            backgroundColor: Colors.transparent,
-            color: vibrantColor,
-            buttonBackgroundColor: vibrantColor,
-            height: 60,
-            key: _navKey,
-            index: _currentIndex,
-            // 🔧 FIX: Dinamik index hesaplama
-            items: [
-              Semantics(
-                label: 'Ana Sayfa',
-                button: true,
-                child: Icon(Icons.home, size: 30, color: Colors.white),
-              ),
-              Semantics(
-                label: 'Keşfet',
-                button: true,
-                child: Icon(Icons.event_seat_sharp,
-                    size: 30, color: Colors.white),
-              ),
-              Semantics(
-                label: 'Yakındakiler',
-                button: true,
-                child: Icon(Icons.location_city, size: 30, color: Colors.white),
-              ),
-              Semantics(
-                label: 'Profil',
-                button: true,
-                child: Icon(Icons.people, size: 30, color: Colors.white),
-              ),
-            ],
-            onTap: _onItemTapped,
-          ),
+        bottomNavigationBar: TicketBottomNavBar(
+          currentIndex: _currentIndex,
+          onTap: _onItemTapped,
         ),
       ),
     );

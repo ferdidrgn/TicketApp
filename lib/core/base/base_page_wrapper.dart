@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
-import 'package:ticketapp/shared/widgets/button/fab_scroll_up.dart';
 import '../../shared/widgets/top_header_with_back_button.dart';
 
 class BasePageLayoutConfig {
@@ -206,11 +205,8 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
                                 : _buildContent(),
                           ),
 
-                          // FAB (Yukarı Çık Butonu)
-                          if (widget.showFab &&
-                              widget.customScrollController != null &&
-                              !widget.isLoading)
-                            _buildFloatingScrollButton(),
+                          // "Başa dön" artık sayfa başına değil, kökte
+                          // tek ve global (bkz. StageScrollTop).
 
                           // Tam Ekran Loading Karartması
                           if (widget.isOverlayLoading) _buildOverlayLoading(),
@@ -226,20 +222,6 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
       ),
     );
   }
-
-  // 🔥 DÜZELTME: `ScrollUpButton.build()` zaten kendi kökünde bir
-  // `AnimatedPositioned` (right/bottom sabit) döndürüyor VE görünürlüğünü
-  // aynı `_showFabNotifier`'ı dinleyen kendi `ValueListenableBuilder<bool>`'ı
-  // ile yönetiyor. Burada onu ikinci bir `Positioned` + ikinci bir
-  // `ValueListenableBuilder<bool>` ile sarmak, aynı Stack çocuğuna iki
-  // `StackParentData` yazan iki ParentDataWidget'a yol açıyordu — web
-  // konsolunda "Incorrect use of ParentDataWidget" hatasıyla sayfa
-  // çöküyordu. Widget zaten kendi konumunu ve görünürlüğünü yönettiği için
-  // burada sadece doğrudan döndürülür.
-  Widget _buildFloatingScrollButton() => ScrollUpButton(
-        scrollController: widget.customScrollController!,
-        visibleNotifier: _showFabNotifier,
-      );
 
   Widget _buildContent() => Padding(
       padding: widget.layoutConfig.customPadding ??

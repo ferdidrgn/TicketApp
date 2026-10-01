@@ -842,11 +842,11 @@ abstract class AppLocalizations {
   /// **'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.'**
   String get settingsShareWithFriendsDesc;
 
-  /// No description provided for @settingsVersionFooter.
+  /// Ayarlar sayfası alt bilgisindeki gerçek, dinamik uygulama sürümü
   ///
   /// In tr, this message translates to:
-  /// **'Versiyon 1.0.4 - Sanatla Tasarlandı'**
-  String get settingsVersionFooter;
+  /// **'Versiyon {version} - Sanatla Tasarlandı'**
+  String settingsVersionFooter(String version);
 
   /// Uygulamayı paylaşırken gönderilen mesaj
   ///

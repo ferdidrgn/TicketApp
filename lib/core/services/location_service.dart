@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 
 // ==============================================================================
@@ -44,6 +46,23 @@ class LocationPermissionDeniedForeverFailure extends LocationFailure {
             'Konum izni kalıcı olarak reddedilmiş görünüyor. Lütfen uygulama ayarlarından TiyatRol için konum iznini açın.');
 }
 
+/// GERÇEK KÖK SEBEP (bkz. mobilde "sürekli loading dönüyor" raporu): izin
+/// verilmiş/GPS açık olsa bile `Geolocator.getCurrentPosition()`'ın bir
+/// `timeLimit` YOKSA, cihaz kapalı alanda/zayıf sinyaldeyken istenen
+/// doğrulukta (`LocationAccuracy.medium`) bir konum güncellemesi hiç
+/// gelmeyebilir — `Future` SONSUZA KADAR tamamlanmaz, `devicePositionProvider`
+/// (`FutureProvider`) `AsyncValue.loading` durumunda asılı kalır ve UI
+/// süresiz dönen bir `CircularProgressIndicator` gösterir. Aşağıda
+/// `getCurrentPosition` artık gerçek bir `timeLimit` veriyor ve bu durumda
+/// fırlayan `TimeoutException`'ı bu somut, kullanıcıya gösterilecek gerçek
+/// mesajla birlikte bu tipe çeviriyor — sahte bir konum ÜRETİLMİYOR, sadece
+/// sonsuz bekleme gerçek bir hata+"Tekrar Dene" durumuna dönüştürülüyor.
+class LocationTimeoutFailure extends LocationFailure {
+  const LocationTimeoutFailure()
+      : super(
+            'Konumunuz alınamadı (GPS sinyali zayıf ya da yok). Açık bir alanda tekrar deneyin ya da bağlantınızı kontrol edip yeniden deneyin.');
+}
+
 /// `Geolocator`'ın etrafına ince bir sarmalayıcı. Statik metodlar dışa
 /// kalan tek yüzey — servis durumu tutmuyor, her çağrı GERÇEK zamanlı
 /// kontrol/istek yapıyor.
@@ -67,11 +86,22 @@ abstract final class LocationService {
     if (permission == LocationPermission.deniedForever)
       throw const LocationPermissionDeniedForeverFailure();
 
-    return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-      ),
-    );
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          // KÖK SEBEP DÜZELTMESİ: `timeLimit` verilmezse bu çağrı, istenen
+          // doğrulukta bir GPS güncellemesi gelene kadar SÜRESİZ bekler —
+          // kapalı alanda/zayıf sinyalde bu hiç gelmeyebilir ve mobilde
+          // "sürekli loading dönüyor" şikayetine yol açan asıl `Future`
+          // budur. 20 saniye, gerçek bir konum düzeltmesi için makul ama
+          // kullanıcıyı süresiz beklemeye bırakmayan bir üst sınır.
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+    } on TimeoutException {
+      throw const LocationTimeoutFailure();
+    }
   }
 
   /// Kullanıcıyı uygulamanın sistem ayarlarına (konum izni sayfası) yönlendirir

@@ -1,16 +1,39 @@
-import 'dart:math';
+import 'dart:math' as math;
 
-import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/base/base_page_wrapper.dart';
-import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import 'package:ticketapp/core/theme/app_motion.dart';
-import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
-import 'package:ticketapp/core/theme/app_spacing.dart';
-import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../settings/presentation/widgets/preference_widgets.dart';
+import '../../../shows/domain/entities/show.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
+import '../../data/onboarding_gate.dart';
+
+/// ONBOARDING — "Oyun programı".
+///
+/// Tanıtım bir tiyatro programı gibi üç perdeden oluşur; her perdede
+/// uygulamanın GERÇEK bir parçası durur (vaat değil, gösterim):
+///   I.   Oyunu bul       → Firebase'deki gerçek afişler yelpaze gibi açılır
+///   II.  Koltuğunu seç   → küçük bir koltuk sırası, bir koltuk seçilir
+///   III. Sahneni seç     → tema seçici CANLI: dokununca bütün ekran o
+///                          temaya geçer (5 tema + özel renk)
+/// Son perdede tek birincil aksiyon "Perdeyi aç" → ana sayfa.
+///
+/// Zemin temanın kendi yüzeyi (sabit karanlık sahne değil) — III. perdede
+/// tema değişimi tüm sayfada anında görülsün diye. Her yerde "Geç" var;
+/// geri tuşu bir önceki perdeye döner. Tanıtım cihazda bir kez gösterilir
+/// ([OnboardingGate]); tamamlanınca da atlanınca da işaretlenir.
+///
+/// - Telefon (<768): dikey — üstte gösterim, altta metin + ilerleme + buton.
+/// - Tablet/geniş: iki sütun — solda gösterim, sağda metin ve aksiyonlar.
 class OnboardingContainer extends ConsumerStatefulWidget {
   const OnboardingContainer({super.key});
 
@@ -19,212 +42,694 @@ class OnboardingContainer extends ConsumerStatefulWidget {
       _OnboardingContainerState();
 }
 
-class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
-    with SingleTickerProviderStateMixin {
-  // 🎉 Onboarding tamamlandığında kısa bir kutlama patlaması için.
-  late final ConfettiController _confettiController;
+class _Act {
+  final String numeral;
+  final String title;
+  final String message;
+  const _Act(this.numeral, this.title, this.message);
+}
 
-  // 🎬 Girişte içeriğin (başlık/alt başlık/buton) sahneye deliberate bir
-  // şekilde süzülerek gelmesi için — show_detail sayfasındaki reveal
-  // animasyonuyla aynı hareket dilini (AppMotion) kullanır.
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
+const List<_Act> _acts = [
+  _Act(
+    'I. PERDE',
+    'Oyunu bul',
+    'Şehrin sahnelerinde bu sezon ne oynuyor, tek yerde gör: oyunlar, '
+        'topluluklar, oyuncular ve sahneler.',
+  ),
+  _Act(
+    'II. PERDE',
+    'Koltuğunu seç',
+    'Seansını seç, salon planından yerini al. Biletin telefonunda, '
+        'kapıda okutman yeter.',
+  ),
+  _Act(
+    'III. PERDE',
+    'Sahneni seç',
+    'Uygulamanın renklerini şimdi seç — dokunduğun an her şey değişir. '
+        'Sonra Profil > Görünüm\'den istediğin zaman değiştirebilirsin.',
+  ),
+];
+
+class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
+    with TickerProviderStateMixin {
+  /// Her perdenin açılış anı: başlık soldan sağa açılır, gösterim oynar.
+  late final AnimationController _act =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _act, curve: const Interval(0, 0.7, curve: AppMotion.dramatic));
+  late final Animation<double> _scene = CurvedAnimation(
+      parent: _act, curve: const Interval(0.15, 1, curve: AppMotion.standard));
+
+  int _index = 0;
+  bool _started = false;
+  bool _leaving = false;
+
+  bool get _reduce => MediaQuery.of(context).disableAnimations;
+  bool get _isLast => _index == _acts.length - 1;
 
   @override
-  void initState() {
-    super.initState();
-    _confettiController = ConfettiController(duration: AppMotion.slow);
-
-    _entranceController =
-        AnimationController(duration: AppMotion.slow, vsync: this);
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
-    );
-    _entranceController.forward();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _play();
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();
-    _entranceController.dispose();
+    _act.dispose();
     super.dispose();
   }
 
-  // 🎉 Onboarding'in tamamlandığı TEK an burası: kullanıcı "KEŞFETMEYE
-  // BAŞLA"ya bastığında konfeti patlatılır, kısa bir süre görünür kalması
-  // için beklenir ve ardından ana sayfaya geçilir.
-  Future<void> _completeOnboarding(final BuildContext context) async {
-    _confettiController.play();
-    await Future.delayed(AppMotion.slow);
-    if (!context.mounted) return;
-    NavigationHandler.goToHome(context);
+  void _play() {
+    if (_reduce) {
+      _act.value = 1;
+    } else {
+      _act.forward(from: 0);
+    }
+  }
+
+  void _goTo(final int i) {
+    if (i < 0 || i >= _acts.length || i == _index) return;
+    HapticFeedback.selectionClick();
+    setState(() => _index = i);
+    _play();
+  }
+
+  Future<void> _finish() async {
+    if (_leaving) return;
+    _leaving = true;
+    HapticFeedback.lightImpact();
+    await OnboardingGate.markSeen();
+    if (mounted) NavigationHandler.goToHome(context);
   }
 
   @override
   Widget build(final BuildContext context) {
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final cs = Theme.of(context).colorScheme;
+    final bool wide = MediaQuery.sizeOf(context).width >= 768;
+    final _Act act = _acts[_index];
 
-    return BasePageWrapper(
-      showBackButton: false, // Onboarding'de geri butonu olmaz
-      showFab: false,
-      layoutConfig: const BasePageLayoutConfig(
-        safeAreaTop: false,
-        safeAreaBottom: false,
-        extendBody: true,
+    final Widget scene = AnimatedSwitcher(
+      duration: AppMotion.normal,
+      switchInCurve: AppMotion.standard,
+      switchOutCurve: const Threshold(0),
+      child: KeyedSubtree(
+        key: ValueKey(_index),
+        child: switch (_index) {
+          0 => _PosterFan(appear: _scene),
+          1 => _SeatRow(appear: _scene),
+          _ => const _ThemeStage(),
+        },
       ),
-      child: Stack(
+    );
+
+    final Widget text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          act.numeral,
+          style: TextStyle(
+            color: cs.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 3,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Semantics(
+          header: true,
+          child: AuthWipeReveal(
+            reveal: _headline,
+            child: Text(
+              act.title,
+              maxLines: 1,
+              style: GoogleFonts.playfairDisplay(
+                color: cs.onSurface,
+                fontSize: wide ? 48 : 36,
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AnimatedSwitcher(
+          duration: AppMotion.normal,
+          switchOutCurve: const Threshold(0),
+          child: Text(
+            act.message,
+            key: ValueKey(_index),
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 15,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final Widget controls = Row(
+      children: [
+        _ActProgress(index: _index, count: _acts.length, onTap: _goTo),
+        const Spacer(),
+        FilledButton.icon(
+          onPressed: _isLast ? _finish : () => _goTo(_index + 1),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 52),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm)),
+            textStyle: const TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+          ),
+          icon: Icon(_isLast
+              ? Icons.theater_comedy_rounded
+              : Icons.arrow_forward_rounded),
+          label: Text(_isLast ? 'Perdeyi aç' : 'Devam'),
+        ),
+      ],
+    );
+
+    final Widget topBar = Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.sm, AppSpacing.sm, 0),
+      child: Row(
         children: [
-          // 1. TAM EKRAN ARKA PLAN (Görsel Derinlik)
-          _buildHeroBackground(),
+          Text(
+            'TİYATROL',
+            style: GoogleFonts.playfairDisplay(
+              color: cs.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+            ),
+          ),
+          const Spacer(),
+          if (!_isLast)
+            TextButton(
+              onPressed: _finish,
+              style: TextButton.styleFrom(
+                foregroundColor: cs.onSurfaceVariant,
+                minimumSize: const Size(64, 48),
+              ),
+              child: const Text('Geç',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            )
+          else
+            const SizedBox(height: 48),
+        ],
+      ),
+    );
 
-          // 2. GRADIENT OVERLAY (Yazıların okunması için)
-          _buildGradientOverlay(),
-
-          // 3. İÇERİK (Responsive ve Ortalı)
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 500 : double.infinity),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxxl, vertical: AppSpacing.huge),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
+    final Widget body = wide
+        ? Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1080),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.huge),
+                child: Row(
+                  children: [
+                    Expanded(flex: 6, child: scene),
+                    const SizedBox(width: AppSpacing.section),
+                    Expanded(
+                      flex: 5,
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildTitle(context),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildSubtitle(context),
-                          const SizedBox(height: AppSpacing.massive),
-                          _buildStartButton(context),
+                          text,
+                          const SizedBox(height: AppSpacing.huge),
+                          controls,
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        : Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 0),
+                  child: scene,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    text,
+                    const SizedBox(height: AppSpacing.xxl),
+                    controls,
+                  ],
+                ),
+              ),
+            ],
+          );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (final didPop, final _) {
+        if (didPop) return;
+        if (_index > 0) {
+          _goTo(_index - 1);
+        } else {
+          _finish();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: cs.surface,
+        body: SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            // Kaydırma butonların kısayolu, tek yol değil.
+            onHorizontalDragEnd: (final d) {
+              final double v = d.primaryVelocity ?? 0;
+              if (v < -250) _goTo(_index + 1);
+              if (v > 250) _goTo(_index - 1);
+            },
+            child: Column(
+              children: [topBar, Expanded(child: body)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// İlerleme: üç küçük koçan (perde) — etkin olan dolu ve uzun
+// ─────────────────────────────────────────────────────────────────────────
+
+class _ActProgress extends StatelessWidget {
+  final int index;
+  final int count;
+  final ValueChanged<int> onTap;
+
+  const _ActProgress(
+      {required this.index, required this.count, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(
+      label: '${index + 1}. perde, toplam $count',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < count; i++)
+            GestureDetector(
+              onTap: () => onTap(i),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 3, vertical: AppSpacing.md),
+                child: AnimatedContainer(
+                  duration: AppMotion.fast,
+                  curve: AppMotion.standard,
+                  width: i == index ? 26 : 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: i <= index ? cs.primary : cs.outlineVariant,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// I. PERDE — gerçek afişlerin yelpazesi
+// ─────────────────────────────────────────────────────────────────────────
+
+class _PosterFan extends ConsumerWidget {
+  final Animation<double> appear;
+  const _PosterFan({required this.appear});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final List<Show> shows =
+        (ref.watch(activeShowsProvider(true)).value ?? const <Show>[])
+            .where((final s) => s.imageUrl.trim().isNotEmpty)
+            .take(3)
+            .toList();
+
+    return LayoutBuilder(builder: (final context, final c) {
+      // Yelpaze (yanlar dahil) ~1.9 afiş genişliği; ekrana sığsın.
+      final double w =
+          math.min(math.min(c.maxHeight, 380) * 2 / 3, c.maxWidth / 1.95);
+      final double h = w * 3 / 2;
+      // Afiş yoksa (veri gelmedi/yok) aynı yelpaze bilet kağıdından.
+      final int n = shows.isEmpty ? 3 : shows.length;
+      return Center(
+        child: SizedBox(
+          width: w * 1.9,
+          height: h,
+          child: AnimatedBuilder(
+            animation: appear,
+            builder: (final context, final _) {
+              final double t = appear.value;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  for (int i = 0; i < n; i++)
+                    _fanned(
+                      // Ortadaki en üstte: önce yanlar, sonra orta.
+                      order: n == 3 ? [0, 2, 1][i] : i,
+                      n: n,
+                      t: t,
+                      w: w,
+                      h: h,
+                      child: shows.isEmpty
+                          ? const _PaperPoster()
+                          : OptimizedCachedImage(
+                              imageUrl:
+                                  shows[n == 3 ? [0, 2, 1][i] : i].imageUrl,
+                              fit: BoxFit.cover,
+                              borderRadius: 0,
+                            ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _fanned({
+    required final int order,
+    required final int n,
+    required final double t,
+    required final double w,
+    required final double h,
+    required final Widget child,
+  }) {
+    final double slot = n == 1 ? 0 : (order / (n - 1)) * 2 - 1; // -1..1
+    final double angle = slot * 0.16 * t;
+    final double dx = slot * w * 0.42 * t;
+    final double scale = slot == 0 ? 1 : 0.86;
+    return Transform.translate(
+      offset: Offset(dx, (1 - t) * 24 + slot.abs() * 10),
+      child: Transform.rotate(
+        angle: angle,
+        child: Transform.scale(
+          scale: scale,
+          child: Opacity(
+            opacity: t.clamp(0.0, 1.0),
+            child: SizedBox(
+              width: w,
+              height: h,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  boxShadow: AppShadows.level4(TicketInk.ink),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: ColoredBox(
+                    color: TicketInk.inkSoft(0.1),
+                    child: child,
                   ),
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
 
-          // 4. KUTLAMA KONFETİSİ (Onboarding tamamlanma anı)
-          _buildConfetti(context),
-        ],
+class _PaperPoster extends StatelessWidget {
+  const _PaperPoster();
+
+  @override
+  Widget build(final BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [TicketInk.paper, TicketInk.paperShade],
+          ),
+        ),
+        child: Center(
+          child: Icon(Icons.theater_comedy_rounded,
+              size: 44, color: TicketInk.accentOf(context)),
+        ),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// II. PERDE — sahne + koltuk sırası; bir koltuk seçilir
+// ─────────────────────────────────────────────────────────────────────────
+
+class _SeatRow extends StatelessWidget {
+  final Animation<double> appear;
+  const _SeatRow({required this.appear});
+
+  static const int _cols = 7;
+  static const int _rows = 4;
+  static const int _pickRow = 2;
+  static const int _pickCol = 3;
+  static const Set<int> _taken = {1, 5, 8, 9, 16, 20, 24};
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: AnimatedBuilder(
+          animation: appear,
+          builder: (final context, final _) {
+            final double t = appear.value;
+            // Seçim anı: gösterimin son üçte birinde koltuk dolar.
+            final double pick = ((t - 0.6) / 0.4).clamp(0.0, 1.0);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sahne: yay biçiminde ince bir kenar + yazı.
+                SizedBox(
+                  height: 34,
+                  width: double.infinity,
+                  child: CustomPaint(painter: _StageEdgePainter(cs.primary)),
+                ),
+                Text(
+                  'SAHNE',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                for (int r = 0; r < _rows; r++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          child: Text(
+                            String.fromCharCode(65 + r),
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        for (int c = 0; c < _cols; c++)
+                          _seat(cs, r, c, t, pick),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.lg),
+                Opacity(
+                  opacity: pick,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
+                    ),
+                    child: Text(
+                      'C-4 seçildi',
+                      style: TextStyle(
+                        color: cs.onPrimaryContainer,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  // 🔥 DÜZELTME: `assets/images/onboarding_hero.jpg` HİÇ VAR OLMAYAN bir
-  // dosyaydı ("Kendi görselinle değiştir abi" yorumu bunun bilinçli bir
-  // yer tutucu olduğunu gösteriyor) — bu yüzden uygulamanın ilk açılış
-  // ekranı her zaman kırık/boş bir görselle render ediliyordu. `pubspec.
-  // yaml`'da zaten deklare edilmiş ama kodda HİÇBİR YERDE kullanılmayan
-  // gerçek bir tiyatro fotoğrafı (`main_theatre.png`) vardı — yeni bir
-  // görsel icat etmek yerine onu bağladık.
-  Widget _buildHeroBackground() => Positioned.fill(
-        child: Image.asset(
-          'assets/images/main_theatre.png',
-          fit: BoxFit.cover,
-        ),
-      );
-
-  Widget _buildGradientOverlay() => Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.2),
-                Colors.black.withOpacity(0.5),
-                Colors.black.withOpacity(0.9),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  Widget _buildTitle(final BuildContext context) => const Text(
-        'SANATIN\nKAPILARI\nAÇILIYOR',
-        style: TextStyle(
-          fontSize: 42,
-          height: 0.9,
-          fontWeight: FontWeight.w900,
-          color: Colors.white,
-          letterSpacing: -1.5,
-        ),
-      );
-
-  Widget _buildSubtitle(final BuildContext context) => Opacity(
-        opacity: 0.8,
-        child: Text(
-          'Şehrin en iyi sahneleri, küratör seçkileri ve benzersiz deneyimler koleksiyonunda seni bekliyor.',
-          style: context.textTheme.bodyLarge?.copyWith(
-            color: Colors.white,
-            height: 1.5,
-          ),
-        ),
-      );
-
-  Widget _buildStartButton(final BuildContext context) => Semantics(
-        button: true,
-        label: 'Keşfetmeye başla',
-        child: GestureDetector(
-          onTap: () => _completeOnboarding(context),
+  Widget _seat(final ColorScheme cs, final int r, final int c, final double t,
+      final double pick) {
+    final int id = r * _cols + c;
+    final bool picked = r == _pickRow && c == _pickCol;
+    final bool taken = _taken.contains(id);
+    // Sıra sıra belirir.
+    final double a = ((t * 1.6) - r * 0.18).clamp(0.0, 1.0);
+    final Color fill = picked
+        ? Color.lerp(cs.surfaceContainerHighest, cs.primary, pick)!
+        : taken
+            ? cs.outlineVariant
+            : cs.surfaceContainerHighest;
+    return Padding(
+      padding: EdgeInsets.only(left: c == 4 ? AppSpacing.md : 4, right: 4),
+      child: Opacity(
+        opacity: a,
+        child: Transform.scale(
+          scale: picked ? 1 + 0.18 * math.sin(pick * math.pi) : 1,
           child: Container(
-            width: double.infinity,
-            height: 64,
+            width: 30,
+            height: 26,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [context.colors.primary, context.colors.secondary],
+              color: fill,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppRadius.xs),
+                bottom: Radius.circular(3),
               ),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadows.level3(context.colors.primary),
+              border: Border.all(
+                color: picked && pick > 0 ? cs.primary : cs.outlineVariant,
+              ),
             ),
-            child: const Center(
-              child: Text(
-                'KEŞFETMEYE BAŞLA',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+            child: picked && pick > 0.5
+                ? Icon(Icons.check_rounded, size: 16, color: cs.onPrimary)
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StageEdgePainter extends CustomPainter {
+  final Color color;
+  const _StageEdgePainter(this.color);
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final Path p = Path()
+      ..moveTo(size.width * 0.08, size.height * 0.2)
+      ..quadraticBezierTo(size.width / 2, size.height * 1.3,
+          size.width * 0.92, size.height * 0.2);
+    canvas.drawPath(
+      p,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant final _StageEdgePainter old) =>
+      old.color != color;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// III. PERDE — tema seçimi CANLI
+// ─────────────────────────────────────────────────────────────────────────
+
+class _ThemeStage extends StatelessWidget {
+  const _ThemeStage();
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Seçilen temanın küçük bir "bilet" önizlemesi: renkler
+              // temadan geldiği için seçimle birlikte değişir.
+              AnimatedContainer(
+                duration: AppMotion.normal,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: AppMotion.normal,
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Icon(Icons.theater_comedy_rounded,
+                          color: cs.onPrimary),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Bu akşam sahnede',
+                              style: TextStyle(
+                                  color: cs.onSurfaceVariant, fontSize: 12)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Senin sahnen, senin renklerin',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.playfairDisplay(
+                              color: cs.onSurface,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
-        ),
-      );
-
-  // 🎉 Konfeti, ekranın üst ortasından aşağı doğru kısa ve zarif bir patlama
-  // yapar. Sayfanın Material tema renkleriyle (buton gradyanıyla aynı)
-  // uyumlu olsun diye context.colors kullanılıyor.
-  Widget _buildConfetti(final BuildContext context) => Align(
-        alignment: Alignment.topCenter,
-        child: IgnorePointer(
-          child: ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirection: pi / 2, // aşağı doğru
-            maxBlastForce: 10,
-            minBlastForce: 4,
-            emissionFrequency: 0.08,
-            numberOfParticles: 16,
-            gravity: 0.3,
-            shouldLoop: false,
-            colors: [
-              context.colors.primary,
-              context.colors.secondary,
-              Colors.white,
+              const SizedBox(height: AppSpacing.xl),
+              const ThemeStylePicker(compact: true),
+              const SizedBox(height: AppSpacing.lg),
+              const AccentColorPalette(),
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }

@@ -38,4 +38,12 @@ class TicketRepositoryImpl extends BaseRepository implements TicketRepository {
         final ticketModel = ticket.toModel();
         return await remoteDataSource.createTicket(ticketModel);
       });
+
+  @override
+  Future<Either<Failure, List<Ticket>>> getTicketsByEventId(
+          final String eventId) =>
+      execute(() async {
+        final models = await remoteDataSource.getTicketsByEventId(eventId);
+        return models.map((final model) => model.toEntity()).toList();
+      });
 }
