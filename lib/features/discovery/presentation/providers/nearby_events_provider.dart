@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../events/domain/entities/event.dart';
@@ -172,71 +173,115 @@ final upcomingNearbyEventsProvider =
 /// bir sahneyi de (mantıklıysa) dışarıda bırakmıyor.
 const double kNearbyRadiusMeters = 50000;
 
-/// "Yakında" sayılan takvim penceresi — 30 gün. Sayfadaki gerçek
-/// istatistik şeridinde (`_NearbyStatStrip`, bkz. `nearby_events_page.dart`)
-/// ve aşağıdaki `cutoff` hesabında AYNI kaynak kullanılır — iki ayrı yerde
-/// aynı "30" değerinin birbirinden bağımsız, senkronsuz kopyalanmasını
-/// önler.
-const int kNearbyWindowDays = 30;
+// ==============================================================================
+// 🗺️ HARİTA ÖZETİ — tüm yaklaşan seanslar, sahne başına mesafe
+// ==============================================================================
+//
+// Sahibinin isteği: "50 km içinde 2 event, 1 tane de dışarıda bir oyun var;
+// bunları haritada göstermemiz gerekiyor." Eskiden harita ve liste YALNIZCA
+// "50 km içinde VE 30 gün içinde" olanları gösteriyordu — dışarıdaki oyun
+// hiç çizilmiyor, tarihi 30 günden uzak seanslar kayboluyordu. Artık:
+//   - Koordinatı olan HER sahne (yaklaşan seansı varsa) haritada,
+//   - her birinin kullanıcıya GERÇEK uzaklığı (Haversine) hesaplanır,
+//   - 50 km içi / dışı ayrımı işaretlenir (harita halkası + liste),
+//   - takvim penceresi yok: yaklaşan her seans sayılır.
+// Koordinatı girilmemiş (0,0) sahne uydurma bir konuma konmaz; sayısı
+// `unlocatedCount` ile dürüstçe bildirilir.
 
-/// 📍 GERÇEK KONUMA VE GERÇEK 1 AYLIK TAKVİME GÖRE SÜZÜLMÜŞ YAKLAŞAN
-/// ETKİNLİKLER. `upcomingNearbyEventsProvider`'ın (Show/Event/Stage
-/// birleştirme mantığı — bkz. yukarısı) sonucunu, cihazın GERÇEK konumuna
-/// (`devicePositionProvider`) göre iki GERÇEK filtreden geçirir:
-///   1) Etkinlik tarihi bugünden itibaren en fazla 30 GÜN içinde olmalı.
-///   2) Sahnenin GERÇEK koordinatı, kullanıcının GERÇEK konumuna
-///      `kNearbyRadiusMeters` içinde olmalı.
-/// Konum alınamazsa (izin reddedildi / GPS kapalı) bu future ilgili
-/// `LocationFailure`'ı OLDUĞU GİBİ fırlatır — UI bunu `AsyncValue.error`
-/// dalında yakalayıp gerçek bir izin isteme ekranı gösterir.
-final nearbyEventsProvider =
-    FutureProvider<List<NearbyEventEntry>>((final ref) async {
-  // `.future` — konum alınamazsa (LocationFailure) burada fırlar, provider
-  // hatayı olduğu gibi yukarı taşır.
+/// Haritadaki tek bir sahne: o sahnedeki yaklaşan seanslar (tarih sırası)
+/// ve kullanıcıya uzaklığı.
+class NearbyPin {
+  final Stage stage;
+  final List<NearbyEventEntry> entries;
+  final double distanceMeters;
+
+  const NearbyPin({
+    required this.stage,
+    required this.entries,
+    required this.distanceMeters,
+  });
+
+  bool get inside => distanceMeters <= kNearbyRadiusMeters;
+  double get distanceKm => distanceMeters / 1000;
+  DateTime get nextDate => entries.first.dateTime;
+}
+
+/// Konum + mesafeye göre sıralı sahne pinleri.
+class NearbyOverview {
+  final Position position;
+  final List<NearbyPin> pins;
+  final int unlocatedCount;
+
+  const NearbyOverview({
+    required this.position,
+    required this.pins,
+    required this.unlocatedCount,
+  });
+
+  List<NearbyPin> get inside => pins.where((final p) => p.inside).toList();
+  List<NearbyPin> get outside => pins.where((final p) => !p.inside).toList();
+  int get insideEventCount =>
+      inside.fold(0, (final n, final p) => n + p.entries.length);
+}
+
+bool _hasCoordinates(final Stage s) =>
+    !(s.locationLat == 0 && s.locationLng == 0) &&
+    s.locationLat.abs() <= 90 &&
+    s.locationLng.abs() <= 180;
+
+/// 🗺️ Yakındakiler sayfası + haritanın TEK veri kaynağı.
+/// Konum alınamazsa `LocationFailure` olduğu gibi fırlar (UI izin ekranı
+/// gösterir).
+final nearbyOverviewProvider = FutureProvider<NearbyOverview>((final ref) async {
   final position = await ref.watch(devicePositionProvider.future);
   final entries = await ref.watch(upcomingNearbyEventsProvider.future);
-  if (entries.isEmpty) return [];
 
-  final DateTime cutoff =
-      DateTime.now().add(const Duration(days: kNearbyWindowDays));
-
-  final nearby = entries.where((final entry) {
-    if (entry.dateTime.isAfter(cutoff)) return false; // 1 aydan uzak
-    final double distance = LocationService.distanceInMeters(
-      position.latitude,
-      position.longitude,
-      entry.stage.locationLat,
-      entry.stage.locationLng,
-    );
-    return distance <= kNearbyRadiusMeters;
-  }).toList();
-
-  // `entries` zaten tarihe göre sıralı geliyor ama `where` sırayı bozmaz —
-  // yine de açıkça garanti altına alıyoruz.
-  nearby.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
-  return nearby;
-});
-
-/// 🏛️ SAHNEYE GÖRE GRUPLANMIŞ, GERÇEK KONUMA GÖRE YAKINDAKİLER
-/// `nearbyEventsProvider` sonucunu sahneye göre gruplar (harita
-/// marker'ları ve "Popüler Sahne ve Mekanlar" bölümü bunun üzerine kurulu).
-/// Gruplar, en yakın etkinliğe sahip sahne en önde olacak şekilde sıralanır.
-final nearbyStageGroupsProvider =
-    FutureProvider<List<NearbyStageGroup>>((final ref) async {
-  final entries = await ref.watch(nearbyEventsProvider.future);
-  if (entries.isEmpty) return [];
-
-  final Map<String, List<NearbyEventEntry>> grouped = {};
-  for (final entry in entries) {
-    grouped.putIfAbsent(entry.stage.id, () => []).add(entry);
+  final Map<String, List<NearbyEventEntry>> byStage = {};
+  int unlocated = 0;
+  for (final e in entries) {
+    if (!_hasCoordinates(e.stage)) {
+      unlocated++;
+      continue;
+    }
+    byStage.putIfAbsent(e.stage.id, () => []).add(e);
   }
 
-  final groups = grouped.values
-      .map((final list) => NearbyStageGroup(stage: list.first.stage, entries: list))
-      .toList();
+  final pins = byStage.values.map((final list) {
+    list.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
+    final stage = list.first.stage;
+    return NearbyPin(
+      stage: stage,
+      entries: list,
+      distanceMeters: LocationService.distanceInMeters(
+        position.latitude,
+        position.longitude,
+        stage.locationLat,
+        stage.locationLng,
+      ),
+    );
+  }).toList()
+    ..sort((final a, final b) => a.distanceMeters.compareTo(b.distanceMeters));
 
-  groups.sort((final a, final b) =>
-      a.entries.first.dateTime.compareTo(b.entries.first.dateTime));
+  return NearbyOverview(
+      position: position, pins: pins, unlocatedCount: unlocated);
+});
 
+/// 📍 50 km içindeki yaklaşan seanslar (tarih sırası) — özetten türetilir.
+final nearbyEventsProvider =
+    FutureProvider<List<NearbyEventEntry>>((final ref) async {
+  final overview = await ref.watch(nearbyOverviewProvider.future);
+  return overview.inside.expand((final p) => p.entries).toList()
+    ..sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
+});
+
+/// 🏛️ 50 km içindeki sahne grupları (en yakın seans önce).
+final nearbyStageGroupsProvider =
+    FutureProvider<List<NearbyStageGroup>>((final ref) async {
+  final overview = await ref.watch(nearbyOverviewProvider.future);
+  final groups = overview.inside
+      .map((final p) => NearbyStageGroup(stage: p.stage, entries: p.entries))
+      .toList()
+    ..sort((final a, final b) =>
+        a.entries.first.dateTime.compareTo(b.entries.first.dateTime));
   return groups;
 });

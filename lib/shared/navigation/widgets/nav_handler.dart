@@ -69,7 +69,10 @@ class NavigationHandler {
 
   static void goToDiscoverWithCategory(
           final BuildContext context, final String category) =>
-      context.go('/discover?category=$category');
+      // Kategori adı '&', '#', '+' gibi karakterler içerebilir; kodlanmazsa
+      // adres kesilir ve Keşfet sessizce "Tümü"ne düşer.
+      context.go(
+          '/discover?category=${Uri.encodeQueryComponent(category.trim())}');
 
   static void goToShow(final BuildContext context, final String showId,
           final String showSlug) =>

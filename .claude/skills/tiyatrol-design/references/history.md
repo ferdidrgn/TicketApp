@@ -65,6 +65,15 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   sinematik afiş kartı, günün repliği, oyuncu hikâyeleri, tür karoları
   (`home_showcase.dart`).
 
+- Keşfet + Yakınımdakiler (04.10.2026, "sıfırdan yap, çalışmıyor"):
+  Keşfet fotoğraflı tür kartları + sıralama + afiş ızgarası (bilet kartı
+  yok); kategori anahtarı büyük/küçük harf duyarsız, bağlantı
+  `Uri.encodeQueryComponent` ile ("&" içeren tür adresi kesiyordu).
+  Harita: TÜM yaklaşan seansların sahneleri, 50 km halkası, içeride/
+  dışarıda farklı renk, lejant; liste "Tümü / 50 km içinde / Daha
+  uzakta". 30 günlük pencere kaldırıldı (dışarıdaki oyun hiç
+  görünmüyordu).
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".

@@ -64,7 +64,8 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
 
   /// 🔑 DIŞARıDAN category ile Discover'a geçiş
   void goToDiscoverWithCategory(final String category) {
-    context.go('/discover?category=$category');
+    context.go(
+        '/discover?category=${Uri.encodeQueryComponent(category.trim())}');
     // Çubuk rota değişiminde kabukla birlikte yeniden çizilir; ayrıca
     // elle sayfa ayarlamaya (eski `setPage`) gerek yok.
   }

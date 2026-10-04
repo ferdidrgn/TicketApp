@@ -1,41 +1,36 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/footers/footer.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
+import '../../../home/presentation/widgets/common/home_showcase.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
-import '../../../shows/presentation/widgets/recommended_shows_section.dart';
-import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
-import '../../../teams/domain/entities/team.dart';
-import '../../../teams/presentation/providers/team_provider.dart';
-import '../providers/nearby_events_provider.dart';
-import '../utils/category_stats.dart';
 import '../widgets/browse_controls.dart';
 
-/// KEŞFET — oyun repertuarında hızlı tarama.
+/// KEŞFET — oyunlara türe göre göz atma.
 ///
-/// Yapı: "kenar çubuğu + sütun".
-/// - Masaüstü (≥1024): solda sabit kenar çubuğu (Sahnede/Geçmiş anahtarı +
-///   kategori listesi), sağda kayan sonuç ızgarası + site alt bilgisi.
-/// - Tablet (768–1023) ve mobil (<768): başlık, altında kaydırırken üstte
-///   kalan filtre şeridi (anahtar + yatay kategori çipleri), sonra ızgara.
-///
-/// Veri mantığı değişmedi: `showsActiveFirstProvider(false)` (hiçbir oyun
-/// gizlenmez, aktifler önce), Geçmiş modunda `pastShowsProvider(false)`,
-/// gerçek aktif kümesi `activeShowsProvider(false)` (harici biletli oyunlar
-/// da aktif sayılır), kategoriler gerçek `Show.category`'den
-/// (`buildCategoryStats`). Oyunlar bilet koçanlı `TheatreShowCard` ile.
+/// - Kategoriler: gerçek `Show.category`'den, büyük/küçük harf ve boşluk
+///   farkı TEK kategori sayılır ("komedi" = "Komedi"). Her kategori kendi
+///   gerçek afişiyle fotoğraflı bir kart; dokununca süzer, tekrar dokununca
+///   "Tümü"ne döner. `/discover?category=…` bağlantısı (ana sayfadaki ruh
+///   hâli kartları) da aynı normalleştirmeyle eşleşir.
+/// - Sahnede / Geçmiş geçişi, sıralama (yakın tarih / yeni eklenen / A–Z).
+/// - "Haritada gör" kartı → Yakınımdakiler (50 km halkalı harita).
+/// - Sonuçlar bilet değil, sinematik afiş kartı (`HomePosterCard`).
+/// - Sahnede modunda, takviminde seansı olmayan oyunlar gizlenmez: ayrı
+///   bölümde, ilk 6'sı + "Tümünü göster".
 class DiscoveryPage extends ConsumerStatefulWidget {
   final String? selectedCategory;
 
@@ -45,81 +40,78 @@ class DiscoveryPage extends ConsumerStatefulWidget {
   ConsumerState<DiscoveryPage> createState() => _DiscoveryPageState();
 }
 
-enum _Layout { mobile, tablet, desktop }
+/// Kategori anahtarı: Türkçe büyük harfleri doğru küçültür, boşlukları
+/// sadeleştirir. Görünen ad, en sık kullanılan orijinal yazımdır.
+String discoveryCategoryKey(final String raw) => raw
+    .trim()
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .replaceAll('İ', 'i')
+    .replaceAll('I', 'ı')
+    .toLowerCase();
 
-/// Seçili moda ve kategoriye göre süzülmüş görünüm verisi.
-class _Browse {
-  final List<CategoryStat> categories;
-  final String? category;
-
-  /// Sahnede modunda: gerçekten aktif oyunlar; Geçmiş modunda: tüm liste.
-  final List<Show> primary;
-
-  /// Sahnede modunda: aktif OLMAYANLAR (gizlenmez, önizleme + "Tümünü gör").
-  final List<Show> secondary;
-
-  const _Browse({
-    required this.categories,
-    required this.category,
-    required this.primary,
-    required this.secondary,
-  });
-
-  factory _Browse.from({
-    required final List<Show> shows,
-    required final Set<String> activeIds,
-    required final bool showPast,
-    required final String? requestedCategory,
-  }) {
-    final List<CategoryStat> categories = buildCategoryStats(shows);
-    final String? wanted = requestedCategory?.trim();
-    // Seçili kategori bu modun verisinde yoksa (ör. arşivde o türde oyun
-    // yok) "Tümü"ne düşülür; kullanıcının seçimi state'te korunur.
-    final String? category = (wanted != null &&
-            categories.any((final c) => c.category == wanted))
-        ? wanted
-        : null;
-    final List<Show> filtered = category == null
-        ? shows
-        : shows.where((final s) => s.category.trim() == category).toList();
-    if (showPast) {
-      return _Browse(
-        categories: categories,
-        category: category,
-        primary: filtered,
-        secondary: const <Show>[],
-      );
-    }
-    return _Browse(
-      categories: categories,
-      category: category,
-      primary: filtered.where((final s) => activeIds.contains(s.id)).toList(),
-      secondary:
-          filtered.where((final s) => !activeIds.contains(s.id)).toList(),
-    );
-  }
+class _Category {
+  final String key;
+  final String label;
+  final int count;
+  final String imageUrl;
+  const _Category(this.key, this.label, this.count, this.imageUrl);
 }
 
+List<_Category> _categoriesOf(final List<Show> shows) {
+  final Map<String, Map<String, int>> spellings = {};
+  final Map<String, List<Show>> byKey = {};
+  for (final s in shows) {
+    final String raw = s.category.trim();
+    if (raw.isEmpty) continue;
+    final String k = discoveryCategoryKey(raw);
+    byKey.putIfAbsent(k, () => []).add(s);
+    final sp = spellings.putIfAbsent(k, () => {});
+    sp[raw] = (sp[raw] ?? 0) + 1;
+  }
+  final list = byKey.entries.map((final e) {
+    final sp = spellings[e.key]!;
+    final String label =
+        (sp.entries.toList()..sort((final a, final b) => b.value.compareTo(a.value)))
+            .first
+            .key;
+    final String img = e.value
+        .map((final s) => s.imageUrl.trim())
+        .firstWhere((final u) => u.isNotEmpty, orElse: () => '');
+    return _Category(e.key, label, e.value.length, img);
+  }).toList()
+    ..sort((final a, final b) {
+      final c = b.count.compareTo(a.count);
+      return c != 0 ? c : a.label.compareTo(b.label);
+    });
+  return list;
+}
+
+enum _Sort { soonest, newest, alpha }
+
+const Map<_Sort, String> _sortLabels = {
+  _Sort.soonest: 'Yakın tarih',
+  _Sort.newest: 'Yeni eklenen',
+  _Sort.alpha: 'A–Z',
+};
+
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
-  String? _activeCategory;
-
-  /// false: "Sahnede" (varsayılan), true: "Geçmiş" (arşiv).
+  String? _categoryKey;
   bool _showPast = false;
-
+  _Sort _sort = _Sort.soonest;
+  bool _showAllInactive = false;
   final ScrollController _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _activeCategory = widget.selectedCategory;
+    _categoryKey = _keyOf(widget.selectedCategory);
   }
 
   @override
   void didUpdateWidget(covariant final DiscoveryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // `/discover?category=...` ile aynı sayfaya yeni kategoriyle gelinirse.
     if (widget.selectedCategory != oldWidget.selectedCategory) {
-      _activeCategory = widget.selectedCategory;
+      _categoryKey = _keyOf(widget.selectedCategory);
     }
   }
 
@@ -129,13 +121,20 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     super.dispose();
   }
 
-  void _setMode(final bool past) {
-    if (past == _showPast) return;
-    setState(() => _showPast = past);
-  }
+  static String? _keyOf(final String? raw) =>
+      (raw == null || raw.trim().isEmpty) ? null : discoveryCategoryKey(raw);
 
-  void _setCategory(final String? category) =>
-      setState(() => _activeCategory = category);
+  void _pickCategory(final String? key) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _categoryKey = (key == _categoryKey) ? null : key;
+      _showAllInactive = false;
+    });
+    // Adres satırı seçimle uyumlu kalsın (paylaşılabilir/geri tuşu).
+    if (widget.selectedCategory != null && key == null) {
+      context.go('/discover');
+    }
+  }
 
   void _openShow(final Show show) =>
       NavigationHandler.goToShow(context, show.id, show.name);
@@ -146,6 +145,21 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     ref.invalidate(showsActiveFirstProvider);
     ref.invalidate(pastShowsProvider);
     ref.invalidate(activeShowsProvider);
+  }
+
+  List<Show> _sorted(final List<Show> shows) {
+    switch (_sort) {
+      case _Sort.soonest:
+        return shows; // sağlayıcı zaten en yakın seansa göre sıralı
+      case _Sort.newest:
+        final l = List<Show>.of(shows);
+        sortShowsByCreatedAtDescending(l);
+        return l;
+      case _Sort.alpha:
+        return List<Show>.of(shows)
+          ..sort((final a, final b) => discoveryCategoryKey(a.name)
+              .compareTo(discoveryCategoryKey(b.name)));
+    }
   }
 
   @override
@@ -162,488 +176,350 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         ((showsState.hasError && !showsState.hasValue) ||
             (!_showPast && activeState.hasError && !activeState.hasValue));
 
-    final _Browse? data = (loading || failed)
-        ? null
-        : _Browse.from(
-            shows: showsState.value ?? const <Show>[],
-            activeIds: (activeState.value ?? const <Show>[])
-                .map((final s) => s.id)
-                .toSet(),
-            showPast: _showPast,
-            requestedCategory: _activeCategory,
-          );
+    final List<Show> all = showsState.value ?? const <Show>[];
+    final Set<String> activeIds =
+        (activeState.value ?? const <Show>[]).map((final s) => s.id).toSet();
+    final List<_Category> categories = _categoriesOf(all);
+    // İstenen kategori bu modun verisinde yoksa "Tümü".
+    final String? key =
+        categories.any((final c) => c.key == _categoryKey) ? _categoryKey : null;
+    final List<Show> filtered = key == null
+        ? all
+        : all
+            .where((final s) => discoveryCategoryKey(s.category) == key)
+            .toList();
+    final List<Show> primary = _sorted(_showPast
+        ? filtered
+        : filtered.where((final s) => activeIds.contains(s.id)).toList());
+    final List<Show> secondary = _showPast
+        ? const []
+        : _sorted(
+            filtered.where((final s) => !activeIds.contains(s.id)).toList());
 
-    final _Layout layout = context.isDesktop
-        ? _Layout.desktop
-        : (context.isTablet ? _Layout.tablet : _Layout.mobile);
+    final view = _View(
+      loading: loading,
+      failed: failed,
+      categories: categories,
+      categoryKey: key,
+      primary: primary,
+      secondary: secondary,
+    );
 
-    if (layout == _Layout.desktop) {
-      return _buildDesktop(context, data, loading);
-    }
-    return _buildCompact(context, data, loading, layout);
+    return context.isDesktop
+        ? _desktop(context, view)
+        : _compact(context, view, tablet: context.isTablet);
   }
 
-  // ─────────────────────────────────────────────────────────────────────
-  // Başlık metni (gerçek sayılar)
-  // ─────────────────────────────────────────────────────────────────────
-
-  String get _title => _showPast ? 'Geçmiş oyunlar' : 'Keşfet';
-
-  String? _lede(final _Browse? d) {
-    if (d == null) return null;
-    final String? cat = d.category;
-    final int n = d.primary.length;
+  String? _lede(final _View v) {
+    if (v.loading || v.failed) return null;
+    final String? label = v.categoryLabel;
+    final int n = v.primary.length;
     if (_showPast) {
-      if (n == 0) return null;
-      return cat == null
-          ? 'Perdesi kapanmış $n oyun. Hikâyesine ve kadrosuna bakmak için birine dokun.'
-          : '“$cat” kategorisinde perdesi kapanmış $n oyun.';
+      return label == null
+          ? 'Perdesi kapanmış $n oyun.'
+          : '“$label” türünde perdesi kapanmış $n oyun.';
     }
     if (n == 0) {
-      return cat == null
+      return label == null
           ? 'Şu an sahnede oyun yok.'
-          : '“$cat” kategorisinde şu an sahnede oyun yok.';
+          : '“$label” türünde şu an sahnede oyun yok.';
     }
-    return cat == null
-        ? 'Şu an sahnede $n oyun var. Birine dokun, seansını seç.'
-        : '“$cat” kategorisinde şu an sahnede $n oyun var.';
-  }
-
-  List<BrowseOption> _categoryOptions(final _Browse? d) => [
-        const BrowseOption('Tümü'),
-        if (d != null)
-          for (final c in d.categories) BrowseOption(c.category),
-      ];
-
-  int _selectedCategoryIndex(final _Browse? d) {
-    if (d == null || d.category == null) return 0;
-    final int i = d.categories.indexWhere((final c) => c.category == d.category);
-    return i < 0 ? 0 : i + 1;
-  }
-
-  void _onCategoryIndex(final _Browse? d, final int index) {
-    if (index == 0 || d == null) {
-      _setCategory(null);
-    } else {
-      _setCategory(d.categories[index - 1].category);
-    }
+    return label == null
+        ? 'Şu an sahnede $n oyun var. Türe göre süz, birine dokun.'
+        : '“$label” türünde şu an sahnede $n oyun var.';
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Masaüstü: kenar çubuğu + kayan sonuçlar
+  // Ortak sliver'lar
   // ─────────────────────────────────────────────────────────────────────
 
-  Widget _buildDesktop(
-      final BuildContext context, final _Browse? d, final bool loading) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    // BasePageWrapper kullanılmıyor → Material atası için kendi Scaffold'u.
-    return Scaffold(
-      backgroundColor: cs.surface,
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 280,
-            child: _DesktopSidebar(
-              showPast: _showPast,
-              onModeChanged: _setMode,
-              loading: loading,
-              options: _categoryOptions(d),
-              selectedIndex: _selectedCategoryIndex(d),
-              onCategory: (final i) => _onCategoryIndex(d, i),
-            ),
-          ),
-          VerticalDivider(width: 1, thickness: 1, color: cs.outlineVariant),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (final context, final constraints) {
-                // Içerik ~1240px'te sınırlanır, kenarlar nefes alır; kaydırma
-                // çubuğu yine gerçek sağ kenarda kalır.
-                final double gutter = math.max(
-                    AppSpacing.huge, (constraints.maxWidth - 1240) / 2);
-                return CustomScrollView(
-                  controller: _scroll,
-                  slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(gutter, AppSpacing.massive,
-                          gutter, AppSpacing.xxxl),
-                      sliver: SliverToBoxAdapter(
-                        child: BrowseHeading(title: _title, lede: _lede(d)),
-                      ),
-                    ),
-                    ..._contentSlivers(d, loading, _Layout.desktop, gutter),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(height: AppSpacing.section)),
-                    const SliverToBoxAdapter(child: Footer()),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Mobil / tablet: başlık + yapışkan filtre şeridi + ızgara
-  // ─────────────────────────────────────────────────────────────────────
-
-  Widget _buildCompact(final BuildContext context, final _Browse? d,
-      final bool loading, final _Layout layout) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final double gutter =
-        layout == _Layout.tablet ? AppSpacing.xxl : AppSpacing.lg;
-
-    return BasePageWrapper(
-      showBackButton: false,
-      showFab: true,
-      customScrollController: _scroll,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: cs.surface,
-        // Sade zemin: ortam ışığı / parçacık süsü yok.
-        ambientColor: Colors.transparent,
-        particleColor: Colors.transparent,
-        safeAreaTop: true,
-      ),
-      child: CustomScrollView(
-        controller: _scroll,
-        physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics()),
-        slivers: [
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-                gutter, AppSpacing.xl, gutter, AppSpacing.lg),
-            sliver: SliverToBoxAdapter(
-              child: BrowseHeading(title: _title, lede: _lede(d)),
-            ),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: PinnedBrowseHeader(
-              extent: 116,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                    child: SizedBox(
-                      width: layout == _Layout.tablet ? 320 : double.infinity,
-                      child: ShowsModeToggle(
-                          showPast: _showPast, onChanged: _setMode),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  BrowseChoiceChips(
-                    options: _categoryOptions(d),
-                    selectedIndex: _selectedCategoryIndex(d),
-                    onSelected: (final i) => _onCategoryIndex(d, i),
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-          ..._contentSlivers(d, loading, layout, gutter),
-          if (kIsWeb) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.section)),
-            const SliverToBoxAdapter(child: Footer()),
-          ],
-          // Alt navigasyon çubuğunun altında içerik kalmasın.
-          const SliverToBoxAdapter(child: SizedBox(height: 96)),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Ortak içerik
-  // ─────────────────────────────────────────────────────────────────────
-
-  Widget _boxed(final double gutter, final Widget child,
-          {final double bottom = AppSpacing.section}) =>
+  Widget _box(final double gutter, final Widget child, {final double bottom = 0}) =>
       SliverPadding(
         padding: EdgeInsets.fromLTRB(gutter, 0, gutter, bottom),
         sliver: SliverToBoxAdapter(child: child),
       );
 
-  Widget _notice(final double gutter, final TicketNotice notice) => _boxed(
-        gutter,
-        Align(alignment: Alignment.centerLeft, child: notice),
-      );
-
-  List<Widget> _contentSlivers(final _Browse? d, final bool loading,
-      final _Layout layout, final double gutter) {
-    final double cardMax = switch (layout) {
-      _Layout.mobile => 200.0,
-      _Layout.tablet => 220.0,
-      _Layout.desktop => 240.0,
-    };
-
-    if (loading) {
+  List<Widget> _results(final _View v, final double gutter, final int columns) {
+    if (v.loading) {
       return [
         SliverPadding(
           padding: EdgeInsets.symmetric(horizontal: gutter),
           sliver: SliverGrid.builder(
-            gridDelegate: browseShowGridDelegate(cardMax),
-            itemCount: layout == _Layout.desktop ? 8 : 6,
+            gridDelegate: _grid(columns),
+            itemCount: columns * 2,
             itemBuilder: (final _, final __) => const TicketCardSkeleton(),
           ),
         ),
       ];
     }
-
-    if (d == null) {
+    if (v.failed) {
       return [
-        _notice(
+        _box(
           gutter,
-          TicketNotice(
-            label: 'BAĞLANTI',
-            title: 'Oyunlar yüklenemedi',
-            message:
-                'Oyun listesine ulaşamadık. İnternet bağlantını kontrol edip tekrar dene.',
-            actionLabel: 'Tekrar dene',
-            actionIcon: Icons.refresh_rounded,
-            onAction: _retry,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TicketNotice(
+              label: 'KEŞFET',
+              title: 'Oyunlar yüklenemedi',
+              message: 'İnternet bağlantını kontrol edip tekrar dene.',
+              actionLabel: 'Tekrar dene',
+              actionIcon: Icons.refresh_rounded,
+              onAction: _retry,
+            ),
           ),
         ),
       ];
     }
-
-    final List<Widget> slivers = [];
-
-    // SANA ÖZEL — gerçek favori/bilet geçmişinden; sinyal yoksa kendini
-    // gizler. Sadece filtresiz "Sahnede" görünümünde.
-    if (!_showPast && d.category == null) {
-      slivers.add(const SliverToBoxAdapter(child: RecommendedShowsSection()));
-    }
-
-    if (d.primary.isEmpty && d.secondary.isEmpty) {
-      slivers.add(_notice(gutter, _emptyNotice(d)));
-    } else {
-      if (d.primary.isNotEmpty) {
-        if (!_showPast) {
-          slivers.add(_boxed(
-            gutter,
-            BrowseSectionTitle(title: 'Sahnede', count: d.primary.length),
-            bottom: 0,
-          ));
-        }
-        slivers.add(_showGrid(d.primary, cardMax, gutter));
-      }
-      if (!_showPast && d.secondary.isNotEmpty) {
-        // Aktif olmayan oyunlar gizlenmez: bir sıralık önizleme + tamamı
-        // "Geçmiş" görünümünde (aynı liste — `pastShowsProvider`).
-        slivers.add(_boxed(
+    final cs = Theme.of(context).colorScheme;
+    final List<Show> inactive = _showAllInactive
+        ? v.secondary
+        : v.secondary.take(columns * 2).toList();
+    return [
+      if (v.primary.isEmpty)
+        _box(
+          gutter,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TicketNotice(
+              label: 'KEŞFET',
+              title: v.categoryLabel == null
+                  ? 'Şu an sahnede oyun yok'
+                  : '“${v.categoryLabel}” türünde oyun yok',
+              message: v.categoryLabel == null
+                  ? 'Geçmiş oyunlara göz atabilirsin.'
+                  : 'Başka bir tür seç ya da tümüne bak.',
+              actionLabel:
+                  v.categoryLabel == null ? 'Geçmiş oyunlar' : 'Tüm türler',
+              onAction: v.categoryLabel == null
+                  ? () => setState(() => _showPast = true)
+                  : () => _pickCategory(null),
+            ),
+          ),
+          bottom: AppSpacing.xxl,
+        )
+      else
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.xxxl),
+          sliver: SliverGrid.builder(
+            gridDelegate: _grid(columns),
+            itemCount: v.primary.length,
+            itemBuilder: (final context, final i) => HomePosterCard(
+              key: ValueKey('disc-${v.primary[i].id}'),
+              show: v.primary[i],
+              onTap: () => _openShow(v.primary[i]),
+            ),
+          ),
+        ),
+      if (inactive.isNotEmpty) ...[
+        _box(
           gutter,
           BrowseSectionTitle(
-            title: 'Geçmiş oyunlar',
-            count: d.secondary.length,
-            actionLabel: 'Tümünü gör',
-            onAction: () => _setMode(true),
+            title: 'Şu an sahnede değil',
+            count: v.secondary.length,
           ),
-          bottom: 0,
-        ));
-        slivers.add(_showGrid(d.secondary, cardMax, gutter, oneRow: true));
-      }
-    }
-
-    if (!_showPast) {
-      slivers.add(_boxed(
-        gutter,
-        _UpcomingSessions(category: d.category, onOpenShow: _openShow),
-        bottom: 0,
-      ));
-    }
-
-    slivers.add(_boxed(gutter, _StagesBlock(rail: layout == _Layout.mobile),
-        bottom: 0));
-    slivers.add(
-        _boxed(gutter, _TeamsBlock(rail: layout == _Layout.mobile), bottom: 0));
-
-    return slivers;
+        ),
+        _box(
+          gutter,
+          Text(
+            'Takviminde yaklaşan seansı olmayan oyunlar.',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+          ),
+          bottom: AppSpacing.md,
+        ),
+        SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          sliver: SliverGrid.builder(
+            gridDelegate: _grid(columns),
+            itemCount: inactive.length,
+            itemBuilder: (final context, final i) => Opacity(
+              opacity: 0.85,
+              child: HomePosterCard(
+                show: inactive[i],
+                onTap: () => _openShow(inactive[i]),
+              ),
+            ),
+          ),
+        ),
+        if (!_showAllInactive && v.secondary.length > inactive.length)
+          _box(
+            gutter,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _showAllInactive = true),
+                child: Text('Tümünü göster (${v.secondary.length})'),
+              ),
+            ),
+          ),
+      ],
+    ];
   }
 
-  TicketNotice _emptyNotice(final _Browse d) {
-    if (d.category != null) {
-      return TicketNotice(
-        label: 'KATEGORİ',
-        title: '“${d.category}” için oyun yok',
-        message: _showPast
-            ? 'Bu kategoride geçmiş oyun bulunmuyor. Tüm kategorilere dönebilirsin.'
-            : 'Bu kategoride henüz oyun bulunmuyor. Tüm kategorilere dönebilirsin.',
-        actionLabel: 'Tüm kategoriler',
-        onAction: () => _setCategory(null),
+  SliverGridDelegate _grid(final int columns) =>
+      SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        mainAxisSpacing: AppSpacing.xl,
+        crossAxisSpacing: AppSpacing.lg,
+        childAspectRatio: 0.56,
       );
-    }
-    if (_showPast) {
-      return TicketNotice(
-        label: 'ARŞİV',
-        title: 'Arşiv henüz boş',
-        message: 'Perdesi kapanan oyunlar burada listelenecek.',
-        actionLabel: 'Sahnedekilere dön',
-        onAction: () => _setMode(false),
+
+  Widget _sortChips(final double gutter) => BrowseChoiceChips(
+        options: [for (final s in _Sort.values) BrowseOption(_sortLabels[s]!)],
+        selectedIndex: _sort.index,
+        onSelected: (final i) {
+          HapticFeedback.selectionClick();
+          setState(() => _sort = _Sort.values[i]);
+        },
+        padding: EdgeInsets.symmetric(horizontal: gutter),
       );
-    }
-    return const TicketNotice(
-      label: 'REPERTUAR',
-      title: 'Henüz oyun yok',
-      message: 'Oyunlar eklendiğinde burada listelenecek.',
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Mobil / tablet
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _compact(final BuildContext context, final _View v,
+      {required final bool tablet}) {
+    final cs = Theme.of(context).colorScheme;
+    final double gutter = tablet ? AppSpacing.xxl : AppSpacing.lg;
+    return BasePageWrapper(
+      showBackButton: false,
+      customScrollController: _scroll,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: cs.surface,
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
+        safeAreaTop: true,
+      ),
+      child: RefreshIndicator(
+        onRefresh: () async => _retry(),
+        child: CustomScrollView(
+          controller: _scroll,
+          physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                  gutter, AppSpacing.xl, gutter, AppSpacing.lg),
+              sliver: SliverToBoxAdapter(
+                child: BrowseHeading(
+                    title: _showPast ? 'Geçmiş oyunlar' : 'Keşfet',
+                    lede: _lede(v)),
+              ),
+            ),
+            _box(
+              gutter,
+              ShowsModeToggle(
+                showPast: _showPast,
+                onChanged: (final past) => setState(() {
+                  _showPast = past;
+                  _showAllInactive = false;
+                }),
+              ),
+              bottom: AppSpacing.xl,
+            ),
+            if (v.categories.isNotEmpty) ...[
+              _box(gutter, const BrowseSectionTitle(title: 'Türler')),
+              SliverToBoxAdapter(
+                child: _CategoryStrip(
+                  categories: v.categories,
+                  selectedKey: v.categoryKey,
+                  total: v.categories.fold(0, (final n, final c) => n + c.count),
+                  onPick: _pickCategory,
+                  padding: EdgeInsets.symmetric(horizontal: gutter),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+            ],
+            if (!_showPast)
+              _box(gutter, const _NearbyTeaser(), bottom: AppSpacing.xl),
+            SliverToBoxAdapter(child: _sortChips(gutter)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
+            ..._results(v, gutter, tablet ? 3 : 2),
+            if (kIsWeb) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.section)),
+              const SliverToBoxAdapter(child: Footer()),
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _showGrid(final List<Show> shows, final double cardMax,
-          final double gutter,
-          {final bool oneRow = false}) =>
-      SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-            gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
-        sliver: SliverLayoutBuilder(
-          builder: (final context, final constraints) {
-            int count = shows.length;
-            if (oneRow) {
-              // SliverGridDelegateWithMaxCrossAxisExtent ile aynı hesap.
-              final int columns = (constraints.crossAxisExtent /
-                      (cardMax + AppSpacing.lg))
-                  .ceil();
-              count = math.min(math.max(columns, 1), count);
-            }
-            return SliverGrid.builder(
-              gridDelegate: browseShowGridDelegate(cardMax),
-              itemCount: count,
-              itemBuilder: (final context, final i) => TheatreShowCard(
-                key: ValueKey('discover-${shows[i].id}'),
-                show: shows[i],
-                onTap: () => _openShow(shows[i]),
-              ),
-            );
-          },
-        ),
-      );
-}
+  // ─────────────────────────────────────────────────────────────────────
+  // Masaüstü: solda türler, sağda sonuçlar
+  // ─────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────
-// Masaüstü kenar çubuğu
-// ─────────────────────────────────────────────────────────────────────────
-
-class _DesktopSidebar extends StatelessWidget {
-  final bool showPast;
-  final ValueChanged<bool> onModeChanged;
-  final bool loading;
-  final List<BrowseOption> options;
-  final int selectedIndex;
-  final ValueChanged<int> onCategory;
-
-  const _DesktopSidebar({
-    required this.showPast,
-    required this.onModeChanged,
-    required this.loading,
-    required this.options,
-    required this.selectedIndex,
-    required this.onCategory,
-  });
-
-  @override
-  Widget build(final BuildContext context) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.massive,
-            AppSpacing.lg, AppSpacing.xxl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const BrowseSideLabel('Görünüm'),
-            ShowsModeToggle(showPast: showPast, onChanged: onModeChanged),
-            const SizedBox(height: AppSpacing.xxxl),
-            const BrowseSideLabel('Kategori'),
-            if (loading)
-              for (int i = 0; i < 5; i++)
-                const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                  child: ShimmerLoading(
-                      width: double.infinity, height: 20, borderRadius: 6),
-                )
-            else
-              for (int i = 0; i < options.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: BrowseSideOption(
-                    label: options[i].label,
-                    selected: i == selectedIndex,
-                    onTap: () => onCategory(i),
-                  ),
-                ),
+  Widget _desktop(final BuildContext context, final _View v) {
+    final cs = Theme.of(context).colorScheme;
+    const double gutter = AppSpacing.huge;
+    final Widget sidebar = SizedBox(
+      width: 260,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxl, AppSpacing.massive, AppSpacing.md, AppSpacing.xxl),
+        children: [
+          ShowsModeToggle(
+            showPast: _showPast,
+            onChanged: (final past) => setState(() {
+              _showPast = past;
+              _showAllInactive = false;
+            }),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          const BrowseSideLabel('Türler'),
+          BrowseSideOption(
+            label: 'Tümü',
+            icon: Icons.apps_rounded,
+            selected: v.categoryKey == null,
+            onTap: () => _pickCategory(null),
+          ),
+          for (final c in v.categories)
+            BrowseSideOption(
+              label: c.label,
+              count: c.count,
+              selected: v.categoryKey == c.key,
+              onTap: () => _pickCategory(c.key),
+            ),
+          if (!_showPast) ...[
+            const SizedBox(height: AppSpacing.xxl),
+            const _NearbyTeaser(),
           ],
-        ),
-      );
-}
+        ],
+      ),
+    );
 
-// ─────────────────────────────────────────────────────────────────────────
-// Yaklaşan seanslar — seans = koçan
-// ─────────────────────────────────────────────────────────────────────────
-
-/// `upcomingNearbyEventsProvider` (konum istemeyen, gerçek yaklaşan
-/// etkinlikler) — en yakın 6 seans, seçili kategoriye göre süzülür. Veri
-/// yoksa ya da hata olursa sessizce gizlenir (ana içerik değil).
-class _UpcomingSessions extends ConsumerWidget {
-  final String? category;
-  final ValueChanged<Show> onOpenShow;
-
-  const _UpcomingSessions({required this.category, required this.onOpenShow});
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final AsyncValue<List<NearbyEventEntry>> state =
-        ref.watch(upcomingNearbyEventsProvider);
-    final List<NearbyEventEntry>? entries = state.value;
-
-    if (entries == null) {
-      if (!state.isLoading) return const SizedBox.shrink();
-      return const Padding(
-        padding: EdgeInsets.only(bottom: AppSpacing.section),
-        child: Column(
-          children: [
-            TicketRowSkeleton(height: 88),
-            SizedBox(height: AppSpacing.md),
-            TicketRowSkeleton(height: 88),
-          ],
-        ),
-      );
-    }
-
-    final List<NearbyEventEntry> visible = (category == null
-            ? entries
-            : entries.where((final e) => e.show.category.trim() == category))
-        .take(6)
-        .toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
-      child: Column(
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          BrowseSectionTitle(
-            title: 'Yaklaşan seanslar',
-            actionLabel: 'Yakınımdakiler',
-            onAction: () => NavigationHandler.goToNearby(context),
-          ),
-          BrowseColumns(
-            minItemWidth: 380,
-            children: [
-              for (final e in visible)
-                SessionTicketRow(
-                  key: ValueKey('discover-session-${e.event.id}'),
-                  title: e.show.name,
-                  dateTime: e.dateTime,
-                  price: ticketPrice(e.event.price),
-                  extraLabel: 'SAHNE',
-                  extraValue: e.stage.name,
-                  onTap: () => onOpenShow(e.show),
+          sidebar,
+          VerticalDivider(width: 1, color: cs.outlineVariant),
+          Expanded(
+            child: CustomScrollView(
+              controller: _scroll,
+              slivers: [
+                _box(
+                  gutter,
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.massive),
+                    child: BrowseHeading(
+                        title: _showPast ? 'Geçmiş oyunlar' : 'Keşfet',
+                        lede: _lede(v)),
+                  ),
+                  bottom: AppSpacing.xl,
                 ),
-            ],
+                SliverToBoxAdapter(child: _sortChips(gutter)),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.xl)),
+                ..._results(v, gutter, 5),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.section)),
+                const SliverToBoxAdapter(child: Footer()),
+              ],
+            ),
           ),
         ],
       ),
@@ -651,87 +527,253 @@ class _UpcomingSessions extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Sahneler / Topluluklar — yerler ve kişiler (bilet değil, sade satırlar)
-// ─────────────────────────────────────────────────────────────────────────
+class _View {
+  final bool loading;
+  final bool failed;
+  final List<_Category> categories;
+  final String? categoryKey;
+  final List<Show> primary;
+  final List<Show> secondary;
 
-class _StagesBlock extends ConsumerWidget {
-  final bool rail;
-  const _StagesBlock({required this.rail});
+  const _View({
+    required this.loading,
+    required this.failed,
+    required this.categories,
+    required this.categoryKey,
+    required this.primary,
+    required this.secondary,
+  });
 
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final List<Stage> stages =
-        ref.watch(stagesProvider(isLimit: false)).value ?? const <Stage>[];
-    if (stages.isEmpty) return const SizedBox.shrink();
-    final List<Widget> tiles = [
-      for (final stage in stages)
-        BrowseListTile(
-          key: ValueKey('discover-stage-${stage.id}'),
-          imageUrl: stage.imageUrl,
-          title: stage.name,
-          subtitle: stage.address,
-          fallbackIcon: Icons.location_city_rounded,
-          onTap: () =>
-              NavigationHandler.goToStage(context, stage.id, stage.name),
-        ),
-    ];
-    return _PlacesSection(
-        title: 'Sahneler', count: stages.length, rail: rail, tiles: tiles);
+  String? get categoryLabel {
+    if (categoryKey == null) return null;
+    for (final c in categories) {
+      if (c.key == categoryKey) return c.label;
+    }
+    return null;
   }
 }
 
-class _TeamsBlock extends ConsumerWidget {
-  final bool rail;
-  const _TeamsBlock({required this.rail});
+// ═════════════════════════════════════════════════════════════════════════
+// Tür şeridi: "Tümü" + afişli kategori kartları
+// ═════════════════════════════════════════════════════════════════════════
 
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final List<Team> teams =
-        ref.watch(teamsProvider(isLimit: false)).value ?? const <Team>[];
-    if (teams.isEmpty) return const SizedBox.shrink();
-    final List<Widget> tiles = [
-      for (final team in teams)
-        BrowseListTile(
-          key: ValueKey('discover-team-${team.id}'),
-          imageUrl: team.imageUrl,
-          title: team.name,
-          subtitle:
-              team.showsId.isEmpty ? null : '${team.showsId.length} oyun',
-          fallbackIcon: Icons.groups_rounded,
-          onTap: () => NavigationHandler.goToTeam(context, team.id, team.name),
-        ),
-    ];
-    return _PlacesSection(
-        title: 'Topluluklar', count: teams.length, rail: rail, tiles: tiles);
-  }
-}
+class _CategoryStrip extends StatelessWidget {
+  final List<_Category> categories;
+  final String? selectedKey;
+  final int total;
+  final ValueChanged<String?> onPick;
+  final EdgeInsets padding;
 
-class _PlacesSection extends StatelessWidget {
-  final String title;
-  final int count;
-  final bool rail;
-  final List<Widget> tiles;
-
-  const _PlacesSection({
-    required this.title,
-    required this.count,
-    required this.rail,
-    required this.tiles,
+  const _CategoryStrip({
+    required this.categories,
+    required this.selectedKey,
+    required this.total,
+    required this.onPick,
+    required this.padding,
   });
 
   @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.section),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(final BuildContext context) => SizedBox(
+        height: 96,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: padding,
           children: [
-            BrowseSectionTitle(title: title, count: count),
-            if (rail)
-              BrowseRail(height: 72, itemWidth: 280, children: tiles)
-            else
-              BrowseColumns(minItemWidth: 320, children: tiles),
+            _CategoryCard(
+              label: 'Tümü',
+              count: total,
+              imageUrl: '',
+              selected: selectedKey == null,
+              onTap: () => onPick(null),
+            ),
+            for (final c in categories)
+              _CategoryCard(
+                label: c.label,
+                count: c.count,
+                imageUrl: c.imageUrl,
+                selected: selectedKey == c.key,
+                onTap: () => onPick(c.key),
+              ),
           ],
         ),
       );
+}
+
+class _CategoryCard extends StatelessWidget {
+  final String label;
+  final int count;
+  final String imageUrl;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryCard({
+    required this.label,
+    required this.count,
+    required this.imageUrl,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bool hasImage = imageUrl.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.md),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: '$label, $count oyun',
+        excludeSemantics: true,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          width: 132,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected ? cs.primary : Colors.transparent,
+              width: 2.4,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md - 2),
+            child: Material(
+              color: hasImage ? Colors.black : cs.primaryContainer,
+              child: InkWell(
+                onTap: onTap,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (hasImage)
+                      Opacity(
+                        opacity: selected ? 0.9 : 0.6,
+                        child: OptimizedCachedImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          borderRadius: 0,
+                        ),
+                      ),
+                    if (hasImage)
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x11000000), Color(0xCC000000)],
+                          ),
+                        ),
+                      ),
+                    if (selected)
+                      Positioned(
+                        top: AppSpacing.xs + 2,
+                        right: AppSpacing.xs + 2,
+                        child: Icon(Icons.check_circle_rounded,
+                            size: 20, color: cs.primary),
+                      ),
+                    Positioned(
+                      left: AppSpacing.sm + 2,
+                      right: AppSpacing.sm,
+                      bottom: AppSpacing.sm,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.playfairDisplay(
+                              color: hasImage
+                                  ? Colors.white
+                                  : cs.onPrimaryContainer,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '$count oyun',
+                            style: TextStyle(
+                              color: hasImage
+                                  ? const Color(0xCCFFFFFF)
+                                  : cs.onPrimaryContainer.withValues(alpha: 0.8),
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// "Haritada gör" — Yakınımdakiler'e kısa yol (konum burada istenmez)
+// ═════════════════════════════════════════════════════════════════════════
+
+class _NearbyTeaser extends StatelessWidget {
+  const _NearbyTeaser();
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: 'Haritada gör: yakınındaki sahneler',
+      excludeSemantics: true,
+      child: Material(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => context.go('/nearby'),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: cs.onSecondaryContainer.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.map_outlined,
+                      color: cs.onSecondaryContainer),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Haritada gör',
+                          style: TextStyle(
+                            color: cs.onSecondaryContainer,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          )),
+                      Text('50 km içindeki ve daha uzaktaki sahneler',
+                          style: TextStyle(
+                            color:
+                                cs.onSecondaryContainer.withValues(alpha: 0.8),
+                            fontSize: 12.5,
+                          )),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    color: cs.onSecondaryContainer),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
