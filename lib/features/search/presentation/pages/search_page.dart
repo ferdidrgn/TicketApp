@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import '../../../../shared/widgets/ticket/ticket_search.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../home/presentation/widgets/common/home_showcase.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -9,8 +11,6 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../core/theme/app_motion.dart';
-import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -450,9 +450,34 @@ class _SearchPageState extends ConsumerState<SearchPage>
     }
 
     // Tümü: her tür için kısa bir bölüm + "Tümünü gör".
-    final int showPreview = layout == _Layout.mobile ? 4 : 8;
+    final int showPreview = layout == _Layout.mobile ? 8 : 8;
     final int tilePreview = layout == _Layout.mobile ? 4 : 6;
+    final bool browsing = query.isEmpty;
     return [
+      // Göz atma (henüz yazılmadı): ruh hâli + türler — sonuç listesi
+      // değil, keşfe davet.
+      if (browsing && data.shows.isNotEmpty) ...[
+        _boxed(gutter, const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
+        SliverToBoxAdapter(
+          child: HomeMoodPicker(
+              shows: data.shows,
+              padding: EdgeInsets.symmetric(horizontal: gutter)),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
+        _boxed(gutter, const BrowseSectionTitle(title: 'Türlere göz at')),
+        _boxed(
+          gutter,
+          _GenreTiles(
+            shows: data.shows,
+            columns: layout == _Layout.mobile ? 2 : 4,
+            onPick: (final cat) {
+              _textController.text = cat;
+              _onQueryChanged(cat);
+            },
+          ),
+          bottom: AppSpacing.section - AppSpacing.lg,
+        ),
+      ],
       if (data.shows.isNotEmpty) ...[
         _boxed(
           gutter,
@@ -463,8 +488,32 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 data.shows.length > showPreview ? () => _onSeeAll(1) : null,
           ),
         ),
-        _showsSliver(
-            data.shows.take(showPreview).toList(), layout, gutter),
+        if (layout == _Layout.mobile)
+          // Telefonda önizleme: afiş şeridi (bilet satırı değil).
+          _boxed(
+            0,
+            SizedBox(
+              height: 262,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: gutter),
+                itemCount: math.min(showPreview, data.shows.length),
+                separatorBuilder: (final _, final __) =>
+                    const SizedBox(width: AppSpacing.md),
+                itemBuilder: (final context, final i) => SizedBox(
+                  width: 150,
+                  child: HomePosterCard(
+                    show: data.shows[i],
+                    onTap: () => _openShow(data.shows[i]),
+                  ),
+                ),
+              ),
+            ),
+            bottom: AppSpacing.section - AppSpacing.lg,
+          )
+        else
+          _showsSliver(
+              data.shows.take(showPreview).toList(), layout, gutter),
       ],
       if (data.players.isNotEmpty) ...[
         _boxed(
@@ -478,7 +527,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         _boxed(
           gutter,
           BrowseRail(
-            height: _PlayerAvatar.cellHeight,
+            height: _PlayerAvatar.railHeight,
             itemWidth: _PlayerAvatar.cellWidth,
             children: [
               for (final p in data.players.take(12)) _PlayerAvatar(player: p),
@@ -562,11 +611,13 @@ class _SearchPageState extends ConsumerState<SearchPage>
         padding: EdgeInsets.fromLTRB(
             gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
         sliver: SliverGrid.builder(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: _PlayerAvatar.cellWidth + AppSpacing.lg,
-            mainAxisExtent: _PlayerAvatar.cellHeight,
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
+          // İlk tasarımla aynı: telefonda 3, tablette 5, masaüstünde 6 sütun.
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount:
+                context.responsive(mobile: 3, tablet: 5, desktop: 6),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: _PlayerAvatar.gridAspect,
           ),
           itemCount: players.length,
           itemBuilder: (final context, final i) =>
@@ -704,36 +755,21 @@ class _ResultsHeadline extends StatelessWidget {
   }
 }
 
-/// Oyuncu: eski "el aynası" kartı (sahibinin isteğiyle geri getirildi) —
-/// 84x128 dikey oval portre, ince çerçeve, altta iki satırlık ad. Üzerine
-/// gelince / klavye odağında çerçeve belirginleşir, fotoğraf hafifçe
-/// büyür. `BoxShape.circle` + `ClipOval` kutunun oranına göre elips çizer;
-/// dikey kutu otomatik olarak el aynası ovaline dönüşür. Renkler temadan
-/// (eski sürümdeki sabit altın yerine vurgu rengi).
-class _PlayerAvatar extends StatefulWidget {
+/// Oyuncu: sahibinin İLK tasarımı (`PlayerHeroCard`, ilk sürüm) birebir —
+/// 120 genişlikte, köşeleri tamamen yuvarlatılmış uzun "hap/ayna"
+/// portre (ClipRRect r=60) ve altında ad / soyad iki satır. Sonraki
+/// sürümler (yuvarlak, elips) beğenilmedi; bu dil korunur.
+class _PlayerAvatar extends StatelessWidget {
   final Player player;
   const _PlayerAvatar({required this.player});
 
-  static const double mirrorWidth = 84;
-  static const double mirrorHeight = 128;
-  static const double cellWidth = 104;
-  static const double cellHeight = mirrorHeight + AppSpacing.md + 32 + 8;
-
-  @override
-  State<_PlayerAvatar> createState() => _PlayerAvatarState();
-}
-
-class _PlayerAvatarState extends State<_PlayerAvatar> {
-  bool _active = false;
-
-  void _set(final bool v) {
-    if (_active != v) setState(() => _active = v);
-  }
+  static const double cellWidth = 120;
+  static const double railHeight = 180;
+  static const double gridAspect = 0.65;
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final player = widget.player;
     final String name = '${player.firstName} ${player.lastName}'.trim();
     final String initials = [
       if (player.firstName.isNotEmpty) player.firstName[0],
@@ -743,62 +779,31 @@ class _PlayerAvatarState extends State<_PlayerAvatar> {
       button: true,
       label: name,
       excludeSemantics: true,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
-          onHover: _set,
-          onFocusChange: _set,
-          mouseCursor: SystemMouseCursors.click,
-          customBorder: const StadiumBorder(),
-          splashFactory: NoSplash.splashFactory,
-          highlightColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-          focusColor: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: SizedBox(
+            width: cellWidth,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                AnimatedContainer(
-                  duration: AppMotion.fast,
-                  curve: AppMotion.standard,
-                  width: _PlayerAvatar.mirrorWidth,
-                  height: _PlayerAvatar.mirrorHeight,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _active
-                          ? cs.primary
-                          : cs.primary.withValues(alpha: 0.28),
-                      width: _active ? 2 : 1,
-                    ),
-                    boxShadow: _active
-                        ? AppShadows.level2(cs.primary)
-                        : AppShadows.level0,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: ClipOval(
-                      child: AnimatedScale(
-                        scale: _active ? 1.08 : 1.0,
-                        duration: AppMotion.normal,
-                        curve: AppMotion.standard,
-                        child: ColoredBox(
-                          color: cs.primary.withValues(alpha: 0.12),
-                          child: OptimizedCachedImage(
-                            imageUrl: player.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (final _, final __, final ___) =>
-                                Center(
-                              child: Text(
-                                initials,
-                                style: TextStyle(
-                                  color: cs.primary,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 22,
-                                ),
-                              ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(60),
+                    child: ColoredBox(
+                      color: cs.primary.withValues(alpha: 0.12),
+                      child: OptimizedCachedImage(
+                        imageUrl: player.imageUrl,
+                        fit: BoxFit.cover,
+                        width: cellWidth,
+                        errorBuilder: (final _, final __, final ___) => Center(
+                          child: Text(
+                            initials,
+                            style: TextStyle(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 22,
                             ),
                           ),
                         ),
@@ -806,24 +811,16 @@ class _PlayerAvatarState extends State<_PlayerAvatar> {
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: _PlayerAvatar.cellWidth,
-                  // Sabit yükseklik: iki satırlık uzun isimlerde ızgara
-                  // hücresi taşmasın.
-                  height: 32,
-                  child: Text(
-                    name,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: _active ? cs.primary : cs.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1.25,
-                      letterSpacing: 0.1,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  '${player.firstName}\n${player.lastName}',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
                   ),
                 ),
               ],
@@ -831,6 +828,116 @@ class _PlayerAvatarState extends State<_PlayerAvatar> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Türlere göz at": her tür, o türdeki gerçek bir oyunun afişiyle kaplı
+/// fotoğraflı bir karo (karartmalı, tür adı + oyun sayısı). Dokununca o
+/// tür aranır.
+class _GenreTiles extends StatelessWidget {
+  final List<Show> shows;
+  final int columns;
+  final ValueChanged<String> onPick;
+
+  const _GenreTiles(
+      {required this.shows, required this.columns, required this.onPick});
+
+  @override
+  Widget build(final BuildContext context) {
+    final Map<String, List<Show>> byCat = {};
+    for (final s in shows) {
+      final c = s.category.trim();
+      if (c.isEmpty) continue;
+      byCat.putIfAbsent(c, () => []).add(s);
+    }
+    if (byCat.isEmpty) return const SizedBox.shrink();
+    final cats = byCat.keys.toList()
+      ..sort((final a, final b) =>
+          byCat[b]!.length.compareTo(byCat[a]!.length));
+    final shown = cats.take(columns * 2).toList();
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: shown.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        mainAxisSpacing: AppSpacing.md,
+        crossAxisSpacing: AppSpacing.md,
+        childAspectRatio: 1.6,
+      ),
+      itemBuilder: (final context, final i) {
+        final String cat = shown[i];
+        final list = byCat[cat]!;
+        final Show? cover = list.firstWhere(
+            (final s) => s.imageUrl.trim().isNotEmpty,
+            orElse: () => list.first);
+        return Semantics(
+          button: true,
+          label: '$cat, ${list.length} oyun',
+          excludeSemantics: true,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: Material(
+              color: Colors.black,
+              child: InkWell(
+                onTap: () => onPick(cat),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (cover != null && cover.imageUrl.trim().isNotEmpty)
+                      Opacity(
+                        opacity: 0.75,
+                        child: OptimizedCachedImage(
+                          imageUrl: cover.imageUrl,
+                          fit: BoxFit.cover,
+                          borderRadius: 0,
+                        ),
+                      ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x22000000), Color(0xCC000000)],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: AppSpacing.md,
+                      right: AppSpacing.md,
+                      bottom: AppSpacing.md,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            cat,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.playfairDisplay(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '${list.length} oyun',
+                            style: const TextStyle(
+                                color: Color(0xCCFFFFFF), fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/widgets/admin_test_entry.dart';
+import '../widgets/common/home_showcase.dart';
 
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
@@ -138,6 +139,12 @@ class _HomePageState extends ConsumerState<HomePage>
         : ref.watch(myTicketsProvider(uid));
 
     final bool showLoadingState = isLoading && showState.value == null;
+    final List<HomeSlide> slides = HomeSlide.build(
+      context,
+      campaigns: campaigns,
+      shows: shows,
+      onShow: _openShow,
+    );
 
     final Widget body;
     if (hasError) {
@@ -179,6 +186,35 @@ class _HomePageState extends ConsumerState<HomePage>
               onTickets: _goToTickets,
               onOpenShow: _openShow,
             ),
+            if (slides.isNotEmpty)
+              _WebSection(
+                topGap: sectionGap,
+                title: homeText(context, 'Öne çıkanlar', 'Highlights'),
+                bleedRail: true,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: _kMaxContentWidth + 2 * _gutter(context)),
+                    child: HomeSpotlightCarousel(
+                      slides: slides,
+                      height: context.isDesktop ? 420 : 320,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: _gutter(context)),
+                    ),
+                  ),
+                ),
+              ),
+            if (shows.isNotEmpty)
+              _WebSection(
+                topGap: sectionGap,
+                title: homeText(context, 'Bugün ne izlemek istersin?',
+                    'What are you in the mood for?'),
+                bleedRail: true,
+                child: HomeMoodPicker(
+                  shows: shows,
+                  padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
+                ),
+              ),
             if (sessions.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
@@ -202,24 +238,28 @@ class _HomePageState extends ConsumerState<HomePage>
                       text: AppLocalizations.of(context)!.homeEmptyShowsHint)
                   : _ShowsGrid(shows: shows, onOpenShow: _openShow),
             ),
-            if (campaigns.isNotEmpty)
-              _WebSection(
-                topGap: sectionGap,
-                title: homeText(context, 'Kampanyalar', 'Offers'),
-                bleedRail: true,
-                child: HomeRail(
-                  itemCount: campaigns.length,
-                  itemWidth: context.isMobile ? 280 : 400,
-                  height: context.isMobile ? 220 : 280,
-                  showArrows: context.isDesktop,
-                  padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
-                  itemBuilder: (final context, final i) => HomeCampaignCard(
-                    campaign: campaigns[i],
-                    onTap: () =>
-                        NavigationHandler.goToCampaigns(context, index: i),
+            Padding(
+              padding: EdgeInsets.only(top: sectionGap),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: _gutter(context)),
+                    child: const HomeQuoteOfDay(),
                   ),
                 ),
               ),
+            ),
+            _WebSection(
+              topGap: sectionGap,
+              title: homeText(
+                  context, 'Sahnenin yüzleri', 'Faces of the stage'),
+              bleedRail: true,
+              child: HomePlayerStories(
+                padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
+              ),
+            ),
             if (stages.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,

@@ -50,11 +50,20 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   (`kTicketNavBarExtent`); çubuğa asla tüm yüksekliği kaplayan Center/Align
   koyma.
 
-- Arama (01.10.2026): ortak "gişe arama fişi" (`ticket_search.dart`) —
-  vurgu renkli arama damgası + delik çizgisi + dönen GERÇEK örnekler.
-- Arama sayfasında oyuncular: sahibi yeni yuvarlak portreyi beğenmedi,
-  eski "el aynası" (84x128 dikey oval) kart geri getirildi — "çok daha
-  tatlıydı". Oyuncu portreleri için bu dili koru.
+- Arama çubuğu: "gişe arama fişi" (damga + delik çizgisi + kayan örnek)
+  REDDEDİLDİ ("hiç beğenmedim"). Yerine "ışıyan kenar": temanın
+  renklerinde dönen ince halka + daktilo ipucu (04.10.2026).
+- Arama sayfasında oyuncular: yuvarlak (76px) ve elips "el aynası"
+  (84x128) REDDEDİLDİ ("aşırı berbat"). Sahibinin İLK tasarımı geri
+  getirildi: 120 genişlik, ClipRRect r=60 uzun hap portre, ad/soyad iki
+  satır (eski `PlayerHeroCard`). Bunu koru.
+- **"Her yerde bilet" yorucu** (04.10.2026): "her yerde bilet temalı
+  tasarımlar görmek asabımı bozdu". Bilet dili artık İMZA olarak az
+  yerde (giriş, sıradaki seans, repertuvar, bilet/koltuk); ana sayfa ve
+  aramada fotoğraf odaklı, ferah bölümler: hareketli vitrin (kampanya +
+  oyun, ilerlemeli gösterge), "bu hafta" nabzı, ruh hâline göre seçim,
+  sinematik afiş kartı, günün repliği, oyuncu hikâyeleri, tür karoları
+  (`home_showcase.dart`).
 
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +

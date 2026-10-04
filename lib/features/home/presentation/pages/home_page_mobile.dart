@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/admin_test_entry.dart';
+import '../widgets/common/home_showcase.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -10,7 +12,6 @@ import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/theatre_show_card.dart';
-import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -52,9 +53,6 @@ class _HomePageState extends ConsumerState<HomePage>
 
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _headline = CurvedAnimation(
-      parent: _entrance,
-      curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic));
   late final Animation<double> _rest = CurvedAnimation(
       parent: _entrance,
       curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
@@ -172,6 +170,13 @@ class _HomePageState extends ConsumerState<HomePage>
         sessionsPending ? null : pickHomeFeatured(sessions, shows);
 
     const EdgeInsets gutter = EdgeInsets.symmetric(horizontal: AppSpacing.xl);
+    // Vitrin slaytları: kampanyalar önce, sonra sahnedeki oyunlar.
+    final List<HomeSlide> slides = HomeSlide.build(
+      context,
+      campaigns: campaigns,
+      shows: activeShows.isNotEmpty ? activeShows : shows,
+      onShow: _openShow,
+    );
 
     return BasePageWrapper(
       showBackButton: false,
@@ -210,28 +215,13 @@ class _HomePageState extends ConsumerState<HomePage>
                       else
                         const SizedBox(height: AppSpacing.xxl),
 
-                      // Sayfanın tek başlık anı.
+                      // Selamlama + arama (sayfanın tek "hoş geldin" anı).
                       Padding(
                         padding: gutter,
-                        child: Semantics(
-                          header: true,
-                          child: AuthWipeReveal(
-                            reveal: _headline,
-                            child: Text(
-                              l10n.homeHeroHeadline,
-                              style: GoogleFonts.playfairDisplay(
-                                color: cs.onSurface,
-                                fontSize: isLargeScreen ? 44 : 34,
-                                fontWeight: FontWeight.w800,
-                                height: 1.05,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                          ),
-                        ),
+                        child: const HomeGreeting(),
                       ),
                       if (!isLargeScreen) ...[
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.md),
                         Padding(
                           padding: gutter,
                           child: _settle(HomeSearchField(
@@ -241,23 +231,87 @@ class _HomePageState extends ConsumerState<HomePage>
                         ),
                       ],
 
-                      // Öne çıkan bilet: sıradaki gerçek seans.
-                      if (sessionsPending || featured != null) ...[
-                        const SizedBox(height: AppSpacing.xxxl),
+                      // Vitrin: kampanyalar + sahnedeki oyunlar, kendiliğinden
+                      // kayar; gösterge bir sonraki slayda kalan süreyi dolar.
+                      if (slides.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        _settle(HomeSpotlightCarousel(
+                          slides: slides,
+                          height: isLargeScreen ? 300 : 220,
+                          padding: gutter,
+                        )),
+                      ],
+
+                      // Bu hafta: gerçek seanslardan tek satırlık nabız.
+                      if (sessions.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.xl),
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg),
-                          child: _settle(sessionsPending
-                              ? HomeFeaturedTicketSkeleton(layout: ticketLayout)
-                              : HomeFeaturedTicket(
-                                  key: ValueKey(featured!.session?.event.id ??
-                                      featured!.show.id),
-                                  featured: featured!,
-                                  layout: ticketLayout,
-                                  onOpen: () => _openShow(featured!.show),
-                                )),
+                          padding: gutter,
+                          child: HomeWeekPulse(
+                            sessions: sessions,
+                            onTap: () =>
+                                NavigationHandler.goToDiscover(context),
+                          ),
                         ),
                       ],
+
+                      // Sıradaki seans — sayfadaki tek "bilet" anı.
+                      if (sessionsPending || featured != null)
+                        _MobileSection(
+                          title: homeText(
+                              context, 'Sıradaki seans', 'Next performance'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg),
+                            child: sessionsPending
+                                ? HomeFeaturedTicketSkeleton(
+                                    layout: ticketLayout)
+                                : HomeFeaturedTicket(
+                                    key: ValueKey(
+                                        featured!.session?.event.id ??
+                                            featured!.show.id),
+                                    featured: featured!,
+                                    layout: ticketLayout,
+                                    onOpen: () => _openShow(featured!.show),
+                                  ),
+                          ),
+                        ),
+
+                      // Ruh hâline göre: sahnedeki oyunların gerçek türleri.
+                      if (shows.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(context, 'Bugün ne izlemek istersin?',
+                              'What are you in the mood for?'),
+                          child: HomeMoodPicker(
+                              shows: shows, padding: gutter),
+                        ),
+
+                      // Şu an sahnede — sinematik afiş kartları.
+                      if (activeShows.isNotEmpty)
+                        _MobileSection(
+                          title: l10n.homeActiveShowsSubtitle,
+                          actionLabel: l10n.homeSeeAll,
+                          onAction: () =>
+                              NavigationHandler.goToDiscover(context),
+                          child: HomeRail(
+                            itemCount: activeShows.length,
+                            itemWidth: 150,
+                            height: 262,
+                            padding: gutter,
+                            itemBuilder: (final context, final i) =>
+                                HomePosterCard(
+                              show: activeShows[i],
+                              onTap: () => _openShow(activeShows[i]),
+                            ),
+                          ),
+                        ),
+
+                      // Günün repliği — sayfaya nefes aldıran tipografi.
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            gutter.left, AppSpacing.section, gutter.right, 0),
+                        child: const HomeQuoteOfDay(),
+                      ),
 
                       if (sessions.isNotEmpty)
                         _MobileSection(
@@ -272,24 +326,14 @@ class _HomePageState extends ConsumerState<HomePage>
                           ),
                         ),
 
-                      if (activeShows.isNotEmpty)
-                        _MobileSection(
-                          title: l10n.homeActiveShowsSubtitle,
-                          actionLabel: l10n.homeSeeAll,
-                          onAction: () =>
-                              NavigationHandler.goToDiscover(context),
-                          child: HomeRail(
-                            itemCount: activeShows.length,
-                            itemWidth: 168,
-                            height: 256,
-                            padding: gutter,
-                            itemBuilder: (final context, final i) =>
-                                TheatreShowCard(
-                              show: activeShows[i],
-                              onTap: () => _openShow(activeShows[i]),
-                            ),
-                          ),
-                        ),
+                      // Sahnenin yüzleri — hikâye biçiminde oyuncular.
+                      _MobileSection(
+                        title: homeText(
+                            context, 'Sahnenin yüzleri', 'Faces of the stage'),
+                        actionLabel: l10n.homeSeeAll,
+                        onAction: () => context.push('/search'),
+                        child: HomePlayerStories(padding: gutter),
+                      ),
 
                       if (repertoire.isNotEmpty)
                         _MobileSection(
@@ -316,24 +360,6 @@ class _HomePageState extends ConsumerState<HomePage>
                                 show: repertoire[i],
                                 onTap: () => _openShow(repertoire[i]),
                               ),
-                            ),
-                          ),
-                        ),
-
-                      if (campaigns.isNotEmpty)
-                        _MobileSection(
-                          title: homeText(context, 'Kampanyalar', 'Offers'),
-                          child: HomeRail(
-                            itemCount: campaigns.length,
-                            itemWidth: 280,
-                            height: 210,
-                            padding: gutter,
-                            itemBuilder: (final context, final i) =>
-                                HomeCampaignCard(
-                              campaign: campaigns[i],
-                              onTap: () => NavigationHandler.goToCampaigns(
-                                  context,
-                                  index: i),
                             ),
                           ),
                         ),

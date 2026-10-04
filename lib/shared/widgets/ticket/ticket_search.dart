@@ -1,19 +1,20 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_motion.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../features/shows/presentation/providers/show_provider.dart';
 
-/// "Gişe arama fişi" — ana sayfa ve arama sayfasının ortak arama kabuğu.
+/// Ana sayfa ve arama sayfasının ortak arama çubuğu — "ışıyan kenar".
 ///
-/// Solda temanın vurgu renginde yuvarlak bir DAMGA (arama ikonu), yanında
-/// bilet koçanı gibi kesikli delik çizgisi, sağda içerik ([child]: ana
-/// sayfada dönen örnekler, arama sayfasında gerçek yazı alanı). Odakta
-/// kenarlık vurgu rengine döner. Renkler tamamen temadan.
-class TicketSearchShell extends StatelessWidget {
+/// Çubuğun kenarında temanın renklerinden (vurgu → üçüncül → ikincil)
+/// oluşan ince bir ışık halkası yavaşça döner; içerik ferah, kenarlıksız
+/// bir yüzeyde durur. Odakta halka hızlanır ve kalınlaşır. Azaltılmış
+/// harekette halka sabit durur. Renkler tamamen temadan.
+class TicketSearchShell extends StatefulWidget {
   final Widget child;
   final bool focused;
   final bool compact;
@@ -28,69 +29,82 @@ class TicketSearchShell extends StatelessWidget {
   });
 
   @override
+  State<TicketSearchShell> createState() => _TicketSearchShellState();
+}
+
+class _TicketSearchShellState extends State<TicketSearchShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _spin = AnimationController(
+      vsync: this, duration: const Duration(seconds: 6));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _spin.stop();
+    } else if (!_spin.isAnimating) {
+      _spin.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final double h = compact ? 50 : 58;
-    final double stamp = h - 16;
-    return AnimatedContainer(
-      duration: AppMotion.fast,
-      height: h,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(h / 2),
-        border: Border.all(
-          color: focused ? cs.primary : cs.outlineVariant,
-          width: focused ? 1.8 : 1,
+    final double h = widget.compact ? 50 : 56;
+    final double r = h / 2;
+    final double ring = widget.focused ? 2.2 : 1.4;
+
+    return AnimatedBuilder(
+      animation: _spin,
+      builder: (final context, final child) => Container(
+        height: h,
+        padding: EdgeInsets.all(ring),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(r),
+          boxShadow: AppShadows.level2(cs.shadow),
+          gradient: SweepGradient(
+            transform: GradientRotation(_spin.value * 2 * math.pi),
+            colors: [
+              cs.primary,
+              cs.tertiary.withValues(alpha: widget.focused ? 1 : 0.55),
+              cs.outlineVariant.withValues(alpha: 0.35),
+              cs.secondary.withValues(alpha: widget.focused ? 1 : 0.55),
+              cs.primary,
+            ],
+          ),
         ),
+        child: child,
       ),
-      padding: const EdgeInsets.only(left: 8, right: AppSpacing.xs),
-      child: Row(
-        children: [
-          Container(
-            width: stamp,
-            height: stamp,
-            decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
-            child: Icon(Icons.search_rounded,
-                size: compact ? 20 : 22, color: cs.onPrimary),
-          ),
-          const SizedBox(width: AppSpacing.sm + 2),
-          SizedBox(
-            width: 1.4,
-            height: h - 22,
-            child: CustomPaint(painter: _PerforationPainter(cs.outlineVariant)),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(child: child),
-          if (trailing != null) trailing!,
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(r),
+        ),
+        padding: const EdgeInsets.only(
+            left: AppSpacing.lg, right: AppSpacing.xs),
+        child: Row(
+          children: [
+            Icon(Icons.search_rounded,
+                size: widget.compact ? 21 : 23,
+                color: widget.focused ? cs.primary : cs.onSurfaceVariant),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: widget.child),
+            if (widget.trailing != null) widget.trailing!,
+          ],
+        ),
       ),
     );
   }
 }
 
-class _PerforationPainter extends CustomPainter {
-  final Color color;
-  const _PerforationPainter(this.color);
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final Paint p = Paint()
-      ..color = color
-      ..strokeWidth = size.width
-      ..strokeCap = StrokeCap.round;
-    for (double y = 0; y < size.height; y += 6) {
-      canvas.drawLine(Offset(size.width / 2, y),
-          Offset(size.width / 2, (y + 3).clamp(0, size.height)), p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant final _PerforationPainter old) =>
-      old.color != color;
-}
-
-/// Aramada denenebilecek GERÇEK örnekler: sahnedeki oyunların adları ve
-/// türleri (Firebase'den). Veri yoksa genel örnekler.
+/// Aramada denenebilecek örnekler: davet eden kısa sorular + sahnedeki
+/// GERÇEK oyunların adları ve türleri (Firebase'den).
 final searchExamplesProvider = Provider.autoDispose<List<String>>((final ref) {
   final shows = ref.watch(activeShowsProvider(true)).value ?? const [];
   final names = shows
@@ -102,31 +116,66 @@ final searchExamplesProvider = Provider.autoDispose<List<String>>((final ref) {
       .where((final c) => c.isNotEmpty)
       .toSet()
       .take(2);
-  final list = <String>[...names, ...kinds];
-  return list.isEmpty ? const ['oyun adı', 'oyuncu', 'sahne', 'topluluk'] : list;
+  return <String>[
+    'Bu akşam ne izlesek?',
+    ...names,
+    'Bir oyuncu adı yaz…',
+    ...kinds,
+    'Hangi sahne yakınımda?',
+  ];
 });
 
-/// "Ara:" + birkaç saniyede bir yukarı kayarak değişen örnek. Azaltılmış
-/// harekette ilk örnekte sabit kalır.
+/// Daktilo ipucu: örnekler harf harf yazılır, kısa bir bekleme, harf harf
+/// silinir, sıradakine geçilir; yanında yanıp sönen bir imleç. Azaltılmış
+/// harekette ilk örnek sabit durur.
 class RotatingSearchHint extends ConsumerStatefulWidget {
-  final String prefix;
-  const RotatingSearchHint({super.key, this.prefix = 'Ara:'});
+  const RotatingSearchHint({super.key});
 
   @override
-  ConsumerState<RotatingSearchHint> createState() => _RotatingSearchHintState();
+  ConsumerState<RotatingSearchHint> createState() =>
+      _RotatingSearchHintState();
 }
 
 class _RotatingSearchHintState extends ConsumerState<RotatingSearchHint> {
-  static const Duration _every = Duration(milliseconds: 2800);
+  static const Duration _tick = Duration(milliseconds: 55);
+  static const int _holdTicks = 34; // ~1.9 sn tam metin
   Timer? _timer;
-  int _i = 0;
+  int _example = 0;
+  int _chars = 0;
+  int _hold = 0;
+  bool _deleting = false;
+  bool _static = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_timer != null || MediaQuery.of(context).disableAnimations) return;
-    _timer = Timer.periodic(_every, (final _) {
-      if (mounted) setState(() => _i++);
+    _static = MediaQuery.of(context).disableAnimations;
+    if (_static || _timer != null) return;
+    _timer = Timer.periodic(_tick, (final _) => _step());
+  }
+
+  void _step() {
+    if (!mounted) return;
+    final examples = ref.read(searchExamplesProvider);
+    final String text = examples[_example % examples.length];
+    setState(() {
+      if (!_deleting) {
+        if (_chars < text.characters.length) {
+          _chars++;
+        } else if (_hold < _holdTicks) {
+          _hold++;
+        } else {
+          _deleting = true;
+        }
+      } else {
+        if (_chars > 0) {
+          _chars = math.max(0, _chars - 2);
+        } else {
+          _deleting = false;
+          _hold = 0;
+          _example++;
+        }
+      }
     });
   }
 
@@ -139,48 +188,36 @@ class _RotatingSearchHintState extends ConsumerState<RotatingSearchHint> {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final List<String> examples = ref.watch(searchExamplesProvider);
-    final String example = examples[_i % examples.length];
+    final examples = ref.watch(searchExamplesProvider);
+    final String full = examples[_example % examples.length];
+    final String shown =
+        _static ? full : full.characters.take(_chars).toString();
+    // İmleç: yazarken sabit, beklerken yanıp söner.
+    final bool cursorOn = _static ||
+        _deleting ||
+        _chars < full.characters.length ||
+        (_hold ~/ 8).isEven;
+
     return ExcludeSemantics(
       child: Row(
         children: [
-          Text(widget.prefix,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: ClipRect(
-              child: AnimatedSwitcher(
-                duration: AppMotion.normal,
-                switchInCurve: AppMotion.standard,
-                switchOutCurve: AppMotion.standard,
-                transitionBuilder: (final child, final anim) {
-                  final bool incoming =
-                      child.key == ValueKey('$example-$_i');
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: Offset(0, incoming ? 0.9 : -0.9),
-                      end: Offset.zero,
-                    ).animate(anim),
-                    child: FadeTransition(opacity: anim, child: child),
-                  );
-                },
-                layoutBuilder: (final current, final previous) => Stack(
-                  alignment: Alignment.centerLeft,
-                  children: [...previous, if (current != null) current],
-                ),
-                child: Text(
-                  '"$example"',
-                  key: ValueKey('$example-$_i'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+          Flexible(
+            child: Text(
+              shown,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
+          ),
+          const SizedBox(width: 1),
+          Opacity(
+            opacity: cursorOn ? 1 : 0,
+            child: Container(width: 2, height: 18, color: cs.primary),
           ),
         ],
       ),
@@ -189,7 +226,7 @@ class _RotatingSearchHintState extends ConsumerState<RotatingSearchHint> {
 }
 
 /// Ana sayfadaki arama "düğmesi": dokununca arama sayfasına gider (gerçek
-/// yazma orada). Klavye odağında vurgu kenarlığı.
+/// yazma orada). Klavye odağında halka parlar.
 class TicketSearchButton extends StatefulWidget {
   final VoidCallback onTap;
   final String semanticLabel;
@@ -219,6 +256,7 @@ class _TicketSearchButtonState extends State<TicketSearchButton> {
           child: InkWell(
             onTap: widget.onTap,
             onFocusChange: (final v) => setState(() => _focused = v),
+            onHover: (final v) => setState(() => _focused = v),
             mouseCursor: SystemMouseCursors.click,
             customBorder: const StadiumBorder(),
             child: TicketSearchShell(
@@ -230,4 +268,3 @@ class _TicketSearchButtonState extends State<TicketSearchButton> {
         ),
       );
 }
-
