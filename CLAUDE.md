@@ -27,6 +27,10 @@ Sahibinin güncel kararları (28.09.2026):
 - **Yasak:** "D harfi" asimetrik köşe (`AppRadius.asymSm/asymLg`), vesica
   kart, her ekranda perde/spot/parlama süsü, hotlink stok fotoğraf.
 
+- **Etkileşim zorunlu (04.10.2026):** statik ekran yetersiz; her ekranda
+  gerçek veriye bağlı etkileşim + hazır eklentiler + net işlem akışı
+  (bkz. skill `references/interaction.md`).
+
 Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
 (asymSm/asymLg 30.09.2026'da tamamen kaldırıldı), `AppMotion`,
 `AppShadows.levelN(tint)` — ham

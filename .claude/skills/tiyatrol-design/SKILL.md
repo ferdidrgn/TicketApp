@@ -17,7 +17,8 @@ gerçek bir ürün gibi duran, firmalara sunulabilecek, **sade ama TiyatRol'e
 disiplinli olsun.
 
 Ayrıntılar: `references/flutter-web.md`, `references/flutter-mobile.md`,
-`references/motion.md`, `references/history.md` (neyi denedik, neden reddedildi
+`references/motion.md`, `references/interaction.md` (etkileşimli UI,
+hazır eklentiler, işlem akışları), `references/history.md` (neyi denedik, neden reddedildi
 — **yeni bir şey tasarlamadan önce MUTLAKA oku**, aynı hatayı tekrarlama).
 
 ---
@@ -54,6 +55,20 @@ Ayrıntılar: `references/flutter-web.md`, `references/flutter-mobile.md`,
 5. **Mobil ve web gerçekten ayrı** (conditional export: `*_stub.dart`,
    `*_web.dart`, `*_mobile.dart`). Web = mobili büyütmek değil; tablet
    kendi kırılma noktası (bkz. `references/flutter-web.md`).
+
+## 2b. Etkileşim zorunlu (sahibinin isteği, 04.10.2026)
+
+"İnteraktif UI'lar, eklentiler, işlemler de ekleyerek yap." Sadece okunan
+statik ekran yetersizdir: her yeni ekran/yeniden tasarım en az bir anlamlı,
+GERÇEK veriye bağlı etkileşim içerir (kaydırılan vitrin, filtreleyen
+seçici, canlı önizleme, iyimser favori, paylaş, hatırlat…), dört durumu
+(yükleniyor/boş/hata/başarı) ve dokunuş geri bildirimini (InkWell +
+`HapticFeedback`) kapsar. Önce projede HAZIR eklentileri kullan (confetti,
+staggered animations, skeletonizer, visibility_detector, share_plus,
+url_launcher, firebase_messaging…). Kalıplar, paket tablosu ve işlem
+kuralları: `references/interaction.md`. Tasarım planına bir
+**"Etkileşim"** satırı eklenir: birincil işlem, doğrudan manipülasyon,
+geri bildirim, durumlar, kalıcılık, geri alma.
 
 ## 3. Süreç (zorunlu): planla → brief'e karşı gözden geçir → görsel doğrula → kodla → eleştir
 
