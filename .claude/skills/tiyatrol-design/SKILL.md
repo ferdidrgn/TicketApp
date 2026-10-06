@@ -55,6 +55,17 @@ hazır eklentiler, işlem akışları), `references/history.md` (neyi denedik, n
 5. **Mobil ve web gerçekten ayrı** (conditional export: `*_stub.dart`,
    `*_web.dart`, `*_mobile.dart`). Web = mobili büyütmek değil; tablet
    kendi kırılma noktası (bkz. `references/flutter-web.md`).
+6. **İki görsel dil, tek ürün (02.10.2026).** Bilet koçanı her yüzeyde
+   tekrarlanınca sıkıcı ve "şablon" oldu. **İşlem / kimlik** yüzeylerinde
+   bilet dili kalır (giriş, biletlerim, koltuk, ödeme, alt menü şeridi,
+   arama damgası). **Keşif** yüzeylerinde (ana sayfa, keşfet/kategoriler,
+   arama sonuçları, yakındakiler listesi dışı) **editöryal afiş dili**
+   kullanılır: poster kart, tür mozaiği, "bugün / bu hafta" zaman çipleri,
+   yatay koleksiyon şeritleri. Kaynak skill'ler: `sources/frontend-design.md`,
+   `sources/mobile-design.md` (claude-code-templates, Flutter'a çevrildi).
+   Rakip araştırması (DICE, TodayTix): konum + tür + tarih ile keşif;
+   harita birinci sınıf; sonuç türü etiketi; koleksiyon satırları.
+   Motif = afiş, mürekkep çizgisi, tipografi — her ekranda perde/spot yok.
 
 ## 2b. Etkileşim zorunlu (sahibinin isteği, 04.10.2026)
 
@@ -116,7 +127,19 @@ varsa (bilet alma adımları gibi).
 açılışı ya da bir açılış/reveal) dağınık efektlerden iyidir. Her bölüme
 "aşağıdan fade-in" ve her karta hover efekti = yapay zekâ işareti.
 Kullanıcı aksiyonuna cevap veren hareket (açma, genişleme, onay) iyidir.
-Ayrıntı: `references/motion.md`.
+Keşif sayfalarında ek izinli hareket: hero wipe, afişte hover'da galeri
+açılışı, zaman çipinde seçim kayması, haritada kamera. Ayrıntı:
+`references/motion.md`.
+
+**Keşif iskeleti (DICE / TodayTix, TiyatRol malzemesiyle):**
+- Ana sayfa: arama + sıradaki GERÇEK seans (tek bilet anı) + Bugün/Bu
+  hafta + Firestore `Show.category` mozaiği + repertuvar afiş ızgarası +
+  yakınımda daveti (GPS uydurma yok).
+- Keşfet: tür mozaiği (gerçek afiş + sayı) + anında çip filtresi + afiş
+  ızgarası. Seans satırları koçan olabilir (seans = bilet).
+- Arama: gişe fişi korunur; boş sorguda tür kısayolu + karışık sonuçlarda
+  tür etiketi (oyun / oyuncu / sahne / ekip).
+- Yakınımakiler: harita birinci sınıf; Bugün/Bu hafta/tür; sahne grupları.
 
 **Yazı (Türkçe metin):** Kullanıcının dilinden, sade, aktif fiil. Buton ne
 olacağını söyler ("Bilet al", "Koltuğu seç"); akış boyunca aynı ad kalır
@@ -181,6 +204,19 @@ olacağını söyler ("Bilet al", "Koltuğu seç"); akış boyunca aynı ad kal�
 - Performans: uzun listede `ListView.builder`/`SliverList`, `const`
   widget'lar, animasyonda `Opacity` yerine `FadeTransition`, pahalı
   `BackdropFilter`/`saveLayer` yok, görsellerde `cacheWidth`.
+
+Mobil checkpoint (claude-code-templates `mobile-design`, Flutter'a çevrildi):
+
+```
+Platform: iOS + Android (+ web ayrı layout)
+Framework: Flutter + Riverpod
+Dokunma: ≥ 48dp, 8dp boşluk, birincil CTA başparmak yayı
+Liste: ListView.builder / SliverList, sabit id key
+Hareket: transform/opacity; disableAnimations saygı
+Yasak: ScrollView+map, her karta aynı hover büyüme, her yerde perde
+```
+
+Ayrıntı: `sources/mobile-design.md`, `references/flutter-mobile.md`.
 
 ## 9. Bu sandbox'ta doğrulama (Flutter SDK YOK)
 

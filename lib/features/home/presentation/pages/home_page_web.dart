@@ -15,7 +15,6 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
@@ -38,7 +37,7 @@ import '../widgets/common/home_ui.dart';
 ///    + gerçek en yakın seansın büyük giriş bileti (birincil aksiyon: koçan
 ///    üstündeki "Bilet al" damgası; basınca koçan yırtılır).
 /// 2. Yaklaşan seanslar: gün şeridi + seçili günün seans koçanları.
-/// 3. Repertuvar: paylaşılan `TheatreShowCard` ızgarası.
+/// 3. Repertuvar: sinematik afiş ızgarası (`HomePosterCard`).
 /// 4. Kampanyalar ve 5. Şehrin sahneleri: sürüklenebilir şeritler (veri
 ///    varsa).
 /// Footer.
@@ -215,6 +214,38 @@ class _HomePageState extends ConsumerState<HomePage>
                   padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
                 ),
               ),
+            if (sessions.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: sectionGap),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: _kMaxContentWidth + 2 * _gutter(context)),
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: _gutter(context)),
+                      child: HomeWeekPulse(
+                        sessions: sessions,
+                        onTap: () => NavigationHandler.goToNearby(context),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: EdgeInsets.only(top: sectionGap),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                      maxWidth: _kMaxContentWidth + 2 * _gutter(context)),
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: _gutter(context)),
+                    child: const HomeNearbyInvite(),
+                  ),
+                ),
+              ),
+            ),
             if (sessions.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
@@ -591,7 +622,7 @@ class _WebHero extends StatelessWidget {
 // REPERTUVAR
 // ═══════════════════════════════════════════════════════════════
 
-/// Masaüstü/tablet: `TheatreShowCard` ızgarası (sütun sayısı genişlikten);
+/// Masaüstü/tablet: sinematik afiş ızgarası (sütun sayısı genişlikten);
 /// dar ekran: fare ile de sürüklenebilen yatay şerit.
 class _ShowsGrid extends StatelessWidget {
   final List<Show> shows;
@@ -606,7 +637,7 @@ class _ShowsGrid extends StatelessWidget {
         itemCount: shows.length,
         itemWidth: 168,
         height: 256,
-        itemBuilder: (final context, final i) => TheatreShowCard(
+        itemBuilder: (final context, final i) => HomePosterCard(
           show: shows[i],
           onTap: () => onOpenShow(shows[i]),
         ),
@@ -623,7 +654,7 @@ class _ShowsGrid extends StatelessWidget {
         crossAxisSpacing: AppSpacing.xl,
         childAspectRatio: 0.66,
       ),
-      itemBuilder: (final context, final i) => TheatreShowCard(
+      itemBuilder: (final context, final i) => HomePosterCard(
         show: shows[i],
         onTap: () => onOpenShow(shows[i]),
       ),

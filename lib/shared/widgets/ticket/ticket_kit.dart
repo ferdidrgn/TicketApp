@@ -520,6 +520,30 @@ class TicketPerforation extends StatelessWidget {
 // Biletin üstüne basılı parçalar
 // ─────────────────────────────────────────────────────────────────────────
 
+/// Editöryal / bilet mürekkebi çift çizgi — bölüm ayırıcı veya şerit altı.
+/// Tema zemininde daha yumuşak opaklık kullan ([strong]/[soft] düşür).
+class TicketInkHairline extends StatelessWidget {
+  final double strong;
+  final double soft;
+
+  const TicketInkHairline({
+    super.key,
+    this.strong = 0.8,
+    this.soft = 0.5,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(height: 1.4, color: TicketInk.inkSoft(strong)),
+          const SizedBox(height: 2),
+          Container(height: 0.6, color: TicketInk.inkSoft(soft)),
+        ],
+      );
+}
+
 /// Biletin üst şeridi: marka + bilet türü + ince çizgi.
 class TicketHeaderStrip extends StatelessWidget {
   final String kind;
@@ -556,9 +580,7 @@ class TicketHeaderStrip extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Container(height: 1.4, color: TicketInk.inkSoft(0.8)),
-          const SizedBox(height: 2),
-          Container(height: 0.6, color: TicketInk.inkSoft(0.5)),
+          const TicketInkHairline(),
         ],
       );
 }

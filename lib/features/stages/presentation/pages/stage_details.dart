@@ -102,13 +102,18 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
     return ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
-      actions: const ProfileActionsRow(),
-      ticket: (final layout) => ProfileTicket(
+      heroImageUrl: stage.imageUrl,
+      heroImageLabel: '${stage.name} fotoğrafı',
+      heroPlaceholderIcon: Icons.theaters_rounded,
+      actions: ({final bool onPhoto = false}) =>
+          ProfileActionsRow(onPhoto: onPhoto),
+      ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
         layout: layout,
         kind: 'SAHNE',
         name: stage.name,
         imageUrl: stage.imageUrl,
         imageLabel: '${stage.name} fotoğrafı',
+        omitBodyPhoto: heroPhoto,
         placeholderIcon: Icons.theaters_rounded,
         tagline: stage.address,
         seed: stage.id,

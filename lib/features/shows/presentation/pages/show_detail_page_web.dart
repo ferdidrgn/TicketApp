@@ -18,14 +18,12 @@ import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
 
-/// OYUN DETAYI — WEB. "Tiyatro programı + bilet", üç gerçek kompozisyon:
-/// - masaüstü (≥1024): iki bölmeli kalıcı ayrım — solda yapışkan oyun
-///   bileti (afiş, ad, alanlar; koçanda en yakın seans + fiyat + TEK
-///   birincil aksiyon), sağda kayan program; footer tam genişlikte.
-/// - tablet (768–1023): yatay bilet (koçan sağda, aksiyon koçanda), altında
-///   ortalanmış okuma sütununda program.
-/// - dar (<768): mobil düzen — afiş bandı + dikey bilet + yapışkan alt
-///   bilet çubuğu.
+/// OYUN DETAYI — WEB. Editoryal afiş + program; bilet dili yalnızca
+/// "Bilet al" damgasında ve seans satırlarında.
+/// - masaüstü (≥1024): yapışkan sol kahraman (afiş, başlık, özet, CTA),
+///   sağda broşür program.
+/// - tablet (768–1023): yatay kahraman kartı, altında program.
+/// - dar (<768): sinematik afiş bandı + özet kart + yapışkan alt çubuk.
 ///
 /// `BasePageWrapper` kullanılmıyor (web'de mobil çatıyı bindiriyordu); bu
 /// yüzden sayfa kendi `Scaffold`'unu kurar — Material atası olmadan

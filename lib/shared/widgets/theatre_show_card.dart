@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
@@ -61,9 +60,10 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
     final show = widget.show;
     final bool hasReveal =
         _revealImageUrl != null && _revealImageUrl != show.imageUrl;
+    final Color tint = Theme.of(context).colorScheme.shadow;
     final List<BoxShadow> shadows = _active
-        ? AppShadows.level4(WebColors.veryDarkBlue)
-        : AppShadows.level2(WebColors.veryDarkBlue);
+        ? AppShadows.level4(tint)
+        : AppShadows.level2(tint);
 
     return Semantics(
       button: true,

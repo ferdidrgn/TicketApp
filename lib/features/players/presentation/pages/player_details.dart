@@ -84,18 +84,24 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     return ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
-      actions: ProfileActionsRow(
+      heroImageUrl: player.imageUrl,
+      heroImageLabel: '$fullName portresi',
+      heroPortrait: true,
+      heroPlaceholderIcon: Icons.person_rounded,
+      actions: ({final bool onPhoto = false}) => ProfileActionsRow(
+        onPhoto: onPhoto,
         shareLabel: 'Oyuncu profilini paylaş',
         onShare: () =>
             TiyatrolDeeplinkService.shareActor(id: player.id, name: fullName),
       ),
-      ticket: (final layout) => ProfileTicket(
+      ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
         layout: layout,
         kind: 'OYUNCU',
         name: fullName,
         imageUrl: player.imageUrl,
         imageLabel: '$fullName portresi',
         portrait: true,
+        omitBodyPhoto: heroPhoto,
         placeholderIcon: Icons.person_rounded,
         tagline: player.quote,
         taglineIsQuote: true,

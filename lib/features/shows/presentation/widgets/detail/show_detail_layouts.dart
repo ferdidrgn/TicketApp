@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_radius.dart';
-import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import 'show_detail_actions.dart';
 import 'show_detail_data.dart';
+import 'show_detail_hero.dart';
 import 'show_programme.dart';
 import 'show_ticket.dart';
 import 'sticky_aside.dart';
@@ -110,8 +109,8 @@ class _ActionsRow extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// MOBİL / DAR WEB: afiş bandı + üstüne binen dikey bilet + program +
-// yapışkan alt "bilet çubuğu".
+// MOBİL / DAR WEB: sinematik afiş bandı + editoryal özet kartı + program +
+// yapışkan alt çubuk (tek birincil aksiyon).
 // ═════════════════════════════════════════════════════════════════════════
 
 class ShowDetailStackedLayout extends StatelessWidget {
@@ -139,9 +138,9 @@ class ShowDetailStackedLayout extends StatelessWidget {
       builder: (final context, final constraints) {
         final double width = constraints.maxWidth;
         final bool hasPoster = data.show.imageUrl.trim().isNotEmpty;
-        const double overlap = 88;
+        const double overlap = 72;
         final double posterHeight =
-            hasPoster ? (width * 1.05).clamp(320.0, 480.0) : 0.0;
+            hasPoster ? (width * 0.92).clamp(300.0, 440.0) : 0.0;
         final double ticketTop =
             hasPoster ? posterHeight - overlap : safe.top + 72;
         final double bandHeight = hasPoster ? posterHeight : ticketTop + 48;
@@ -152,17 +151,11 @@ class ShowDetailStackedLayout extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 560),
             child: _TicketEntrance(
               animation: args.ticketIn,
-              child: AdmitTicket(
-                direction: Axis.vertical,
-                tear: args.tear,
-                body: ShowTicketBody(
-                  data: data,
-                  layout: ShowTicketLayout.stacked,
-                  headlineReveal: args.headline,
-                  detailsFade: args.details,
-                ),
-                stub: ShowTicketStub(
-                    data: data, layout: ShowTicketLayout.stacked),
+              child: ShowDetailHero(
+                data: data,
+                layout: ShowDetailHeroLayout.stacked,
+                headlineReveal: args.headline,
+                detailsFade: args.details,
               ),
             ),
           ),
@@ -325,9 +318,8 @@ class _PosterBand extends StatelessWidget {
   }
 }
 
-/// Mobilin yapışkan alt çubuğu — elde tutulan bir koçan: fildişi kağıt,
-/// üst kenarı delikli. Solda en uygun fiyat (ya da seans sayısı), sağda
-/// TEK birincil aksiyon. Başparmak bölgesinde, 56dp buton.
+/// Mobilin yapışkan alt çubuğu — sade zemin; solda seans/fiyat özeti,
+/// sağda TEK birincil aksiyon (bilet damgası).
 class ShowBottomBar extends StatelessWidget {
   final ShowDetailViewArgs args;
   const ShowBottomBar({super.key, required this.args});
@@ -337,71 +329,59 @@ class ShowBottomBar extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final colors = context.colors;
     final data = args.data;
-    final double? lowest = data.lowestPrice;
 
     Widget? info;
     if (!data.isExternal && data.sessions.isNotEmpty) {
-      info = lowest != null
-          ? TicketField(
-              label: data.sessions
-                          .map((final s) => s.price)
-                          .whereType<double>()
-                          .toSet()
-                          .length >
-                      1
-                  ? 'EN UYGUN'
-                  : 'FİYAT',
-              value: formatTicketPrice(lowest),
-            )
-          : TicketField(label: 'SATIŞTA', value: '${data.sessions.length} seans');
+      info = ShowDetailSessionTeaser(data: data, dense: true);
     }
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        TicketPiece(
-          perforated: TicketEdge.top,
-          notch: 12,
-          corner: 0,
-          shadows: AppShadows.level3(TicketInk.ink),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl, 14, AppSpacing.xl, 14),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 680),
-                  child: Row(
-                    children: [
-                      if (info != null) ...[
-                        Flexible(flex: 2, child: info),
-                        const SizedBox(width: AppSpacing.lg),
-                      ],
-                      Expanded(flex: 3, child: args.primaryStamp()),
+    return Material(
+      color: colors.surface,
+      elevation: 0,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: colors.outlineVariant.withOpacity(0.55)),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors.shadow.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (info != null) ...[
+                      Flexible(flex: 2, child: info),
+                      const SizedBox(width: AppSpacing.lg),
                     ],
-                  ),
+                    Expanded(flex: 3, child: args.primaryStamp()),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-        const Positioned(
-          top: -1,
-          left: 0,
-          right: 0,
-          height: 2,
-          child: TicketPerforation(),
-        ),
-      ],
+      ),
     );
   }
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// MASAÜSTÜ (≥1024): iki bölmeli kalıcı ayrım — solda yapışkan bilet +
-// birincil aksiyon, sağda kayan program. Footer tam genişlikte.
+// MASAÜSTÜ (≥1024): solda yapışkan editoryal kahraman + CTA, sağda program.
 // ═════════════════════════════════════════════════════════════════════════
 
 class ShowDetailTwoPaneLayout extends StatefulWidget {
@@ -441,21 +421,13 @@ class _ShowDetailTwoPaneLayoutState extends State<ShowDetailTwoPaneLayout> {
             const SizedBox(height: AppSpacing.lg),
             _TicketEntrance(
               animation: args.ticketIn,
-              child: AdmitTicket(
-                direction: Axis.vertical,
-                tear: args.tear,
-                body: ShowTicketBody(
-                  data: data,
-                  layout: ShowTicketLayout.aside,
-                  headlineReveal: args.headline,
-                  detailsFade: args.details,
-                  posterHeight: posterHeight,
-                ),
-                stub: ShowTicketStub(
-                  data: data,
-                  layout: ShowTicketLayout.aside,
-                  action: args.primaryStamp(),
-                ),
+              child: ShowDetailHero(
+                data: data,
+                layout: ShowDetailHeroLayout.aside,
+                headlineReveal: args.headline,
+                detailsFade: args.details,
+                posterHeight: posterHeight,
+                primaryAction: args.primaryStamp(),
               ),
             ),
           ],
@@ -527,8 +499,7 @@ class _ShowDetailTwoPaneLayoutState extends State<ShowDetailTwoPaneLayout> {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// WEB TABLET (768–1023): yatay bilet (afiş + ad + alanlar | koçanda
-// birincil aksiyon), altında ortalanmış okuma sütununda program.
+// WEB TABLET (768–1023): yatay kahraman kartı, altında program sütunu.
 // ═════════════════════════════════════════════════════════════════════════
 
 class ShowDetailBannerLayout extends StatelessWidget {
@@ -557,21 +528,12 @@ class ShowDetailBannerLayout extends StatelessWidget {
                         const SizedBox(height: AppSpacing.lg),
                         _TicketEntrance(
                           animation: args.ticketIn,
-                          child: AdmitTicket(
-                            direction: Axis.horizontal,
-                            tear: args.tear,
-                            stubExtent: 280,
-                            body: ShowTicketBody(
-                              data: data,
-                              layout: ShowTicketLayout.banner,
-                              headlineReveal: args.headline,
-                              detailsFade: args.details,
-                            ),
-                            stub: ShowTicketStub(
-                              data: data,
-                              layout: ShowTicketLayout.banner,
-                              action: args.primaryStamp(compact: true),
-                            ),
+                          child: ShowDetailHero(
+                            data: data,
+                            layout: ShowDetailHeroLayout.banner,
+                            headlineReveal: args.headline,
+                            detailsFade: args.details,
+                            primaryAction: args.primaryStamp(compact: true),
                           ),
                         ),
                       ],

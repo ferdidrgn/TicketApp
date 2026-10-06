@@ -11,7 +11,6 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -250,7 +249,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           child: HomeWeekPulse(
                             sessions: sessions,
                             onTap: () =>
-                                NavigationHandler.goToDiscover(context),
+                                NavigationHandler.goToNearby(context),
                           ),
                         ),
                       ],
@@ -285,6 +284,12 @@ class _HomePageState extends ConsumerState<HomePage>
                           child: HomeMoodPicker(
                               shows: shows, padding: gutter),
                         ),
+
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            gutter.left, AppSpacing.xxl, gutter.right, 0),
+                        child: const HomeNearbyInvite(),
+                      ),
 
                       // Şu an sahnede — sinematik afiş kartları.
                       if (activeShows.isNotEmpty)
@@ -356,7 +361,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                 childAspectRatio: 0.64,
                               ),
                               itemBuilder: (final context, final i) =>
-                                  TheatreShowCard(
+                                  HomePosterCard(
                                 show: repertoire[i],
                                 onTap: () => _openShow(repertoire[i]),
                               ),

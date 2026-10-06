@@ -16,7 +16,6 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -570,8 +569,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
   void _openShow(final Show show) =>
       NavigationHandler.goToShow(context, show.id, show.name);
 
-  /// Oyunlar: mobilde kompakt bilet satırları, tablet/masaüstünde bilet
-  /// koçanlı kart ızgarası.
+  /// Oyunlar: mobilde kompakt bilet satırları; tablet/masaüstünde afiş ızgarası.
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
     final EdgeInsets padding = EdgeInsets.fromLTRB(
@@ -597,7 +595,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         gridDelegate:
             browseShowGridDelegate(layout == _Layout.tablet ? 220 : 240),
         itemCount: shows.length,
-        itemBuilder: (final context, final i) => TheatreShowCard(
+        itemBuilder: (final context, final i) => HomePosterCard(
           key: ValueKey('search-show-${shows[i].id}'),
           show: shows[i],
           onTap: () => _openShow(shows[i]),

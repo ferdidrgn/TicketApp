@@ -181,6 +181,8 @@ class PreferenceSectionTitle extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: AppSpacing.md),
+          const TicketInkHairline(strong: 0.38, soft: 0.22),
         ],
       ),
     );

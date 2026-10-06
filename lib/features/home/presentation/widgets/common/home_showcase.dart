@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -919,6 +920,83 @@ class HomePlayerStories extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Yakınımdakiler daveti — GPS uydurulmaz; gerçek konum sayfasında istenir
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Ana sayfadan Yakınımdakiler'e tek dokunuş. Konum izni burada sorulmaz.
+class HomeNearbyInvite extends StatelessWidget {
+  const HomeNearbyInvite({super.key});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: 'Yakınımdakiler: çevrendeki sahneler ve seanslar',
+      excludeSemantics: true,
+      child: Material(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            NavigationHandler.goToNearby(context);
+          },
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Icon(Icons.map_outlined,
+                        color: cs.onPrimaryContainer),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Yakınımdakiler',
+                          style: GoogleFonts.playfairDisplay(
+                            color: cs.onSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '50 km içindeki sahneler ve önümüzdeki seanslar. Konum izni haritada sorulur.',
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 13.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: cs.primary),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

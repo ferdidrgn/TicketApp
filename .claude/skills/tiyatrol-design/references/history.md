@@ -81,6 +81,15 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   Unsplash `photo-1514525253161-7a46d19cd819`) — "bu foto çok iyi".
 - 5 tema özelliği — "asla temalarımı bozma".
 
+## 06.10.2026 — "bilet her yerde sıkıcı; web berbat"
+
+Sahibi: keşif yüzeylerini (ana sayfa, arama, kategoriler, yakındakiler)
+TodayTix/DICE benzeri koleksiyon + tür + tarih + harita ile zenginleştir;
+bilet dilini işlem yüzeylerinde tut. Skill'ler
+`creative-design/frontend-design` ve `mobile-design` (claude-code-templates,
+Flutter'a çevrildi) güncellenir. Perde/spot her ekranda hâlâ yasak;
+motif = afiş, mürekkep çizgisi, tipografi, tek koreografili an.
+
 ## Reddedilenler
 
 ### Genel (Eylül 2026)

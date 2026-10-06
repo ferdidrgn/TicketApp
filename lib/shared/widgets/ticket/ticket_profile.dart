@@ -25,8 +25,11 @@ import 'ticket_listing.dart';
 /// - Kimlik = fildişi bir künye bileti ([ProfileTicket]): marka şeridi +
 ///   tür (OYUNCU / SAHNE / TOPLULUK), gerçek fotoğraf, Playfair ad (perde
 ///   açılışıyla), gerçek alanlar; koçanda sayfanın TEK birincil aksiyonu.
-/// - Program = temanın zemininde sakin bölümler (`ProgrammeSection`);
-///   bağlı oyunlar bilet kartı / bilet satırı, seanslar koçan.
+/// - Program = temanın zemininde editöryal bölümler (`ProgrammeSection`:
+///   Playfair başlık + `TicketInkHairline`); bağlı oyunlar bilet kartı /
+///   bilet satırı, seanslar koçan.
+/// - Mobilde gerçek künye fotoğrafı sinematik band (`_ProfilePosterBand`),
+///   kimlik bileti bandın üstüne biner; fotoğraf 2:3 poster çerçevesi.
 ///
 /// Üç gerçek kompozisyon ([ProfileDetailLayout]):
 /// - masaüstü (≥1024): solda yapışkan künye bileti, sağda kayan program;
@@ -75,21 +78,26 @@ class ProfileActionsRow extends StatelessWidget {
   final VoidCallback? onShare;
   final String shareLabel;
 
+  /// Gerçek fotoğraf bandının üstünde (koyu zeminli ikonlar).
+  final bool onPhoto;
+
   const ProfileActionsRow({
     super.key,
     this.onShare,
     this.shareLabel = 'Paylaş',
+    this.onPhoto = false,
   });
 
   @override
   Widget build(final BuildContext context) => Row(
         children: [
-          const ShowBackButton(),
+          ShowBackButton(onImage: onPhoto),
           const Spacer(),
           if (onShare != null)
             ShowQuietIconButton(
               icon: Icons.ios_share_rounded,
               label: shareLabel,
+              onImage: onPhoto,
               onPressed: onShare,
             ),
         ],
@@ -136,6 +144,9 @@ class ProfileTicket extends StatefulWidget {
   /// Barkod tohumu (kimliğin gerçek id'si).
   final String seed;
 
+  /// Mobilde afiş bandı fotoğrafı gösteriliyorsa gövdedeki fotoğrafı gizle.
+  final bool omitBodyPhoto;
+
   const ProfileTicket({
     super.key,
     required this.layout,
@@ -151,6 +162,7 @@ class ProfileTicket extends StatefulWidget {
     this.fields = const [],
     this.stubFields = const [],
     this.action,
+    this.omitBodyPhoto = false,
   });
 
   @override
@@ -246,9 +258,13 @@ class _ProfileTicketState extends State<ProfileTicket>
         url: widget.imageUrl,
         label: widget.imageLabel,
         icon: widget.placeholderIcon,
+        portrait: widget.portrait,
         width: width,
         height: height,
       );
+
+  bool get _showBodyPhoto =>
+      !(widget.omitBodyPhoto && widget.layout == ProfileTicketLayout.stacked);
 
   Widget _body(final BuildContext context) {
     final Widget strip = TicketHeaderStrip(kind: widget.kind);
@@ -266,11 +282,11 @@ class _ProfileTicketState extends State<ProfileTicket>
             children: [
               strip,
               const SizedBox(height: AppSpacing.xl),
-              if (widget.portrait)
+              if (_showBodyPhoto && widget.portrait)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _photo(width: 96, height: 128),
+                    _photo(width: 96),
                     const SizedBox(width: AppSpacing.lg),
                     Expanded(
                       child: Column(
@@ -287,9 +303,15 @@ class _ProfileTicketState extends State<ProfileTicket>
                     ),
                   ],
                 )
-              else ...[
+              else if (_showBodyPhoto && !widget.portrait) ...[
                 _photo(height: 176),
                 const SizedBox(height: AppSpacing.xl),
+                _headline(30),
+                if (stackedTag != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  stackedTag,
+                ],
+              ] else ...[
                 _headline(30),
                 if (stackedTag != null) ...[
                   const SizedBox(height: AppSpacing.sm),
@@ -450,6 +472,7 @@ class _ProfilePhoto extends StatelessWidget {
   final String url;
   final String label;
   final IconData icon;
+  final bool portrait;
   final double? width;
   final double? height;
 
@@ -457,6 +480,7 @@ class _ProfilePhoto extends StatelessWidget {
     required this.url,
     required this.label,
     required this.icon,
+    this.portrait = false,
     this.width,
     this.height,
   });
@@ -464,30 +488,123 @@ class _ProfilePhoto extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final bool hasImage = url.trim().isNotEmpty;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.xs),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: ColoredBox(
-          color: TicketInk.inkSoft(0.08),
-          child: hasImage
-              ? Semantics(
-                  image: true,
-                  label: label,
-                  child: OptimizedCachedImage(
-                    imageUrl: url,
-                    width: width,
-                    height: height,
-                    fit: BoxFit.cover,
-                    borderRadius: 0,
-                  ),
-                )
-              : Center(
-                  child: Icon(icon, size: 40, color: TicketInk.inkSoft(0.35)),
-                ),
+
+    Widget content = ColoredBox(
+      color: TicketInk.inkSoft(0.08),
+      child: hasImage
+          ? Semantics(
+              image: true,
+              label: label,
+              child: OptimizedCachedImage(
+                imageUrl: url,
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+                borderRadius: 0,
+              ),
+            )
+          : Center(
+              child: Icon(icon, size: 40, color: TicketInk.inkSoft(0.35)),
+            ),
+    );
+
+    if (portrait && width != null && height == null) {
+      content = AspectRatio(aspectRatio: 2 / 3, child: content);
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        border: Border.all(color: TicketInk.inkSoft(0.16), width: 1),
+        boxShadow: hasImage ? AppShadows.level1(TicketInk.ink) : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: content,
         ),
       ),
+    );
+  }
+}
+
+/// Mobil yığında künye biletin üstünde sinematik fotoğraf bandı (gerçek
+/// Firebase görseli — stok/hotlink yok).
+class _ProfilePosterBand extends StatelessWidget {
+  final String url;
+  final String label;
+  final bool portrait;
+  final IconData placeholderIcon;
+
+  const _ProfilePosterBand({
+    required this.url,
+    required this.label,
+    required this.portrait,
+    required this.placeholderIcon,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    final bool hasImage = url.trim().isNotEmpty;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(color: colors.surfaceContainerHighest),
+        if (hasImage)
+          Semantics(
+            image: true,
+            label: label,
+            child: OptimizedCachedImage(
+              imageUrl: url,
+              fit: portrait ? BoxFit.cover : BoxFit.cover,
+              borderRadius: 0,
+            ),
+          )
+        else
+          Center(
+            child: Icon(placeholderIcon,
+                size: 56, color: TicketInk.inkSoft(0.28)),
+          ),
+        if (hasImage)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x73000000), Color(0x00000000)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: portrait ? 180 : 140,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [colors.surface.withOpacity(0), colors.surface],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -498,14 +615,24 @@ class _ProfilePhoto extends StatelessWidget {
 
 class ProfileDetailLayout extends StatefulWidget {
   final ScrollController controller;
-  final Widget actions;
-  final Widget Function(ProfileTicketLayout layout) ticket;
+
+  /// [onPhoto] → sinematik bandın üstünde koyu zeminli ikonlar.
+  final Widget Function({bool onPhoto}) actions;
+
+  /// [heroPhoto] true → mobil yığında fotoğraf bandında, gövdede tekrarlanmaz.
+  final Widget Function(ProfileTicketLayout layout, {bool heroPhoto}) ticket;
 
   /// [compact] → dar mobil: oyunlar bilet satırı, metin katlanır.
   final Widget Function(bool compact) programme;
 
   /// Web'de sayfa sonu footer'ı; mobil uygulamada null.
   final Widget? footer;
+
+  /// Mobil sinematik band (gerçek künye fotoğrafı). Boşsa band yok.
+  final String? heroImageUrl;
+  final String heroImageLabel;
+  final bool heroPortrait;
+  final IconData heroPlaceholderIcon;
 
   const ProfileDetailLayout({
     super.key,
@@ -514,6 +641,10 @@ class ProfileDetailLayout extends StatefulWidget {
     required this.ticket,
     required this.programme,
     this.footer,
+    this.heroImageUrl,
+    this.heroImageLabel = '',
+    this.heroPortrait = false,
+    this.heroPlaceholderIcon = Icons.theater_comedy_outlined,
   });
 
   @override
@@ -562,9 +693,10 @@ class _ProfileDetailLayoutState extends State<ProfileDetailLayout> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            widget.actions,
+                            widget.actions(onPhoto: false),
                             const SizedBox(height: AppSpacing.lg),
-                            widget.ticket(ProfileTicketLayout.aside),
+                            widget.ticket(ProfileTicketLayout.aside,
+                                heroPhoto: false),
                           ],
                         ),
                       ),
@@ -607,9 +739,10 @@ class _ProfileDetailLayoutState extends State<ProfileDetailLayout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      widget.actions,
+                      widget.actions(onPhoto: false),
                       const SizedBox(height: AppSpacing.lg),
-                      widget.ticket(ProfileTicketLayout.banner),
+                      widget.ticket(ProfileTicketLayout.banner,
+                          heroPhoto: false),
                     ],
                   ),
                 ),
@@ -632,23 +765,67 @@ class _ProfileDetailLayoutState extends State<ProfileDetailLayout> {
         ],
       );
 
-  Widget _stacked(final double width, final double bottomInset) =>
-      CustomScrollView(
+  Widget _stacked(final double width, final double bottomInset) {
+    final EdgeInsets safe = MediaQuery.paddingOf(context);
+    final String? heroUrl = widget.heroImageUrl?.trim();
+    final bool hasHero = heroUrl != null && heroUrl.isNotEmpty;
+    const double overlap = 72;
+    final double bandHeight = hasHero
+        ? (width * (widget.heroPortrait ? 1.05 : 0.72)).clamp(260.0, 420.0)
+        : 0;
+    final double headTop =
+        hasHero ? bandHeight - overlap : AppSpacing.sm + safe.top;
+
+    return CustomScrollView(
         controller: widget.controller,
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0,
+                  AppSpacing.lg, 0),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 560),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      widget.actions,
-                      const SizedBox(height: AppSpacing.md),
-                      widget.ticket(ProfileTicketLayout.stacked),
+                      if (hasHero)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: bandHeight,
+                          child: _ProfilePosterBand(
+                            url: heroUrl,
+                            label: widget.heroImageLabel,
+                            portrait: widget.heroPortrait,
+                            placeholderIcon: widget.heroPlaceholderIcon,
+                          ),
+                        ),
+                      if (hasHero)
+                        Positioned(
+                          top: safe.top + AppSpacing.xs,
+                          left: 0,
+                          right: 0,
+                          child: widget.actions(onPhoto: true),
+                        ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: hasHero
+                                ? headTop
+                                : AppSpacing.sm + safe.top),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (!hasHero) ...[
+                              widget.actions(onPhoto: false),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                            widget.ticket(ProfileTicketLayout.stacked,
+                                heroPhoto: hasHero),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -673,6 +850,7 @@ class _ProfileDetailLayoutState extends State<ProfileDetailLayout> {
           ..._tail(bottomInset),
         ],
       );
+  }
 
   @override
   Widget build(final BuildContext context) {

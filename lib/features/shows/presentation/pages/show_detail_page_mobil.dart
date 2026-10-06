@@ -16,15 +16,11 @@ import '../widgets/detail/show_detail_skeleton.dart';
 
 /// OYUN DETAYI — MOBİL UYGULAMA (Android/iOS, telefon + tablet).
 ///
-/// "Tiyatro programı + bilet": gerçek afiş bandının üstüne binen oyun
-/// bileti (ad perde gibi açılır; SÜRE / YAŞ SINIRI / TÜR alanları; koçanda
-/// en yakın seans + fiyat), altında program (seanslar = yırtılabilir
-/// koçanlar, hikâye, oyuncular, sahne, galeri, benzer oyunlar) ve
-/// başparmak bölgesinde yapışkan alt "bilet çubuğu" — sayfanın TEK birincil
-/// aksiyonu. Paylaş/favori üstte sessiz ikonlar.
+/// Editoryal oyun detayı: sinematik afiş, Playfair başlık (perde açılışı),
+/// broşür program (seanslar = yırtılabilir koçanlar). TEK birincil aksiyon
+/// yapışkan altta "Bilet al" damgası. Paylaş/favori üstte sessiz ikonlar.
 ///
-/// Büyük yatay tablette (≥1024) masaüstündeki iki bölmeli düzen: solda
-/// yapışkan bilet + aksiyon, sağda kayan program.
+/// Büyük tablette (≥1024) web ile aynı iki bölmeli düzen.
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 

@@ -10,6 +10,7 @@ import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
@@ -153,7 +154,7 @@ class ProgrammeSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Container(height: 1, color: colors.outlineVariant.withOpacity(0.6)),
+        const TicketInkHairline(strong: 0.38, soft: 0.22),
         const SizedBox(height: AppSpacing.xl),
         child,
       ],

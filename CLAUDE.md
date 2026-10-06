@@ -27,6 +27,12 @@ Sahibinin güncel kararları (28.09.2026):
 - **Yasak:** "D harfi" asimetrik köşe (`AppRadius.asymSm/asymLg`), vesica
   kart, her ekranda perde/spot/parlama süsü, hotlink stok fotoğraf.
 
+- **İki görsel dil (02–06.10.2026):** Bilet koçanı işlem/kimlik yüzeylerinde
+  (giriş, biletlerim, koltuk, ödeme, alt menü, arama damgası). Keşif
+  yüzeylerinde (ana sayfa, keşfet, arama göz atma, yakındakiler haritası)
+  editöryal afiş dili: `HomePosterCard`, `HomeMoodPicker`, `HomeSpotlightCarousel`,
+  tür mozaiği. Kaynak: `.claude/skills/tiyatrol-design/sources/`.
+
 - **Etkileşim zorunlu (04.10.2026):** statik ekran yetersiz; her ekranda
   gerçek veriye bağlı etkileşim + hazır eklentiler + net işlem akışı
   (bkz. skill `references/interaction.md`).
@@ -38,11 +44,11 @@ Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
 
 ## Yerleşik desenler
 
-- **Bilet dili (onaylı imza):** `lib/shared/widgets/ticket/` — `ticket_kit.dart`
-  (temel parçalar), `ticket_listing.dart` (oyun/seans bilet satırları, boş/hata
-  durumu), `seat_plan.dart` (salon planı), `ticket_profile.dart` (oyuncu/sahne/
-  topluluk künye sayfaları). Oyun kartı: `lib/shared/widgets/theatre_show_card.dart`.
-  Yeni ekran bunları kullanır; yeni bir görsel dil icat edilmez.
+- **Bilet dili (onaylı imza):** `lib/shared/widgets/ticket/` — işlem
+  yüzeyleri. Keşif kartı: `lib/features/home/presentation/widgets/common/home_showcase.dart`
+  (`HomePosterCard`, vitrin, ruh hâli, yakınım daveti). Oyun bileti kartı
+  hâlâ `theatre_show_card.dart` (arama/keşif seans satırları). Yeni keşif
+  ekranı afiş dilini kullanır; her yüzeye koçan basılmaz.
 
 - **Footer**: `lib/shared/widgets/footers/footer.dart` — web sayfalarının
   kayan içeriğinin en altına `const Footer()`. Sabit viewport'lu sayfalara
