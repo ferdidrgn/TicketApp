@@ -1181,3 +1181,95 @@ class HomeNearbyInvite extends StatelessWidget {
     );
   }
 }
+
+/// Afiş duvarı: solda/üstte bir büyük afiş, yanında gerçek sıradaki
+/// oyunlar. Boş kenar yok; veri yoksa bölüm çizilmez.
+class HomePlaybillBoard extends StatelessWidget {
+  final List<Show> shows;
+  final ValueChanged<Show> onOpen;
+  final EdgeInsets padding;
+
+  const HomePlaybillBoard({
+    super.key,
+    required this.shows,
+    required this.onOpen,
+    this.padding = EdgeInsets.zero,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<Show> items =
+        shows.where((final s) => s.imageUrl.trim().isNotEmpty).take(5).toList();
+    if (items.length < 3) return const SizedBox.shrink();
+    return Padding(
+      padding: padding,
+      child: LayoutBuilder(
+        builder: (final context, final c) {
+          final bool wide = c.maxWidth >= 768;
+          if (!wide) {
+            return Column(
+              children: [
+                SizedBox(
+                  height: 320,
+                  child: HomePosterCard(
+                    show: items.first,
+                    onTap: () => onOpen(items.first),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  height: 210,
+                  child: Row(
+                    children: [
+                      for (int i = 1; i < items.length && i < 3; i++) ...[
+                        if (i > 1) const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: HomePosterCard(
+                            show: items[i],
+                            onTap: () => onOpen(items[i]),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return SizedBox(
+            height: 460,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: HomePosterCard(
+                    show: items.first,
+                    onTap: () => onOpen(items.first),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    children: [
+                      for (int i = 1; i < items.length; i++) ...[
+                        if (i > 1) const SizedBox(height: AppSpacing.sm),
+                        Expanded(
+                          child: HomePosterCard(
+                            show: items[i],
+                            onTap: () => onOpen(items[i]),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

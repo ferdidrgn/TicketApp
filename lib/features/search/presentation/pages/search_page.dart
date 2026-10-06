@@ -624,31 +624,19 @@ class _SearchPageState extends ConsumerState<SearchPage>
     NavigationHandler.goToShow(context, show.id, show.name);
   }
 
-  /// Oyunlar: mobilde kompakt bilet satırları; tablet/masaüstünde afiş ızgarası.
+  /// Oyunlar: her genişlikte afiş ızgarası (bilet satırı yalnızca seanslarda).
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
     final EdgeInsets padding = EdgeInsets.fromLTRB(
         gutter, 0, gutter, AppSpacing.section - AppSpacing.lg);
-    if (layout == _Layout.mobile) {
-      return SliverPadding(
-        padding: padding,
-        sliver: SliverList.separated(
-          itemCount: shows.length,
-          separatorBuilder: (final _, final __) =>
-              const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (final context, final i) => ShowTicketRow(
-            key: ValueKey('search-show-${shows[i].id}'),
-            show: shows[i],
-            onTap: () => _openShow(shows[i]),
-          ),
-        ),
-      );
-    }
     return SliverPadding(
       padding: padding,
       sliver: SliverGrid.builder(
-        gridDelegate:
-            browseShowGridDelegate(layout == _Layout.tablet ? 220 : 240),
+        gridDelegate: browseShowGridDelegate(switch (layout) {
+          _Layout.mobile => 168,
+          _Layout.tablet => 200,
+          _Layout.desktop => 220,
+        }),
         itemCount: shows.length,
         itemBuilder: (final context, final i) => HomePosterCard(
           key: ValueKey('search-show-${shows[i].id}'),

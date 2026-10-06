@@ -167,7 +167,7 @@ class _HomePageState extends ConsumerState<HomePage>
               .where((final s) =>
                   s.category.trim().toLowerCase() == _mood!.toLowerCase())
               .toList();
-      final double sectionGap = homeFluid(context, 56, 104);
+      final double sectionGap = homeFluid(context, 28, 56);
       body = SingleChildScrollView(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
@@ -197,6 +197,20 @@ class _HomePageState extends ConsumerState<HomePage>
               padding: EdgeInsets.fromLTRB(
                   _gutter(context), AppSpacing.xl, _gutter(context), 0),
             ),
+            if (shows.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                    _gutter(context), AppSpacing.lg, _gutter(context), 0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: _kMaxContentWidth),
+                    child: HomePlaybillBoard(
+                      shows: shows,
+                      onOpen: _openShow,
+                    ),
+                  ),
+                ),
+              ),
             if (slides.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,

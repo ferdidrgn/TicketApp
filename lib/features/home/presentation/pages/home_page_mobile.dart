@@ -236,8 +236,17 @@ class _HomePageState extends ConsumerState<HomePage>
 
                       // Vitrin: kampanyalar + sahnedeki oyunlar, kendiliğinden
                       // kayar; gösterge bir sonraki slayda kalan süreyi dolar.
+                      if (shows.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        HomePlaybillBoard(
+                          shows: activeShows.isNotEmpty ? activeShows : shows,
+                          padding: gutter,
+                          onOpen: _openShow,
+                        ),
+                      ],
+
                       if (slides.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.lg),
                         _settle(HomeSpotlightCarousel(
                           slides: slides,
                           height: isLargeScreen ? 300 : 220,
@@ -581,7 +590,7 @@ class _MobileSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.huge + AppSpacing.sm),
+        padding: const EdgeInsets.only(top: AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
