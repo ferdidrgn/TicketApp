@@ -11,6 +11,7 @@ import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/ticket/stage_entrance.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../players/presentation/providers/player_provider.dart';
@@ -716,10 +717,13 @@ class _HomePosterCardState extends State<HomePosterCard> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        OptimizedCachedImage(
-                          imageUrl: show.imageUrl,
-                          fit: BoxFit.cover,
-                          borderRadius: 0,
+                        StageHero(
+                          tag: 'show_${show.id}',
+                          child: OptimizedCachedImage(
+                            imageUrl: show.imageUrl,
+                            fit: BoxFit.cover,
+                            borderRadius: 0,
+                          ),
                         ),
                         const IgnorePointer(
                           child: DecoratedBox(
@@ -929,17 +933,20 @@ class HomePlayerStories extends ConsumerWidget {
                         child: ClipOval(
                           child: ColoredBox(
                             color: cs.primaryContainer,
-                            child: OptimizedCachedImage(
-                              imageUrl: p.imageUrl,
-                              fit: BoxFit.cover,
-                              borderRadius: 0,
-                              errorBuilder: (final _, final __, final ___) =>
-                                  Center(
-                                child: Text(initials,
-                                    style: TextStyle(
-                                      color: cs.onPrimaryContainer,
-                                      fontWeight: FontWeight.w800,
-                                    )),
+                            child: StageHero(
+                              tag: 'player_${p.id}',
+                              child: OptimizedCachedImage(
+                                imageUrl: p.imageUrl,
+                                fit: BoxFit.cover,
+                                borderRadius: 0,
+                                errorBuilder: (final _, final __, final ___) =>
+                                    Center(
+                                  child: Text(initials,
+                                      style: TextStyle(
+                                        color: cs.onPrimaryContainer,
+                                        fontWeight: FontWeight.w800,
+                                      )),
+                                ),
                               ),
                             ),
                           ),

@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../features/shows/domain/entities/show.dart';
 import '../background/shimmer_components.dart';
 import '../optimized_cached_image.dart';
+import 'stage_entrance.dart';
 import 'ticket_kit.dart';
 
 /// "Bilet dili"nin LİSTE hâli — arama, keşif ve yakınımdakiler gibi hızlı
@@ -310,12 +311,15 @@ class _ShowTicketRowState extends State<ShowTicketRow>
                   height: 80,
                   child: ColoredBox(
                     color: TicketInk.inkSoft(0.08),
-                    child: OptimizedCachedImage(
-                      imageUrl: show.imageUrl,
-                      width: 56,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
+                    child: StageHero(
+                      tag: 'show_${show.id}',
+                      child: OptimizedCachedImage(
+                        imageUrl: show.imageUrl,
+                        width: 56,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
                     ),
                   ),
                 ),

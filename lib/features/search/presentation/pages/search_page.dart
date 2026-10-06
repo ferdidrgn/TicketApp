@@ -16,6 +16,7 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/ticket/stage_entrance.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -792,17 +793,20 @@ class _PlayerAvatar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(60),
                     child: ColoredBox(
                       color: cs.primary.withValues(alpha: 0.12),
-                      child: OptimizedCachedImage(
-                        imageUrl: player.imageUrl,
-                        fit: BoxFit.cover,
-                        width: cellWidth,
-                        errorBuilder: (final _, final __, final ___) => Center(
-                          child: Text(
-                            initials,
-                            style: TextStyle(
-                              color: cs.primary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 22,
+                      child: StageHero(
+                        tag: 'player_${player.id}',
+                        child: OptimizedCachedImage(
+                          imageUrl: player.imageUrl,
+                          fit: BoxFit.cover,
+                          width: cellWidth,
+                          errorBuilder: (final _, final __, final ___) => Center(
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 22,
+                              ),
                             ),
                           ),
                         ),

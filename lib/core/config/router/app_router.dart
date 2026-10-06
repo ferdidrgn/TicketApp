@@ -33,7 +33,6 @@ import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../../shared/navigation/widgets/web_top_navigation_bar.dart';
 import '../../errors/not_found_page.dart';
 import 'page_transitions.dart';
-import '../../../shared/widgets/ticket/stage_entrance.dart';
 
 // 🔑 KRİTİK DÜZELTME:
 // Shell branch'lerin navigatorKey'leri önceden Provider builder'ının İÇİNDE
@@ -207,9 +206,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: ShowDetailPage(
               showId: state.pathParameters['slugWithId']!.split('-').last),
-          // Perde + afiş büyümesi sayfada (StageEntrance); rota kısa kararma.
-          transitionsBuilder: cinematicFadeTransition,
-          transitionDuration: const Duration(milliseconds: 400),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 420),
         ),
       ),
 
@@ -220,8 +218,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: PlayerDetailPage(
               playerId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: cinematicFadeTransition,
-          transitionDuration: const Duration(milliseconds: 400),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 420),
         ),
       ),
 

@@ -9,6 +9,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../features/shows/domain/entities/show.dart';
 import 'optimized_cached_image.dart';
+import 'ticket/stage_entrance.dart';
 import 'ticket/ticket_kit.dart';
 
 /// Paylaşılan oyun kartı — "bilet dili": kart, koçanı delik çizgisiyle
@@ -169,10 +170,13 @@ class _Body extends StatelessWidget {
                 children: [
                   ColoredBox(
                     color: TicketInk.inkSoft(0.08),
-                    child: OptimizedCachedImage(
-                      imageUrl: show.imageUrl,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
+                    child: StageHero(
+                      tag: 'show_${show.id}',
+                      child: OptimizedCachedImage(
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
                     ),
                   ),
                   if (revealUrl != null)

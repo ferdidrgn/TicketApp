@@ -267,7 +267,9 @@ class _PosterBand extends StatelessWidget {
       fit: BoxFit.cover,
       borderRadius: 0,
     );
-    if (hero) image = Hero(tag: 'show_${data.show.id}', child: image);
+    if (hero) {
+      image = StageHero(tag: 'show_${data.show.id}', child: image);
+    }
 
     return StageSpotFrame(
       child: Stack(

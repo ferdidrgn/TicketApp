@@ -15,9 +15,9 @@ import '../../../features/shows/presentation/widgets/detail/sticky_aside.dart';
 import '../../navigation/widgets/nav_handler.dart';
 import '../optimized_cached_image.dart';
 import '../theatre_show_card.dart';
+import 'stage_entrance.dart';
 import 'ticket_kit.dart';
 import 'ticket_listing.dart';
-import 'stage_entrance.dart';
 
 /// "KİM / NEREDE" SAYFALARI — oyuncu, sahne ve topluluk detayları için
 /// ortak "tiyatro programı + künye bileti" iskeleti.
@@ -148,6 +148,9 @@ class ProfileTicket extends StatefulWidget {
   /// Mobilde afiş bandı fotoğrafı gösteriliyorsa gövdedeki fotoğrafı gizle.
   final bool omitBodyPhoto;
 
+  /// Paylaşılan öğe (karttaki portre → künye). Band varken gövdeye verilmez.
+  final String? photoHeroTag;
+
   const ProfileTicket({
     super.key,
     required this.layout,
@@ -164,6 +167,7 @@ class ProfileTicket extends StatefulWidget {
     this.stubFields = const [],
     this.action,
     this.omitBodyPhoto = false,
+    this.photoHeroTag,
   });
 
   @override
@@ -262,6 +266,7 @@ class _ProfileTicketState extends State<ProfileTicket>
         portrait: widget.portrait,
         width: width,
         height: height,
+        heroTag: widget.photoHeroTag,
       );
 
   bool get _showBodyPhoto =>
@@ -476,6 +481,7 @@ class _ProfilePhoto extends StatelessWidget {
   final bool portrait;
   final double? width;
   final double? height;
+  final String? heroTag;
 
   const _ProfilePhoto({
     required this.url,
@@ -484,11 +490,24 @@ class _ProfilePhoto extends StatelessWidget {
     this.portrait = false,
     this.width,
     this.height,
+    this.heroTag,
   });
 
   @override
   Widget build(final BuildContext context) {
     final bool hasImage = url.trim().isNotEmpty;
+
+    Widget photo = OptimizedCachedImage(
+      imageUrl: url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      borderRadius: 0,
+    );
+    final String? tag = heroTag;
+    if (tag != null && tag.isNotEmpty) {
+      photo = StageHero(tag: tag, child: photo);
+    }
 
     Widget content = ColoredBox(
       color: TicketInk.inkSoft(0.08),
@@ -496,13 +515,7 @@ class _ProfilePhoto extends StatelessWidget {
           ? Semantics(
               image: true,
               label: label,
-              child: OptimizedCachedImage(
-                imageUrl: url,
-                width: width,
-                height: height,
-                fit: BoxFit.cover,
-                borderRadius: 0,
-              ),
+              child: photo,
             )
           : Center(
               child: Icon(icon, size: 40, color: TicketInk.inkSoft(0.35)),
@@ -538,18 +551,30 @@ class _ProfilePosterBand extends StatelessWidget {
   final String label;
   final bool portrait;
   final IconData placeholderIcon;
+  final String? heroTag;
 
   const _ProfilePosterBand({
     required this.url,
     required this.label,
     required this.portrait,
     required this.placeholderIcon,
+    this.heroTag,
   });
 
   @override
   Widget build(final BuildContext context) {
     final colors = context.colors;
     final bool hasImage = url.trim().isNotEmpty;
+
+    final String? tag = heroTag;
+    Widget poster = OptimizedCachedImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      borderRadius: 0,
+    );
+    if (tag != null && tag.isNotEmpty) {
+      poster = StageHero(tag: tag, child: poster);
+    }
 
     return StageSpotFrame(
       child: Stack(
@@ -560,11 +585,7 @@ class _ProfilePosterBand extends StatelessWidget {
           Semantics(
             image: true,
             label: label,
-            child: OptimizedCachedImage(
-              imageUrl: url,
-              fit: portrait ? BoxFit.cover : BoxFit.cover,
-              borderRadius: 0,
-            ),
+            child: poster,
           )
         else
           Center(
@@ -636,6 +657,7 @@ class ProfileDetailLayout extends StatefulWidget {
   final String heroImageLabel;
   final bool heroPortrait;
   final IconData heroPlaceholderIcon;
+  final String? heroTag;
 
   const ProfileDetailLayout({
     super.key,
@@ -648,6 +670,7 @@ class ProfileDetailLayout extends StatefulWidget {
     this.heroImageLabel = '',
     this.heroPortrait = false,
     this.heroPlaceholderIcon = Icons.theater_comedy_outlined,
+    this.heroTag,
   });
 
   @override
@@ -803,6 +826,7 @@ class _ProfileDetailLayoutState extends State<ProfileDetailLayout> {
                             label: widget.heroImageLabel,
                             portrait: widget.heroPortrait,
                             placeholderIcon: widget.heroPlaceholderIcon,
+                            heroTag: widget.heroTag,
                           ),
                         ),
                       if (hasHero)

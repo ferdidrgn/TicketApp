@@ -93,6 +93,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       heroImageLabel: '$fullName portresi',
       heroPortrait: true,
       heroPlaceholderIcon: Icons.person_rounded,
+      heroTag: 'player_${player.id}',
       actions: ({final bool onPhoto = false}) => ProfileActionsRow(
         onPhoto: onPhoto,
         shareLabel: 'Oyuncu profilini paylaş',
@@ -107,6 +108,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         imageLabel: '$fullName portresi',
         portrait: true,
         omitBodyPhoto: heroPhoto,
+        photoHeroTag: heroPhoto ? null : 'player_${player.id}',
         placeholderIcon: Icons.person_rounded,
         tagline: player.quote,
         taglineIsQuote: true,

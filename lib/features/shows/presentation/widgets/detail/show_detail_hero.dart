@@ -164,6 +164,7 @@ class _HeroBody extends StatelessWidget {
             children: [
               if (hasPoster) ...[
                 _HeroPoster(
+                  showId: show.id,
                   url: show.imageUrl,
                   name: show.name,
                   height: posterHeight,
@@ -211,7 +212,11 @@ class _HeroBody extends StatelessWidget {
                         width: 148,
                         child: AspectRatio(
                           aspectRatio: 2 / 3,
-                          child: _HeroPoster(url: show.imageUrl, name: show.name),
+                          child: _HeroPoster(
+                            showId: show.id,
+                            url: show.imageUrl,
+                            name: show.name,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xl),
@@ -280,11 +285,17 @@ class _KindChip extends StatelessWidget {
 }
 
 class _HeroPoster extends StatelessWidget {
+  final String showId;
   final String url;
   final String name;
   final double? height;
 
-  const _HeroPoster({required this.url, required this.name, this.height});
+  const _HeroPoster({
+    required this.showId,
+    required this.url,
+    required this.name,
+    this.height,
+  });
 
   @override
   Widget build(final BuildContext context) {
@@ -300,10 +311,13 @@ class _HeroPoster extends StatelessWidget {
             child: SizedBox(
               height: height,
               width: double.infinity,
-              child: OptimizedCachedImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                borderRadius: 0,
+              child: StageHero(
+                tag: 'show_$showId',
+                child: OptimizedCachedImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  borderRadius: 0,
+                ),
               ),
             ),
           ),
