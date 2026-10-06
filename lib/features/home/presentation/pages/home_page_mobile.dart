@@ -373,7 +373,8 @@ class _HomePageState extends ConsumerState<HomePage>
                             child: GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.zero,
+                              clipBehavior: Clip.none,
+                              padding: const EdgeInsets.fromLTRB(2, 4, 2, 18),
                               itemCount: repertoire.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(

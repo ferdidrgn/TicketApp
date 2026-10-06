@@ -9,12 +9,12 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/util/responsive_utils.dart';
+import '../../../features/home/presentation/widgets/common/home_showcase.dart';
 import '../../../features/shows/domain/entities/show.dart';
 import '../../../features/shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../features/shows/presentation/widgets/detail/sticky_aside.dart';
 import '../../navigation/widgets/nav_handler.dart';
 import '../optimized_cached_image.dart';
-import '../theatre_show_card.dart';
 import 'stage_entrance.dart';
 import 'ticket_kit.dart';
 import 'ticket_listing.dart';
@@ -937,8 +937,7 @@ void profileScrollTo(final BuildContext context, final GlobalKey key) {
   return (active: active, past: merged);
 }
 
-/// Bağlı oyunlar: dar mobilde bilet satırları ([ShowTicketRow]), daha
-/// genişte paylaşılan bilet koçanı kartı ([TheatreShowCard]) ızgarası.
+/// Bağlı oyunlar: yumuşak afiş ızgarası. Bilet satırı arşivde kalır.
 class ProfileShowsBlock extends StatelessWidget {
   final List<Show> shows;
   final bool compact;
@@ -950,42 +949,24 @@ class ProfileShowsBlock extends StatelessWidget {
       NavigationHandler.goToShow(context, show.id, show.name);
 
   @override
-  Widget build(final BuildContext context) {
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int i = 0; i < shows.length; i++) ...[
-            if (i > 0) const SizedBox(height: AppSpacing.md),
-            ShowTicketRow(
-              key: ValueKey('profile-show-${shows[i].id}'),
-              show: shows[i],
-              onTap: () => _open(context, shows[i]),
-            ),
-          ],
-        ],
+  Widget build(final BuildContext context) => GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        clipBehavior: Clip.none,
+        padding: const EdgeInsets.fromLTRB(2, AppSpacing.xs, 2, 18),
+        itemCount: shows.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: compact ? 2 : 3,
+          mainAxisSpacing: AppSpacing.md,
+          crossAxisSpacing: AppSpacing.md,
+          childAspectRatio: 0.62,
+        ),
+        itemBuilder: (final context, final i) => HomePosterCard(
+          key: ValueKey('profile-poster-${shows[i].id}'),
+          show: shows[i],
+          onTap: () => _open(context, shows[i]),
+        ),
       );
-    }
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      // Kartların kalkma/gölge efekti kırpılmasın.
-      clipBehavior: Clip.none,
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      itemCount: shows.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 232,
-        mainAxisSpacing: AppSpacing.xl,
-        crossAxisSpacing: AppSpacing.lg,
-        childAspectRatio: 0.62,
-      ),
-      itemBuilder: (final context, final i) => TheatreShowCard(
-        key: ValueKey('profile-card-${shows[i].id}'),
-        show: shows[i],
-        onTap: () => _open(context, shows[i]),
-      ),
-    );
-  }
 }
 
 /// Arşiv (geçmiş oyunlar): hafif bilet satırları, genişte iki sütun.

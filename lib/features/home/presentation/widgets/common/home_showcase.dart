@@ -822,13 +822,19 @@ class _HomePosterCardState extends State<HomePosterCard> {
         children: [
           Expanded(
             child: AnimatedScale(
-              scale: _pressed ? 0.94 : 1,
+              scale: _pressed ? 0.96 : 1,
               duration: const Duration(milliseconds: 420),
               curve: _pressed ? Curves.easeOut : Curves.elasticOut,
-              child: DecoratedBox(
+              child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.xl),
-                boxShadow: AppShadows.level2(cs.shadow),
+                border: Border.all(
+                  color: const Color(0x40FFFFFF),
+                  width: 1,
+                ),
+                boxShadow: AppShadows.poster(cs.shadow, lifted: !_pressed),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -887,47 +893,72 @@ class _HomePosterCardState extends State<HomePosterCard> {
                             ),
                           ),
                         Positioned(
-                          left: AppSpacing.sm,
-                          right: AppSpacing.sm,
-                          bottom: AppSpacing.sm,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
                           child: IgnorePointer(
-                            child: Material(
-                              color: cs.surface.withValues(alpha: 0.92),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.lg),
+                            child: DecoratedBox(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  stops: [0, 0.42, 1],
+                                  colors: [
+                                    Color(0x00000000),
+                                    Color(0x8C000000),
+                                    Color(0xE6000000),
+                                  ],
+                                ),
+                              ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: AppSpacing.sm),
+                                padding: const EdgeInsets.fromLTRB(
+                                    14, 40, 14, 14),
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    const SizedBox(
+                                      width: 22,
+                                      height: 1.5,
+                                      child: ColoredBox(
+                                          color: Color(0xD9FFFFFF)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (kind.isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 3),
+                                        child: Text(
+                                          kind,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Color(0xF2FFFFFF),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.15,
+                                            height: 1.2,
+                                          ),
+                                        ),
+                                      ),
                                     Text(
                                       show.name,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.playfairDisplay(
-                                        color: cs.onSurface,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
                                         height: 1.05,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Color(0x99000000),
+                                            blurRadius: 12,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    if (kind.isNotEmpty) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        kind,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: cs.primary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
                                   ],
                                 ),
                               ),
@@ -1228,7 +1259,7 @@ class HomePlaybillBoard extends StatelessWidget {
         shows.where((final s) => s.imageUrl.trim().isNotEmpty).take(5).toList();
     if (items.length < 3) return const SizedBox.shrink();
     return Padding(
-      padding: padding,
+      padding: padding.copyWith(bottom: padding.bottom + 20),
       child: LayoutBuilder(
         builder: (final context, final c) {
           final bool wide = c.maxWidth >= 768;
@@ -1242,13 +1273,13 @@ class HomePlaybillBoard extends StatelessWidget {
                     onTap: () => onOpen(items.first),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   height: 210,
                   child: Row(
                     children: [
                       for (int i = 1; i < items.length && i < 3; i++) ...[
-                        if (i > 1) const SizedBox(width: AppSpacing.sm),
+                        if (i > 1) const SizedBox(width: AppSpacing.lg),
                         Expanded(
                           child: HomePosterCard(
                             show: items[i],
@@ -1274,13 +1305,13 @@ class HomePlaybillBoard extends StatelessWidget {
                     onTap: () => onOpen(items.first),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   flex: 4,
                   child: Column(
                     children: [
                       for (int i = 1; i < items.length; i++) ...[
-                        if (i > 1) const SizedBox(height: AppSpacing.sm),
+                        if (i > 1) const SizedBox(height: AppSpacing.lg),
                         Expanded(
                           child: HomePosterCard(
                             show: items[i],

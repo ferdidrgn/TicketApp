@@ -59,21 +59,33 @@ class AppShadows {
             offset: const Offset(0, 20)),
       ];
 
-  /// Afiş kartı: zemine değen kısa gölge + uzak yumuşak oda + isteğe
-  /// temanın vurgu rengi ışıması (kağıt havada duruyor hissi).
-  static List<BoxShadow> lift(final Color tint, {final Color? bloom}) => [
-        BoxShadow(
-            color: tint.withOpacity(0.20),
-            blurRadius: 4,
-            offset: const Offset(0, 2)),
-        BoxShadow(
-            color: tint.withOpacity(0.26),
-            blurRadius: 28,
-            offset: const Offset(0, 16)),
-        if (bloom != null)
-          BoxShadow(
-              color: bloom.withOpacity(0.14),
-              blurRadius: 36,
-              offset: const Offset(0, 18)),
-      ];
+  /// Afiş kartı yerden kalkmış gibi: temas gölgesi, sola ve sağa
+  /// kayan yan gölgeler, altta geniş yer gölgesi. [lifted] false
+  /// iken kart yere iner (basılı).
+  static List<BoxShadow> poster(final Color tint, {final bool lifted = true}) {
+    final double a = lifted ? 1 : 0.4;
+    return [
+      BoxShadow(
+        color: tint.withValues(alpha: 0.30 * a),
+        blurRadius: lifted ? 6 : 2,
+        offset: Offset(0, lifted ? 3 : 1),
+      ),
+      BoxShadow(
+        color: tint.withValues(alpha: 0.20 * a),
+        blurRadius: lifted ? 22 : 10,
+        offset: Offset(lifted ? -14 : -5, lifted ? 18 : 6),
+      ),
+      BoxShadow(
+        color: tint.withValues(alpha: 0.20 * a),
+        blurRadius: lifted ? 22 : 10,
+        offset: Offset(lifted ? 14 : 5, lifted ? 18 : 6),
+      ),
+      BoxShadow(
+        color: tint.withValues(alpha: 0.36 * a),
+        blurRadius: lifted ? 36 : 14,
+        spreadRadius: lifted ? -8 : -2,
+        offset: Offset(0, lifted ? 28 : 10),
+      ),
+    ];
+  }
 }

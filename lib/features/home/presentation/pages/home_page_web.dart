@@ -674,7 +674,8 @@ class _ShowsGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      clipBehavior: Clip.none,
+      padding: const EdgeInsets.fromLTRB(2, AppSpacing.sm, 2, 22),
       itemCount: shows.length,
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: context.isDesktop ? 248 : 224,

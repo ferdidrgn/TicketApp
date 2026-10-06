@@ -191,13 +191,24 @@ class ShowDetailStackedLayout extends StatelessWidget {
               slivers: [
                 SliverToBoxAdapter(child: head),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.xl, AppSpacing.massive, AppSpacing.xl, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 680),
-                        child: args.programme(compact: compact),
+                  child: Transform.translate(
+                    offset: const Offset(0, -36),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md),
+                      child: Material(
+                        color: context.colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                              AppSpacing.xl, AppSpacing.lg, AppSpacing.xl),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 680),
+                              child: args.programme(compact: compact),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -475,7 +486,16 @@ class _ShowDetailTwoPaneLayoutState extends State<ShowDetailTwoPaneLayout> {
                                     // hizadan başlar.
                                     padding:
                                         const EdgeInsets.only(top: 64),
-                                    child: args.programme(compact: false),
+                                    child: Material(
+                                      color: context.colors.surfaceContainerLow,
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.xl),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(
+                                            AppSpacing.xl),
+                                        child: args.programme(compact: false),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -554,7 +574,14 @@ class ShowDetailBannerLayout extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 680),
-                    child: args.programme(compact: false),
+                    child: Material(
+                      color: context.colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: args.programme(compact: false),
+                      ),
+                    ),
                   ),
                 ),
               ),

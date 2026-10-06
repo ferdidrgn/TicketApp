@@ -396,6 +396,38 @@ class _SearchPageState extends ConsumerState<SearchPage>
         sliver: SliverToBoxAdapter(child: child),
       );
 
+  Widget _tallySliver(final SearchResultState data, final double gutter) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<String> bits = [
+      if (data.shows.isNotEmpty) '${data.shows.length} oyun',
+      if (data.players.isNotEmpty) '${data.players.length} oyuncu',
+      if (data.stages.isNotEmpty) '${data.stages.length} sahne',
+      if (data.teams.isNotEmpty) '${data.teams.length} ekip',
+    ];
+    if (bits.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.lg),
+        child: Material(
+          color: cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            child: Text(
+              bits.join('   ·   '),
+              style: GoogleFonts.playfairDisplay(
+                color: cs.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _noticeSliver(final double gutter, final TicketNotice notice) =>
       _boxed(gutter, Align(alignment: Alignment.centerLeft, child: notice));
 
@@ -461,18 +493,26 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
     switch (filter) {
       case 1:
-        return [_showsSliver(data.shows, layout, gutter)];
+        return [
+          _tallySliver(data, gutter),
+          _showsSliver(data.shows, layout, gutter),
+        ];
       case 2:
-        return [_playersGridSliver(data.players, gutter)];
+        return [
+          _tallySliver(data, gutter),
+          _playersGridSliver(data.players, gutter),
+        ];
       case 3:
         return [
+          _tallySliver(data, gutter),
           _tilesSliver(
-              [for (final s in data.stages) _stageTile(s)], layout, gutter)
+              [for (final s in data.stages) _stageTile(s)], layout, gutter),
         ];
       case 4:
         return [
+          _tallySliver(data, gutter),
           _tilesSliver(
-              [for (final t in data.teams) _teamTile(t)], layout, gutter)
+              [for (final t in data.teams) _teamTile(t)], layout, gutter),
         ];
     }
 
@@ -481,6 +521,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final int tilePreview = layout == _Layout.mobile ? 4 : 6;
     final bool browsing = query.isEmpty;
     return [
+      _tallySliver(data, gutter),
       // Göz atma (henüz yazılmadı): ruh hâli + türler — sonuç listesi
       // değil, keşfe davet.
       if (browsing && _recent.isNotEmpty) ...[
