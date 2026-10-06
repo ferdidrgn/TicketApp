@@ -51,11 +51,10 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <!-- Google Maps API anahtarı: build.gradle, android/local.properties
-        (gitignore'da, hiç commit edilmez) içindeki MAPS_API_KEY değerini
-        manifestPlaceholders üzerinden buraya enjekte ediyor. -->
+        <!-- Google Maps: SDK `com.google.android.geo.API_KEY` arar
+        (gms.maps.API_KEY değil). Değer local.properties → MAPS_API_KEY. -->
         <meta-data
-            android:name="com.google.android.gms.maps.API_KEY"
+            android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
         <meta-data
