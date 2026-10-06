@@ -421,8 +421,8 @@ class StageAtmosphere extends StatelessWidget {
     return IgnorePointer(
       child: CustomPaint(
         painter: _PitPainter(
-          wash: cs.primary.withValues(alpha: 0.07),
-          line: cs.tertiary.withValues(alpha: 0.12),
+          wash: cs.primary.withValues(alpha: 0.16),
+          line: cs.tertiary.withValues(alpha: 0.32),
         ),
         child: const SizedBox.expand(),
       ),

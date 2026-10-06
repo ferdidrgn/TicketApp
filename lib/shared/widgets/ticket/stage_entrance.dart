@@ -40,6 +40,8 @@ class _StageEntranceState extends State<StageEntrance>
   bool _done = false;
   bool _midHaptic = false;
 
+  OverlayEntry? _entry;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -54,8 +56,14 @@ class _StageEntranceState extends State<StageEntrance>
 
   @override
   void dispose() {
+    _dropOverlay();
     _c.dispose();
     super.dispose();
+  }
+
+  void _dropOverlay() {
+    _entry?.remove();
+    _entry = null;
   }
 
   void _play() {
@@ -65,15 +73,41 @@ class _StageEntranceState extends State<StageEntrance>
       setState(() => _done = true);
       return;
     }
+    final OverlayState? overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) {
+      setState(() => _done = true);
+      return;
+    }
     HapticFeedback.mediumImpact();
     _c.addListener(() {
+      _entry?.markNeedsBuild();
       if (!mounted || _midHaptic) return;
       if (_c.value >= 0.36) {
         _midHaptic = true;
         HapticFeedback.lightImpact();
       }
     });
+    final ThemeData theme = Theme.of(context);
+    _entry = OverlayEntry(
+      builder: (final _) => Theme(
+        data: theme,
+        child: Material(
+          type: MaterialType.transparency,
+          child: GestureDetector(
+            onTap: _skip,
+            child: _StagePaint(
+              t: _c.value,
+              imageUrl: widget.imageUrl?.trim() ?? '',
+              label: widget.label,
+              portrait: widget.portrait,
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(_entry!);
     _c.forward().whenComplete(() {
+      _dropOverlay();
       if (mounted) setState(() => _done = true);
     });
   }
@@ -81,31 +115,12 @@ class _StageEntranceState extends State<StageEntrance>
   void _skip() {
     if (_done) return;
     _c.value = 1;
+    _dropOverlay();
     setState(() => _done = true);
   }
 
   @override
-  Widget build(final BuildContext context) => Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.child,
-        if (!_done)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _skip,
-              child: AnimatedBuilder(
-                animation: _c,
-                builder: (final context, final _) => _StagePaint(
-                  t: _c.value,
-                  imageUrl: widget.imageUrl?.trim() ?? '',
-                  label: widget.label,
-                  portrait: widget.portrait,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+  Widget build(final BuildContext context) => widget.child;
 }
 
 double _interval(final double t, final double a, final double b) {

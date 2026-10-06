@@ -49,7 +49,9 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _searchKey = GlobalKey();
   bool _showSearchInAppBar = false;
+  bool _burst = false;
 
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
@@ -73,7 +75,23 @@ class _HomePageState extends ConsumerState<HomePage>
       _entrance.value = 1;
     } else {
       _entrance.forward();
+      _maybeBurstBubbles();
     }
+  }
+
+  void _maybeBurstBubbles() {
+    if (_burst) return;
+    _burst = true;
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      final BuildContext? origin = _searchKey.currentContext;
+      if (origin == null) return;
+      showTheatreBubbles(
+        origin: origin,
+        onSkip: _openSearch,
+        actions: homeStageActions(origin, _openSearch),
+      );
+    });
   }
 
   @override
@@ -234,9 +252,15 @@ class _HomePageState extends ConsumerState<HomePage>
                         Padding(
                           padding: gutter,
                           child: _settle(HomeSearchField(
+                            key: _searchKey,
                             onTap: _openSearch,
                             hint: l10n.homeHeroSearchPlaceholder,
                           )),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Padding(
+                          padding: gutter,
+                          child: TheatreCallBoard(onSearch: _openSearch),
                         ),
                       ],
 

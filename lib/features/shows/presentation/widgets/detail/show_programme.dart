@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -464,7 +465,10 @@ class _CastPortrait extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          NavigationHandler.goToPlayer(context, player.id, name);
+        },
         child: SizedBox(
           width: 92,
           child: Padding(
@@ -509,7 +513,10 @@ class _CastRow extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          NavigationHandler.goToPlayer(context, player.id, name);
+        },
         child: SizedBox(
           width: past ? 190 : 210,
           child: Padding(

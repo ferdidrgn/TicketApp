@@ -577,6 +577,8 @@ class _WebHero extends StatelessWidget {
         lede,
         const SizedBox(height: AppSpacing.xl),
         search,
+        const SizedBox(height: AppSpacing.lg),
+        TheatreCallBoard(onSearch: onSearch),
         if (myTicket != null) ...[
           const SizedBox(height: AppSpacing.sm),
           myTicket,
