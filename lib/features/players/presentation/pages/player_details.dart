@@ -13,6 +13,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
 import '../../../../shared/widgets/ticket/stage_entrance.dart';
+import '../../../../shared/widgets/ticket/wipe_on_return.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
@@ -42,10 +43,17 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
-    with GlobalScrollMixin {
+    with GlobalScrollMixin, ReplayWipeOnReturn {
   // `scrollController` GlobalScrollMixin'den gelir ve orada dispose edilir.
   // (Eskiden burada İKİNCİ kez dispose ediliyordu.)
   final GlobalKey _onStageKey = GlobalKey();
+  int _wipeEpoch = 0;
+
+  @override
+  void replayWipe() {
+    if (!mounted) return;
+    setState(() => _wipeEpoch++);
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -101,6 +109,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
             TiyatrolDeeplinkService.shareActor(id: player.id, name: fullName),
       ),
       ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
+        key: ValueKey('player-ticket-$_wipeEpoch'),
         layout: layout,
         kind: 'OYUNCU',
         name: fullName,

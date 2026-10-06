@@ -9,6 +9,7 @@ import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/browse_memory.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/ticket/stage_entrance.dart';
@@ -491,7 +492,117 @@ class HomeWeekPulse extends StatelessWidget {
   }
 }
 
-/// "Canlı" noktası: yavaşça nabız atan halka. Azaltılmış harekette sabit.
+/// Son bakılan oyuna tek dokunuşla dönüş — gerçek id, uydurma öneri yok.
+class HomeContinueTicket extends StatefulWidget {
+  final List<Show> shows;
+  final EdgeInsets padding;
+  const HomeContinueTicket(
+      {super.key, required this.shows, required this.padding});
+
+  @override
+  State<HomeContinueTicket> createState() => _HomeContinueTicketState();
+}
+
+class _HomeContinueTicketState extends State<HomeContinueTicket> {
+  String? _id;
+  String? _name;
+
+  @override
+  void initState() {
+    super.initState();
+    BrowseMemory.lastShow().then((final pair) {
+      if (!mounted || pair == null) return;
+      setState(() {
+        _id = pair.$1;
+        _name = pair.$2;
+      });
+    });
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final String? id = _id;
+    if (id == null) return const SizedBox.shrink();
+    Show? match;
+    for (final s in widget.shows) {
+      if (s.id == id) {
+        match = s;
+        break;
+      }
+    }
+    final String title = (match?.name ?? _name ?? '').trim();
+    if (title.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: widget.padding,
+      child: Semantics(
+        button: true,
+        label: 'Kaldığın yer: $title',
+        excludeSemantics: true,
+        child: Material(
+          color: cs.tertiaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: () => NavigationHandler.goToShow(context, id, title),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                    child: SizedBox(
+                      width: 44,
+                      height: 64,
+                      child: match == null
+                          ? ColoredBox(color: cs.primary.withValues(alpha: 0.2))
+                          : OptimizedCachedImage(
+                              imageUrl: match.imageUrl,
+                              fit: BoxFit.cover,
+                              borderRadius: 0,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Kaldığın yer',
+                          style: TextStyle(
+                            color: cs.onTertiaryContainer.withValues(alpha: 0.75),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.playfairDisplay(
+                            color: cs.onTertiaryContainer,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: cs.onTertiaryContainer),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Pulse extends StatefulWidget {
   final Color color;
   const _Pulse({required this.color});
@@ -558,11 +669,24 @@ class _PulsePainter extends CustomPainter {
 // 4. Ruh hâline göre — sahnedeki oyunların gerçek türlerinden
 // ─────────────────────────────────────────────────────────────────────────
 
-class HomeMoodPicker extends StatelessWidget {
+class HomeMoodPicker extends StatefulWidget {
   final List<Show> shows;
   final EdgeInsets padding;
-  const HomeMoodPicker({super.key, required this.shows, required this.padding});
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+  const HomeMoodPicker({
+    super.key,
+    required this.shows,
+    required this.padding,
+    required this.selected,
+    required this.onSelected,
+  });
 
+  @override
+  State<HomeMoodPicker> createState() => _HomeMoodPickerState();
+}
+
+class _HomeMoodPickerState extends State<HomeMoodPicker> {
   static const Map<String, (String, IconData)> _moods = {
     'komedi': ('Kahkaha atmak', Icons.sentiment_very_satisfied_rounded),
     'dram': ('Derinden etkilenmek', Icons.water_drop_outlined),
@@ -577,7 +701,7 @@ class HomeMoodPicker extends StatelessWidget {
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final Map<String, int> counts = {};
-    for (final s in shows) {
+    for (final s in widget.shows) {
       final c = s.category.trim();
       if (c.isNotEmpty) counts[c] = (counts[c] ?? 0) + 1;
     }
@@ -589,7 +713,7 @@ class HomeMoodPicker extends StatelessWidget {
       height: 112,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: padding,
+        padding: widget.padding,
         itemCount: cats.length,
         separatorBuilder: (final _, final __) =>
             const SizedBox(width: AppSpacing.md),
@@ -607,10 +731,12 @@ class HomeMoodPicker extends StatelessWidget {
             cs.onTertiaryContainer,
             cs.onSecondaryContainer,
           ];
-          final Color bg = tones[i % 3];
-          final Color ink = inks[i % 3];
+          final bool on = widget.selected == cat;
+          final Color bg = on ? cs.primary : tones[i % 3];
+          final Color ink = on ? cs.onPrimary : inks[i % 3];
           return Semantics(
             button: true,
+            selected: on,
             label: '${mood?.$1 ?? cat}: $cat, ${counts[cat]} oyun',
             excludeSemantics: true,
             child: Material(
@@ -618,7 +744,11 @@ class HomeMoodPicker extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.md),
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                onTap: () =>
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  widget.onSelected(on ? null : cat);
+                },
+                onLongPress: () =>
                     NavigationHandler.goToDiscoverWithCategory(context, cat),
                 child: SizedBox(
                   width: 148,

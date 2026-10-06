@@ -12,6 +12,28 @@ Widget fadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
         child: child);
 
+/// Oyun / oyuncu / sahne: ileri giderken kısa solma, geri tuşunda anında
+/// kapanır (tersine Hero/perde yok).
+Widget detailArriveTransition(
+  final BuildContext context,
+  final Animation<double> animation,
+  final Animation<double> secondaryAnimation,
+  final Widget child,
+) =>
+    AnimatedBuilder(
+      animation: animation,
+      builder: (final context, final _) {
+        if (animation.status == AnimationStatus.reverse) {
+          return child;
+        }
+        return FadeTransition(
+          opacity: CurvedAnimation(
+              parent: animation, curve: Curves.easeOutCubic),
+          child: child,
+        );
+      },
+    );
+
 /// Sağdan sola kayarak geçiş (Slide)
 Widget slideTransition(
   final BuildContext context,

@@ -14,6 +14,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
+import '../../../../shared/widgets/ticket/wipe_on_return.dart';
 import '../../../discovery/presentation/providers/nearby_events_provider.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -45,8 +46,15 @@ class StageDetailPage extends ConsumerStatefulWidget {
 }
 
 class _StageDetailPageState extends ConsumerState<StageDetailPage>
-    with GlobalScrollMixin {
+    with GlobalScrollMixin, ReplayWipeOnReturn {
   final GlobalKey _sessionsKey = GlobalKey();
+  int _wipeEpoch = 0;
+
+  @override
+  void replayWipe() {
+    if (!mounted) return;
+    setState(() => _wipeEpoch++);
+  }
 
   @override
   void onLoadMore() {}
@@ -108,6 +116,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       actions: ({final bool onPhoto = false}) =>
           ProfileActionsRow(onPhoto: onPhoto),
       ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
+        key: ValueKey('stage-ticket-$_wipeEpoch'),
         layout: layout,
         kind: 'SAHNE',
         name: stage.name,

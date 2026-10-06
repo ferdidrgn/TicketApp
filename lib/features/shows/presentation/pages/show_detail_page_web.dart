@@ -18,6 +18,7 @@ import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
 import '../../../../shared/widgets/ticket/stage_entrance.dart';
+import '../../../../shared/widgets/ticket/wipe_on_return.dart';
 
 /// OYUN DETAYI — WEB. Editoryal afiş + program; bilet dili yalnızca
 /// "Bilet al" damgasında ve seans satırlarında.
@@ -39,7 +40,7 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
-    with TickerProviderStateMixin, GlobalScrollMixin {
+    with TickerProviderStateMixin, GlobalScrollMixin, ReplayWipeOnReturn {
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
   late final AnimationController _tear =
@@ -100,6 +101,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     } else {
       _entrance.forward();
     }
+  }
+
+  @override
+  void replayWipe() {
+    if (!mounted || _reduceMotion) return;
+    _entrance
+      ..reset()
+      ..forward();
   }
 
   /// Sezon takviminden ("?scrollTo=etkinlikler" ile) gelindiyse, sayfa

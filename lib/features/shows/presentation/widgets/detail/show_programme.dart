@@ -185,6 +185,7 @@ class ShowSessionsBlock extends StatefulWidget {
 class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
   static const int _initialCount = 6;
   bool _expanded = false;
+  int _window = 0;
 
   @override
   Widget build(final BuildContext context) {
@@ -225,13 +226,37 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
         const {'yok', '-', '—', 'none', 'null'}.contains(rawRule.toLowerCase())
             ? ''
             : rawRule;
-    final int total = data.sessions.length;
+    final List<ShowSession> filtered = _windowSessions(data.sessions);
+    final int total = filtered.length;
     final int visible =
         _expanded ? total : (total < _initialCount ? total : _initialCount);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final (int i, String label) in [
+              (0, 'Tümü'),
+              (1, 'Bu akşam'),
+              (2, 'Bu hafta'),
+            ])
+              FilterChip(
+                selected: _window == i,
+                label: Text(label),
+                onSelected: (final _) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _window = i;
+                    _expanded = false;
+                  });
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
         if (rule.isNotEmpty) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,15 +278,23 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
-        for (int i = 0; i < visible; i++) ...[
-          if (i > 0) const SizedBox(height: AppSpacing.md),
-          ShowSessionTicket(
-            key: ValueKey(data.sessions[i].event.id),
-            session: data.sessions[i],
-            compact: widget.compact,
-            onSelect: () => widget.onSelect(data.sessions[i]),
-          ),
-        ],
+        if (filtered.isEmpty)
+          Text(
+            _window == 1
+                ? 'Bu akşam seans yok. Diğer günlere bak.'
+                : 'Bu hafta seans yok.',
+            style: body,
+          )
+        else
+          for (int i = 0; i < visible; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpacing.md),
+            ShowSessionTicket(
+              key: ValueKey(filtered[i].event.id),
+              session: filtered[i],
+              compact: widget.compact,
+              onSelect: () => widget.onSelect(filtered[i]),
+            ),
+          ],
         if (total > _initialCount) ...[
           const SizedBox(height: AppSpacing.md),
           Align(
@@ -283,6 +316,28 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
         ],
       ],
     );
+  }
+
+  List<ShowSession> _windowSessions(final List<ShowSession> all) {
+    if (_window == 0) return all;
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    if (_window == 1) {
+      return [
+        for (final s in all)
+          if (s.when != null &&
+              s.when!.year == today.year &&
+              s.when!.month == today.month &&
+              s.when!.day == today.day)
+            s,
+      ];
+    }
+    final DateTime end = today.add(const Duration(days: 7));
+    return [
+      for (final s in all)
+        if (s.when != null && !s.when!.isBefore(today) && s.when!.isBefore(end))
+          s,
+    ];
   }
 }
 

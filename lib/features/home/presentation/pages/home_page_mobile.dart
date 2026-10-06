@@ -56,6 +56,7 @@ class _HomePageState extends ConsumerState<HomePage>
       parent: _entrance,
       curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
   bool _started = false;
+  String? _mood;
 
   @override
   void initState() {
@@ -158,9 +159,11 @@ class _HomePageState extends ConsumerState<HomePage>
     // Repertuvar: "şu an sahnede" şeridinde olmayan ana sayfa oyunları —
     // aynı oyun iki kez gösterilmez.
     final activeIds = activeShows.map((final s) => s.id).toSet();
-    final List<Show> repertoire = shows
-        .where((final s) => !activeIds.contains(s.id))
-        .take(isLargeScreen ? 6 : 4)
+    final List<Show> repertoire = (_mood == null
+            ? shows.where((final s) => !activeIds.contains(s.id))
+            : shows.where((final s) =>
+                s.category.trim().toLowerCase() == _mood!.toLowerCase()))
+        .take(isLargeScreen ? 9 : 8)
         .toList();
 
     final HomeTicketLayout ticketLayout =
@@ -219,6 +222,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         padding: gutter,
                         child: const HomeGreeting(),
                       ),
+                      HomeContinueTicket(shows: shows, padding: gutter),
                       if (!isLargeScreen) ...[
                         const SizedBox(height: AppSpacing.md),
                         Padding(
@@ -282,7 +286,12 @@ class _HomePageState extends ConsumerState<HomePage>
                           title: homeText(context, 'Bugün ne izlemek istersin?',
                               'What are you in the mood for?'),
                           child: HomeMoodPicker(
-                              shows: shows, padding: gutter),
+                            shows: shows,
+                            padding: gutter,
+                            selected: _mood,
+                            onSelected: (final cat) =>
+                                setState(() => _mood = cat),
+                          ),
                         ),
 
                       Padding(

@@ -11,6 +11,7 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/util/browse_memory.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -73,6 +74,15 @@ class _SearchPageState extends ConsumerState<SearchPage>
     with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
   bool _fieldFocused = false;
+  List<String> _recent = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    BrowseMemory.recentQueries().then((final q) {
+      if (mounted) setState(() => _recent = q);
+    });
+  }
 
   @override
   void dispose() {
@@ -88,6 +98,19 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   void _onQueryChanged(final String value) =>
       ref.read(searchQueryProvider.notifier).update(value);
+
+  void _applyRecent(final String q) {
+    _textController.value = TextEditingValue(
+      text: q,
+      selection: TextSelection.collapsed(offset: q.length),
+    );
+    _onQueryChanged(q);
+  }
+
+  Future<void> _rememberQuery(final String q) async {
+    final List<String> next = await BrowseMemory.pushQuery(q);
+    if (mounted) setState(() => _recent = next);
+  }
 
   void _clearQuery() {
     _textController.clear();
@@ -163,7 +186,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   controller: _textController,
                   autofocus: autofocus,
                   onChanged: _onQueryChanged,
-                  onSubmitted: (final _) => FocusScope.of(context).unfocus(),
+                  onSubmitted: (final v) {
+                    _rememberQuery(v);
+                    FocusScope.of(context).unfocus();
+                  },
                   textInputAction: TextInputAction.search,
                   style: TextStyle(
                     color: cs.onSurface,
@@ -457,12 +483,37 @@ class _SearchPageState extends ConsumerState<SearchPage>
     return [
       // Göz atma (henüz yazılmadı): ruh hâli + türler — sonuç listesi
       // değil, keşfe davet.
+      if (browsing && _recent.isNotEmpty) ...[
+        _boxed(gutter, const BrowseSectionTitle(title: 'Son aramaların')),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.xxl),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final q in _recent)
+                  ActionChip(
+                    label: Text(q),
+                    onPressed: () => _applyRecent(q),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
       if (browsing && data.shows.isNotEmpty) ...[
         _boxed(gutter, const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
         SliverToBoxAdapter(
           child: HomeMoodPicker(
               shows: data.shows,
-              padding: EdgeInsets.symmetric(horizontal: gutter)),
+              padding: EdgeInsets.symmetric(horizontal: gutter),
+              selected: null,
+              onSelected: (final cat) {
+                if (cat != null) {
+                  NavigationHandler.goToDiscoverWithCategory(context, cat);
+                }
+              }),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
         _boxed(gutter, const BrowseSectionTitle(title: 'Türlere göz at')),
@@ -568,8 +619,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
     ];
   }
 
-  void _openShow(final Show show) =>
-      NavigationHandler.goToShow(context, show.id, show.name);
+  void _openShow(final Show show) {
+    _rememberQuery(_textController.text);
+    NavigationHandler.goToShow(context, show.id, show.name);
+  }
 
   /// Oyunlar: mobilde kompakt bilet satırları; tablet/masaüstünde afiş ızgarası.
   Widget _showsSliver(

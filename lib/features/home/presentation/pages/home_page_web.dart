@@ -71,6 +71,7 @@ class _HomePageState extends ConsumerState<HomePage>
       parent: _entrance,
       curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
   bool _started = false;
+  String? _mood;
 
   @override
   void didChangeDependencies() {
@@ -160,6 +161,12 @@ class _HomePageState extends ConsumerState<HomePage>
     } else if (showLoadingState) {
       body = const _WebLoadingState();
     } else {
+      final List<Show> board = _mood == null
+          ? shows
+          : shows
+              .where((final s) =>
+                  s.category.trim().toLowerCase() == _mood!.toLowerCase())
+              .toList();
       final double sectionGap = homeFluid(context, 56, 104);
       body = SingleChildScrollView(
         controller: _scrollController,
@@ -184,6 +191,11 @@ class _HomePageState extends ConsumerState<HomePage>
               onSearch: _openSearch,
               onTickets: _goToTickets,
               onOpenShow: _openShow,
+            ),
+            HomeContinueTicket(
+              shows: shows,
+              padding: EdgeInsets.fromLTRB(
+                  _gutter(context), AppSpacing.xl, _gutter(context), 0),
             ),
             if (slides.isNotEmpty)
               _WebSection(
@@ -212,6 +224,8 @@ class _HomePageState extends ConsumerState<HomePage>
                 child: HomeMoodPicker(
                   shows: shows,
                   padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
+                  selected: _mood,
+                  onSelected: (final cat) => setState(() => _mood = cat),
                 ),
               ),
             if (sessions.isNotEmpty)
@@ -264,10 +278,10 @@ class _HomePageState extends ConsumerState<HomePage>
                   ? null
                   : AppLocalizations.of(context)!.homeSeeAll,
               onAction: () => NavigationHandler.goToDiscover(context),
-              child: shows.isEmpty
+              child: board.isEmpty
                   ? _EmptyHint(
                       text: AppLocalizations.of(context)!.homeEmptyShowsHint)
-                  : _ShowsGrid(shows: shows, onOpenShow: _openShow),
+                  : _ShowsGrid(shows: board, onOpenShow: _openShow),
             ),
             Padding(
               padding: EdgeInsets.only(top: sectionGap),

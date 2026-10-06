@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -340,31 +342,101 @@ class ShowDetailMetaRow extends StatelessWidget {
       if (show.ageLimit.trim().isNotEmpty) show.ageLimit.trim(),
       if (data.typeField.isNotEmpty) data.typeField,
     ];
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (items.isEmpty && data.sessions.isEmpty) return const SizedBox.shrink();
+
+    final DateTime? next = data.sessions
+        .map((final s) => s.when)
+        .whereType<DateTime>()
+        .fold<DateTime?>(
+            null, (final a, final b) => a == null || b.isBefore(a) ? b : a);
 
     final colors = context.colors;
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final value in items)
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: colors.outlineVariant.withOpacity(0.45)),
-            ),
-            child: Text(
-              value,
-              style: context.textTheme.bodySmall?.copyWith(
-                color: colors.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+        if (next != null) ...[
+          _NextCurtainClock(at: next),
+          if (items.isNotEmpty) const SizedBox(height: AppSpacing.md),
+        ],
+        if (items.isNotEmpty)
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final value in items)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                        color: colors.outlineVariant.withOpacity(0.45)),
+                  ),
+                  child: Text(
+                    value,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
           ),
       ],
+    );
+  }
+}
+
+class _NextCurtainClock extends StatefulWidget {
+  final DateTime at;
+  const _NextCurtainClock({required this.at});
+
+  @override
+  State<_NextCurtainClock> createState() => _NextCurtainClockState();
+}
+
+class _NextCurtainClockState extends State<_NextCurtainClock> {
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 1), (final _) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final Duration left = widget.at.difference(DateTime.now());
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final String label;
+    if (left.isNegative) {
+      label = 'Perde açıldı';
+    } else if (left.inHours >= 48) {
+      label = 'Sıradaki seans ${left.inDays} gün sonra';
+    } else {
+      final int h = left.inHours;
+      final int m = left.inMinutes.remainder(60);
+      final int s = left.inSeconds.remainder(60);
+      label =
+          'Perdeye $h saat ${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return Text(
+      label,
+      style: TextStyle(
+        color: cs.primary,
+        fontWeight: FontWeight.w800,
+        fontSize: 13,
+        letterSpacing: 0.2,
+      ),
     );
   }
 }

@@ -33,6 +33,7 @@ import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../../shared/navigation/widgets/web_top_navigation_bar.dart';
 import '../../errors/not_found_page.dart';
 import 'page_transitions.dart';
+import '../../../shared/widgets/ticket/wipe_on_return.dart';
 
 // 🔑 KRİTİK DÜZELTME:
 // Shell branch'lerin navigatorKey'leri önceden Provider builder'ının İÇİNDE
@@ -83,6 +84,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
     observers: [
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
       SeoRouteObserver(),
+      kDetailRouteObserver,
     ],
     redirect: (final context, final state) {
       // 🔑 Her redirect çağrısında GÜNCEL login durumu okunuyor
@@ -206,8 +208,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: ShowDetailPage(
               showId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 420),
+          transitionsBuilder: detailArriveTransition,
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: Duration.zero,
         ),
       ),
 
@@ -218,8 +221,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: PlayerDetailPage(
               playerId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 420),
+          transitionsBuilder: detailArriveTransition,
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: Duration.zero,
         ),
       ),
 
@@ -230,8 +234,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: StageDetailPage(
               stageId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionsBuilder: detailArriveTransition,
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: Duration.zero,
         ),
       ),
 

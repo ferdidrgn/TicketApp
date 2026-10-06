@@ -18,11 +18,23 @@ class StageHero extends StatelessWidget {
   const StageHero({super.key, required this.tag, required this.child});
 
   @override
-  Widget build(final BuildContext context) => Hero(
-        tag: tag,
-        createRectTween: stageHeroRectTween,
-        child: child,
-      );
+  Widget build(final BuildContext context) {
+    final Animation<double>? routeAnim = ModalRoute.of(context)?.animation;
+    final Widget hero = Hero(
+      tag: tag,
+      createRectTween: stageHeroRectTween,
+      child: child,
+    );
+    if (routeAnim == null) return hero;
+    return AnimatedBuilder(
+      animation: routeAnim,
+      builder: (final context, final child) => HeroMode(
+        enabled: routeAnim.status != AnimationStatus.reverse,
+        child: child!,
+      ),
+      child: hero,
+    );
+  }
 }
 
 /// Detaya geçiş: perde yok. Görsel [StageHero] ile karttan sayfanın tepesine
@@ -52,6 +64,7 @@ class _StageEntranceState extends State<StageEntrance>
   bool _reduce = false;
   bool _started = false;
   OverlayEntry? _entry;
+  Animation<double>? _routeAnim;
 
   @override
   void didChangeDependencies() {
@@ -62,10 +75,20 @@ class _StageEntranceState extends State<StageEntrance>
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((final _) => _play());
+    _routeAnim?.removeStatusListener(_onRoute);
+    _routeAnim = ModalRoute.of(context)?.animation;
+    _routeAnim?.addStatusListener(_onRoute);
+  }
+
+  void _onRoute(final AnimationStatus status) {
+    if (status == AnimationStatus.reverse) {
+      _drop();
+    }
   }
 
   @override
   void dispose() {
+    _routeAnim?.removeStatusListener(_onRoute);
     _drop();
     _c.dispose();
     super.dispose();
@@ -82,6 +105,9 @@ class _StageEntranceState extends State<StageEntrance>
     }
     _started = true;
     if (_reduce) {
+      return;
+    }
+    if (ModalRoute.of(context)?.animation?.status == AnimationStatus.reverse) {
       return;
     }
     final OverlayState? overlay = Overlay.maybeOf(context, rootOverlay: true);
