@@ -24,7 +24,6 @@ import '../providers/home_show_filter_provider.dart';
 import '../widgets/common/home_ticket_widgets.dart';
 import '../widgets/common/home_ui.dart';
 import '../widgets/mobile/home_teams_strip.dart';
-import '../../../../shared/widgets/ticket/theatre_bubbles.dart';
 
 /// ANA SAYFA — MOBİL (Android/iOS; tablet dahil). Dikey anlatı, "bilet
 /// dili"yle:
@@ -49,9 +48,7 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _searchKey = GlobalKey();
   bool _showSearchInAppBar = false;
-  bool _burst = false;
 
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
@@ -75,23 +72,7 @@ class _HomePageState extends ConsumerState<HomePage>
       _entrance.value = 1;
     } else {
       _entrance.forward();
-      _maybeBurstBubbles();
     }
-  }
-
-  void _maybeBurstBubbles() {
-    if (_burst) return;
-    _burst = true;
-    Future<void>.delayed(const Duration(milliseconds: 800), () {
-      if (!mounted) return;
-      final BuildContext? origin = _searchKey.currentContext;
-      if (origin == null) return;
-      showTheatreBubbles(
-        origin: origin,
-        onSkip: _openSearch,
-        actions: homeStageActions(origin, _openSearch),
-      );
-    });
   }
 
   @override
@@ -218,16 +199,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   // Alt gezinme çubuğu (extendBody) içeriğin üstünde yüzüyor.
                   padding: const EdgeInsets.only(bottom: 120),
                   physics: const BouncingScrollPhysics(),
-                  child: Stack(
-                    children: [
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 340,
-                        child: StageAtmosphere(),
-                      ),
-                      Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Geçici: admin panelini rol kontrolü olmadan test
@@ -252,15 +224,9 @@ class _HomePageState extends ConsumerState<HomePage>
                         Padding(
                           padding: gutter,
                           child: _settle(HomeSearchField(
-                            key: _searchKey,
                             onTap: _openSearch,
                             hint: l10n.homeHeroSearchPlaceholder,
                           )),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Padding(
-                          padding: gutter,
-                          child: TheatreCallBoard(onSearch: _openSearch),
                         ),
                       ],
 
@@ -424,8 +390,6 @@ class _HomePageState extends ConsumerState<HomePage>
                         title: l10n.homeTeamsTitle,
                         child: const HomeTeamsStrip(),
                       ),
-                    ],
-                  ),
                     ],
                   ),
                 ),
