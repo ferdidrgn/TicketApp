@@ -44,13 +44,12 @@ class ShowDetailHero extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.level2(colors.shadow),
-        border: Border.all(color: colors.outlineVariant.withOpacity(0.35)),
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.level3(colors.shadow),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         child: _HeroBody(
           data: data,
           layout: layout,

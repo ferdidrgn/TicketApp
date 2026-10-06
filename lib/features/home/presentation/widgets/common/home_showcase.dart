@@ -263,11 +263,11 @@ class _SlideCard extends StatelessWidget {
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: AppShadows.lift(cs.shadow, bloom: cs.primary),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          boxShadow: AppShadows.level3(cs.shadow),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Material(
             color: Colors.black,
             child: InkWell(
@@ -540,10 +540,11 @@ class _HomeContinueTicketState extends State<HomeContinueTicket> {
         label: 'Kaldığın yer: $title',
         excludeSemantics: true,
         child: Material(
-          color: cs.tertiaryContainer,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: cs.surfaceContainerHigh,
+          elevation: 0,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             onTap: () => NavigationHandler.goToShow(context, id, title),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -569,12 +570,11 @@ class _HomeContinueTicketState extends State<HomeContinueTicket> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Kaldığın yer',
+                          'Kaldığın yerden devam',
                           style: TextStyle(
-                            color: cs.onTertiaryContainer.withValues(alpha: 0.75),
-                            fontSize: 11,
+                            color: cs.onSurfaceVariant,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.6,
                           ),
                         ),
                         Text(
@@ -582,17 +582,16 @@ class _HomeContinueTicketState extends State<HomeContinueTicket> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.playfairDisplay(
-                            color: cs.onTertiaryContainer,
-                            fontSize: 18,
+                            color: cs.onSurface,
+                            fontSize: 20,
                             fontWeight: FontWeight.w800,
-                            height: 1.15,
+                            height: 1.1,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      color: cs.onTertiaryContainer),
+                  Icon(Icons.play_arrow_rounded, color: cs.primary),
                 ],
               ),
             ),
@@ -823,18 +822,16 @@ class _HomePosterCardState extends State<HomePosterCard> {
         children: [
           Expanded(
             child: AnimatedScale(
-              scale: _pressed ? 0.98 : 1,
-              duration: AppMotion.fast,
-              curve: AppMotion.standard,
+              scale: _pressed ? 0.94 : 1,
+              duration: const Duration(milliseconds: 420),
+              curve: _pressed ? Curves.easeOut : Curves.elasticOut,
               child: DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                boxShadow: _pressed
-                    ? AppShadows.level1(cs.shadow)
-                    : AppShadows.lift(cs.shadow, bloom: cs.primary),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                boxShadow: AppShadows.level2(cs.shadow),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
                 child: Material(
                   color: cs.surfaceContainerHighest,
                   child: InkWell(
@@ -875,21 +872,68 @@ class _HomePosterCardState extends State<HomePosterCard> {
                             left: AppSpacing.sm,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: cs.primary,
+                                color: cs.primaryContainer,
                                 borderRadius:
-                                    BorderRadius.circular(AppRadius.xs),
+                                    BorderRadius.circular(AppRadius.pill),
                               ),
-                              child: Text('YENİ',
+                              child: Text('Yeni',
                                   style: TextStyle(
-                                    color: cs.onPrimary,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
+                                    color: cs.onPrimaryContainer,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
                                   )),
                             ),
                           ),
+                        Positioned(
+                          left: AppSpacing.sm,
+                          right: AppSpacing.sm,
+                          bottom: AppSpacing.sm,
+                          child: IgnorePointer(
+                            child: Material(
+                              color: cs.surface.withValues(alpha: 0.92),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.lg),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.sm),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      show.name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.playfairDisplay(
+                                        color: cs.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.05,
+                                      ),
+                                    ),
+                                    if (kind.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        kind,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: cs.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -898,24 +942,6 @@ class _HomePosterCardState extends State<HomePosterCard> {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            show.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (kind.isNotEmpty)
-            Text(
-              kind,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-            ),
         ],
       ),
     );

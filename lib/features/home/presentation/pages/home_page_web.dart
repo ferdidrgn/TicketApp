@@ -192,11 +192,6 @@ class _HomePageState extends ConsumerState<HomePage>
               onTickets: _goToTickets,
               onOpenShow: _openShow,
             ),
-            HomeContinueTicket(
-              shows: shows,
-              padding: EdgeInsets.fromLTRB(
-                  _gutter(context), AppSpacing.xl, _gutter(context), 0),
-            ),
             if (shows.isNotEmpty)
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -229,6 +224,11 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                 ),
               ),
+            HomeContinueTicket(
+              shows: shows,
+              padding: EdgeInsets.fromLTRB(
+                  _gutter(context), AppSpacing.xl, _gutter(context), 0),
+            ),
             if (shows.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,

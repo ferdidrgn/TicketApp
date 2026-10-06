@@ -81,7 +81,12 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   Unsplash `photo-1514525253161-7a46d19cd819`) — "bu foto çok iyi".
 - 5 tema özelliği — "asla temalarımı bozma".
 
-## 06.10.2026 akşam — "sadeliği kaldır, doluluk artsın"
+## 06.10.2026 gece — yumuşak malzeme
+
+Material 3 Expressive (tonal yüzey, büyük köşe, yaylı basış) Flutter
+token'larına alındı. Afiş kartında ad, görselin üstüne binen yumuşak
+yüzeyde. "Kaldığın yerden devam" kampanya vitrininin altında. D-köşe,
+perde ve vesica yok.
 
 Sahibi ana sayfa / arama / keşfet / yakındakiler / oyun ve oyuncu
 detayının boş durduğunu söyledi. Bilet dili işlemde kalır; keşif

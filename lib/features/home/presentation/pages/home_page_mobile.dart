@@ -222,7 +222,6 @@ class _HomePageState extends ConsumerState<HomePage>
                         padding: gutter,
                         child: const HomeGreeting(),
                       ),
-                      HomeContinueTicket(shows: shows, padding: gutter),
                       if (!isLargeScreen) ...[
                         const SizedBox(height: AppSpacing.md),
                         Padding(
@@ -253,6 +252,11 @@ class _HomePageState extends ConsumerState<HomePage>
                           padding: gutter,
                         )),
                       ],
+                      HomeContinueTicket(
+                        shows: shows,
+                        padding: EdgeInsets.fromLTRB(
+                            gutter.left, AppSpacing.lg, gutter.right, 0),
+                      ),
 
                       // Bu hafta: gerçek seanslardan tek satırlık nabız.
                       if (sessions.isNotEmpty) ...[
