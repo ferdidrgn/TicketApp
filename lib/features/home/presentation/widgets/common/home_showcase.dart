@@ -262,7 +262,7 @@ class _SlideCard extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: AppShadows.level3(cs.shadow),
+          boxShadow: AppShadows.lift(cs.shadow, bloom: cs.primary),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -282,6 +282,15 @@ class _SlideCard extends StatelessWidget {
                         imageUrl: slide.imageUrl,
                         fit: BoxFit.cover,
                         borderRadius: 0,
+                      ),
+                    ),
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.center,
+                        colors: [Color(0x33FFFFFF), Color(0x00000000)],
                       ),
                     ),
                   ),
@@ -683,13 +692,15 @@ class _HomePosterCardState extends State<HomePosterCard> {
         children: [
           Expanded(
             child: AnimatedScale(
-              scale: _pressed ? 0.97 : 1,
+              scale: _pressed ? 0.98 : 1,
               duration: AppMotion.fast,
               curve: AppMotion.standard,
               child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                boxShadow: AppShadows.level2(cs.shadow),
+                boxShadow: _pressed
+                    ? AppShadows.level1(cs.shadow)
+                    : AppShadows.lift(cs.shadow, bloom: cs.primary),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.md),
@@ -709,6 +720,20 @@ class _HomePosterCardState extends State<HomePosterCard> {
                           imageUrl: show.imageUrl,
                           fit: BoxFit.cover,
                           borderRadius: 0,
+                        ),
+                        const IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.center,
+                                colors: [
+                                  Color(0x33FFFFFF),
+                                  Color(0x00000000),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                         if (show.isRecentlyAdded)
                           Positioned(

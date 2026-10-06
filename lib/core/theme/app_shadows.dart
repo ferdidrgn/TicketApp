@@ -58,4 +58,22 @@ class AppShadows {
             blurRadius: 40,
             offset: const Offset(0, 20)),
       ];
+
+  /// Afiş kartı: zemine değen kısa gölge + uzak yumuşak oda + isteğe
+  /// temanın vurgu rengi ışıması (kağıt havada duruyor hissi).
+  static List<BoxShadow> lift(final Color tint, {final Color? bloom}) => [
+        BoxShadow(
+            color: tint.withOpacity(0.20),
+            blurRadius: 4,
+            offset: const Offset(0, 2)),
+        BoxShadow(
+            color: tint.withOpacity(0.26),
+            blurRadius: 28,
+            offset: const Offset(0, 16)),
+        if (bloom != null)
+          BoxShadow(
+              color: bloom.withOpacity(0.14),
+              blurRadius: 36,
+              offset: const Offset(0, 18)),
+      ];
 }
