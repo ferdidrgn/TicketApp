@@ -13,6 +13,7 @@ import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
+import '../../../../shared/widgets/ticket/stage_entrance.dart';
 
 /// OYUN DETAYI — MOBİL UYGULAMA (Android/iOS, telefon + tablet).
 ///
@@ -183,13 +184,18 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           final data = ShowDetailData.from(state);
           WidgetsBinding.instance
               .addPostFrameCallback((final _) => _startEntrance());
-          return twoPane
+          final Widget page = twoPane
               ? SafeArea(child: ShowDetailTwoPaneLayout(args: _args(data)))
               : ShowDetailStackedLayout(
                   args: _args(data),
                   scrolled: _scrolled,
                   heroPoster: true,
                 );
+          return StageEntrance(
+            imageUrl: data.show.imageUrl,
+            label: data.show.name,
+            child: page,
+          );
         },
       ),
     );

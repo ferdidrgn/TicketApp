@@ -12,6 +12,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
+import '../../../../shared/widgets/ticket/stage_entrance.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
@@ -81,7 +82,11 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       liveActive: ref.watch(activeShowsProvider(false)).value,
     );
 
-    return ProfileDetailLayout(
+    return StageEntrance(
+      imageUrl: player.imageUrl,
+      label: fullName,
+      portrait: true,
+      child: ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
       heroImageUrl: player.imageUrl,
@@ -125,6 +130,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         compact: compact,
         onStageKey: _onStageKey,
       ),
+    ),
     );
   }
 

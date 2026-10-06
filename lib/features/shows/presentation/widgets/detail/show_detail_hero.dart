@@ -7,6 +7,7 @@ import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../../shared/widgets/ticket/stage_entrance.dart';
 import '../show_team_credit.dart';
 import 'show_detail_data.dart';
 
@@ -291,17 +292,19 @@ class _HeroPoster extends StatelessWidget {
     return Semantics(
       image: true,
       label: '$name afişi',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: ColoredBox(
-          color: colors.surfaceContainerHighest,
-          child: SizedBox(
-            height: height,
-            width: double.infinity,
-            child: OptimizedCachedImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              borderRadius: 0,
+      child: StageSpotFrame(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: ColoredBox(
+            color: colors.surfaceContainerHighest,
+            child: SizedBox(
+              height: height,
+              width: double.infinity,
+              child: OptimizedCachedImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                borderRadius: 0,
+              ),
             ),
           ),
         ),

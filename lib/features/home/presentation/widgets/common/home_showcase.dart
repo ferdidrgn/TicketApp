@@ -655,14 +655,22 @@ class HomeMoodPicker extends StatelessWidget {
 // 5. Sinematik afiş kartı (bilet değil): afiş tam kart, alt kısımda ad
 // ─────────────────────────────────────────────────────────────────────────
 
-class HomePosterCard extends StatelessWidget {
+class HomePosterCard extends StatefulWidget {
   final Show show;
   final VoidCallback onTap;
   const HomePosterCard({super.key, required this.show, required this.onTap});
 
   @override
+  State<HomePosterCard> createState() => _HomePosterCardState();
+}
+
+class _HomePosterCardState extends State<HomePosterCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final Show show = widget.show;
     final String kind = show.hasExternalTicketing
         ? 'Başka platformda'
         : show.category.trim();
@@ -674,7 +682,11 @@ class HomePosterCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: DecoratedBox(
+            child: AnimatedScale(
+              scale: _pressed ? 0.97 : 1,
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
+              child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 boxShadow: AppShadows.level2(cs.shadow),
@@ -684,7 +696,12 @@ class HomePosterCard extends StatelessWidget {
                 child: Material(
                   color: cs.surfaceContainerHighest,
                   child: InkWell(
-                    onTap: onTap,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      widget.onTap();
+                    },
+                    onHighlightChanged: (final v) =>
+                        setState(() => _pressed = v),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -718,6 +735,7 @@ class HomePosterCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
               ),
             ),
           ),

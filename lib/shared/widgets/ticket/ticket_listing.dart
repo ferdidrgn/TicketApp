@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_motion.dart';
@@ -61,6 +64,7 @@ class _HorizontalTicket extends StatelessWidget {
   final Widget stub;
   final Widget body;
   final List<BoxShadow> shadows;
+  final Animation<double> tear;
 
   const _HorizontalTicket({
     required this.height,
@@ -69,6 +73,7 @@ class _HorizontalTicket extends StatelessWidget {
     required this.stub,
     required this.body,
     required this.shadows,
+    this.tear = const AlwaysStoppedAnimation<double>(0),
   });
 
   @override
@@ -94,16 +99,41 @@ class _HorizontalTicket extends StatelessWidget {
       ),
     );
 
+    final Widget tornStub = AnimatedBuilder(
+      animation: tear,
+      builder: (final context, final child) {
+        final double t = tear.value;
+        if (t == 0) return child!;
+        return Opacity(
+          opacity: (1 - t * 1.1).clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(
+              stubOnLeft ? -t * 72 : t * 72,
+              t * 36,
+            ),
+            child: Transform.rotate(
+              angle: (stubOnLeft ? -0.18 : 0.18) * t,
+              alignment:
+                  stubOnLeft ? Alignment.centerRight : Alignment.centerLeft,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: stubPiece,
+    );
+
     return SizedBox(
       height: height,
       child: Stack(
+        clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: stubOnLeft
-                ? [stubPiece, bodyPiece]
-                : [bodyPiece, stubPiece],
+                ? [tornStub, bodyPiece]
+                : [bodyPiece, tornStub],
           ),
           Positioned(
             top: 0,
@@ -196,14 +226,50 @@ List<BoxShadow> _ticketShadows(final bool active) => active
 /// Kompakt oyun bileti — mobil arama/keşif listeleri için. Gövdede gerçek
 /// afiş + oyun adı + tür/süre, sağdaki koçanda oyuna özgü barkod. Bilet
 /// satışı başka platformdaysa bu, gövdede vurgu renginde yazılır.
-class ShowTicketRow extends StatelessWidget {
+/// Dokununca koçan delikten kopar, sonra oyun sayfası açılır.
+class ShowTicketRow extends StatefulWidget {
   final Show show;
   final VoidCallback onTap;
 
   const ShowTicketRow({super.key, required this.show, required this.onTap});
 
   @override
+  State<ShowTicketRow> createState() => _ShowTicketRowState();
+}
+
+class _ShowTicketRowState extends State<ShowTicketRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _tear.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open() async {
+    if (_busy) return;
+    _busy = true;
+    unawaited(HapticFeedback.mediumImpact());
+    if (!MediaQuery.of(context).disableAnimations) {
+      await _tear.forward(from: 0);
+    }
+    if (!mounted) return;
+    widget.onTap();
+    unawaited(Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      _tear.value = 0;
+      _busy = false;
+    }));
+  }
+
+  @override
   Widget build(final BuildContext context) {
+    final Show show = widget.show;
     final String category = show.category.trim();
     final String duration = show.duration.trim();
     final String meta = [
@@ -217,11 +283,12 @@ class ShowTicketRow extends StatelessWidget {
         if (meta.isNotEmpty) meta,
         if (show.hasExternalTicketing) 'biletler başka platformda',
       ].join(', '),
-      onTap: onTap,
+      onTap: _open,
       builder: (final active) => _HorizontalTicket(
         height: 96,
         stubWidth: 48,
         stubOnLeft: false,
+        tear: _tearCurve,
         shadows: _ticketShadows(active),
         stub: Padding(
           padding: const EdgeInsets.symmetric(
@@ -312,7 +379,7 @@ class ShowTicketRow extends StatelessWidget {
 /// Bir seansın bileti: solda TARİH koçanı (gün adı, gün, ay), gövdede oyun
 /// adı ve SAAT / FİYAT alanları. Tüm değerler gerçek etkinlik verisinden
 /// gelir; fiyat okunamıyorsa (bkz. [ticketPrice]) alan hiç basılmaz.
-class SessionTicketRow extends StatelessWidget {
+class SessionTicketRow extends StatefulWidget {
   final String title;
   final DateTime dateTime;
   final String? price;
@@ -334,24 +401,64 @@ class SessionTicketRow extends StatelessWidget {
   });
 
   @override
+  State<SessionTicketRow> createState() => _SessionTicketRowState();
+}
+
+class _SessionTicketRowState extends State<SessionTicketRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _tear.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open() async {
+    if (_busy) return;
+    _busy = true;
+    unawaited(HapticFeedback.mediumImpact());
+    if (!MediaQuery.of(context).disableAnimations) {
+      await _tear.forward(from: 0);
+    }
+    if (!mounted) return;
+    widget.onTap();
+    unawaited(Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      _tear.value = 0;
+      _busy = false;
+    }));
+  }
+
+  @override
   Widget build(final BuildContext context) {
+    final String title = widget.title;
+    final DateTime dateTime = widget.dateTime;
+    final String? price = widget.price;
+    final String? extraLabel = widget.extraLabel;
+    final String? extraValue = widget.extraValue;
     final String time = ticketTime(dateTime);
     final bool hasExtra = extraLabel != null &&
         extraValue != null &&
-        extraValue!.trim().isNotEmpty;
+        extraValue.trim().isNotEmpty;
 
     return _TicketTapShell(
       semanticsLabel: [
         title,
         '${dateTime.day} ${ticketMonthShort(dateTime)} ${ticketWeekdayShort(dateTime)}, saat $time',
         if (price != null) 'fiyat $price',
-        if (hasExtra) '$extraLabel ${extraValue!}',
+        if (hasExtra) '$extraLabel $extraValue',
       ].join(', '),
-      onTap: onTap,
+      onTap: _open,
       builder: (final active) => _HorizontalTicket(
         height: 88,
         stubWidth: 72,
         stubOnLeft: true,
+        tear: _tearCurve,
         shadows: _ticketShadows(active),
         stub: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -401,13 +508,13 @@ class SessionTicketRow extends StatelessWidget {
                         TicketField(label: 'SAAT', value: time),
                         if (price != null) ...[
                           const SizedBox(width: AppSpacing.lg),
-                          TicketField(label: 'FİYAT', value: price!),
+                          TicketField(label: 'FİYAT', value: price),
                         ],
                         if (hasExtra) ...[
                           const SizedBox(width: AppSpacing.lg),
                           Flexible(
                             child: TicketField(
-                                label: extraLabel!, value: extraValue!.trim()),
+                                label: extraLabel, value: extraValue.trim()),
                           ),
                         ],
                       ],

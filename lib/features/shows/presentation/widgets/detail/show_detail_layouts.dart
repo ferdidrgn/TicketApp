@@ -5,6 +5,7 @@ import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/ticket/stage_entrance.dart';
 import 'show_detail_actions.dart';
 import 'show_detail_data.dart';
 import 'show_detail_hero.dart';
@@ -268,7 +269,8 @@ class _PosterBand extends StatelessWidget {
     );
     if (hero) image = Hero(tag: 'show_${data.show.id}', child: image);
 
-    return Stack(
+    return StageSpotFrame(
+      child: Stack(
       fit: StackFit.expand,
       children: [
         ColoredBox(color: colors.surfaceContainerHighest),
@@ -314,6 +316,7 @@ class _PosterBand extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
   }
 }

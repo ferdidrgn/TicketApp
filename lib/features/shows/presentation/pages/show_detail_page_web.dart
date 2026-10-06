@@ -17,6 +17,7 @@ import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
+import '../../../../shared/widgets/ticket/stage_entrance.dart';
 
 /// OYUN DETAYI — WEB. Editoryal afiş + program; bilet dili yalnızca
 /// "Bilet al" damgasında ve seans satırlarında.
@@ -197,9 +198,21 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       },
     );
 
+    final Widget staged = detailAsync.maybeWhen(
+      data: (final state) {
+        final data = ShowDetailData.from(state);
+        return StageEntrance(
+          imageUrl: data.show.imageUrl,
+          label: data.show.name,
+          child: body,
+        );
+      },
+      orElse: () => body,
+    );
+
     return Scaffold(
       backgroundColor: context.colors.surface,
-      body: TicketStage(themed: true, child: body),
+      body: TicketStage(themed: true, child: staged),
     );
   }
 }

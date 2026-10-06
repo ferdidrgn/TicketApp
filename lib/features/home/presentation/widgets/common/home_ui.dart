@@ -1,6 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/ticket/theatre_bubbles.dart';
 import '../../../../../shared/widgets/ticket/ticket_search.dart';
 
 import '../../../../../core/theme/app_motion.dart';
@@ -90,9 +92,8 @@ class HomeSectionHeader extends StatelessWidget {
   }
 }
 
-/// Ana sayfanın arama "düğmesi" — ortak "gişe arama fişi"
-/// ([TicketSearchButton]): vurgu renginde arama damgası + dönen gerçek
-/// örnekler. Dokununca arama sayfasına gider (gerçek yazma orada).
+/// Ana sayfanın arama düğmesi. Dokununca yüzen damga balonları açılır
+/// (Ara / Yakınımda / Keşfet / Kampanya); azaltılmış harekette doğrudan arama.
 class HomeSearchField extends StatelessWidget {
   final VoidCallback onTap;
   final String hint;
@@ -107,7 +108,32 @@ class HomeSearchField extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => TicketSearchButton(
-        onTap: onTap,
+        onTap: () => showTheatreBubbles(
+          origin: context,
+          onSkip: onTap,
+          actions: [
+            TheatreBubbleAction(
+              label: homeText(context, 'Ara', 'Search'),
+              icon: Icons.search_rounded,
+              onTap: onTap,
+            ),
+            TheatreBubbleAction(
+              label: homeText(context, 'Yakınımda', 'Nearby'),
+              icon: Icons.near_me_rounded,
+              onTap: () => NavigationHandler.goToNearby(context),
+            ),
+            TheatreBubbleAction(
+              label: homeText(context, 'Keşfet', 'Discover'),
+              icon: Icons.theater_comedy_rounded,
+              onTap: () => NavigationHandler.goToDiscover(context),
+            ),
+            TheatreBubbleAction(
+              label: homeText(context, 'Kampanya', 'Offers'),
+              icon: Icons.local_activity_outlined,
+              onTap: () => NavigationHandler.goToCampaigns(context),
+            ),
+          ],
+        ),
         semanticLabel: hint,
         compact: compact,
       );

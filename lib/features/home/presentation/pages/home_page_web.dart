@@ -28,6 +28,7 @@ import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
 import '../widgets/common/home_ticket_widgets.dart';
 import '../widgets/common/home_ui.dart';
+import '../../../../shared/widgets/ticket/theatre_bubbles.dart';
 
 /// ANA SAYFA — WEB. "Gişe": platformun bilet gişesi, giriş ekranındaki
 /// onaylı "bilet dili"yle.
@@ -164,7 +165,16 @@ class _HomePageState extends ConsumerState<HomePage>
       body = SingleChildScrollView(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
-        child: Column(
+        child: Stack(
+          children: [
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 420,
+              child: StageAtmosphere(),
+            ),
+            Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _WebHero(
@@ -311,6 +321,8 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             SizedBox(height: sectionGap),
             const Footer(),
+          ],
+        ),
           ],
         ),
       );

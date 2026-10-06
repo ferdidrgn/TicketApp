@@ -17,6 +17,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
+import '../../../../shared/widgets/ticket/theatre_bubbles.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -121,9 +122,21 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ambientColor: Colors.transparent,
         particleColor: Colors.transparent,
       ),
-      child: layout == _Layout.desktop
-          ? _buildDesktop(context, state, filter, query, refreshing)
-          : _buildCompact(context, state, filter, query, refreshing, layout),
+      child: Stack(
+        children: [
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 320,
+            child: StageAtmosphere(),
+          ),
+          layout == _Layout.desktop
+              ? _buildDesktop(context, state, filter, query, refreshing)
+              : _buildCompact(
+                  context, state, filter, query, refreshing, layout),
+        ],
+      ),
     );
   }
 
@@ -221,7 +234,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         SliverPersistentHeader(
           pinned: true,
           delegate: PinnedBrowseHeader(
-            extent: 124,
+            extent: 186,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -236,9 +249,9 @@ class _SearchPageState extends ConsumerState<SearchPage>
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                BrowseChoiceChips(
-                  options: [for (final f in _kFacets) BrowseOption(f)],
+                TheatreStampRow(
+                  labels: _kFacets,
+                  icons: _kFacetIcons,
                   selectedIndex: filter,
                   onSelected: _onSeeAll,
                   padding: EdgeInsets.symmetric(horizontal: gutter),

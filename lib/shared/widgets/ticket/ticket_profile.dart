@@ -17,6 +17,7 @@ import '../optimized_cached_image.dart';
 import '../theatre_show_card.dart';
 import 'ticket_kit.dart';
 import 'ticket_listing.dart';
+import 'stage_entrance.dart';
 
 /// "KİM / NEREDE" SAYFALARI — oyuncu, sahne ve topluluk detayları için
 /// ortak "tiyatro programı + künye bileti" iskeleti.
@@ -550,7 +551,8 @@ class _ProfilePosterBand extends StatelessWidget {
     final colors = context.colors;
     final bool hasImage = url.trim().isNotEmpty;
 
-    return Stack(
+    return StageSpotFrame(
+      child: Stack(
       fit: StackFit.expand,
       children: [
         ColoredBox(color: colors.surfaceContainerHighest),
@@ -605,6 +607,7 @@ class _ProfilePosterBand extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
   }
 }
