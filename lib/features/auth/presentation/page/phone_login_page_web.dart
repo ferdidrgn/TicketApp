@@ -10,6 +10,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/auth_feedback.dart';
 import '../widgets/auth_ticket.dart';
 import '../widgets/login_ticket_content.dart';
 import '../widgets/phone_ticket_content.dart';
@@ -113,8 +114,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
   }
 
   Future<void> _verifyPhone() async {
+    if (ref.read(authMutationProvider).isLoading) return;
     final phone = _phoneController.text.trim();
     if (phone.length != 10) {
+      authHapticSelection();
       _showSnackBar(
           'Numaranı başında 0 olmadan 10 hane olarak gir (5XX XXX XX XX).',
           isError: true);
@@ -125,27 +128,51 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
   }
 
   Future<void> _signInWithOTP([final String? pin]) async {
+    if (ref.read(authMutationProvider).isLoading) return;
     final otp = (pin ?? _otpController.text).trim();
     if (otp.length != 6) {
+      authHapticSelection();
       _showSnackBar('Lütfen 6 haneli kodu eksiksiz gir.', isError: true);
       return;
     }
     _pendingAction = _PendingAuthAction.verifyCode;
-    if (!_reduceMotion) _tear.forward(from: 0);
+    await _tearStub();
     await ref.read(authMutationProvider.notifier).verifyOtp(otp);
+  }
+
+  Future<void> _tearStub() async {
+    if (!_reduceMotion) await _tear.forward(from: 0);
   }
 
   void _showSnackBar(final String msg, {final bool isError = false}) {
     if (!mounted) return;
+    if (isError) {
+      showAuthErrorSnackBar(context, message: msg, width: 440);
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade800 : Colors.green.shade800,
+        backgroundColor: Colors.green.shade800,
         behavior: SnackBarBehavior.floating,
         width: 440,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md)),
       ),
+    );
+  }
+
+  void _showAuthFailure(final Object error, final _PendingAuthAction pending) {
+    final VoidCallback? retry = switch (pending) {
+      _PendingAuthAction.sendCode => _verifyPhone,
+      _PendingAuthAction.verifyCode => () => _signInWithOTP(),
+      _ => null,
+    };
+    showAuthErrorSnackBar(
+      context,
+      message: authErrorMessage(error),
+      width: 440,
+      onRetry: retry,
     );
   }
 
@@ -157,9 +184,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
     ref.listen<AsyncValue<void>>(authMutationProvider, (final prev, final next) {
       next.whenOrNull(
         error: (final error, final _) {
-          _showSnackBar('Hata: $error', isError: true);
           _tear.reverse();
+          final pending = _pendingAction;
           _pendingAction = _PendingAuthAction.none;
+          _showAuthFailure(error, pending);
         },
         data: (final _) {
           switch (_pendingAction) {

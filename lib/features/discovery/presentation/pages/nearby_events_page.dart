@@ -21,6 +21,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../providers/location_provider.dart';
 import '../providers/nearby_events_provider.dart';
 import '../widgets/browse_controls.dart';
+import '../widgets/discovery_responsive.dart';
 import '../widgets/nearby_events_map.dart';
 import '../widgets/nearby_location_permission_view.dart';
 
@@ -98,9 +99,10 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
   @override
   Widget build(final BuildContext context) {
     final state = ref.watch(nearbyOverviewProvider);
-    return context.isDesktop
-        ? _desktop(context, state)
-        : _compact(context, state, tablet: context.isTablet);
+    if (DiscoveryResponsive.useSidebar(context)) {
+      return _desktop(context, state);
+    }
+    return _compact(context, state, DiscoveryResponsive.layout(context));
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -119,7 +121,7 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
             separatorBuilder: (final _, final __) =>
                 const SizedBox(height: AppSpacing.md),
             itemBuilder: (final _, final __) =>
-                const TicketRowSkeleton(height: 140),
+                const BrowseVenueCardSkeleton(),
           ),
         ),
       ];
@@ -199,38 +201,47 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
           ),
         ),
       ),
-      if (pins.isEmpty)
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          sliver: SliverToBoxAdapter(
-            child: Text(
-              _zone == _Zone.inside
-                  ? '$_radiusKm km içinde yaklaşan seans yok.'
-                  : '$_radiusKm km dışında sahne yok.',
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-          ),
-        )
-      else
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          sliver: SliverList.separated(
-            itemCount: pins.length,
-            separatorBuilder: (final _, final __) =>
-                const SizedBox(height: AppSpacing.lg),
-            itemBuilder: (final context, final i) => _PinCard(
-              pin: pins[i],
-              focused: pins[i].stage.id == _focused?.id,
-              expanded: _expanded.contains(pins[i].stage.id),
-              onFocus: () => _focus(pins[i].stage),
-              onToggle: () => setState(() {
-                if (!_expanded.remove(pins[i].stage.id)) {
-                  _expanded.add(pins[i].stage.id);
-                }
-              }),
-            ),
+      SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: gutter),
+        sliver: SliverToBoxAdapter(
+          child: AnimatedSwitcher(
+            duration: AppMotion.fast,
+            switchInCurve: AppMotion.standard,
+            switchOutCurve: AppMotion.standard,
+            child: pins.isEmpty
+                ? Padding(
+                    key: ValueKey<String>('nearby-empty-${_zone.name}'),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: Text(
+                      _zone == _Zone.inside
+                          ? '$_radiusKm km içinde yaklaşan seans yok.'
+                          : '$_radiusKm km dışında sahne yok.',
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
+                  )
+                : ListView.separated(
+                    key: ValueKey<String>(
+                        'nearby-pins-${_zone.name}-${pins.length}'),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: pins.length,
+                    separatorBuilder: (final _, final __) =>
+                        const SizedBox(height: AppSpacing.lg),
+                    itemBuilder: (final context, final i) => _PinCard(
+                      pin: pins[i],
+                      focused: pins[i].stage.id == _focused?.id,
+                      expanded: _expanded.contains(pins[i].stage.id),
+                      onFocus: () => _focus(pins[i].stage),
+                      onToggle: () => setState(() {
+                        if (!_expanded.remove(pins[i].stage.id)) {
+                          _expanded.add(pins[i].stage.id);
+                        }
+                      }),
+                    ),
+                  ),
           ),
         ),
+      ),
       if (o.unlocatedCount > 0)
         SliverPadding(
           padding: EdgeInsets.fromLTRB(gutter, AppSpacing.lg, gutter, 0),
@@ -245,6 +256,7 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
   }
 
   void _onPinTap(final NearbyPin pin) {
+    HapticFeedback.selectionClick();
     setState(() {
       _focused = pin.stage;
       _zone = pin.inside ? _Zone.inside : _Zone.outside;
@@ -257,9 +269,10 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
 
   Widget _compact(final BuildContext context,
       final AsyncValue<NearbyOverview> state,
-      {required final bool tablet}) {
+      final DiscoveryBrowseLayout _) {
     final cs = Theme.of(context).colorScheme;
-    final double gutter = tablet ? AppSpacing.xxl : AppSpacing.lg;
+    final double gutter = DiscoveryResponsive.pageGutter(context);
+    final double mapHeight = DiscoveryResponsive.nearbyMapHeight(context);
     final bool blocked = state.hasError && state.error is LocationFailure;
 
     return BasePageWrapper(
@@ -292,7 +305,7 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
                     EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.xl),
                 sliver: SliverToBoxAdapter(
                   child: NearbyEventsMap(
-                    height: tablet ? 360 : 280,
+                    height: mapHeight,
                     focusedStage: _focused,
                     onPinTap: _onPinTap,
                   ),
@@ -319,20 +332,25 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
       final BuildContext context, final AsyncValue<NearbyOverview> state) {
     final cs = Theme.of(context).colorScheme;
     final bool blocked = state.hasError && state.error is LocationFailure;
-    final Widget list = CustomScrollView(
-      controller: _scroll,
-      slivers: [
+    final double gutter = DiscoveryResponsive.pageGutter(context);
+    final Widget list = RefreshIndicator(
+      onRefresh: () async => _retry(),
+      child: CustomScrollView(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.huge, AppSpacing.massive,
-              AppSpacing.huge, AppSpacing.xl),
+          padding: EdgeInsets.fromLTRB(
+              gutter, AppSpacing.massive, gutter, AppSpacing.xl),
           sliver: SliverToBoxAdapter(
             child: BrowseHeading(title: 'Yakınımdakiler', lede: _lede(state)),
           ),
         ),
-        ..._content(state, AppSpacing.huge),
+        ..._content(state, gutter),
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.section)),
         const SliverToBoxAdapter(child: Footer()),
       ],
+      ),
     );
     return Scaffold(
       backgroundColor: cs.surface,
@@ -413,9 +431,12 @@ class _PinCard extends StatelessWidget {
             button: true,
             label: '${stage.name}, $distance, haritada göster',
             excludeSemantics: true,
-            child: InkWell(
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: InkWell(
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppRadius.md)),
+              hoverColor: cs.primary.withValues(alpha: 0.06),
               onTap: onFocus,
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
@@ -501,6 +522,7 @@ class _PinCard extends StatelessWidget {
                 ),
               ),
             ),
+            ),
           ),
           Divider(height: 1, color: cs.outlineVariant),
           for (final e in visible)
@@ -560,11 +582,17 @@ class _PinCard extends StatelessWidget {
               children: [
                 if (rest > 0 || expanded && pin.entries.length > _preview)
                   TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                    ),
                     onPressed: onToggle,
                     child: Text(expanded ? 'Daha az göster' : '+$rest seans daha'),
                   ),
                 const Spacer(),
                 TextButton.icon(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                  ),
                   onPressed: () => TiyatrolCommunicationActions.openStageLocation(
                     lat: stage.locationLat,
                     lng: stage.locationLng,

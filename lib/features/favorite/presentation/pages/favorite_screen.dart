@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
@@ -122,7 +123,17 @@ class _FavoritesPageState extends State<FavoritesPage>
                       enabled: user != null,
                     ),
                   ),
-                  Expanded(child: body),
+                  Expanded(
+                    child: user == null
+                        ? body
+                        : RefreshIndicator(
+                            onRefresh: () async {
+                              ref.invalidate(userProfileProvider);
+                            },
+                            color: context.colors.primary,
+                            child: body,
+                          ),
+                  ),
                 ],
               );
             },
@@ -187,6 +198,7 @@ class _FavoriteTabs extends StatelessWidget {
             states.contains(WidgetState.focused)
                 ? cs.primary.withOpacity(0.14)
                 : null),
+        onTap: (final _) => HapticFeedback.selectionClick(),
         tabs: [
           for (int i = 0; i < FavoriteKind.values.length; i++)
             Tab(height: 48, text: _label(i)),

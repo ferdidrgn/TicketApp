@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/theme_notifier.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -32,8 +34,8 @@ import '../../data/onboarding_gate.dart';
 /// geri tuşu bir önceki perdeye döner. Tanıtım cihazda bir kez gösterilir
 /// ([OnboardingGate]); tamamlanınca da atlanınca da işaretlenir.
 ///
-/// - Telefon (<768): dikey — üstte gösterim, altta metin + ilerleme + buton.
-/// - Tablet/geniş: iki sütun — solda gösterim, sağda metin ve aksiyonlar.
+/// - Mobil (`context.isMobile`): dikey — üstte gösterim, altta metin + aksiyon.
+/// - Tablet / geniş (`!isMobile`): iki sütun, `ConstrainedBox` ile ortalanmış.
 class OnboardingContainer extends ConsumerStatefulWidget {
   const OnboardingContainer({super.key});
 
@@ -126,9 +128,25 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
 
   @override
   Widget build(final BuildContext context) {
+    ref.listen(themeProvider, (final prev, final next) {
+      if (_index == 2 && prev != null && prev != next) {
+        HapticFeedback.selectionClick();
+      }
+    });
+    ref.listen(customAccentColorProvider, (final prev, final next) {
+      if (_index == 2 && prev != next) {
+        HapticFeedback.selectionClick();
+      }
+    });
+
     final cs = Theme.of(context).colorScheme;
-    final bool wide = MediaQuery.sizeOf(context).width >= 768;
+    final bool mobile = context.isMobile;
     final _Act act = _acts[_index];
+    final double titleSize = context.responsive(
+      mobile: 36,
+      tablet: 42,
+      desktop: 48,
+    );
 
     final Widget scene = AnimatedSwitcher(
       duration: AppMotion.normal,
@@ -167,7 +185,7 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
               maxLines: 1,
               style: GoogleFonts.playfairDisplay(
                 color: cs.onSurface,
-                fontSize: wide ? 48 : 36,
+                fontSize: titleSize,
                 fontWeight: FontWeight.w800,
                 height: 1.05,
                 letterSpacing: -0.5,
@@ -184,7 +202,7 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
             key: ValueKey(_index),
             style: TextStyle(
               color: cs.onSurfaceVariant,
-              fontSize: 15,
+              fontSize: context.bodySize,
               height: 1.5,
             ),
           ),
@@ -193,7 +211,29 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
     );
 
     final Widget controls = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        if (!_isLast)
+          Semantics(
+            button: true,
+            label: 'Tanıtımı geç',
+            excludeSemantics: true,
+            child: TextButton(
+              onPressed: _finish,
+              style: TextButton.styleFrom(
+                foregroundColor: cs.onSurfaceVariant,
+                minimumSize: const Size(72, 48),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              ),
+              child: const Text(
+                'Geç',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          )
+        else
+          const SizedBox.shrink(),
+        const SizedBox(width: AppSpacing.sm),
         _ActProgress(index: _index, count: _acts.length, onTap: _goTo),
         const Spacer(),
         FilledButton.icon(
@@ -216,45 +256,78 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
 
     final Widget topBar = Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.sm, AppSpacing.sm, 0),
-      child: Row(
-        children: [
-          Text(
-            'TİYATROL',
-            style: GoogleFonts.playfairDisplay(
-              color: cs.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
-            ),
+          AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'TİYATROL',
+          style: GoogleFonts.playfairDisplay(
+            color: cs.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 3,
           ),
-          const Spacer(),
-          if (!_isLast)
-            TextButton(
-              onPressed: _finish,
-              style: TextButton.styleFrom(
-                foregroundColor: cs.onSurfaceVariant,
-                minimumSize: const Size(64, 48),
-              ),
-              child: const Text('Geç',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            )
-          else
-            const SizedBox(height: 48),
-        ],
+        ),
       ),
     );
 
-    final Widget body = wide
-        ? Center(
+    final Widget body = mobile
+        ? Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    context.pagePadding.left,
+                    AppSpacing.lg,
+                    context.pagePadding.right,
+                    0,
+                  ),
+                  child: scene,
+                ),
+              ),
+              SafeArea(
+                top: false,
+                minimum: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    context.pagePadding.left,
+                    AppSpacing.xl,
+                    context.pagePadding.right,
+                    AppSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      text,
+                      const SizedBox(height: AppSpacing.xxl),
+                      controls,
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          )
+        : Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1080),
+              constraints: BoxConstraints(
+                maxWidth: context.responsive(
+                  mobile: double.infinity,
+                  tablet: 920,
+                  desktop: 1080,
+                ),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.huge),
+                padding: context.pagePadding,
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(flex: 6, child: scene),
-                    const SizedBox(width: AppSpacing.section),
+                    SizedBox(
+                        width: context.responsive(
+                      mobile: AppSpacing.section,
+                      tablet: AppSpacing.section,
+                      desktop: AppSpacing.huge,
+                    )),
                     Expanded(
                       flex: 5,
                       child: Column(
@@ -262,7 +335,12 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           text,
-                          const SizedBox(height: AppSpacing.huge),
+                          SizedBox(
+                              height: context.responsive(
+                            mobile: AppSpacing.xxl,
+                            tablet: AppSpacing.huge,
+                            desktop: AppSpacing.huge,
+                          )),
                           controls,
                         ],
                       ),
@@ -271,29 +349,6 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
                 ),
               ),
             ),
-          )
-        : Column(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 0),
-                  child: scene,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    text,
-                    const SizedBox(height: AppSpacing.xxl),
-                    controls,
-                  ],
-                ),
-              ),
-            ],
           );
 
     return PopScope(
@@ -348,20 +403,28 @@ class _ActProgress extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (int i = 0; i < count; i++)
-            GestureDetector(
-              onTap: () => onTap(i),
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 3, vertical: AppSpacing.md),
-                child: AnimatedContainer(
-                  duration: AppMotion.fast,
-                  curve: AppMotion.standard,
-                  width: i == index ? 26 : 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: i <= index ? cs.primary : cs.outlineVariant,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
+            Semantics(
+              button: true,
+              selected: i == index,
+              label: '${i + 1}. perde',
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: () => onTap(i),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: AppMotion.fast,
+                      curve: AppMotion.standard,
+                      width: i == index ? 26 : 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: i <= index ? cs.primary : cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                    ),
                   ),
                 ),
               ),

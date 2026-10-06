@@ -13,6 +13,7 @@ import '../../../../shared/widgets/google_logo.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import 'auth_feedback.dart';
 import 'auth_ticket.dart';
 
 /// Giriş biletinin gövdesi. [wide] → geniş web'de yatay bilet düzeni
@@ -23,7 +24,10 @@ class LoginTicketBody extends StatelessWidget {
   final Animation<double> detailsFade;
   final VoidCallback? onPhone;
   final VoidCallback? onGoogle;
-  final bool loading;
+  final VoidCallback? onGuest;
+  final bool loadingGoogle;
+  final bool loadingGuest;
+  final bool actionLocked;
 
   const LoginTicketBody({
     super.key,
@@ -32,7 +36,10 @@ class LoginTicketBody extends StatelessWidget {
     required this.detailsFade,
     required this.onPhone,
     required this.onGoogle,
-    required this.loading,
+    this.onGuest,
+    this.loadingGoogle = false,
+    this.loadingGuest = false,
+    this.actionLocked = false,
   });
 
   @override
@@ -40,15 +47,16 @@ class LoginTicketBody extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
 
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final headlineText = Text(
+      'Perde\nsenin için\nkalkıyor.',
+      style: TicketInk.headline(wide ? 60 : 40),
+    );
     final headline = Semantics(
       header: true,
-      child: AuthWipeReveal(
-        reveal: headlineReveal,
-        child: Text(
-          'Perde\nsenin için\nkalkıyor.',
-          style: TicketInk.headline(wide ? 60 : 40),
-        ),
-      ),
+      child: reduceMotion
+          ? headlineText
+          : AuthWipeReveal(reveal: headlineReveal, child: headlineText),
     );
 
     final intro = Text(
@@ -71,24 +79,36 @@ class LoginTicketBody extends StatelessWidget {
       ],
     );
 
+    final bool locked = actionLocked || loadingGoogle || loadingGuest;
+
     final actions = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        TicketStampButton(
+        AuthStampButton(
           label: l10n.loginPhoneButton,
           leading: const Icon(Icons.phone_iphone_rounded),
-          onTap: onPhone,
-          loading: loading,
-          loadingLabel: 'BİLET KESİLİYOR…',
+          onTap: locked ? null : onPhone,
         ),
         const SizedBox(height: AppSpacing.sm),
-        TicketStampButton(
+        AuthStampButton(
           label: l10n.loginGoogleButton,
           leading: const GoogleLogo(size: 18),
-          onTap: loading ? null : onGoogle,
+          onTap: locked ? null : onGoogle,
+          loading: loadingGoogle,
+          loadingLabel: 'GOOGLE BAĞLANIYOR…',
           primary: false,
         ),
+        if (onGuest != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: AuthGuestLink(
+              label: 'Misafir olarak gez',
+              onTap: locked ? null : onGuest,
+              loading: loadingGuest,
+            ),
+          ),
+        ],
       ],
     );
 

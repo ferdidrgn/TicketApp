@@ -18,6 +18,7 @@ import '../../../home/presentation/widgets/common/home_showcase.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../widgets/browse_controls.dart';
+import '../widgets/discovery_responsive.dart';
 
 /// KEŞFET — oyunlara türe göre göz atma.
 ///
@@ -205,9 +206,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       secondary: secondary,
     );
 
-    return context.isDesktop
-        ? _desktop(context, view)
-        : _compact(context, view, tablet: context.isTablet);
+    if (DiscoveryResponsive.useSidebar(context)) {
+      return _desktop(context, view);
+    }
+    return _compact(context, view, DiscoveryResponsive.layout(context));
   }
 
   String? _lede(final _View v) {
@@ -247,7 +249,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           sliver: SliverGrid.builder(
             gridDelegate: _grid(columns),
             itemCount: columns * 2,
-            itemBuilder: (final _, final __) => const TicketCardSkeleton(),
+            itemBuilder: (final _, final __) => const BrowsePosterSkeleton(),
           ),
         ),
       ];
@@ -278,27 +280,36 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       if (v.primary.isEmpty)
         _box(
           gutter,
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TicketNotice(
-              label: 'KEŞFET',
-              title: v.categoryLabel == null
-                  ? 'Şu an sahnede oyun yok'
-                  : '“${v.categoryLabel}” türünde oyun yok',
-              message: v.categoryLabel == null
-                  ? 'Geçmiş oyunlara göz atabilirsin.'
-                  : 'Başka bir tür seç ya da tümüne bak.',
-              actionLabel:
-                  v.categoryLabel == null ? 'Geçmiş oyunlar' : 'Tüm türler',
-              onAction: v.categoryLabel == null
-                  ? () => setState(() => _showPast = true)
-                  : () => _pickCategory(null),
+          AnimatedSwitcher(
+            duration: AppMotion.fast,
+            switchInCurve: AppMotion.standard,
+            switchOutCurve: AppMotion.standard,
+            child: Align(
+              key: ValueKey(
+                  'disc-empty-${v.categoryKey ?? 'all'}-$_showPast'),
+              alignment: Alignment.centerLeft,
+              child: TicketNotice(
+                label: 'KEŞFET',
+                title: v.categoryLabel == null
+                    ? 'Şu an sahnede oyun yok'
+                    : '“${v.categoryLabel}” türünde oyun yok',
+                message: v.categoryLabel == null
+                    ? 'Geçmiş oyunlara göz atabilirsin.'
+                    : 'Başka bir tür seç ya da tümüne bak.',
+                actionLabel:
+                    v.categoryLabel == null ? 'Geçmiş oyunlar' : 'Tüm türler',
+                onAction: v.categoryLabel == null
+                    ? () => setState(() => _showPast = true)
+                    : () => _pickCategory(null),
+              ),
             ),
           ),
           bottom: AppSpacing.xxl,
         )
       else
         SliverPadding(
+          key: ValueKey(
+              'disc-grid-${v.categoryKey ?? 'all'}-${_sort.name}-$_showPast'),
           padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.xxxl),
           sliver: SliverGrid.builder(
             gridDelegate: _grid(columns),
@@ -366,10 +377,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   Widget _sortChips(final double gutter) => BrowseChoiceChips(
         options: [for (final s in _Sort.values) BrowseOption(_sortLabels[s]!)],
         selectedIndex: _sort.index,
-        onSelected: (final i) {
-          HapticFeedback.selectionClick();
-          setState(() => _sort = _Sort.values[i]);
-        },
+        onSelected: (final i) => setState(() => _sort = _Sort.values[i]),
         padding: EdgeInsets.symmetric(horizontal: gutter),
       );
 
@@ -378,9 +386,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   // ─────────────────────────────────────────────────────────────────────
 
   Widget _compact(final BuildContext context, final _View v,
-      {required final bool tablet}) {
+      final DiscoveryBrowseLayout _) {
     final cs = Theme.of(context).colorScheme;
-    final double gutter = tablet ? AppSpacing.xxl : AppSpacing.lg;
+    final double gutter = DiscoveryResponsive.pageGutter(context);
+    final int columns = DiscoveryResponsive.posterGridColumns(context);
     return BasePageWrapper(
       showBackButton: false,
       customScrollController: _scroll,
@@ -419,22 +428,37 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             ),
             if (v.categories.isNotEmpty) ...[
               _box(gutter, const BrowseSectionTitle(title: 'Türler')),
-              SliverToBoxAdapter(
-                child: _CategoryStrip(
-                  categories: v.categories,
-                  selectedKey: v.categoryKey,
-                  total: v.categories.fold(0, (final n, final c) => n + c.count),
-                  onPick: _pickCategory,
+              if (DiscoveryResponsive.showCategoryRail(context))
+                SliverToBoxAdapter(
+                  child: _CategoryStrip(
+                    categories: v.categories,
+                    selectedKey: v.categoryKey,
+                    total:
+                        v.categories.fold(0, (final n, final c) => n + c.count),
+                    onPick: _pickCategory,
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                  ),
+                )
+              else if (DiscoveryResponsive.showCategoryMosaic(context))
+                SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: gutter),
+                  sliver: SliverToBoxAdapter(
+                    child: _CategoryMosaic(
+                      categories: v.categories,
+                      selectedKey: v.categoryKey,
+                      total: v.categories
+                          .fold(0, (final n, final c) => n + c.count),
+                      onPick: _pickCategory,
+                    ),
+                  ),
                 ),
-              ),
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
             ],
             if (!_showPast)
               _box(gutter, const _NearbyTeaser(), bottom: AppSpacing.xl),
             SliverToBoxAdapter(child: _sortChips(gutter)),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-            ..._results(v, gutter, tablet ? 3 : 2),
+            ..._results(v, gutter, columns),
             if (kIsWeb) ...[
               const SliverToBoxAdapter(
                   child: SizedBox(height: AppSpacing.section)),
@@ -453,9 +477,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   Widget _desktop(final BuildContext context, final _View v) {
     final cs = Theme.of(context).colorScheme;
-    const double gutter = AppSpacing.huge;
+    final double gutter = DiscoveryResponsive.pageGutter(context);
+    final int columns = DiscoveryResponsive.posterGridColumns(context);
     final Widget sidebar = SizedBox(
-      width: 260,
+      width: DiscoveryResponsive.sidebarWidth(context),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.xxl, AppSpacing.massive, AppSpacing.md, AppSpacing.xxl),
@@ -498,9 +523,12 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           sidebar,
           VerticalDivider(width: 1, color: cs.outlineVariant),
           Expanded(
-            child: CustomScrollView(
-              controller: _scroll,
-              slivers: [
+            child: RefreshIndicator(
+              onRefresh: () async => _retry(),
+              child: CustomScrollView(
+                controller: _scroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
                 _box(
                   gutter,
                   Padding(
@@ -514,11 +542,12 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                 SliverToBoxAdapter(child: _sortChips(gutter)),
                 const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.xl)),
-                ..._results(v, gutter, 5),
+                ..._results(v, gutter, columns),
                 const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.section)),
                 const SliverToBoxAdapter(child: Footer()),
               ],
+              ),
             ),
           ),
         ],
@@ -557,6 +586,61 @@ class _View {
 // Tür şeridi: "Tümü" + afişli kategori kartları
 // ═════════════════════════════════════════════════════════════════════════
 
+class _CategoryMosaic extends StatelessWidget {
+  final List<_Category> categories;
+  final String? selectedKey;
+  final int total;
+  final ValueChanged<String?> onPick;
+
+  const _CategoryMosaic({
+    required this.categories,
+    required this.selectedKey,
+    required this.total,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final int cols = DiscoveryResponsive.categoryMosaicColumns(context);
+    const double gap = AppSpacing.md;
+    return LayoutBuilder(
+      builder: (final context, final constraints) {
+        final double tileW =
+            (constraints.maxWidth - gap * (cols - 1)) / cols;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            SizedBox(
+              width: tileW,
+              height: 104,
+              child: _CategoryCard(
+                label: 'Tümü',
+                count: total,
+                imageUrl: '',
+                selected: selectedKey == null,
+                onTap: () => onPick(null),
+              ),
+            ),
+            for (final c in categories)
+              SizedBox(
+                width: tileW,
+                height: 104,
+                child: _CategoryCard(
+                  label: c.label,
+                  count: c.count,
+                  imageUrl: c.imageUrl,
+                  selected: selectedKey == c.key,
+                  onTap: () => onPick(c.key),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _CategoryStrip extends StatelessWidget {
   final List<_Category> categories;
   final String? selectedKey;
@@ -574,25 +658,33 @@ class _CategoryStrip extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-        height: 96,
+        height: 112,
         child: ListView(
           scrollDirection: Axis.horizontal,
           padding: padding,
           children: [
-            _CategoryCard(
-              label: 'Tümü',
-              count: total,
-              imageUrl: '',
-              selected: selectedKey == null,
-              onTap: () => onPick(null),
+            SizedBox(
+              width: 132,
+              height: 104,
+              child: _CategoryCard(
+                label: 'Tümü',
+                count: total,
+                imageUrl: '',
+                selected: selectedKey == null,
+                onTap: () => onPick(null),
+              ),
             ),
             for (final c in categories)
-              _CategoryCard(
-                label: c.label,
-                count: c.count,
-                imageUrl: c.imageUrl,
-                selected: selectedKey == c.key,
-                onTap: () => onPick(c.key),
+              SizedBox(
+                width: 132,
+                height: 104,
+                child: _CategoryCard(
+                  label: c.label,
+                  count: c.count,
+                  imageUrl: c.imageUrl,
+                  selected: selectedKey == c.key,
+                  onTap: () => onPick(c.key),
+                ),
               ),
           ],
         ),
@@ -627,7 +719,8 @@ class _CategoryCard extends StatelessWidget {
         excludeSemantics: true,
         child: AnimatedContainer(
           duration: AppMotion.fast,
-          width: 132,
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
@@ -639,11 +732,18 @@ class _CategoryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.md - 2),
             child: Material(
               color: hasImage ? Colors.black : cs.primaryContainer,
-              child: InkWell(
-                onTap: onTap,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: InkWell(
+                  onTap: onTap,
+                  hoverColor: cs.primary.withValues(alpha: 0.08),
+                  splashColor: cs.primary.withValues(alpha: 0.14),
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(minWidth: 48, minHeight: 48),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
                     if (hasImage)
                       Opacity(
                         opacity: selected ? 0.9 : 0.6,
@@ -702,7 +802,9 @@ class _CategoryCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -732,14 +834,17 @@ class _NearbyTeaser extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: () => context.go('/nearby'),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            context.go('/nearby');
+          },
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: cs.onSecondaryContainer.withValues(alpha: 0.1),
                     shape: BoxShape.circle,

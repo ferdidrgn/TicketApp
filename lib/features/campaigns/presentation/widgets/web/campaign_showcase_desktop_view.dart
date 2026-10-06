@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/responsive_utils.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../../shared/widgets/footers/footer.dart';
@@ -13,6 +15,7 @@ import '../../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../domain/entities/campaign.dart';
 import '../../providers/campaign_provider.dart';
 import '../campaign_coupon.dart';
+import '../campaign_spotlight_carousel.dart';
 
 // =============================================================================
 // MASAÜSTÜ (WEB) KAMPANYALAR
@@ -63,7 +66,7 @@ class _CampaignShowcaseDesktopPageState
         : (campaigns.length == 1
             ? 'Şu an 1 aktif kampanya var.'
             : 'Şu an ${campaigns.length} aktif kampanya var. Birini seç, '
-                'kuponunu incele.');
+                'detayına bak.');
 
     final Widget content;
     if (campaignsAsync.isLoading && campaigns == null) {
@@ -87,8 +90,8 @@ class _CampaignShowcaseDesktopPageState
         child: TicketNotice(
           label: 'KAMPANYA',
           title: 'Şu an aktif kampanya yok',
-          message: 'Yeni fırsatlar eklendiğinde burada kupon olarak '
-              'görünür. Bu arada sahnedeki oyunlara göz atabilirsin.',
+          message: 'Yeni fırsatlar eklendiğinde burada görünür. '
+              'Bu arada sahnedeki oyunlara göz atabilirsin.',
           actionLabel: 'Oyunlara göz at',
           actionIcon: Icons.explore_outlined,
           onAction: () => NavigationHandler.goToDiscover(context),
@@ -102,7 +105,7 @@ class _CampaignShowcaseDesktopPageState
         children: [
           Expanded(
             flex: 3,
-            child: CampaignFeaturedCoupon(
+            child: CampaignEditorialHero(
               key: ValueKey('featured-${selected.id}'),
               campaign: selected,
             ),
@@ -139,7 +142,9 @@ class _CampaignShowcaseDesktopPageState
         child: LayoutBuilder(
           builder: (final context, final constraints) {
             final double gutter = math.max(
-                AppSpacing.huge, (constraints.maxWidth - 1240) / 2);
+              context.pagePadding.left,
+              (constraints.maxWidth - 1240) / 2,
+            );
             return ListView(
               padding: const EdgeInsets.only(top: AppSpacing.massive),
               children: [
@@ -152,7 +157,8 @@ class _CampaignShowcaseDesktopPageState
                   ),
                 ),
                 const SizedBox(height: AppSpacing.huge),
-                Padding(
+                ResponsiveUtils.maxWidthContainer(
+                  maxWidth: 1240,
                   padding: EdgeInsets.symmetric(horizontal: gutter),
                   child: content,
                 ),

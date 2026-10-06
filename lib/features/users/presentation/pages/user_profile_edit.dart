@@ -90,6 +90,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       imageQuality: 75,
     );
     if (pickedFile != null) {
+      HapticFeedback.selectionClick();
       setState(() {
         _selectedImageFile = File(pickedFile.path);
       });
@@ -119,64 +120,172 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     });
 
     if (context.isDesktop) return _buildDesktopPage(context, userAsync);
+    if (context.isTablet) return _buildTabletPage(context, userAsync);
+    return _buildMobilePage(context, userAsync);
+  }
 
-    final bool tablet = context.isTablet;
-    final double gutter = tablet ? AppSpacing.xxxl : AppSpacing.lg;
-
-    return BasePageWrapper(
-      showBackButton: true,
-      showFab: false,
-      // İskelet/hata/giriş durumlarını sayfa kendisi çiziyor; kaydetme
-      // durumu Kaydet butonunda görünür.
-      isLoading: false,
-      layoutConfig: BasePageLayoutConfig(
+  BasePageLayoutConfig _layoutConfig(final BuildContext context) =>
+      BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
         ambientColor: Colors.transparent,
         particleColor: Colors.transparent,
         safeAreaTop: true,
-      ),
-      child: SingleChildScrollView(
-        padding:
-            EdgeInsets.fromLTRB(gutter, AppSpacing.sm, gutter, AppSpacing.huge),
-        physics: const BouncingScrollPhysics(),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _heading(),
-                const SizedBox(height: AppSpacing.xxxl),
-                ..._stateOr(
-                  userAsync,
-                  (final user) => [
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _photoRow(user),
-                          const SizedBox(height: AppSpacing.xxxl),
-                          ..._formFields(user),
-                          const SizedBox(height: AppSpacing.xxxl),
-                          _buildSaveButton(expand: true),
-                        ],
-                      ),
-                    ),
-                    if (kIsWeb) ...[
-                      const SizedBox(height: AppSpacing.section),
-                      const Footer(),
-                    ],
-                  ],
+      );
+
+  /// Telefon: Kaydet başparmak bölgesinde sabit; form kaydırılır.
+  Widget _buildMobilePage(
+    final BuildContext context,
+    final AsyncValue<User?> userAsync,
+  ) {
+    const double saveBarHeight = 52 + AppSpacing.lg * 2;
+    final double bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return BasePageWrapper(
+      showBackButton: true,
+      showFab: false,
+      isLoading: false,
+      layoutConfig: _layoutConfig(context),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  context.pagePadding.left,
+                  AppSpacing.sm,
+                  context.pagePadding.right,
+                  saveBarHeight + bottomInset + AppSpacing.lg,
                 ),
-              ],
+                physics: const BouncingScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: _scrollBody(context, userAsync, includeSaveInForm: false),
+              ),
             ),
-          ),
+            Material(
+              color: context.colors.surface,
+              elevation: 6,
+              shadowColor: context.colors.shadow.withOpacity(0.12),
+              child: SafeArea(
+                top: false,
+                minimum: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+                  child: _buildSaveButton(expand: true),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  /// Tablet: fotoğraf paneli + form yan yana (dar masaüstü).
+  Widget _buildTabletPage(
+    final BuildContext context,
+    final AsyncValue<User?> userAsync,
+  ) =>
+      BasePageWrapper(
+        showBackButton: true,
+        showFab: false,
+        isLoading: false,
+        layoutConfig: _layoutConfig(context),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: context.pagePadding,
+            physics: const BouncingScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _heading(),
+                    const SizedBox(height: AppSpacing.section),
+                    ..._stateOr(
+                      userAsync,
+                      (final user) => [
+                        Form(
+                          key: _formKey,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(width: 220, child: _photoPanel(user)),
+                              const SizedBox(width: AppSpacing.xxxl),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    ..._formFields(user),
+                                    const SizedBox(height: AppSpacing.xxxl),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child:
+                                          _buildSaveButton(expand: false),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (kIsWeb) ...[
+                          const SizedBox(height: AppSpacing.section),
+                          const Footer(),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Widget _scrollBody(
+    final BuildContext context,
+    final AsyncValue<User?> userAsync, {
+    required final bool includeSaveInForm,
+  }) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading(),
+          const SizedBox(height: AppSpacing.xxxl),
+          ..._stateOr(
+            userAsync,
+            (final user) => [
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _photoRow(user),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    ..._formFields(user),
+                    if (includeSaveInForm) ...[
+                      const SizedBox(height: AppSpacing.xxxl),
+                      _buildSaveButton(expand: true),
+                    ],
+                  ],
+                ),
+              ),
+              if (kIsWeb) ...[
+                const SizedBox(height: AppSpacing.section),
+                const Footer(),
+              ],
+            ],
+          ),
+        ],
+      );
 
   Widget _heading({final VoidCallback? onBack}) => PreferencePageHeading(
         title: 'Profili düzenle',

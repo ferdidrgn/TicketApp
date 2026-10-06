@@ -37,19 +37,14 @@ class AdminPlayersTab extends ConsumerWidget {
                     builder: (final _) => const AdminPlayerFormPage())),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Yeni Oyuncu'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
+                style: adminPrimaryActionStyle(context),
               ),
             ),
           ),
         ),
         Expanded(
           child: playersAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const AdminListSkeleton(),
             error: (final e, final st) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.xl),

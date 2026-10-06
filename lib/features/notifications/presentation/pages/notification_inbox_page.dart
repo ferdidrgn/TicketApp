@@ -24,8 +24,8 @@ import '../providers/notification_provider.dart';
 /// Sakin satırlar: bir bildirim bilet değildir; ama bir seansa bağlıysa
 /// (gerçek `eventDate`) solunda o seansın küçük TARİH koçanı durur.
 /// Okunmamışlar "Yeni" altında kalın başlık + vurgu noktasıyla, okunanlar
-/// "Önceki" altında soluk. Dokunma → okundu işaretlenir (silme / kaydırarak
-/// kapatma YOK; döküman asla silinmez). Etkinlik tarihi geçmiş bildirimler
+/// "Önceki" altında soluk. Dokunma → okundu + varsa gerçek `showId` ile
+/// oyuna gider (silme yok). Etkinlik tarihi geçmiş bildirimler
 /// provider'da gizlenir (bkz. `visibleNotificationsForUserProvider`).
 ///
 /// - Mobil (<768): `BasePageWrapper` + tam genişlik liste.
@@ -45,7 +45,11 @@ class NotificationInboxPage extends ConsumerWidget {
         list == null ? 0 : list.where((final n) => !n.isRead).length;
 
     void retry() => ref.invalidate(notificationsForUserProvider(userId));
-    void markRead(final AppNotification n) => _markRead(ref, n);
+    void openNotice(final AppNotification n) {
+      _markRead(ref, n);
+      if (n.showId.trim().isEmpty) return;
+      NavigationHandler.goToShow(context, n.showId, n.showName);
+    }
 
     if (context.isDesktop) {
       final cs = context.colors;
@@ -73,7 +77,7 @@ class NotificationInboxPage extends ConsumerWidget {
                     notificationsAsync,
                     gutter: AppSpacing.xxl,
                     onRetry: retry,
-                    onTap: markRead,
+                    onTap: openNotice,
                   ),
                   const SliverToBoxAdapter(
                       child: SizedBox(height: AppSpacing.section)),
@@ -116,7 +120,7 @@ class NotificationInboxPage extends ConsumerWidget {
                   notificationsAsync,
                   gutter: gutter,
                   onRetry: retry,
-                  onTap: markRead,
+                  onTap: openNotice,
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],

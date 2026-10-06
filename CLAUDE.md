@@ -15,6 +15,19 @@ hâli + bu projede denenip reddedilen her şeyin kaydı. Süreç: tasarım plan�
 → brief'e karşı gözden geçirme → (büyük kararlarda) HTML maketi ekran
 görüntüsüyle sahibine onaylatma → Flutter kodu → eleştiri.
 
+**Web + mobil (endüstriyel, zorunlu):** Tek kod tabanı Flutter; ürün hem
+web hem Android/iOS (+ tablet). Web = büyütülmüş mobil DEĞİL. Yerleşim
+yalnızca `lib/core/util/responsive_utils.dart` kırılımları ve
+`context.isMobile` / `isTablet` / `isDesktop`: mobil <768, tablet 768–1023,
+masaüstü ≥1024, geniş ≥1440. Kırılmada **kompozisyon** değişir (sütun,
+yan panel, yapışkan CTA) — aynı ağacı `fontSize` ile şişirmek yok.
+Token: `AppSpacing` / `AppRadius` / `AppMotion` / `AppShadows`. Web sayfası
+`BasePageWrapper` kullanmıyorsa kendi `Scaffold`'u; hover + görünür odak;
+yatay şeritte mouse sürükleme. Mobil: ≥48dp, başparmak CTA, `SafeArea`,
+`ListView.builder`/`Sliver*`. Conditional export: `*_web.dart` /
+`*_mobile.dart` / `*_stub.dart`. Ayrıntı: skill `references/flutter-web.md`
+ve `flutter-mobile.md`.
+
 Sahibinin güncel kararları (28.09.2026):
 - **5 tema korunur** (appLight, appDark, system, materialLight,
   materialDark, custom). Tema değiştirme asla bozulmaz; yeni renkler

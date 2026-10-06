@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
 import 'package:ticketapp/shared/widgets/admin_guard.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/util/responsive_utils.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
@@ -34,6 +36,7 @@ class CuratorSeatingAuditPage extends ConsumerStatefulWidget {
 class _CuratorSeatingAuditPageState
     extends ConsumerState<CuratorSeatingAuditPage> {
   String? _focusedSeatId;
+  final SeatHallPlanController _hallPlanController = SeatHallPlanController();
 
   @override
   Widget build(final BuildContext context) {
@@ -73,7 +76,11 @@ class _CuratorSeatingAuditPageState
                 ),
                 data: (final seatsStatus) => Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1100),
+                    constraints: BoxConstraints(
+                      maxWidth: ResponsiveUtils.isLargeDesktop(context)
+                          ? 1440
+                          : (ResponsiveUtils.isDesktop(context) ? 1280 : 760),
+                    ),
                     child: Column(
                       children: [
                         _buildHeader(context, state),
@@ -134,11 +141,15 @@ class _CuratorSeatingAuditPageState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: SeatHallPlan(
-                      rows: rows,
-                      minSeat: 32,
-                      maxSeat: 42,
-                      seatBuilder: (final context, final seatId, final size) {
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        SeatHallPlan(
+                          controller: _hallPlanController,
+                          rows: rows,
+                          minSeat: 40,
+                          maxSeat: 48,
+                          seatBuilder: (final context, final seatId, final size) {
                         final bool isFocused = _focusedSeatId == seatId;
                         return TicketSeat(
                           seatId: seatId,
@@ -152,6 +163,9 @@ class _CuratorSeatingAuditPageState
                               setState(() => _focusedSeatId = seatId),
                         );
                       },
+                        ),
+                        SeatPlanZoomBar(controller: _hallPlanController),
+                      ],
                     ),
                   ),
                   Padding(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_html_css/simple_html_css.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
@@ -33,51 +34,78 @@ class ContractsPage extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     if (context.isDesktop) return _buildDesktopPage(context, ref);
+    if (context.isTablet) return _buildTabletPage(context, ref);
+    return _buildMobilePage(context, ref);
+  }
 
-    return DefaultTabController(
-      length: 2,
-      child: BasePageWrapper(
-        title: 'Yasal bilgiler',
-        subtitle: 'Gizlilik politikası ve kullanım şartları.',
-        rightIcon: Icons.gavel_rounded,
-        showBackButton: true,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.colors.surface,
-          safeAreaTop: true,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _kReadingWidth),
-            child: Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: _buildTabBar(context),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildMobileTab(
-                        context,
-                        ref.watch(privacyPolicyProvider),
-                        () => ref.invalidate(privacyPolicyProvider),
+  Widget _tabbedShell({
+    required final BuildContext context,
+    required final WidgetRef ref,
+    required final double maxWidth,
+    required final EdgeInsetsGeometry padding,
+  }) =>
+      DefaultTabController(
+        length: 2,
+        child: BasePageWrapper(
+          title: 'Yasal bilgiler',
+          subtitle: 'Gizlilik politikası ve kullanım şartları.',
+          rightIcon: Icons.gavel_rounded,
+          showBackButton: true,
+          layoutConfig: BasePageLayoutConfig(
+            backgroundColor: context.colors.surface,
+            safeAreaTop: true,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: padding,
+                      child: _buildTabBar(context),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildMobileTab(
+                            context,
+                            ref.watch(privacyPolicyProvider),
+                            () => ref.invalidate(privacyPolicyProvider),
+                          ),
+                          _buildMobileTab(
+                            context,
+                            ref.watch(termsConditionProvider),
+                            () => ref.invalidate(termsConditionProvider),
+                          ),
+                        ],
                       ),
-                      _buildMobileTab(
-                        context,
-                        ref.watch(termsConditionProvider),
-                        () => ref.invalidate(termsConditionProvider),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _buildMobilePage(final BuildContext context, final WidgetRef ref) =>
+      _tabbedShell(
+        context: context,
+        ref: ref,
+        maxWidth: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: context.pagePadding.left),
+      );
+
+  /// Tablet: okuma sütunu ortada; sekmeler tam genişlikte değil, sütun içinde.
+  Widget _buildTabletPage(final BuildContext context, final WidgetRef ref) =>
+      _tabbedShell(
+        context: context,
+        ref: ref,
+        maxWidth: _kReadingWidth,
+        padding: context.pagePadding,
+      );
 
   // --- SEKMELER ---
   // Bilet alanları gibi sade: alt çizgili sekme, seçili olan temanın
@@ -120,7 +148,7 @@ class ContractsPage extends ConsumerWidget {
     final Widget body = doc.when(
       data: (final content) => content == null
           ? const _DocumentMissing()
-          : _DocumentText(content: content),
+          : SelectionArea(child: _DocumentText(content: content)),
       loading: () => const _DocumentSkeleton(),
       error: (final err, final _) => _DocumentError(onRetry: onRefresh),
     );
@@ -231,18 +259,53 @@ class _DocumentText extends StatelessWidget {
   const _DocumentText({required this.content});
 
   @override
-  Widget build(final BuildContext context) => Text.rich(
-        HTML.toTextSpan(
-          context,
-          content,
-          defaultTextStyle: TextStyle(
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = context.colors;
+    final TextStyle body = TextStyle(
+      fontSize: 16,
+      height: 1.65,
+      color: cs.onSurface,
+      decoration: TextDecoration.none,
+      letterSpacing: 0.1,
+    );
+    return Text.rich(
+      HTML.toTextSpan(
+        context,
+        content,
+        defaultTextStyle: body,
+        overrideStyle: {
+          'h1': GoogleFonts.playfairDisplay(
+            fontSize: 28,
+            height: 1.15,
+            fontWeight: FontWeight.w800,
+            color: cs.onSurface,
+          ),
+          'h2': GoogleFonts.playfairDisplay(
+            fontSize: 22,
+            height: 1.2,
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+          ),
+          'h3': TextStyle(
+            fontSize: 18,
+            height: 1.25,
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+          ),
+          'p': body,
+          'li': body.copyWith(height: 1.55),
+          'strong': body.copyWith(fontWeight: FontWeight.w700),
+          'a': TextStyle(
+            color: cs.primary,
             fontSize: 16,
             height: 1.65,
-            color: context.colors.onSurface,
-            decoration: TextDecoration.none,
+            decoration: TextDecoration.underline,
+            decorationColor: cs.primary.withOpacity(0.55),
           ),
-        ),
-      );
+        },
+      ),
+    );
+  }
 }
 
 /// Yüklenirken: metin satırı şeklinde iskelet (çıplak spinner değil).
