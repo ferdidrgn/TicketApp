@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -91,12 +90,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   @override
   Widget build(final BuildContext context) {
     if (context.isDesktop) return _buildDesktopPage(context);
-    if (context.isTablet) return _buildTabletPage(context);
-    return _buildMobilePage(context);
-  }
 
-  Widget _buildMobilePage(final BuildContext context) {
-    final double bottom = MediaQuery.paddingOf(context).bottom;
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
@@ -107,67 +101,24 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       title: 'Yardım ve destek',
       subtitle: 'Sorularına hızlıca cevap bul.',
       rightIcon: Icons.support_agent_rounded,
-      child: SafeArea(
-        top: false,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            context.pagePadding.left,
-            AppSpacing.lg,
-            context.pagePadding.right,
-            AppSpacing.huge + bottom,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge),
+            children: [
+              _buildSearchBox(context),
+              const SizedBox(height: AppSpacing.xxxl),
+              ..._buildFaqSection(context),
+              const SizedBox(height: AppSpacing.huge),
+              const _SupportTicket(),
+            ],
           ),
-          children: [
-            _buildSearchBox(context),
-            const SizedBox(height: AppSpacing.xxxl),
-            ..._buildFaqSection(context),
-            const SizedBox(height: AppSpacing.huge),
-            const _SupportTicket(),
-          ],
         ),
       ),
     );
   }
-
-  /// Tablet: SSS sütunu + sabit genişlikte destek bileti (masaüstü gibi).
-  Widget _buildTabletPage(final BuildContext context) => BasePageWrapper(
-        showBackButton: true,
-        showFab: false,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.colors.surface,
-          safeAreaTop: true,
-        ),
-        title: 'Yardım ve destek',
-        subtitle: 'Sorularına hızlıca cevap bul.',
-        rightIcon: Icons.support_agent_rounded,
-        child: SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 960),
-              child: Padding(
-                padding: context.pagePadding,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildSearchBox(context),
-                          const SizedBox(height: AppSpacing.xxxl),
-                          ..._buildFaqSection(context),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xxxl),
-                    const SizedBox(width: 320, child: _SupportTicket()),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
 
   // --- 🖥️ MASAÜSTÜ / WEB ---
   Widget _buildDesktopPage(final BuildContext context) => Scaffold(
@@ -238,33 +189,29 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
           borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(color: c, width: w),
         );
-    return Semantics(
-      textField: true,
-      label: 'Sık sorulan sorularda ara',
-      child: TextField(
-        controller: _searchController,
-        textInputAction: TextInputAction.search,
-        style: TextStyle(color: cs.onSurface, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'Sorunu yaz: bilet, favori, tema…',
-          hintStyle: TextStyle(color: cs.onSurfaceVariant),
-          filled: true,
-          fillColor: cs.surfaceContainerHigh,
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
-          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
-          suffixIcon: _query.isEmpty
-              ? null
-              : IconButton(
-                  icon: Icon(Icons.close_rounded,
-                      size: 20, color: cs.onSurfaceVariant),
-                  tooltip: 'Aramayı temizle',
-                  onPressed: _searchController.clear,
-                ),
-          border: border(cs.outlineVariant),
-          enabledBorder: border(cs.outlineVariant),
-          focusedBorder: border(cs.primary, 2),
-        ),
+    return TextField(
+      controller: _searchController,
+      textInputAction: TextInputAction.search,
+      style: TextStyle(color: cs.onSurface, fontSize: 15),
+      decoration: InputDecoration(
+        hintText: 'Sorunu yaz: bilet, favori, tema…',
+        hintStyle: TextStyle(color: cs.onSurfaceVariant),
+        filled: true,
+        fillColor: cs.surfaceContainerHigh,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+        prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                icon: Icon(Icons.close_rounded,
+                    size: 20, color: cs.onSurfaceVariant),
+                tooltip: 'Aramayı temizle',
+                onPressed: _searchController.clear,
+              ),
+        border: border(cs.outlineVariant),
+        enabledBorder: border(cs.outlineVariant),
+        focusedBorder: border(cs.primary, 2),
       ),
     );
   }
@@ -280,11 +227,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
           'Sıkça sorulanlar',
           style: GoogleFonts.playfairDisplay(
             color: cs.onSurface,
-            fontSize: context.responsive(
-              mobile: 22,
-              tablet: 26,
-              desktop: 28,
-            ),
+            fontSize: 24,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -371,41 +314,8 @@ class _FaqItem extends StatelessWidget {
 
 /// "Destek bileti": gövdede tek birincil aksiyon (E-posta) + ikincil
 /// WhatsApp; koçanda sosyal hesaplar.
-class _SupportTicket extends StatefulWidget {
+class _SupportTicket extends StatelessWidget {
   const _SupportTicket();
-
-  @override
-  State<_SupportTicket> createState() => _SupportTicketState();
-}
-
-class _SupportTicketState extends State<_SupportTicket> {
-  bool _emailBusy = false;
-  bool _whatsappBusy = false;
-
-  Future<void> _runContact(
-    final Future<void> Function() action, {
-    required final void Function(bool) setBusy,
-  }) async {
-    if (_emailBusy || _whatsappBusy) return;
-    HapticFeedback.lightImpact();
-    setBusy(true);
-    try {
-      await action();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              'Bağlantı açılamadı. Biraz sonra tekrar dene.',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setBusy(false);
-    }
-  }
 
   @override
   Widget build(final BuildContext context) => AdmitTicket(
@@ -433,30 +343,14 @@ class _SupportTicketState extends State<_SupportTicket> {
               TicketStampButton(
                 label: 'E-posta gönder',
                 leading: const Icon(Icons.mail_outline_rounded),
-                loading: _emailBusy,
-                loadingLabel: 'Açılıyor…',
-                onTap: _emailBusy || _whatsappBusy
-                    ? null
-                    : () => _runContact(
-                          () => TiyatrolCommunicationActions.sendEmail(),
-                          setBusy: (final v) =>
-                              setState(() => _emailBusy = v),
-                        ),
+                onTap: () => TiyatrolCommunicationActions.sendEmail(),
               ),
               const SizedBox(height: AppSpacing.sm),
-              TicketStampButton(
+              const TicketStampButton(
                 label: 'WhatsApp ile yaz',
-                leading: const Icon(Icons.chat_bubble_outline_rounded),
+                leading: Icon(Icons.chat_bubble_outline_rounded),
                 primary: false,
-                loading: _whatsappBusy,
-                loadingLabel: 'Açılıyor…',
-                onTap: _emailBusy || _whatsappBusy
-                    ? null
-                    : () => _runContact(
-                          TiyatrolCommunicationActions.contactWhatsApp,
-                          setBusy: (final v) =>
-                              setState(() => _whatsappBusy = v),
-                        ),
+                onTap: TiyatrolCommunicationActions.contactWhatsApp,
               ),
             ],
           ),
@@ -469,21 +363,15 @@ class _SupportTicketState extends State<_SupportTicket> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('BİZİ TAKİP ET', style: TicketInk.label()),
-              Wrap(
+              const Wrap(
                 children: [
                   TicketTextLink(
                     label: 'Instagram',
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      TiyatrolCommunicationActions.openInstagram();
-                    },
+                    onTap: TiyatrolCommunicationActions.openInstagram,
                   ),
                   TicketTextLink(
                     label: 'Facebook',
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      TiyatrolCommunicationActions.openFacebook();
-                    },
+                    onTap: TiyatrolCommunicationActions.openFacebook,
                   ),
                 ],
               ),

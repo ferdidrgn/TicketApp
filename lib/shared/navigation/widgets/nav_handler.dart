@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/common/extentions/reg_exp_extentions.dart';
-import '../../../core/util/browse_memory.dart';
 import '../providers/navigation_keys.dart';
 
 /// 🧭 Global Navigation Handler
@@ -76,11 +75,9 @@ class NavigationHandler {
           '/discover?category=${Uri.encodeQueryComponent(category.trim())}');
 
   static void goToShow(final BuildContext context, final String showId,
-      final String showSlug) {
-    BrowseMemory.rememberShow(id: showId, name: showSlug);
-    _safeNavigate(
-        context, _buildPath(context, '/show', slug: showSlug, id: showId));
-  }
+          final String showSlug) =>
+      _safeNavigate(
+          context, _buildPath(context, '/show', slug: showSlug, id: showId));
 
   static void goToPlayer(final BuildContext context, final String playerId,
           final String playerSlug) =>

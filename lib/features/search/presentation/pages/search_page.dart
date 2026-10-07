@@ -11,13 +11,12 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../core/util/browse_memory.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/ticket/stage_entrance.dart';
+import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -74,15 +73,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
     with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
   bool _fieldFocused = false;
-  List<String> _recent = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    BrowseMemory.recentQueries().then((final q) {
-      if (mounted) setState(() => _recent = q);
-    });
-  }
 
   @override
   void dispose() {
@@ -98,19 +88,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   void _onQueryChanged(final String value) =>
       ref.read(searchQueryProvider.notifier).update(value);
-
-  void _applyRecent(final String q) {
-    _textController.value = TextEditingValue(
-      text: q,
-      selection: TextSelection.collapsed(offset: q.length),
-    );
-    _onQueryChanged(q);
-  }
-
-  Future<void> _rememberQuery(final String q) async {
-    final List<String> next = await BrowseMemory.pushQuery(q);
-    if (mounted) setState(() => _recent = next);
-  }
 
   void _clearQuery() {
     _textController.clear();
@@ -147,8 +124,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
       ),
       child: layout == _Layout.desktop
           ? _buildDesktop(context, state, filter, query, refreshing)
-          : _buildCompact(
-              context, state, filter, query, refreshing, layout),
+          : _buildCompact(context, state, filter, query, refreshing, layout),
     );
   }
 
@@ -186,10 +162,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   controller: _textController,
                   autofocus: autofocus,
                   onChanged: _onQueryChanged,
-                  onSubmitted: (final v) {
-                    _rememberQuery(v);
-                    FocusScope.of(context).unfocus();
-                  },
+                  onSubmitted: (final _) => FocusScope.of(context).unfocus(),
                   textInputAction: TextInputAction.search,
                   style: TextStyle(
                     color: cs.onSurface,
@@ -396,38 +369,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
         sliver: SliverToBoxAdapter(child: child),
       );
 
-  Widget _tallySliver(final SearchResultState data, final double gutter) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final List<String> bits = [
-      if (data.shows.isNotEmpty) '${data.shows.length} oyun',
-      if (data.players.isNotEmpty) '${data.players.length} oyuncu',
-      if (data.stages.isNotEmpty) '${data.stages.length} sahne',
-      if (data.teams.isNotEmpty) '${data.teams.length} ekip',
-    ];
-    if (bits.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.lg),
-        child: Material(
-          color: cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-            child: Text(
-              bits.join('   ·   '),
-              style: GoogleFonts.playfairDisplay(
-                color: cs.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _noticeSliver(final double gutter, final TicketNotice notice) =>
       _boxed(gutter, Align(alignment: Alignment.centerLeft, child: notice));
 
@@ -493,26 +434,18 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
     switch (filter) {
       case 1:
-        return [
-          _tallySliver(data, gutter),
-          _showsSliver(data.shows, layout, gutter),
-        ];
+        return [_showsSliver(data.shows, layout, gutter)];
       case 2:
-        return [
-          _tallySliver(data, gutter),
-          _playersGridSliver(data.players, gutter),
-        ];
+        return [_playersGridSliver(data.players, gutter)];
       case 3:
         return [
-          _tallySliver(data, gutter),
           _tilesSliver(
-              [for (final s in data.stages) _stageTile(s)], layout, gutter),
+              [for (final s in data.stages) _stageTile(s)], layout, gutter)
         ];
       case 4:
         return [
-          _tallySliver(data, gutter),
           _tilesSliver(
-              [for (final t in data.teams) _teamTile(t)], layout, gutter),
+              [for (final t in data.teams) _teamTile(t)], layout, gutter)
         ];
     }
 
@@ -521,40 +454,14 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final int tilePreview = layout == _Layout.mobile ? 4 : 6;
     final bool browsing = query.isEmpty;
     return [
-      _tallySliver(data, gutter),
       // Göz atma (henüz yazılmadı): ruh hâli + türler — sonuç listesi
       // değil, keşfe davet.
-      if (browsing && _recent.isNotEmpty) ...[
-        _boxed(gutter, const BrowseSectionTitle(title: 'Son aramaların')),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.xxl),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final q in _recent)
-                  ActionChip(
-                    label: Text(q),
-                    onPressed: () => _applyRecent(q),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
       if (browsing && data.shows.isNotEmpty) ...[
         _boxed(gutter, const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
         SliverToBoxAdapter(
           child: HomeMoodPicker(
               shows: data.shows,
-              padding: EdgeInsets.symmetric(horizontal: gutter),
-              selected: null,
-              onSelected: (final cat) {
-                if (cat != null) {
-                  NavigationHandler.goToDiscoverWithCategory(context, cat);
-                }
-              }),
+              padding: EdgeInsets.symmetric(horizontal: gutter)),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
         _boxed(gutter, const BrowseSectionTitle(title: 'Türlere göz at')),
@@ -660,26 +567,37 @@ class _SearchPageState extends ConsumerState<SearchPage>
     ];
   }
 
-  void _openShow(final Show show) {
-    _rememberQuery(_textController.text);
-    NavigationHandler.goToShow(context, show.id, show.name);
-  }
+  void _openShow(final Show show) =>
+      NavigationHandler.goToShow(context, show.id, show.name);
 
-  /// Oyunlar: her genişlikte afiş ızgarası (bilet satırı yalnızca seanslarda).
+  /// Oyunlar: mobilde kompakt bilet satırları, tablet/masaüstünde bilet
+  /// koçanlı kart ızgarası.
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
     final EdgeInsets padding = EdgeInsets.fromLTRB(
         gutter, 0, gutter, AppSpacing.section - AppSpacing.lg);
+    if (layout == _Layout.mobile) {
+      return SliverPadding(
+        padding: padding,
+        sliver: SliverList.separated(
+          itemCount: shows.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (final context, final i) => ShowTicketRow(
+            key: ValueKey('search-show-${shows[i].id}'),
+            show: shows[i],
+            onTap: () => _openShow(shows[i]),
+          ),
+        ),
+      );
+    }
     return SliverPadding(
       padding: padding,
       sliver: SliverGrid.builder(
-        gridDelegate: browseShowGridDelegate(switch (layout) {
-          _Layout.mobile => 168,
-          _Layout.tablet => 200,
-          _Layout.desktop => 220,
-        }),
+        gridDelegate:
+            browseShowGridDelegate(layout == _Layout.tablet ? 220 : 240),
         itemCount: shows.length,
-        itemBuilder: (final context, final i) => HomePosterCard(
+        itemBuilder: (final context, final i) => TheatreShowCard(
           key: ValueKey('search-show-${shows[i].id}'),
           show: shows[i],
           onTap: () => _openShow(shows[i]),
@@ -875,20 +793,17 @@ class _PlayerAvatar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(60),
                     child: ColoredBox(
                       color: cs.primary.withValues(alpha: 0.12),
-                      child: StageHero(
-                        tag: 'player_${player.id}',
-                        child: OptimizedCachedImage(
-                          imageUrl: player.imageUrl,
-                          fit: BoxFit.cover,
-                          width: cellWidth,
-                          errorBuilder: (final _, final __, final ___) => Center(
-                            child: Text(
-                              initials,
-                              style: TextStyle(
-                                color: cs.primary,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 22,
-                              ),
+                      child: OptimizedCachedImage(
+                        imageUrl: player.imageUrl,
+                        fit: BoxFit.cover,
+                        width: cellWidth,
+                        errorBuilder: (final _, final __, final ___) => Center(
+                          child: Text(
+                            initials,
+                            style: TextStyle(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 22,
                             ),
                           ),
                         ),

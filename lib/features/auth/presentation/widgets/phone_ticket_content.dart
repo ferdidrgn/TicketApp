@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
-import 'auth_feedback.dart';
 import 'auth_ticket.dart';
 
 /// Telefonla giriş biletinin gövdesi — iki adım:
@@ -45,16 +44,15 @@ class PhoneTicketBody extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
-    final headlineText = Text(
-      isCodeSent ? 'Kapıdaki\nkodu söyle.' : 'Bilet kimin\nadına kesilsin?',
-      style: TicketInk.headline(wide ? 54 : 36),
-    );
     final headline = Semantics(
       header: true,
-      child: reduceMotion
-          ? headlineText
-          : AuthWipeReveal(reveal: headlineReveal, child: headlineText),
+      child: AuthWipeReveal(
+        reveal: headlineReveal,
+        child: Text(
+          isCodeSent ? 'Kapıdaki\nkodu söyle.' : 'Bilet kimin\nadına kesilsin?',
+          style: TicketInk.headline(wide ? 54 : 36),
+        ),
+      ),
     );
 
     final intro = Text(
@@ -165,10 +163,10 @@ class PhoneTicketBody extends StatelessWidget {
             onSubmitted: (final _) => onSendCode(),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          AuthStampButton(
+          TicketStampButton(
             label: 'KOD GÖNDER',
             leading: const Icon(Icons.sms_outlined),
-            onTap: loading ? null : onSendCode,
+            onTap: onSendCode,
             loading: loading,
             loadingLabel: 'GÖNDERİLİYOR…',
           ),
@@ -202,10 +200,7 @@ class PhoneTicketBody extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             runSpacing: AppSpacing.xs,
             children: [
-              AuthTouchLink(
-                label: 'Numarayı düzenle',
-                onTap: loading ? null : onEditNumber,
-              ),
+              TicketTextLink(label: 'Numarayı düzenle', onTap: onEditNumber),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -222,9 +217,9 @@ class PhoneTicketBody extends StatelessWidget {
                       ),
                     ),
                   ),
-                  AuthTouchLink(
+                  TicketTextLink(
                     label: 'Yeniden gönder',
-                    onTap: loading ? null : onResend,
+                    onTap: onResend,
                     emphasize: true,
                   ),
                 ],
@@ -232,10 +227,10 @@ class PhoneTicketBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          AuthStampButton(
+          TicketStampButton(
             label: 'DOĞRULA VE İÇERİ GİR',
             leading: const Icon(Icons.login_rounded),
-            onTap: loading ? null : () => onVerify(null),
+            onTap: () => onVerify(null),
             loading: loading,
             loadingLabel: 'KAPI AÇILIYOR…',
           ),

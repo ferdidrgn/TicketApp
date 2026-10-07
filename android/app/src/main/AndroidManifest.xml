@@ -1,5 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.ferdidrgn.ticketapp">
 
     <!-- ================= Permissions ================= -->
@@ -52,13 +51,12 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <!-- Google Maps: SDK `com.google.android.geo.API_KEY` arar.
-             Değer Gradle `resValue` (local.properties MAPS_API_KEY).
-             tools:replace — eklenti AAR'ındaki boş meta-data ezilmesin. -->
+        <!-- Google Maps API anahtarı: build.gradle, android/local.properties
+        (gitignore'da, hiç commit edilmez) içindeki MAPS_API_KEY değerini
+        manifestPlaceholders üzerinden buraya enjekte ediyor. -->
         <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_api_key"
-            tools:replace="android:value" />
+            android:name="com.google.android.gms.maps.API_KEY"
+            android:value="${MAPS_API_KEY}" />
 
         <meta-data
             android:name="android.window.setDecorFitsSystemWindows"

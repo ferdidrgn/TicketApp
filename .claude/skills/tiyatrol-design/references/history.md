@@ -81,30 +81,6 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
   Unsplash `photo-1514525253161-7a46d19cd819`) — "bu foto çok iyi".
 - 5 tema özelliği — "asla temalarımı bozma".
 
-## 06.10.2026 gece — yumuşak malzeme
-
-Material 3 Expressive (tonal yüzey, büyük köşe, yaylı basış) Flutter
-token'larına alındı. "Kaldığın yerden devam" kampanya vitrininin altında.
-D-köşe, perde ve vesica yok.
-
-Afiş kartının altındaki beyaz yazı etiketi reddedildi ("oyun yazısı kötü").
-Ad artık afişin içinde: kısa mürekkep çizgisi, aralıklı tür, Playfair başlık,
-alta ve iki yana bakan `AppShadows.poster`. Beyaz etiket geri gelmesin.
-
-Sahibi ana sayfa / arama / keşfet / yakındakiler / oyun ve oyuncu
-detayının boş durduğunu söyledi. Bilet dili işlemde kalır; keşif
-yüzeyinde afiş duvarı (`HomePlaybillBoard`) ve poster ızgarası. Bölüm
-araları kısaldı. Perde, D-köşe, vesica hâlâ yok. Tek birincil aksiyon
-(Bilet al) duruyor; doluluk boşluk kısarak ve gerçek afişleri
-yan yana koyarak artar.
-
-Sahibi: keşif yüzeylerini (ana sayfa, arama, kategoriler, yakındakiler)
-TodayTix/DICE benzeri koleksiyon + tür + tarih + harita ile zenginleştir;
-bilet dilini işlem yüzeylerinde tut. Skill'ler
-`creative-design/frontend-design` ve `mobile-design` (claude-code-templates,
-Flutter'a çevrildi) güncellenir. Perde/spot her ekranda hâlâ yasak;
-motif = afiş, mürekkep çizgisi, tipografi, tek koreografili an.
-
 ## Reddedilenler
 
 ### Genel (Eylül 2026)

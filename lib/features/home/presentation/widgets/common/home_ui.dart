@@ -90,7 +90,9 @@ class HomeSectionHeader extends StatelessWidget {
   }
 }
 
-/// Ana sayfanın arama düğmesi — dokununca arama sayfasına gider.
+/// Ana sayfanın arama "düğmesi" — ortak "gişe arama fişi"
+/// ([TicketSearchButton]): vurgu renginde arama damgası + dönen gerçek
+/// örnekler. Dokununca arama sayfasına gider (gerçek yazma orada).
 class HomeSearchField extends StatelessWidget {
   final VoidCallback onTap;
   final String hint;

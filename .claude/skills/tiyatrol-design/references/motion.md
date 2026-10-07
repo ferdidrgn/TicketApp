@@ -30,10 +30,10 @@ Tokenlar: `AppMotion.fast` (200ms, geri bildirim), `normal` (500ms, geçiş),
 `slow` (700ms, sayfa açılışı). Hız farkı canlılık verir: hızlı giriş +
 yavaş yerleşme.
 
-CSS `cubic-bezier` karşılıkları (`AppMotion`):
-- yumuşak taşma: `AppMotion.overshoot` (`Cubic(0.16, 1, 0.3, 1)`)
-- zarif çıkış: `AppMotion.elegant` (`Cubic(0.33, 1, 0.68, 1)`)
-- keskin: `AppMotion.sharp` (`Cubic(0.77, 0, 0.175, 1)`)
+CSS `cubic-bezier` karşılıkları (gerekirse `AppMotion`'a eklenir):
+- yumuşak taşma: `Cubic(0.16, 1, 0.3, 1)`
+- zarif çıkış: `Cubic(0.33, 1, 0.68, 1)`
+- keskin: `Cubic(0.77, 0, 0.175, 1)`
 
 ## Azaltılmış hareket (zorunlu)
 

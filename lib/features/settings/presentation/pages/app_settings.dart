@@ -33,41 +33,14 @@ import '../../../../shared/widgets/admin_test_entry.dart';
 class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
 
-  Future<void> _handlePermission(
-    final BuildContext context,
-    final Permission permission,
-  ) async {
-    HapticFeedback.lightImpact();
+  Future<void> _handlePermission(final Permission permission) async {
     final status = await permission.status;
-    if (status.isGranted) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              prefText(context, 'Bu izin zaten açık.', 'This permission is already on.'),
-            ),
-          ),
-        );
-      }
-      return;
-    }
+    if (status.isGranted) return;
     if (status.isPermanentlyDenied) {
       await openAppSettings();
       return;
     }
-    final result = await permission.request();
-    if (!context.mounted) return;
-    final String message = result.isGranted
-        ? prefText(context, 'İzin verildi.', 'Permission granted.')
-        : prefText(
-            context,
-            'İzin verilmedi. Ayarlardan açabilirsin.',
-            'Permission denied. You can turn it on in Settings.',
-          );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
-    );
+    await permission.request();
   }
 
   // 🕵️ GİZLİ ADMİN GİRİŞİ: versiyon metnine uzun basma. Güvenlik sınırı
@@ -90,38 +63,29 @@ class AppSettingsPage extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     if (context.isDesktop) return _buildDesktopPage(context, ref);
-    if (context.isTablet) return _buildTabletPage(context, ref);
-    return _buildMobilePage(context, ref);
-  }
 
-  BasePageLayoutConfig _layoutConfig(final BuildContext context) =>
-      BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
-        ambientColor: Colors.transparent,
-        particleColor: Colors.transparent,
-        safeAreaTop: true,
-      );
-
-  /// Telefon: tek sütun; alt güvenli alan + başparmak bölgesi boşluğu.
-  Widget _buildMobilePage(final BuildContext context, final WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final double bottomInset = MediaQuery.paddingOf(context).bottom;
+    final bool tablet = context.isTablet;
+    final double gutter = tablet ? AppSpacing.xxxl : AppSpacing.lg;
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
-      layoutConfig: _layoutConfig(context),
-      child: SafeArea(
-        top: false,
-        child: Center(
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: context.colors.surface,
+        // Sade zemin: ortam ışığı / parçacık süsü yok.
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
+        safeAreaTop: true,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxWidth: tablet ? 720 : double.infinity),
           child: ListView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
-              context.pagePadding.left,
-              AppSpacing.sm,
-              context.pagePadding.right,
-              AppSpacing.xxl + bottomInset,
-            ),
+                gutter, AppSpacing.sm, gutter, AppSpacing.xxl),
             children: [
               PreferencePageHeading(
                 title: l10n.settingsTitle,
@@ -145,69 +109,6 @@ class AppSettingsPage extends ConsumerWidget {
                 const Footer(),
               ],
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Tablet: görünüm tam genişlik; dil/izinler ile paylaş yan yana.
-  Widget _buildTabletPage(final BuildContext context, final WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return BasePageWrapper(
-      showBackButton: true,
-      showFab: false,
-      layoutConfig: _layoutConfig(context),
-      child: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 820),
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: context.pagePadding,
-              children: [
-                PreferencePageHeading(
-                  title: l10n.settingsTitle,
-                  lede: prefText(
-                      context,
-                      'Görünüm, dil ve izin tercihlerin.',
-                      'Your appearance, language and permission preferences.'),
-                ),
-                const SizedBox(height: AppSpacing.section),
-                ..._appearance(context),
-                const SizedBox(height: AppSpacing.section),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ..._language(context),
-                          const SizedBox(height: AppSpacing.huge),
-                          ..._permissions(context),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xxxl),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: _share(context),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.section),
-                _versionFooter(context, ref),
-                if (kIsWeb) ...[
-                  const SizedBox(height: AppSpacing.xxl),
-                  const Footer(),
-                ],
-              ],
-            ),
           ),
         ),
       ),
@@ -256,13 +157,13 @@ class AppSettingsPage extends ConsumerWidget {
             icon: Icons.location_on_outlined,
             title: l10n.settingsLocationPermissionTitle,
             subtitle: l10n.settingsLocationPermissionSubtitle,
-            onTap: () => _handlePermission(context, Permission.location),
+            onTap: () => _handlePermission(Permission.location),
           ),
           PreferenceRow(
             icon: Icons.notifications_none_rounded,
             title: l10n.settingsNotificationsPermissionTitle,
             subtitle: l10n.settingsNotificationsPermissionSubtitle,
-            onTap: () => _handlePermission(context, Permission.notification),
+            onTap: () => _handlePermission(Permission.notification),
           ),
         ],
       ),

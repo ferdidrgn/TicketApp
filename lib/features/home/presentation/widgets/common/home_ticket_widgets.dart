@@ -1,7 +1,6 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -81,7 +80,7 @@ class HomeFeaturedTicket extends StatefulWidget {
 class _HomeFeaturedTicketState extends State<HomeFeaturedTicket>
     with SingleTickerProviderStateMixin {
   late final AnimationController _tear =
-      AnimationController(vsync: this, duration: AppMotion.slow);
+      AnimationController(vsync: this, duration: AppMotion.normal);
   late final Animation<double> _tearCurve =
       CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
   bool _busy = false;
@@ -95,7 +94,6 @@ class _HomeFeaturedTicketState extends State<HomeFeaturedTicket>
   Future<void> _open() async {
     if (_busy) return;
     _busy = true;
-    HapticFeedback.mediumImpact();
     // Koçan yırtılır → oyun sayfası. Ana sayfa sekmede canlı kaldığı için
     // (IndexedStack) geri dönüldüğünde koçan yerine takılı olsun diye geçiş
     // bittikten sonra sessizce sıfırlanır.

@@ -15,6 +15,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
+import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
@@ -37,7 +38,7 @@ import '../widgets/common/home_ui.dart';
 ///    + gerçek en yakın seansın büyük giriş bileti (birincil aksiyon: koçan
 ///    üstündeki "Bilet al" damgası; basınca koçan yırtılır).
 /// 2. Yaklaşan seanslar: gün şeridi + seçili günün seans koçanları.
-/// 3. Repertuvar: sinematik afiş ızgarası (`HomePosterCard`).
+/// 3. Repertuvar: paylaşılan `TheatreShowCard` ızgarası.
 /// 4. Kampanyalar ve 5. Şehrin sahneleri: sürüklenebilir şeritler (veri
 ///    varsa).
 /// Footer.
@@ -71,7 +72,6 @@ class _HomePageState extends ConsumerState<HomePage>
       parent: _entrance,
       curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
   bool _started = false;
-  String? _mood;
 
   @override
   void didChangeDependencies() {
@@ -161,13 +161,7 @@ class _HomePageState extends ConsumerState<HomePage>
     } else if (showLoadingState) {
       body = const _WebLoadingState();
     } else {
-      final List<Show> board = _mood == null
-          ? shows
-          : shows
-              .where((final s) =>
-                  s.category.trim().toLowerCase() == _mood!.toLowerCase())
-              .toList();
-      final double sectionGap = homeFluid(context, 28, 56);
+      final double sectionGap = homeFluid(context, 56, 104);
       body = SingleChildScrollView(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
@@ -192,20 +186,6 @@ class _HomePageState extends ConsumerState<HomePage>
               onTickets: _goToTickets,
               onOpenShow: _openShow,
             ),
-            if (shows.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                    _gutter(context), AppSpacing.lg, _gutter(context), 0),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: _kMaxContentWidth),
-                    child: HomePlaybillBoard(
-                      shows: shows,
-                      onOpen: _openShow,
-                    ),
-                  ),
-                ),
-              ),
             if (slides.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
@@ -224,11 +204,6 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                 ),
               ),
-            HomeContinueTicket(
-              shows: shows,
-              padding: EdgeInsets.fromLTRB(
-                  _gutter(context), AppSpacing.xl, _gutter(context), 0),
-            ),
             if (shows.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
@@ -238,42 +213,8 @@ class _HomePageState extends ConsumerState<HomePage>
                 child: HomeMoodPicker(
                   shows: shows,
                   padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
-                  selected: _mood,
-                  onSelected: (final cat) => setState(() => _mood = cat),
                 ),
               ),
-            if (sessions.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: sectionGap),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                        maxWidth: _kMaxContentWidth + 2 * _gutter(context)),
-                    child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: _gutter(context)),
-                      child: HomeWeekPulse(
-                        sessions: sessions,
-                        onTap: () => NavigationHandler.goToNearby(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: EdgeInsets.only(top: sectionGap),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                      maxWidth: _kMaxContentWidth + 2 * _gutter(context)),
-                  child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: _gutter(context)),
-                    child: const HomeNearbyInvite(),
-                  ),
-                ),
-              ),
-            ),
             if (sessions.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
@@ -292,10 +233,10 @@ class _HomePageState extends ConsumerState<HomePage>
                   ? null
                   : AppLocalizations.of(context)!.homeSeeAll,
               onAction: () => NavigationHandler.goToDiscover(context),
-              child: board.isEmpty
+              child: shows.isEmpty
                   ? _EmptyHint(
                       text: AppLocalizations.of(context)!.homeEmptyShowsHint)
-                  : _ShowsGrid(shows: board, onOpenShow: _openShow),
+                  : _ShowsGrid(shows: shows, onOpenShow: _openShow),
             ),
             Padding(
               padding: EdgeInsets.only(top: sectionGap),
@@ -650,7 +591,7 @@ class _WebHero extends StatelessWidget {
 // REPERTUVAR
 // ═══════════════════════════════════════════════════════════════
 
-/// Masaüstü/tablet: sinematik afiş ızgarası (sütun sayısı genişlikten);
+/// Masaüstü/tablet: `TheatreShowCard` ızgarası (sütun sayısı genişlikten);
 /// dar ekran: fare ile de sürüklenebilen yatay şerit.
 class _ShowsGrid extends StatelessWidget {
   final List<Show> shows;
@@ -665,7 +606,7 @@ class _ShowsGrid extends StatelessWidget {
         itemCount: shows.length,
         itemWidth: 168,
         height: 256,
-        itemBuilder: (final context, final i) => HomePosterCard(
+        itemBuilder: (final context, final i) => TheatreShowCard(
           show: shows[i],
           onTap: () => onOpenShow(shows[i]),
         ),
@@ -674,8 +615,7 @@ class _ShowsGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      clipBehavior: Clip.none,
-      padding: const EdgeInsets.fromLTRB(2, AppSpacing.sm, 2, 22),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       itemCount: shows.length,
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: context.isDesktop ? 248 : 224,
@@ -683,7 +623,7 @@ class _ShowsGrid extends StatelessWidget {
         crossAxisSpacing: AppSpacing.xl,
         childAspectRatio: 0.66,
       ),
-      itemBuilder: (final context, final i) => HomePosterCard(
+      itemBuilder: (final context, final i) => TheatreShowCard(
         show: shows[i],
         onTap: () => onOpenShow(shows[i]),
       ),

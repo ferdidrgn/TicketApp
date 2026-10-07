@@ -238,7 +238,6 @@ class _TabSelector extends StatelessWidget {
       unselectedLabelStyle:
           const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
       dividerColor: cs.outlineVariant,
-      onTap: (final _) => HapticFeedback.selectionClick(),
       tabs: [
         Tab(height: 48, text: _label('Yaklaşan', upcomingCount)),
         Tab(height: 48, text: _label('Geçmiş', pastCount)),

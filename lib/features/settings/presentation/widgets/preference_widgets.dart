@@ -1,11 +1,8 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/common/enum/enums.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
@@ -30,26 +27,14 @@ String prefText(
         final BuildContext context, final String tr, final String en) =>
     Localizations.localeOf(context).languageCode == 'en' ? en : tr;
 
-/// Breakpoint tabanlı tipografi (profil vb. dış tüketiciler için).
-/// Yeni kodda doğrudan `context.responsive` tercih edilir.
+/// CSS `clamp()` karşılığı: ekran genişliğine göre [min]–[max] arası.
 double prefFluid(final BuildContext context, final double min,
-        final double max) =>
-    context.responsive(
-      mobile: min,
-      tablet: min + (max - min) * 0.45,
-      desktop: max,
-    );
-
-/// Web'de fare ile yatay sürükleme (tema şeridi vb.).
-ScrollBehavior prefHorizontalDragScroll(final BuildContext context) =>
-    ScrollConfiguration.of(context).copyWith(
-      dragDevices: {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.trackpad,
-      },
-    );
+    final double max,
+    {final double minW = 375, final double maxW = 1440}) {
+  final double w = MediaQuery.sizeOf(context).width;
+  final double t = ((w - minW) / (maxW - minW)).clamp(0.0, 1.0);
+  return min + (max - min) * t;
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Başlıklar
@@ -115,11 +100,7 @@ class _PreferencePageHeadingState extends State<PreferencePageHeading>
               widget.title,
               style: GoogleFonts.playfairDisplay(
                 color: cs.onSurface,
-                fontSize: context.responsive(
-                  mobile: 32,
-                  tablet: 40,
-                  desktop: 48,
-                ),
+                fontSize: prefFluid(context, 32, 48),
                 fontWeight: FontWeight.w800,
                 height: 1.05,
                 letterSpacing: -0.5,
@@ -183,11 +164,7 @@ class PreferenceSectionTitle extends StatelessWidget {
               title,
               style: GoogleFonts.playfairDisplay(
                 color: cs.onSurface,
-                fontSize: context.responsive(
-                  mobile: 21,
-                  tablet: 24,
-                  desktop: 26,
-                ),
+                fontSize: prefFluid(context, 21, 26),
                 fontWeight: FontWeight.w700,
                 height: 1.15,
               ),
@@ -204,8 +181,6 @@ class PreferenceSectionTitle extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          const TicketInkHairline(strong: 0.38, soft: 0.22),
         ],
       ),
     );
@@ -290,19 +265,14 @@ class PreferenceRow extends StatelessWidget {
       ].join('. '),
       excludeSemantics: true,
       child: InkWell(
-        onTap: onTap == null
-            ? null
-            : () {
-                HapticFeedback.selectionClick();
-                onTap!();
-              },
+        onTap: onTap,
         mouseCursor:
             onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
         hoverColor: cs.onSurface.withOpacity(0.04),
         focusColor: cs.primary.withOpacity(0.14),
         highlightColor: cs.onSurface.withOpacity(0.06),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg, vertical: AppSpacing.md),
@@ -369,11 +339,8 @@ class LanguageSwitch extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final String code =
         ref.watch(localeControllerProvider).value?.languageCode ?? 'tr';
-    void select(final String c) {
-      if (c == code) return;
-      HapticFeedback.selectionClick();
-      ref.read(localeControllerProvider.notifier).setLocale(Locale(c));
-    }
+    void select(final String c) =>
+        ref.read(localeControllerProvider.notifier).setLocale(Locale(c));
 
     return _Segmented(
       options: [
@@ -570,40 +537,25 @@ class ThemeStylePicker extends ConsumerWidget {
         ref.read(themeProvider.notifier).setTheme(s);
 
     if (compact) {
-      return ScrollConfiguration(
-        behavior: prefHorizontalDragScroll(context),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          child: Row(
-            children: [
-              for (final s in AppThemeStyle.values) ...[
-                SizedBox(
-                  width: context.responsive(
-                    mobile: 76,
-                    tablet: 88,
-                    desktop: 96,
-                  ),
-                  child: _ThemeChip(
-                    style: s,
-                    selected: s == current,
-                    preview: _previewFor(s, custom, materialSeed),
-                    onTap: () => select(s),
-                  ),
-                ),
-                if (s != AppThemeStyle.values.last)
-                  const SizedBox(width: AppSpacing.sm),
-              ],
-            ],
-          ),
-        ),
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final s in AppThemeStyle.values)
+            Expanded(
+              child: _ThemeChip(
+                style: s,
+                selected: s == current,
+                preview: _previewFor(s, custom, materialSeed),
+                onTap: () => select(s),
+              ),
+            ),
+        ],
       );
     }
 
     return LayoutBuilder(
       builder: (final context, final c) {
-        final int cols =
-            context.responsive(mobile: 2, tablet: 3, desktop: 3);
+        final int cols = c.maxWidth >= 520 ? 3 : 2;
         const double gap = AppSpacing.md;
         final double w = (c.maxWidth - gap * (cols - 1)) / cols;
         return Wrap(
@@ -729,10 +681,7 @@ class _PressableState extends State<_Pressable> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              widget.onTap();
-            },
+            onTap: widget.onTap,
             onHover: (final v) => setState(() => _hovered = v),
             onFocusChange: (final v) => setState(() => _focused = v),
             borderRadius: widget.radius,

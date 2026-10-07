@@ -3,13 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../features/shows/domain/entities/show.dart';
 import 'optimized_cached_image.dart';
-import 'ticket/stage_entrance.dart';
 import 'ticket/ticket_kit.dart';
 
 /// Paylaşılan oyun kartı — "bilet dili": kart, koçanı delik çizgisiyle
@@ -61,10 +61,9 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
     final show = widget.show;
     final bool hasReveal =
         _revealImageUrl != null && _revealImageUrl != show.imageUrl;
-    final Color tint = Theme.of(context).colorScheme.shadow;
     final List<BoxShadow> shadows = _active
-        ? AppShadows.level4(tint)
-        : AppShadows.level2(tint);
+        ? AppShadows.level4(WebColors.veryDarkBlue)
+        : AppShadows.level2(WebColors.veryDarkBlue);
 
     return Semantics(
       button: true,
@@ -170,13 +169,10 @@ class _Body extends StatelessWidget {
                 children: [
                   ColoredBox(
                     color: TicketInk.inkSoft(0.08),
-                    child: StageHero(
-                      tag: 'show_${show.id}',
-                      child: OptimizedCachedImage(
-                        imageUrl: show.imageUrl,
-                        fit: BoxFit.cover,
-                        borderRadius: 0,
-                      ),
+                    child: OptimizedCachedImage(
+                      imageUrl: show.imageUrl,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
                     ),
                   ),
                   if (revealUrl != null)

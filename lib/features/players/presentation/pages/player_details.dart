@@ -12,8 +12,6 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
-import '../../../../shared/widgets/ticket/stage_entrance.dart';
-import '../../../../shared/widgets/ticket/wipe_on_return.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
@@ -43,17 +41,10 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
-    with GlobalScrollMixin, ReplayWipeOnReturn {
+    with GlobalScrollMixin {
   // `scrollController` GlobalScrollMixin'den gelir ve orada dispose edilir.
   // (Eskiden burada İKİNCİ kez dispose ediliyordu.)
   final GlobalKey _onStageKey = GlobalKey();
-  int _wipeEpoch = 0;
-
-  @override
-  void replayWipe() {
-    if (!mounted) return;
-    setState(() => _wipeEpoch++);
-  }
 
   @override
   Widget build(final BuildContext context) {
@@ -90,34 +81,21 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       liveActive: ref.watch(activeShowsProvider(false)).value,
     );
 
-    return StageEntrance(
-      imageUrl: player.imageUrl,
-      label: fullName,
-      portrait: true,
-      child: ProfileDetailLayout(
+    return ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
-      heroImageUrl: player.imageUrl,
-      heroImageLabel: '$fullName portresi',
-      heroPortrait: true,
-      heroPlaceholderIcon: Icons.person_rounded,
-      heroTag: 'player_${player.id}',
-      actions: ({final bool onPhoto = false}) => ProfileActionsRow(
-        onPhoto: onPhoto,
+      actions: ProfileActionsRow(
         shareLabel: 'Oyuncu profilini paylaş',
         onShare: () =>
             TiyatrolDeeplinkService.shareActor(id: player.id, name: fullName),
       ),
-      ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
-        key: ValueKey('player-ticket-$_wipeEpoch'),
+      ticket: (final layout) => ProfileTicket(
         layout: layout,
         kind: 'OYUNCU',
         name: fullName,
         imageUrl: player.imageUrl,
         imageLabel: '$fullName portresi',
         portrait: true,
-        omitBodyPhoto: heroPhoto,
-        photoHeroTag: heroPhoto ? null : 'player_${player.id}',
         placeholderIcon: Icons.person_rounded,
         tagline: player.quote,
         taglineIsQuote: true,
@@ -141,7 +119,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         compact: compact,
         onStageKey: _onStageKey,
       ),
-    ),
     );
   }
 

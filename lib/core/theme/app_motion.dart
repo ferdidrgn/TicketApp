@@ -31,13 +31,4 @@ class AppMotion {
 
   /// Dramatik, "sahne anı" hareketleri için (bkz. `curtainTransition`).
   static const Curve dramatic = Curves.easeInOutQuart;
-
-  /// Yumuşak taşma — vitrin/koçan yerleşimi (frontend-design cubic).
-  static const Curve overshoot = Cubic(0.16, 1, 0.3, 1);
-
-  /// Zarif çıkış — başlık wipe sonrası sakin oturma.
-  static const Curve elegant = Cubic(0.33, 1, 0.68, 1);
-
-  /// Keskin — damga/onay gibi kısa geri bildirim.
-  static const Curve sharp = Cubic(0.77, 0, 0.175, 1);
 }

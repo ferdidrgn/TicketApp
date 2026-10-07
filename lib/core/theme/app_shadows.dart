@@ -58,34 +58,4 @@ class AppShadows {
             blurRadius: 40,
             offset: const Offset(0, 20)),
       ];
-
-  /// Afiş kartı yerden kalkmış gibi: temas gölgesi, sola ve sağa
-  /// kayan yan gölgeler, altta geniş yer gölgesi. [lifted] false
-  /// iken kart yere iner (basılı).
-  static List<BoxShadow> poster(final Color tint, {final bool lifted = true}) {
-    final double a = lifted ? 1 : 0.4;
-    return [
-      BoxShadow(
-        color: tint.withValues(alpha: 0.30 * a),
-        blurRadius: lifted ? 6 : 2,
-        offset: Offset(0, lifted ? 3 : 1),
-      ),
-      BoxShadow(
-        color: tint.withValues(alpha: 0.20 * a),
-        blurRadius: lifted ? 22 : 10,
-        offset: Offset(lifted ? -14 : -5, lifted ? 18 : 6),
-      ),
-      BoxShadow(
-        color: tint.withValues(alpha: 0.20 * a),
-        blurRadius: lifted ? 22 : 10,
-        offset: Offset(lifted ? 14 : 5, lifted ? 18 : 6),
-      ),
-      BoxShadow(
-        color: tint.withValues(alpha: 0.36 * a),
-        blurRadius: lifted ? 36 : 14,
-        spreadRadius: lifted ? -8 : -2,
-        offset: Offset(0, lifted ? 28 : 10),
-      ),
-    ];
-  }
 }

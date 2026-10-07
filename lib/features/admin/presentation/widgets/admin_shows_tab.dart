@@ -34,14 +34,19 @@ class AdminShowsTab extends ConsumerWidget {
                     builder: (final _) => const AdminShowFormPage())),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Yeni Oyun'),
-                style: adminPrimaryActionStyle(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                ),
               ),
             ),
           ),
         ),
         Expanded(
           child: showsAsync.when(
-            loading: () => const AdminListSkeleton(),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (final e, final st) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.xl),

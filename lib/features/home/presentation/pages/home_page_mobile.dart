@@ -11,6 +11,7 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -56,7 +57,6 @@ class _HomePageState extends ConsumerState<HomePage>
       parent: _entrance,
       curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
   bool _started = false;
-  String? _mood;
 
   @override
   void initState() {
@@ -159,11 +159,9 @@ class _HomePageState extends ConsumerState<HomePage>
     // Repertuvar: "şu an sahnede" şeridinde olmayan ana sayfa oyunları —
     // aynı oyun iki kez gösterilmez.
     final activeIds = activeShows.map((final s) => s.id).toSet();
-    final List<Show> repertoire = (_mood == null
-            ? shows.where((final s) => !activeIds.contains(s.id))
-            : shows.where((final s) =>
-                s.category.trim().toLowerCase() == _mood!.toLowerCase()))
-        .take(isLargeScreen ? 9 : 8)
+    final List<Show> repertoire = shows
+        .where((final s) => !activeIds.contains(s.id))
+        .take(isLargeScreen ? 6 : 4)
         .toList();
 
     final HomeTicketLayout ticketLayout =
@@ -235,28 +233,14 @@ class _HomePageState extends ConsumerState<HomePage>
 
                       // Vitrin: kampanyalar + sahnedeki oyunlar, kendiliğinden
                       // kayar; gösterge bir sonraki slayda kalan süreyi dolar.
-                      if (shows.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        HomePlaybillBoard(
-                          shows: activeShows.isNotEmpty ? activeShows : shows,
-                          padding: gutter,
-                          onOpen: _openShow,
-                        ),
-                      ],
-
                       if (slides.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.xl),
                         _settle(HomeSpotlightCarousel(
                           slides: slides,
                           height: isLargeScreen ? 300 : 220,
                           padding: gutter,
                         )),
                       ],
-                      HomeContinueTicket(
-                        shows: shows,
-                        padding: EdgeInsets.fromLTRB(
-                            gutter.left, AppSpacing.lg, gutter.right, 0),
-                      ),
 
                       // Bu hafta: gerçek seanslardan tek satırlık nabız.
                       if (sessions.isNotEmpty) ...[
@@ -266,7 +250,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           child: HomeWeekPulse(
                             sessions: sessions,
                             onTap: () =>
-                                NavigationHandler.goToNearby(context),
+                                NavigationHandler.goToDiscover(context),
                           ),
                         ),
                       ],
@@ -299,19 +283,8 @@ class _HomePageState extends ConsumerState<HomePage>
                           title: homeText(context, 'Bugün ne izlemek istersin?',
                               'What are you in the mood for?'),
                           child: HomeMoodPicker(
-                            shows: shows,
-                            padding: gutter,
-                            selected: _mood,
-                            onSelected: (final cat) =>
-                                setState(() => _mood = cat),
-                          ),
+                              shows: shows, padding: gutter),
                         ),
-
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                            gutter.left, AppSpacing.xxl, gutter.right, 0),
-                        child: const HomeNearbyInvite(),
-                      ),
 
                       // Şu an sahnede — sinematik afiş kartları.
                       if (activeShows.isNotEmpty)
@@ -373,8 +346,7 @@ class _HomePageState extends ConsumerState<HomePage>
                             child: GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              clipBehavior: Clip.none,
-                              padding: const EdgeInsets.fromLTRB(2, 4, 2, 18),
+                              padding: EdgeInsets.zero,
                               itemCount: repertoire.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
@@ -384,7 +356,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                 childAspectRatio: 0.64,
                               ),
                               itemBuilder: (final context, final i) =>
-                                  HomePosterCard(
+                                  TheatreShowCard(
                                 show: repertoire[i],
                                 onTap: () => _openShow(repertoire[i]),
                               ),
@@ -595,7 +567,7 @@ class _MobileSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.xl),
+        padding: const EdgeInsets.only(top: AppSpacing.huge + AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

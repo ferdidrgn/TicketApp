@@ -13,16 +13,18 @@ import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
-import '../../../../shared/widgets/ticket/stage_entrance.dart';
-import '../../../../shared/widgets/ticket/wipe_on_return.dart';
 
 /// OYUN DETAYI — MOBİL UYGULAMA (Android/iOS, telefon + tablet).
 ///
-/// Editoryal oyun detayı: sinematik afiş, Playfair başlık (perde açılışı),
-/// broşür program (seanslar = yırtılabilir koçanlar). TEK birincil aksiyon
-/// yapışkan altta "Bilet al" damgası. Paylaş/favori üstte sessiz ikonlar.
+/// "Tiyatro programı + bilet": gerçek afiş bandının üstüne binen oyun
+/// bileti (ad perde gibi açılır; SÜRE / YAŞ SINIRI / TÜR alanları; koçanda
+/// en yakın seans + fiyat), altında program (seanslar = yırtılabilir
+/// koçanlar, hikâye, oyuncular, sahne, galeri, benzer oyunlar) ve
+/// başparmak bölgesinde yapışkan alt "bilet çubuğu" — sayfanın TEK birincil
+/// aksiyonu. Paylaş/favori üstte sessiz ikonlar.
 ///
-/// Büyük tablette (≥1024) web ile aynı iki bölmeli düzen.
+/// Büyük yatay tablette (≥1024) masaüstündeki iki bölmeli düzen: solda
+/// yapışkan bilet + aksiyon, sağda kayan program.
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 
@@ -33,7 +35,7 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
-    with TickerProviderStateMixin, GlobalScrollMixin, ReplayWipeOnReturn {
+    with TickerProviderStateMixin, GlobalScrollMixin {
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
   late final AnimationController _tear =
@@ -96,14 +98,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     } else {
       _entrance.forward();
     }
-  }
-
-  @override
-  void replayWipe() {
-    if (!mounted || _reduceMotion) return;
-    _entrance
-      ..reset()
-      ..forward();
   }
 
   /// "Bilet al" → seanslar (koltuk seçimi seansın koçanından başlar).
@@ -193,18 +187,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           final data = ShowDetailData.from(state);
           WidgetsBinding.instance
               .addPostFrameCallback((final _) => _startEntrance());
-          final Widget page = twoPane
+          return twoPane
               ? SafeArea(child: ShowDetailTwoPaneLayout(args: _args(data)))
               : ShowDetailStackedLayout(
                   args: _args(data),
                   scrolled: _scrolled,
                   heroPoster: true,
                 );
-          return StageEntrance(
-            imageUrl: data.show.imageUrl,
-            label: data.show.name,
-            child: page,
-          );
         },
       ),
     );

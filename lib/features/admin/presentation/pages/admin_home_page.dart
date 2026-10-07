@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/admin_guard.dart';
 import '../widgets/admin_players_tab.dart';
 import '../widgets/admin_shows_tab.dart';
@@ -21,52 +20,27 @@ class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return AdminGuard(
+  Widget build(final BuildContext context) => AdminGuard(
         allowDebugBypass: true,
         child: DefaultTabController(
           length: 5,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Sahne Arkası — Yönetim'),
-              backgroundColor: colors.surface,
-              foregroundColor: colors.onSurface,
-              surfaceTintColor: colors.surfaceTint,
-              bottom: TabBar(
+              bottom: const TabBar(
                 isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicatorColor: colors.primary,
-                labelColor: colors.primary,
-                unselectedLabelColor: colors.onSurfaceVariant,
-                dividerColor: colors.outlineVariant,
-                labelPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                tabs: const [
+                tabs: [
+                  Tab(icon: Icon(Icons.theater_comedy_rounded), text: 'Oyunlar'),
+                  Tab(icon: Icon(Icons.location_city_rounded), text: 'Sahneler'),
+                  Tab(icon: Icon(Icons.groups_rounded), text: 'Topluluklar'),
+                  Tab(icon: Icon(Icons.person_rounded), text: 'Oyuncular'),
                   Tab(
-                      height: 48,
-                      icon: Icon(Icons.theater_comedy_rounded),
-                      text: 'Oyunlar'),
-                  Tab(
-                      height: 48,
-                      icon: Icon(Icons.location_city_rounded),
-                      text: 'Sahneler'),
-                  Tab(
-                      height: 48,
-                      icon: Icon(Icons.groups_rounded),
-                      text: 'Topluluklar'),
-                  Tab(
-                      height: 48,
-                      icon: Icon(Icons.person_rounded),
-                      text: 'Oyuncular'),
-                  Tab(
-                      height: 48,
                       icon: Icon(Icons.confirmation_number_rounded),
                       text: 'Biletler'),
                 ],
               ),
             ),
-            backgroundColor: colors.surface,
+            backgroundColor: context.colors.surface,
             body: const TabBarView(
               children: [
                 AdminShowsTab(),
@@ -79,5 +53,4 @@ class AdminHomePage extends StatelessWidget {
           ),
         ),
       );
-  }
 }

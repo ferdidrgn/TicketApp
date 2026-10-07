@@ -2,19 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../providers/auth_mutation_provider.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/auth_feedback.dart';
 import '../widgets/auth_ticket.dart';
 import '../widgets/login_ticket_content.dart';
-
-enum _LoginAuthAction { none, google, guest }
 
 /// GİRİŞ — MOBİL. "Bilet gişesi": karanlık sahnede spot altında duran
 /// fiziksel bir bilet; giriş yöntemleri biletin üstüne basılı, birincil
@@ -46,9 +42,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
 
   bool _started = false;
-  bool _routeBusy = false;
-  _LoginAuthAction _authAction = _LoginAuthAction.none;
-  bool _guestLoading = false;
 
   bool get _reduceMotion => MediaQuery.of(context).disableAnimations;
 
@@ -75,76 +68,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (!_reduceMotion) await _tear.forward(from: 0);
   }
 
-  bool get _authBusy =>
-      ref.read(authMutationProvider).isLoading || _guestLoading || _routeBusy;
-
   Future<void> _goPhone() async {
-    if (_authBusy) return;
-    authHapticLight();
-    setState(() => _routeBusy = true);
     await _tearStub();
     if (!mounted) return;
-    setState(() => _routeBusy = false);
     NavigationHandler.goToPhoneLogin(context);
   }
 
   Future<void> _google() async {
-    if (_authBusy) return;
-    setState(() => _authAction = _LoginAuthAction.google);
     final tearing = _tearStub();
     await ref.read(authMutationProvider.notifier).signInWithGoogle();
     await tearing;
-    if (!mounted) return;
-    if (!ref.read(isLoggedInProvider)) _tear.reverse();
-    if (_authAction == _LoginAuthAction.google) {
-      setState(() => _authAction = _LoginAuthAction.none);
-    }
+    // Başarılıysa zaten ana sayfaya gidiliyor; iptal/hata ise koçan geri
+    // yapışır.
+    if (mounted) _tear.reverse();
   }
 
-  Future<void> _guest() async {
-    if (_authBusy) return;
-    authHapticSelection();
-    setState(() {
-      _authAction = _LoginAuthAction.guest;
-      _guestLoading = true;
-    });
-    final tearing = _tearStub();
-    try {
-      await ref.read(signInAnonymouslyUseCaseProvider).call().getOrThrow();
-      ref.invalidate(authStateProvider);
-      if (mounted) NavigationHandler.goToHome(context);
-    } catch (e) {
-      if (mounted) {
-        showAuthErrorSnackBar(
-          context,
-          message: authErrorMessage(e),
-          onRetry: _guest,
-        );
-      }
-    } finally {
-      await tearing;
-      if (mounted) {
-        _tear.reverse();
-        setState(() {
-          _guestLoading = false;
-          _authAction = _LoginAuthAction.none;
-        });
-      }
-    }
-  }
-
-  void _showAuthFailure(final Object error) {
-    final VoidCallback? retry = switch (_authAction) {
-      _LoginAuthAction.google => _google,
-      _LoginAuthAction.guest => _guest,
-      _ => null,
-    };
-    showAuthErrorSnackBar(
-      context,
-      message: authErrorMessage(error),
-      onRetry: retry,
+  void _showError(final String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red.shade800,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md)),
+      ),
     );
-    setState(() => _authAction = _LoginAuthAction.none);
   }
 
   @override
@@ -154,16 +102,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ref.listen<AsyncValue<void>>(authMutationProvider, (final prev, final next) {
       next.whenOrNull(
         error: (final error, final _) {
+          _showError(error.toString());
           _tear.reverse();
-          _showAuthFailure(error);
         },
         data: (final _) {
-          if (_authAction != _LoginAuthAction.google) return;
-          if (!ref.read(isLoggedInProvider)) {
-            _tear.reverse();
-            setState(() => _authAction = _LoginAuthAction.none);
-            return;
-          }
           if (context.mounted) NavigationHandler.goToHome(context);
         },
       );
@@ -239,14 +181,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     wide: false,
                                     headlineReveal: _headline,
                                     detailsFade: _details,
-                                    loadingGoogle: auth.isLoading &&
-                                        _authAction ==
-                                            _LoginAuthAction.google,
-                                    loadingGuest: _guestLoading,
-                                    actionLocked: _routeBusy,
+                                    loading: auth.isLoading,
                                     onPhone: _goPhone,
                                     onGoogle: _google,
-                                    onGuest: _guest,
                                   ),
                                   stub: const LoginTicketStub(wide: false),
                                 ),

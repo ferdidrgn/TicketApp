@@ -295,10 +295,7 @@ class _TicketSeatState extends State<TicketSeat> {
             onTap: interactive ? widget.onTap : null,
             onHover: (final v) => setState(() => _hovered = v),
             onFocusChange: (final v) => setState(() => _focused = v),
-            onHighlightChanged: (final v) {
-              if (v && interactive) HapticFeedback.selectionClick();
-              setState(() => _pressed = v);
-            },
+            onHighlightChanged: (final v) => setState(() => _pressed = v),
             canRequestFocus: interactive,
             mouseCursor: interactive
                 ? SystemMouseCursors.click
@@ -468,152 +465,6 @@ class _Swatch extends StatelessWidget {
 // Salon planı: yerleşim, sığdırma, yakınlaştırma, klavye
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Programatik yakınlaştırma / sığdırma ([SeatPlanZoomBar] ile paylaşılır).
-class SeatHallPlanController {
-  TransformationController? _transform;
-  double _minScale = 0.4;
-  double _maxScale = 2.5;
-  double _fitScale = 1;
-  double _initialDx = 0;
-
-  void attach({
-    required final TransformationController transform,
-    required final double minScale,
-    required final double maxScale,
-    required final double fitScale,
-    required final double initialDx,
-  }) {
-    _transform = transform;
-    _minScale = minScale;
-    _maxScale = maxScale;
-    _fitScale = fitScale;
-    _initialDx = initialDx;
-  }
-
-  void detach() => _transform = null;
-
-  void zoomBy(final double factor) {
-    final TransformationController? t = _transform;
-    if (t == null) return;
-    final Matrix4 m = t.value.clone();
-    final double scale = m.getMaxScaleOnAxis();
-    final double next = (scale * factor).clamp(_minScale, _maxScale);
-    if (next == scale) return;
-    m.scale(next / scale);
-    t.value = m;
-  }
-
-  void zoomIn() => zoomBy(1.22);
-  void zoomOut() => zoomBy(1 / 1.22);
-
-  void resetView() {
-    final TransformationController? t = _transform;
-    if (t == null) return;
-    t.value = Matrix4.identity()..translate(_initialDx, 0);
-  }
-
-  void fitToView() {
-    final TransformationController? t = _transform;
-    if (t == null) return;
-    t.value = Matrix4.identity()
-      ..translate(_initialDx, 0)
-      ..scale(_fitScale);
-  }
-}
-
-/// Parmak / fare dışında yakınlaştırma: erişilebilir 48dp düğmeler.
-class SeatPlanZoomBar extends StatelessWidget {
-  final SeatHallPlanController controller;
-  final Alignment alignment;
-
-  const SeatPlanZoomBar({
-    super.key,
-    required this.controller,
-    this.alignment = Alignment.bottomRight,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final Color shadow = cs.shadow;
-    return Align(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Material(
-          elevation: 0,
-          color: TicketInk.paper,
-          shadowColor: shadow,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            side: BorderSide(color: TicketInk.inkSoft(0.28), width: 1.1),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: DecoratedBox(
-            decoration: BoxDecoration(boxShadow: AppShadows.level2(shadow)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ZoomBtn(
-                  tooltip: 'Uzaklaştır',
-                  icon: Icons.remove_rounded,
-                  onTap: controller.zoomOut,
-                ),
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: TicketInk.inkSoft(0.18),
-                ),
-                _ZoomBtn(
-                  tooltip: 'Sığdır',
-                  icon: Icons.fit_screen_rounded,
-                  onTap: controller.fitToView,
-                ),
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: TicketInk.inkSoft(0.18),
-                ),
-                _ZoomBtn(
-                  tooltip: 'Yakınlaştır',
-                  icon: Icons.add_rounded,
-                  onTap: controller.zoomIn,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ZoomBtn extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ZoomBtn({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(final BuildContext context) => Semantics(
-        button: true,
-        label: tooltip,
-        excludeSemantics: true,
-        child: IconButton(
-          tooltip: tooltip,
-          onPressed: onTap,
-          icon: Icon(icon, color: TicketInk.inkSoft(0.85)),
-          iconSize: 22,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-        ),
-      );
-}
-
 /// Sıralar hâlinde koltuk planı. Koltuk boyutu mevcut genişliğe göre
 /// [minSeat]–[maxSeat] arasında seçilir; salon en küçük boyutta bile
 /// sığmıyorsa plan kaydırılabilir/yakınlaştırılabilir olur (iki parmak,
@@ -627,7 +478,6 @@ class SeatHallPlan extends StatefulWidget {
   final double maxSeat;
   final double gap;
   final EdgeInsets padding;
-  final SeatHallPlanController? controller;
 
   const SeatHallPlan({
     super.key,
@@ -638,7 +488,6 @@ class SeatHallPlan extends StatefulWidget {
     this.gap = 6,
     this.padding = const EdgeInsets.fromLTRB(
         AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.xl),
-    this.controller,
   });
 
   @override
@@ -665,7 +514,6 @@ class _SeatHallPlanState extends State<SeatHallPlan> {
 
   @override
   void dispose() {
-    widget.controller?.detach();
     _transform.dispose();
     super.dispose();
   }
@@ -697,8 +545,6 @@ class _SeatHallPlanState extends State<SeatHallPlan> {
         final double viewH = c.maxHeight.isFinite ? c.maxHeight : hallH;
         final double contentW = math.max(viewW, hallW);
         final double contentH = math.max(viewH, hallH);
-        final double fitScale =
-            math.min(1.0, math.min(viewW / contentW, viewH / contentH));
 
         // Salon ekrandan genişse açılışta sahneyi ortala (bir kez / boyut
         // değiştiğinde).
@@ -706,13 +552,6 @@ class _SeatHallPlanState extends State<SeatHallPlan> {
         if (_laidOutFor != now) {
           _laidOutFor = now;
           final double dx = hallW > viewW ? -(hallW - viewW) / 2 : 0;
-          widget.controller?.attach(
-            transform: _transform,
-            minScale: math.max(0.4, fitScale),
-            maxScale: 2.5,
-            fitScale: fitScale,
-            initialDx: dx,
-          );
           WidgetsBinding.instance.addPostFrameCallback((final _) {
             if (mounted) {
               _transform.value = Matrix4.translationValues(dx, 0, 0);
@@ -748,6 +587,9 @@ class _SeatHallPlanState extends State<SeatHallPlan> {
             ],
           ),
         );
+
+        final double fitScale =
+            math.min(1.0, math.min(viewW / contentW, viewH / contentH));
 
         return Shortcuts(
           shortcuts: _arrows,

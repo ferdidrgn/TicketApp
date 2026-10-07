@@ -4,47 +4,11 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
 
 /// Admin panelindeki tüm formlarda tekrar eden küçük parçalar — internal
 /// bir araç olduğu için "Perde açıldı" görsel dilinden (curtain/spotlight)
 /// bilinçli olarak kaçınır, ama renk/`AppSpacing`/`AppRadius`/`AppShadows`
 /// token kurallarını tam uygular (bkz. CLAUDE.md).
-
-/// Sekme listeleri yüklenirken satır iskeleti.
-class AdminListSkeleton extends StatelessWidget {
-  final int rows;
-
-  const AdminListSkeleton({super.key, this.rows = 6});
-
-  @override
-  Widget build(final BuildContext context) => ListView.separated(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-        itemCount: rows,
-        separatorBuilder: (final _, final __) =>
-            const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (final _, final __) => const ExcludeSemantics(
-          child: ShimmerLoading(
-            width: double.infinity,
-            height: 64,
-            borderRadius: AppRadius.sm,
-          ),
-        ),
-      );
-}
-
-/// Birincil ekleme aksiyonu — 48dp dokunma, tema renkleri.
-ButtonStyle adminPrimaryActionStyle(final BuildContext context) {
-  final colors = context.colors;
-  return ElevatedButton.styleFrom(
-    backgroundColor: colors.primary,
-    foregroundColor: colors.onPrimary,
-    minimumSize: const Size(double.infinity, 48),
-    padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-  );
-}
 
 /// Bölüm başlığı — form içindeki grupları ayırır.
 class AdminSectionTitle extends StatelessWidget {
@@ -228,31 +192,22 @@ class AdminInlineBanner extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final colors = context.colors;
-    final Color color =
-        isError ? colors.error : colors.tertiary;
-    final Color onColor =
-        isError ? colors.onError : colors.onTertiary;
+    final color = isError ? Colors.red : Colors.green;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(
-              isError
-                  ? Icons.error_outline_rounded
-                  : Icons.check_circle_outline_rounded,
-              color: onColor,
-              size: 20),
+          Icon(isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              color: color, size: 20),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-              child: Text(message,
-                  style: TextStyle(color: onColor, fontSize: 13))),
+              child: Text(message, style: TextStyle(color: color, fontSize: 13))),
         ],
       ),
     );

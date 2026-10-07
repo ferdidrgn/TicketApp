@@ -6,7 +6,7 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 
 /// Oyun detayı yüklenirken sayfanın kendi şeklinde iskelet (tam sayfa
-/// spinner yerine). [twoPane] → masaüstü: solda kahraman, sağda program.
+/// spinner yerine). [twoPane] → masaüstü: solda bilet, sağda program.
 class ShowDetailSkeleton extends StatelessWidget {
   final bool twoPane;
   const ShowDetailSkeleton({super.key, required this.twoPane});

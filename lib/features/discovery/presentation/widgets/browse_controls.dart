@@ -1,12 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 
@@ -108,20 +106,14 @@ class _BrowseHeadingState extends State<BrowseHeading>
           const SizedBox(height: AppSpacing.sm),
           FadeTransition(
             opacity: _reveal,
-            child: AnimatedSwitcher(
-              duration: AppMotion.fast,
-              switchInCurve: AppMotion.standard,
-              switchOutCurve: AppMotion.standard,
-              child: ConstrainedBox(
-                key: ValueKey<String>(widget.lede!),
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Text(
-                  widget.lede!,
-                  style: TextStyle(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Text(
+                widget.lede!,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 15,
+                  height: 1.5,
                 ),
               ),
             ),
@@ -238,20 +230,14 @@ class BrowseChoiceChips extends StatelessWidget {
     return ChoiceChip(
       showCheckmark: false,
       selected: selected,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      onSelected: (final _) {
-        HapticFeedback.selectionClick();
-        onSelected(i);
-      },
+      onSelected: (final _) => onSelected(i),
       selectedColor: cs.primary,
       backgroundColor: cs.surfaceContainer,
       side: BorderSide(color: selected ? cs.primary : cs.outlineVariant),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.pill)),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-      labelPadding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -330,7 +316,7 @@ class ShowsModeToggle extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Container(
-      height: 48,
+      height: 44,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
@@ -383,12 +369,7 @@ class _ModeSegment extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.pill),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: selected
-              ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  onTap();
-                },
+          onTap: selected ? null : onTap,
           focusColor: cs.primary.withOpacity(0.2),
           hoverColor: cs.onSurface.withOpacity(0.05),
           child: AnimatedContainer(
@@ -442,19 +423,16 @@ class BrowseSideOption extends StatelessWidget {
       selected: selected,
       label: count == null ? label : '$label, $count',
       excludeSemantics: true,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Material(
+      child: Material(
         color: selected ? cs.primary.withOpacity(0.1) : Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.xs),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           focusColor: cs.primary.withOpacity(0.18),
-          hoverColor: cs.onSurface.withOpacity(0.06),
-          splashColor: cs.primary.withOpacity(0.12),
+          hoverColor: cs.onSurface.withOpacity(0.05),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
+            constraints: const BoxConstraints(minHeight: 44),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -492,7 +470,6 @@ class BrowseSideOption extends StatelessWidget {
               ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -750,54 +727,3 @@ SliverGridDelegate browseRowGridDelegate(
       mainAxisSpacing: AppSpacing.md,
       crossAxisSpacing: AppSpacing.lg,
     );
-
-// ─────────────────────────────────────────────────────────────────────────
-// Editöryal iskeletler (bilet koçanı değil)
-// ─────────────────────────────────────────────────────────────────────────
-
-/// Afış ızgarası yüklenirken: poster alanı + alt başlık çizgisi.
-class BrowsePosterSkeleton extends StatelessWidget {
-  const BrowsePosterSkeleton({super.key});
-
-  @override
-  Widget build(final BuildContext context) => ExcludeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ShimmerLoading(
-                width: double.infinity,
-                height: double.infinity,
-                borderRadius: AppRadius.md,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const ShimmerLoading(
-              width: double.infinity,
-              height: 14,
-              borderRadius: AppRadius.xs,
-            ),
-            const SizedBox(height: 4),
-            const ShimmerLoading(
-              width: 72,
-              height: 11,
-              borderRadius: AppRadius.xs,
-            ),
-          ],
-        ),
-      );
-}
-
-/// Yakındakiler sahne kartı yüklenirken.
-class BrowseVenueCardSkeleton extends StatelessWidget {
-  const BrowseVenueCardSkeleton({super.key});
-
-  @override
-  Widget build(final BuildContext context) => ExcludeSemantics(
-        child: ShimmerLoading(
-          width: double.infinity,
-          height: 140,
-          borderRadius: AppRadius.md,
-        ),
-      );
-}

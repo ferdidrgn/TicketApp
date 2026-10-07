@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -11,7 +10,6 @@ import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
@@ -155,7 +153,7 @@ class ProgrammeSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        const TicketInkHairline(strong: 0.38, soft: 0.22),
+        Container(height: 1, color: colors.outlineVariant.withOpacity(0.6)),
         const SizedBox(height: AppSpacing.xl),
         child,
       ],
@@ -185,7 +183,6 @@ class ShowSessionsBlock extends StatefulWidget {
 class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
   static const int _initialCount = 6;
   bool _expanded = false;
-  int _window = 0;
 
   @override
   Widget build(final BuildContext context) {
@@ -226,37 +223,13 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
         const {'yok', '-', '—', 'none', 'null'}.contains(rawRule.toLowerCase())
             ? ''
             : rawRule;
-    final List<ShowSession> filtered = _windowSessions(data.sessions);
-    final int total = filtered.length;
+    final int total = data.sessions.length;
     final int visible =
         _expanded ? total : (total < _initialCount ? total : _initialCount);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final (int i, String label) in [
-              (0, 'Tümü'),
-              (1, 'Bu akşam'),
-              (2, 'Bu hafta'),
-            ])
-              FilterChip(
-                selected: _window == i,
-                label: Text(label),
-                onSelected: (final _) {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _window = i;
-                    _expanded = false;
-                  });
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
         if (rule.isNotEmpty) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,23 +251,15 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
-        if (filtered.isEmpty)
-          Text(
-            _window == 1
-                ? 'Bu akşam seans yok. Diğer günlere bak.'
-                : 'Bu hafta seans yok.',
-            style: body,
-          )
-        else
-          for (int i = 0; i < visible; i++) ...[
-            if (i > 0) const SizedBox(height: AppSpacing.md),
-            ShowSessionTicket(
-              key: ValueKey(filtered[i].event.id),
-              session: filtered[i],
-              compact: widget.compact,
-              onSelect: () => widget.onSelect(filtered[i]),
-            ),
-          ],
+        for (int i = 0; i < visible; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.md),
+          ShowSessionTicket(
+            key: ValueKey(data.sessions[i].event.id),
+            session: data.sessions[i],
+            compact: widget.compact,
+            onSelect: () => widget.onSelect(data.sessions[i]),
+          ),
+        ],
         if (total > _initialCount) ...[
           const SizedBox(height: AppSpacing.md),
           Align(
@@ -316,28 +281,6 @@ class _ShowSessionsBlockState extends State<ShowSessionsBlock> {
         ],
       ],
     );
-  }
-
-  List<ShowSession> _windowSessions(final List<ShowSession> all) {
-    if (_window == 0) return all;
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    if (_window == 1) {
-      return [
-        for (final s in all)
-          if (s.when != null &&
-              s.when!.year == today.year &&
-              s.when!.month == today.month &&
-              s.when!.day == today.day)
-            s,
-      ];
-    }
-    final DateTime end = today.add(const Duration(days: 7));
-    return [
-      for (final s in all)
-        if (s.when != null && !s.when!.isBefore(today) && s.when!.isBefore(end))
-          s,
-    ];
   }
 }
 
@@ -520,10 +463,7 @@ class _CastPortrait extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          NavigationHandler.goToPlayer(context, player.id, name);
-        },
+        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
         child: SizedBox(
           width: 92,
           child: Padding(
@@ -568,10 +508,7 @@ class _CastRow extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          NavigationHandler.goToPlayer(context, player.id, name);
-        },
+        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
         child: SizedBox(
           width: past ? 190 : 210,
           child: Padding(

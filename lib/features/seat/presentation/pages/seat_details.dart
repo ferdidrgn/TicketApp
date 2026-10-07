@@ -12,7 +12,6 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/ticket/seat_plan.dart';
@@ -55,11 +54,6 @@ class SeatSelectionPage extends ConsumerStatefulWidget {
 class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     with TickerProviderStateMixin {
   final Set<String> _processingSeats = {};
-
-  /// Sunucu yanıtı gelene kadar anında seçim geri bildirimi (iyimser katman).
-  final Map<String, bool> _optimisticSeatAdds = {};
-
-  final SeatHallPlanController _hallPlanController = SeatHallPlanController();
 
   // 🎉 Satın alma başarıyla tamamlandığında kısa bir kutlama patlaması için.
   late final ConfettiController _confettiController;
@@ -136,35 +130,17 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     super.dispose();
   }
 
-  static const int _maxSeatsPerOrder = 3;
-
   // ───────────────────────────────────────────────────────────────────────
   // Yardımcılar (sadece gösterim)
   // ───────────────────────────────────────────────────────────────────────
 
-  List<String> _mySelectedSeats(final Map<String, Map<String, dynamic>> seats) {
-    final Set<String> mine = seats.entries
-        .where((final e) =>
-            e.value['customerId'] == widget.customerId &&
-            e.value['status'] == 'reserved')
-        .map((final e) => e.key)
-        .toSet();
-    for (final entry in _optimisticSeatAdds.entries) {
-      if (entry.value) {
-        mine.add(entry.key);
-      } else {
-        mine.remove(entry.key);
-      }
-    }
-    final list = mine.toList()
-      ..sort((final a, final b) {
-        final row = seatRowOf(a).compareTo(seatRowOf(b));
-        if (row != 0) return row;
-        return (int.tryParse(seatNumberOf(a)) ?? 0)
-            .compareTo(int.tryParse(seatNumberOf(b)) ?? 0);
-      });
-    return list;
-  }
+  List<String> _mySelectedSeats(final Map<String, Map<String, dynamic>> seats) =>
+      seats.entries
+          .where((final e) =>
+              e.value['customerId'] == widget.customerId &&
+              e.value['status'] == 'reserved')
+          .map((final e) => e.key)
+          .toList();
 
   static String _friendlyError(final Object e) =>
       e.toString().replaceFirst('Exception: ', '');
@@ -175,14 +151,6 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   void _retry() {
     ref.invalidate(eventDetailProvider(widget.eventId));
     ref.invalidate(eventSeatsProvider(widget.eventId));
-  }
-
-  Future<void> _refreshPlan() async {
-    _retry();
-    await Future.wait([
-      ref.read(eventDetailProvider(widget.eventId).future),
-      ref.read(eventSeatsProvider(widget.eventId).future),
-    ]);
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -208,7 +176,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         ? null
         : _first(ref.watch(stagesByIdsProvider(_ids(event.stageId))).value);
 
-    final bool desktop = context.isDesktop;
+    final bool desktop = ResponsiveUtils.isDesktop(context);
+    final bool tablet = ResponsiveUtils.isTablet(context);
     final int seconds = timerStream.value ?? 600;
     final Map<String, Map<String, dynamic>> seats = seatsAsync.value ?? {};
     final List<String> mine = _mySelectedSeats(seats);
@@ -248,7 +217,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
               'Bağlantını kontrol edip yeniden dene.',
           onRetry: _retry,
         ),
-        data: (final live) => _buildHall(ev, live),
+        data: (final live) => _buildHall(ev, live, desktop: desktop),
       ),
     );
 
@@ -258,43 +227,34 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             ? null
             : () => _openPayment(context, mine, animateTear: desktop));
 
-    final Widget selectionStub = _MobileStub(
-      seats: mine,
-      unitPrice: unitPrice,
-      isGuest: _isGuest,
-      onPrimary: primaryAction,
-    );
-
-    final Widget body = ResponsiveUtils.responsive(
-      context,
-      mobile: _MobileLayout(
-        topBar: topBar,
-        plan: plan,
-        stub: selectionStub,
-      ),
-      tablet: _TabletLayout(
-        topBar: topBar,
-        plan: plan,
-        stub: selectionStub,
-        show: show,
-        schedule: schedule,
-      ),
-      desktop: _DesktopLayout(
-        topBar: topBar,
-        plan: plan,
-        tear: _tearCurve,
-        stub: _DesktopStub(
-          show: show,
-          stage: stage,
-          schedule: schedule,
-          seats: mine,
-          unitPrice: unitPrice,
-          isGuest: _isGuest,
-          seed: widget.eventId,
-          onPrimary: primaryAction,
-        ),
-      ),
-    );
+    final Widget body = desktop
+        ? _DesktopLayout(
+            topBar: topBar,
+            plan: plan,
+            tear: _tearCurve,
+            stub: _DesktopStub(
+              show: show,
+              stage: stage,
+              schedule: schedule,
+              seats: mine,
+              unitPrice: unitPrice,
+              isGuest: _isGuest,
+              seed: widget.eventId,
+              onPrimary: primaryAction,
+            ),
+          )
+        : _MobileLayout(
+            topBar: topBar,
+            plan: plan,
+            maxWidth: tablet ? 760 : double.infinity,
+            horizontalPadding: tablet ? AppSpacing.xxl : AppSpacing.md,
+            stub: _MobileStub(
+              seats: mine,
+              unitPrice: unitPrice,
+              isGuest: _isGuest,
+              onPrimary: primaryAction,
+            ),
+          );
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -312,10 +272,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     );
   }
 
-  Widget _buildHall(
-    final Event event,
-    final Map<String, Map<String, dynamic>> live,
-  ) {
+  Widget _buildHall(final Event event,
+      final Map<String, Map<String, dynamic>> live,
+      {required final bool desktop}) {
     final rows = groupSeatsByRow(event.seats.keys);
     if (rows.isEmpty) {
       return const _PlanError(
@@ -326,24 +285,15 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     }
 
     final String me = _isGuest ? '' : widget.customerId;
-    final List<String> mine = _mySelectedSeats(live);
     final Set<SeatVisual> present = {};
 
     SeatVisual visualOf(final String id) {
       final dynamic statusData = live[id] ?? event.seats[id] ?? const {};
-      SeatVisual base = seatVisualOf(
+      return seatVisualOf(
         status: statusData['status']?.toString() ?? 'available',
         ownerId: statusData['customerId']?.toString(),
         customerId: me,
       );
-      final bool? pending = _optimisticSeatAdds[id];
-      if (pending == true && base == SeatVisual.available) {
-        return SeatVisual.selected;
-      }
-      if (pending == false && base == SeatVisual.selected) {
-        return SeatVisual.available;
-      }
-      return base;
     }
 
     for (final row in rows.values) {
@@ -365,34 +315,16 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: RefreshIndicator(
-            color: Theme.of(context).colorScheme.primary,
-            onRefresh: _refreshPlan,
-            child: LayoutBuilder(
-              builder: (final context, final constraints) =>
-                  SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: SizedBox(
-                  height: constraints.maxHeight,
-                  child: Stack(
-            fit: StackFit.expand,
-            children: [
-              SeatHallPlan(
-                controller: _hallPlanController,
-                rows: rows,
-                minSeat: context.responsive(
-                  mobile: 48.0,
-                  tablet: 44.0,
-                  desktop: 40.0,
-                ),
-                maxSeat: context.responsive(
-                  mobile: 52.0,
-                  tablet: 48.0,
-                  desktop: 46.0,
-                ),
-                seatBuilder: (final context, final seatId, final size) {
+          child: SeatHallPlan(
+            rows: rows,
+            minSeat: desktop ? 30 : 40,
+            maxSeat: desktop ? 44 : 48,
+            seatBuilder: (final context, final seatId, final size) {
               final dynamic statusData =
                   live[seatId] ?? event.seats[seatId] ?? const {};
+              final String status =
+                  statusData['status']?.toString() ?? 'available';
+              final String? ownerId = statusData['customerId']?.toString();
               final SeatVisual visual = visualOf(seatId);
               final bool processing = _processingSeats.contains(seatId);
               // Sadece müsait ya da kendi seçtiğin koltuk dokunulabilir.
@@ -409,23 +341,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
                 busy: processing,
                 onTap: tappable
                     ? () => _handleSeatTap(
-                          seatId: seatId,
-                          visual: visual,
-                          selectedCount: mine.length,
-                        )
+                        seatId, status, ownerId == widget.customerId)
                     : null,
               );
             },
-              ),
-              SeatPlanZoomBar(
-                controller: _hallPlanController,
-                alignment: Alignment.topRight,
-              ),
-            ],
-                  ),
-                ),
-              ),
-            ),
           ),
         ),
         Padding(
@@ -437,51 +356,28 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     );
   }
 
-  Future<void> _handleSeatTap({
-    required final String seatId,
-    required final SeatVisual visual,
-    required final int selectedCount,
-  }) async {
+  // 🔹 KOLTUK SEÇME MANTIĞI (GÜVENLİK EKLENDİ)
+  Future<void> _handleSeatTap(
+      final String seatId, final String status, final bool isMine) async {
+    // 1. GÜVENLİK KONTROLÜ: Misafir ise işlem yapma, Login'e yönlendir
     if (_isGuest) {
       _showLoginDialog();
       return;
     }
+
     if (_processingSeats.contains(seatId)) return;
 
-    final bool isAdding = visual == SeatVisual.available;
-    if (isAdding && selectedCount >= _maxSeatsPerOrder) {
-      HapticFeedback.lightImpact();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              'En fazla $_maxSeatsPerOrder koltuk seçebilirsin.',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() {
-      _processingSeats.add(seatId);
-      _optimisticSeatAdds[seatId] = isAdding;
-    });
-
+    HapticFeedback.selectionClick();
+    setState(() => _processingSeats.add(seatId));
     try {
       await ref.read(toggleSeatSelectionProvider(
         eventId: widget.eventId,
         seatId: seatId,
         customerId: widget.customerId,
-        isAdding: isAdding,
+        isAdding: status == 'available',
       ).future);
-      if (mounted) {
-        setState(() => _optimisticSeatAdds.remove(seatId));
-      }
     } catch (e) {
       if (mounted) {
-        setState(() => _optimisticSeatAdds.remove(seatId));
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text('$seatId seçilemedi: ${_friendlyError(e)}'),
@@ -711,16 +607,20 @@ class _Schedule {
 // Yerleşimler
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Mobil: plan üstte, başparmak bölgesinde yapışkan koçan + birincil CTA.
+/// Mobil + tablet: dikey bilet. Gövde = plan, koçan = seçim çubuğu.
 class _MobileLayout extends StatelessWidget {
   final Widget topBar;
   final Widget plan;
   final Widget stub;
+  final double maxWidth;
+  final double horizontalPadding;
 
   const _MobileLayout({
     required this.topBar,
     required this.plan,
     required this.stub,
+    required this.maxWidth,
+    required this.horizontalPadding,
   });
 
   @override
@@ -728,164 +628,42 @@ class _MobileLayout extends StatelessWidget {
     final List<BoxShadow> shadows =
         AppShadows.level2(Theme.of(context).colorScheme.shadow);
     return Column(
-      children: [
-        topBar,
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
-            child: TicketPiece(
-              perforated: TicketEdge.bottom,
-              shadows: shadows,
-              child: plan,
-            ),
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Material(
-            color: TicketInk.paper,
-            elevation: 0,
-            shadowColor: Theme.of(context).colorScheme.shadow,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                boxShadow: AppShadows.level2(
-                    Theme.of(context).colorScheme.shadow),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                fit: StackFit.passthrough,
-                children: [
-                  TicketPiece(
-                    perforated: TicketEdge.top,
-                    shadows: shadows,
-                    child: stub,
-                  ),
-                  const Positioned(
-                    top: -1,
-                    left: 0,
-                    right: 0,
-                    height: 2,
-                    child: TicketPerforation(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Tablet: genişletilmiş telefon değil — plan + koçan yan yana (~760).
-class _TabletLayout extends StatelessWidget {
-  final Widget topBar;
-  final Widget plan;
-  final Widget stub;
-  final Show? show;
-  final _Schedule? schedule;
-
-  const _TabletLayout({
-    required this.topBar,
-    required this.plan,
-    required this.stub,
-    required this.show,
-    required this.schedule,
-  });
-
-  static const double _maxWidth = 760;
-  static const double _stubWidth = 272;
-
-  @override
-  Widget build(final BuildContext context) {
-    final List<BoxShadow> shadows =
-        AppShadows.level2(Theme.of(context).colorScheme.shadow);
-    final String? meta = schedule == null
-        ? null
-        : '${schedule!.dayMonth}, ${schedule!.time}';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         topBar,
         Expanded(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _maxWidth),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl, 0, AppSpacing.xxl, AppSpacing.lg),
+                padding: EdgeInsets.fromLTRB(horizontalPadding, 0,
+                    horizontalPadding, AppSpacing.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (show != null || meta != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (show != null)
-                              Text(
-                                show!.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.playfairDisplay(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  fontSize: context.h4Size,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            if (meta != null) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                meta,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                  fontSize: context.captionSize,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
                     Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: TicketPiece(
-                              perforated: TicketEdge.right,
-                              shadows: shadows,
-                              child: plan,
-                            ),
-                          ),
-                          SizedBox(
-                            width: _stubWidth,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              fit: StackFit.expand,
-                              children: [
-                                TicketPiece(
-                                  perforated: TicketEdge.left,
-                                  shadows: shadows,
-                                  child: stub,
-                                ),
-                                const Positioned(
-                                  top: 0,
-                                  bottom: 0,
-                                  left: -1,
-                                  width: 2,
-                                  child: TicketPerforation(
-                                      axis: Axis.vertical),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      child: TicketPiece(
+                        perforated: TicketEdge.bottom,
+                        shadows: shadows,
+                        child: plan,
                       ),
+                    ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      fit: StackFit.passthrough,
+                      children: [
+                        TicketPiece(
+                          perforated: TicketEdge.top,
+                          shadows: shadows,
+                          child: stub,
+                        ),
+                        const Positioned(
+                          top: -1,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          child: TicketPerforation(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -918,14 +696,13 @@ class _DesktopLayout extends StatelessWidget {
   Widget build(final BuildContext context) {
     final List<BoxShadow> shadows =
         AppShadows.level3(Theme.of(context).colorScheme.shadow);
-    final double ticketMaxWidth = context.isLargeDesktop ? 1440.0 : 1280.0;
     return Column(
       children: [
         topBar,
         Expanded(
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: ticketMaxWidth),
+              constraints: const BoxConstraints(maxWidth: 1360),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl, 0,
                     AppSpacing.xxxl, AppSpacing.xxxl),
@@ -1037,7 +814,7 @@ class _SeatTopBar extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.playfairDisplay(
                       color: cs.onSurface,
-                      fontSize: large ? context.h3Size : context.h4Size,
+                      fontSize: large ? 30 : 20,
                       fontWeight: FontWeight.w800,
                       height: 1.1,
                     ),
@@ -1121,7 +898,7 @@ class _TimerChip extends StatelessWidget {
 
 String _primaryLabel(final bool isGuest, final List<String> seats) {
   if (isGuest) return 'Giriş yap';
-  return seats.isEmpty ? 'Koltuğu seç' : 'Onayla';
+  return seats.isEmpty ? 'Koltuk seç' : 'Ödemeye geç';
 }
 
 /// Birincil damga butonu; seçim yokken soluk ve etkisiz (kit'te devre dışı
@@ -1404,7 +1181,7 @@ class _PlanSkeleton extends StatelessWidget {
                     .clamp(4, 14)
                     .toInt();
                 return SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   child: Column(
                   children: [
                     Container(

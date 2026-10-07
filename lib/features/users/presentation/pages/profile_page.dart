@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
-import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
 import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
@@ -96,10 +95,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ambientColor: Colors.transparent,
         particleColor: Colors.transparent,
       ),
-      child: TicketStage(
-        themed: true,
-        spotlight: false,
-        child: Center(
+      child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
               maxWidth: layout == _Layout.tablet ? 860 : double.infinity),
@@ -123,7 +119,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ],
           ),
         ),
-      ),
       ),
     );
   }
@@ -441,28 +436,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     // sayfalarıyla aynı desen).
     return Scaffold(
       backgroundColor: context.colors.surface,
-      body: TicketStage(
-        themed: true,
-        spotlight: false,
-        child: ListView(
-          controller: scrollController,
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
-                      AppSpacing.massive, AppSpacing.xxxl, AppSpacing.section),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: content,
-                  ),
+      body: ListView(
+        controller: scrollController,
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
+                    AppSpacing.massive, AppSpacing.xxxl, AppSpacing.section),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: content,
                 ),
               ),
             ),
-            const Footer(),
-          ],
-        ),
+          ),
+          const Footer(),
+        ],
       ),
     );
   }
@@ -496,7 +487,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
 /// Üyenin fiziksel abone kartı: gövdede kimlik (gerçek ad, şehir, üyelik
 /// tarihi, üye koduna özgü barkod), koçanda sayılar + "Biletlerim" damgası.
-class _SeasonPass extends StatefulWidget {
+class _SeasonPass extends StatelessWidget {
   final entity.User user;
   final String? memberSince;
   final bool horizontal;
@@ -510,42 +501,10 @@ class _SeasonPass extends StatefulWidget {
   });
 
   @override
-  State<_SeasonPass> createState() => _SeasonPassState();
-}
-
-class _SeasonPassState extends State<_SeasonPass>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entrance =
-      AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _nameReveal =
-      CurvedAnimation(parent: _entrance, curve: AppMotion.dramatic);
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (MediaQuery.of(context).disableAnimations) {
-      _entrance.value = 1;
-    } else {
-      _entrance.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _entrance.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(final BuildContext context) {
-    final entity.User user = widget.user;
     final String fullName = '${user.firstName} ${user.lastName}'.trim();
     final String name = fullName.isEmpty ? 'TiyatRol üyesi' : fullName;
     final String city = user.city.trim();
-    final bool horizontal = widget.horizontal;
 
     final Widget body = Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -561,30 +520,24 @@ class _SeasonPassState extends State<_SeasonPass>
               _Avatar(imageUrl: user.imageUrl, name: fullName, size: 60),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
-                child: Semantics(
-                  header: true,
-                  child: AuthWipeReveal(
-                    reveal: _nameReveal,
-                    child: Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TicketInk.headline(horizontal ? 30 : 26),
-                    ),
-                  ),
+                child: Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TicketInk.headline(horizontal ? 30 : 26),
                 ),
               ),
             ],
           ),
-          if (city.isNotEmpty || widget.memberSince != null) ...[
+          if (city.isNotEmpty || memberSince != null) ...[
             const SizedBox(height: AppSpacing.lg),
             Wrap(
               spacing: AppSpacing.xxl,
               runSpacing: AppSpacing.md,
               children: [
                 if (city.isNotEmpty) TicketField(label: 'ŞEHİR', value: city),
-                if (widget.memberSince != null)
-                  TicketField(label: 'ÜYELİK', value: widget.memberSince!),
+                if (memberSince != null)
+                  TicketField(label: 'ÜYELİK', value: memberSince!),
               ],
             ),
           ],
@@ -627,7 +580,7 @@ class _SeasonPassState extends State<_SeasonPass>
           TicketStampButton(
             label: 'Biletlerim',
             leading: const Icon(Icons.confirmation_number_outlined),
-            onTap: widget.onTickets,
+            onTap: onTickets,
           ),
         ],
       ),

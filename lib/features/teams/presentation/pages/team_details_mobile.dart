@@ -73,22 +73,17 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
     return ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
-      heroImageUrl: team.imageUrl,
-      heroImageLabel: '${team.name} görseli',
-      heroPlaceholderIcon: Icons.groups_2_rounded,
-      actions: ({final bool onPhoto = false}) => ProfileActionsRow(
-        onPhoto: onPhoto,
+      actions: ProfileActionsRow(
         shareLabel: 'Topluluğu paylaş',
         onShare: () =>
             TiyatrolDeeplinkService.shareTeam(id: team.id, name: team.name),
       ),
-      ticket: (final layout, {final bool heroPhoto = false}) => ProfileTicket(
+      ticket: (final layout) => ProfileTicket(
         layout: layout,
         kind: 'TOPLULUK',
         name: team.name,
         imageUrl: team.imageUrl,
         imageLabel: '${team.name} görseli',
-        omitBodyPhoto: heroPhoto,
         placeholderIcon: Icons.groups_2_rounded,
         seed: team.id,
         stubFields: [
