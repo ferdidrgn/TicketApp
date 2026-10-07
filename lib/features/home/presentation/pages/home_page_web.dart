@@ -608,6 +608,7 @@ class _ShowsGrid extends StatelessWidget {
         height: 256,
         itemBuilder: (final context, final i) => TheatreShowCard(
           show: shows[i],
+          heroFrom: 'web-rail',
           onTap: () => onOpenShow(shows[i]),
         ),
       );
@@ -625,6 +626,7 @@ class _ShowsGrid extends StatelessWidget {
       ),
       itemBuilder: (final context, final i) => TheatreShowCard(
         show: shows[i],
+        heroFrom: 'web',
         onTap: () => onOpenShow(shows[i]),
       ),
     );

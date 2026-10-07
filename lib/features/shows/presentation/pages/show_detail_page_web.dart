@@ -16,6 +16,7 @@ import '../providers/show_detail_provider.dart';
 import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
+import '../widgets/detail/show_detail_mobile_layout.dart';
 import '../widgets/detail/show_detail_skeleton.dart';
 
 /// OYUN DETAYI — WEB. "Tiyatro programı + bilet", üç gerçek kompozisyon:
@@ -195,7 +196,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         final args = _args(data);
         if (desktop) return ShowDetailTwoPaneLayout(args: args);
         if (tablet) return ShowDetailBannerLayout(args: args);
-        return ShowDetailStackedLayout(args: args, scrolled: _scrolled);
+        return ShowDetailMobileLayout(args: args, scrolled: _scrolled);
       },
     );
 

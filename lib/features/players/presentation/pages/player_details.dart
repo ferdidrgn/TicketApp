@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
@@ -11,20 +12,16 @@ import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
-import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
 import '../../../shows/presentation/widgets/detail/show_programme.dart';
+import '../../../search/presentation/providers/search_query_provider.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_provider.dart';
 import '../widgets/player_discovery_widgets.dart';
 
-/// OYUNCU SAYFASI — Keşfet dili.
-///
-/// Kimlik: 120 hap portre + Playfair ad (perde açılışı) + gerçek "şu an
-/// sahnede" alanı + TEK birincil aksiyon. Sahnedeki / geçmiş oyunlar
-/// `HomePosterCard` (koçan yok). Hakkında, ödüller, işbirlikleri yalnızca
-/// `Player` kaydındaki gerçek alanlar.
+/// OYUNCU SAYFASI — soyunma odası / program.
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
 
@@ -41,12 +38,20 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   @override
   Widget build(final BuildContext context) {
     final playerAsync = ref.watch(playerDetailProvider(widget.playerId));
-    final bool twoPane =
-        MediaQuery.sizeOf(context).width >= ResponsiveUtils.tabletBreakpoint;
 
-    return ProfilePageShell(
-      child: playerAsync.when(
-        loading: () => ShowDetailSkeleton(twoPane: twoPane),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (final didPop, final _) {
+        if (!didPop) NavigationHandler.smartGoBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: context.colors.surface,
+        body: playerAsync.when(
+        loading: () => _PreviewPlayer(
+          playerId: widget.playerId,
+          fullName: TiyatrolHeroFlight.field(context, 'title') ?? '',
+          imageUrl: TiyatrolHeroFlight.field(context, 'imageUrl') ?? '',
+        ),
         error: (final err, final _) => ProfileErrorView(
           error: err,
           notFoundTitle: 'Bu oyuncu bulunamadı',
@@ -55,6 +60,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               ref.invalidate(playerDetailProvider(widget.playerId)),
         ),
         data: (final state) => _buildPage(context, state),
+        ),
       ),
     );
   }
@@ -63,6 +69,9 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     final Player player = state.player;
     final String fullName =
         '${player.firstName} ${player.lastName}'.trim();
+    final EdgeInsets safe = MediaQuery.paddingOf(context);
+    final bool compact =
+        MediaQuery.sizeOf(context).width < ResponsiveUtils.tabletBreakpoint;
 
     final split = splitShowsByLiveActivity(
       claimedActive: state.activeShows,
@@ -76,49 +85,172 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       _ => '${split.active.length} oyunda',
     };
 
-    return ProfileDetailLayout(
-      controller: scrollController,
-      footer: kIsWeb ? const Footer() : null,
-      actions: ProfileActionsRow(
-        shareLabel: 'Oyuncu profilini paylaş',
-        onShare: () =>
-            TiyatrolDeeplinkService.shareActor(id: player.id, name: fullName),
-      ),
-      ticket: (final _) => PlayerIdentityCard(
-        fullName: fullName,
-        imageUrl: player.imageUrl,
-        quote: player.quote,
-        onStageLabel: onStageLabel,
-        actionLabel: _actionLabel(split.active),
-        onAction: _actionTap(context, split.active),
-      ),
-      programme: (final compact) => _Programme(
-        player: player,
-        activeShows: split.active,
-        pastShows: split.past,
-        compact: compact,
-        onStageKey: _onStageKey,
-      ),
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  safe.top + 64,
+                  AppSpacing.xl,
+                  AppSpacing.section,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: PlayerIdentityCard(
+                      playerId: player.id,
+                      fullName: fullName,
+                      imageUrl: player.imageUrl,
+                      quote: player.quote,
+                      onStageLabel: onStageLabel,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.massive),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child: _Programme(
+                      player: player,
+                      activeShows: split.active,
+                      pastShows: split.past,
+                      compact: compact,
+                      onStageKey: _onStageKey,
+                      onCollaboratorTap: (final name) {
+                        HapticFeedback.selectionClick();
+                        ref.read(searchQueryProvider.notifier).update(name);
+                        ref.read(searchFilterProvider.notifier).setFilter(0);
+                        NavigationHandler.goToSearch(context);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (kIsWeb) const SliverToBoxAdapter(child: Footer()),
+            SliverToBoxAdapter(
+              child: SizedBox(height: 80 + MediaQuery.paddingOf(context).bottom),
+            ),
+          ],
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.md, safe.top + AppSpacing.sm, AppSpacing.md, 0),
+            child: ProfileActionsRow(
+              shareLabel: 'Oyuncu profilini paylaş',
+              onShare: () => TiyatrolDeeplinkService.shareActor(
+                  id: player.id, name: fullName),
+            ),
+          ),
+        ),
+        if (_actionLabel(split.active) != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppRadius.xl),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+                  child: FilledButton(
+                    onPressed: _actionTap(context, split.active),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(48, 52),
+                    ),
+                    child: Text(_actionLabel(split.active)!),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   String? _actionLabel(final List<Show> active) {
-    if (active.isEmpty) {
-      return null;
-    }
+    if (active.isEmpty) return null;
     return active.length == 1 ? 'Oyuna git' : 'Oyunlarını gör';
   }
 
   VoidCallback? _actionTap(
       final BuildContext context, final List<Show> active) {
-    if (active.isEmpty) {
-      return null;
-    }
+    if (active.isEmpty) return null;
     if (active.length == 1) {
       final Show show = active.first;
       return () => NavigationHandler.goToShow(context, show.id, show.name);
     }
     return () => profileScrollTo(context, _onStageKey);
+  }
+}
+
+class _PreviewPlayer extends StatelessWidget {
+  final String playerId;
+  final String fullName;
+  final String imageUrl;
+
+  const _PreviewPlayer({
+    required this.playerId,
+    required this.fullName,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final EdgeInsets safe = MediaQuery.paddingOf(context);
+    return Stack(
+      children: [
+        ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            safe.top + 64,
+            AppSpacing.xl,
+            AppSpacing.section,
+          ),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: PlayerIdentityCard(
+                  playerId: playerId,
+                  fullName: fullName,
+                  imageUrl: imageUrl,
+                  onStageLabel: '',
+                ),
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.md, safe.top + AppSpacing.sm, AppSpacing.md, 0),
+            child: const ProfileActionsRow(),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -128,6 +260,7 @@ class _Programme extends StatelessWidget {
   final List<Show> pastShows;
   final bool compact;
   final GlobalKey onStageKey;
+  final void Function(String name) onCollaboratorTap;
 
   const _Programme({
     required this.player,
@@ -135,6 +268,7 @@ class _Programme extends StatelessWidget {
     required this.pastShows,
     required this.compact,
     required this.onStageKey,
+    required this.onCollaboratorTap,
   });
 
   @override
@@ -158,6 +292,7 @@ class _Programme extends StatelessWidget {
         KeyedSubtree(
           key: onStageKey,
           child: ProgrammeSection(
+            act: 'I. perde',
             title: 'Sahnede',
             meta: activeShows.length > 1 ? '${activeShows.length} oyun' : null,
             child: activeShows.isNotEmpty
@@ -181,6 +316,7 @@ class _Programme extends StatelessWidget {
         if (bio.isNotEmpty) ...[
           SizedBox(height: gap),
           ProgrammeSection(
+            act: 'II. perde',
             title: 'Hakkında',
             child: ShowStoryBlock(text: bio, collapsible: compact),
           ),
@@ -205,7 +341,10 @@ class _Programme extends StatelessWidget {
           SizedBox(height: gap),
           ProgrammeSection(
             title: 'Birlikte çalıştıkları',
-            child: _CreditList(names: collaborations),
+            child: _CreditList(
+              names: collaborations,
+              onNameTap: onCollaboratorTap,
+            ),
           ),
         ],
       ],
@@ -283,7 +422,9 @@ class _AchievementList extends StatelessWidget {
 
 class _CreditList extends StatelessWidget {
   final List<String> names;
-  const _CreditList({required this.names});
+  final void Function(String name) onNameTap;
+
+  const _CreditList({required this.names, required this.onNameTap});
 
   @override
   Widget build(final BuildContext context) {
@@ -293,18 +434,27 @@ class _CreditList extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       children: [
         for (final name in names)
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
+          Semantics(
+            button: true,
+            label: '$name, ara',
+            excludeSemantics: true,
+            child: Material(
               color: colors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Text(
-              name,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurface,
-                fontWeight: FontWeight.w600,
+              child: InkWell(
+                onTap: () => onNameTap(name),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  child: Text(
+                    name,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

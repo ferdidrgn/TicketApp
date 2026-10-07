@@ -132,7 +132,13 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _openShow(final Show show) =>
-      NavigationHandler.goToShow(context, show.id, show.name);
+      NavigationHandler.goToShow(
+        context,
+        show.id,
+        show.name,
+        imageUrl: show.imageUrl,
+        title: show.name,
+      );
 
   void _retry() {
     ref.invalidate(showsProvider);
@@ -301,6 +307,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             itemBuilder: (final context, final i) => HomePosterCard(
               key: ValueKey('disc-${v.primary[i].id}'),
               show: v.primary[i],
+              heroFrom: 'discover',
               onTap: () => _openShow(v.primary[i]),
             ),
           ),
@@ -330,6 +337,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               opacity: 0.85,
               child: HomePosterCard(
                 show: inactive[i],
+                heroFrom: 'discover-idle',
                 onTap: () => _openShow(inactive[i]),
               ),
             ),

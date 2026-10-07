@@ -29,6 +29,37 @@ class ShowDetailData {
     required this.venues,
   });
 
+  /// Hero uçuşu için — ağ gelmeden afiş + ad.
+  factory ShowDetailData.preview({
+    required final String id,
+    required final String name,
+    required final String imageUrl,
+  }) =>
+      ShowDetailData(
+        show: Show(
+          id: id,
+          createdAt: '',
+          updatedAt: '',
+          name: name,
+          description: '',
+          imageUrl: imageUrl,
+          duration: '',
+          category: '',
+          type: '',
+          ageLimit: '',
+          eventRule: '',
+          teamId: '',
+          eventsId: const [],
+          nowPlayersId: const [],
+          oldPlayersId: const [],
+          photosShowId: const [],
+        ),
+        sessions: const [],
+        cast: const [],
+        pastCast: const [],
+        venues: const [],
+      );
+
   factory ShowDetailData.from(final ShowDetailState state,
       {final DateTime? now}) {
     final DateTime reference = now ?? DateTime.now();

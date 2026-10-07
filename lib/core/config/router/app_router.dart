@@ -206,7 +206,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: ShowDetailPage(
               showId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
+          transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -218,10 +218,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: PlayerDetailPage(
               playerId: state.pathParameters['slugWithId']!.split('-').last),
-          // Bir oyuncuya "spot ışığının odaklanması" — bkz. focalTransition.
-          // Perde açılışı (curtainTransition) tek, özel bir ana (bkz. /app)
-          // saklı kalsın diye her oyuncu tıklamasında tekrarlanmıyor.
-          transitionsBuilder: focalTransition,
+          transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -233,7 +230,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: StageDetailPage(
               stageId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
+          transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -245,7 +242,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: TeamDetailsPage(
               teamId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: fadeTransition,
+          transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),

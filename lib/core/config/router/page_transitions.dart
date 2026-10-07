@@ -12,6 +12,22 @@ Widget fadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
         child: child);
 
+/// Kart → detay: sayfa solar, paylaşılmış afiş/portre (`Hero`) üstte uçar.
+/// Blur/scale/perde buraya konmaz — uçuşu yer.
+Widget heroSharedTransition(
+  final BuildContext context,
+  final Animation<double> animation,
+  final Animation<double> secondaryAnimation,
+  final Widget child,
+) =>
+    FadeTransition(
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: const Interval(0.18, 1.0, curve: Curves.easeOutCubic),
+      ),
+      child: child,
+    );
+
 /// Sağdan sola kayarak geçiş (Slide)
 Widget slideTransition(
   final BuildContext context,

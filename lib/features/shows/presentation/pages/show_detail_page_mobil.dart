@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
 import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
 import '../widgets/detail/show_detail_layouts.dart';
 import '../widgets/detail/show_detail_mobile_layout.dart';
-import '../widgets/detail/show_detail_skeleton.dart';
 
 /// OYUN DETAYI — MOBİL UYGULAMA (Android/iOS, telefon + tablet).
 ///
@@ -63,8 +62,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _reduceMotion = MediaQuery.of(context).disableAnimations;
-    if (_reduceMotion) {
-      _entrance.value = 1;
+    // Afiş Hero ilk karede durur; yazılar uçuş biter bitmez açılır.
+    // Shimmer yok — iskelet Hero hedefini geciktirip geçişi öldürüyordu.
+    if (!_entranceStarted) {
+      _entranceStarted = true;
+      if (_reduceMotion) {
+        _entrance.value = 1;
+      } else {
+        _entrance.forward();
+      }
     }
   }
 
@@ -83,18 +89,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       return;
     }
     _scrolled.value = scrollController.offset > 280;
-  }
-
-  void _startEntrance() {
-    if (_entranceStarted || !mounted) {
-      return;
-    }
-    _entranceStarted = true;
-    if (_reduceMotion) {
-      _entrance.value = 1;
-    } else {
-      _entrance.forward();
-    }
   }
 
   /// "Bilet al" → seanslar (koltuk seçimi seansın koçanından başlar).
@@ -151,40 +145,39 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(showDetailProvider(widget.showId));
     final colors = context.colors;
-    final bool twoPane = context.isDesktop;
+    final String previewTitle =
+        TiyatrolHeroFlight.field(context, 'title') ?? '';
+    final String previewImage =
+        TiyatrolHeroFlight.field(context, 'imageUrl') ?? '';
+    final loadedState = detailAsync.value;
+    final ShowDetailData? loaded =
+        loadedState == null ? null : ShowDetailData.from(loadedState);
+    final ShowDetailData data = loaded ??
+        ShowDetailData.preview(
+          id: widget.showId,
+          name: previewTitle,
+          imageUrl: previewImage,
+        );
 
-    return BasePageWrapper(
-      showBackButton: false,
-      // Yukarı-kaydır FAB'ı yapışkan alt çubukla çakışıyordu; kaldırıldı.
-      showFab: false,
-      customScrollController: scrollController,
-      isLoading: detailAsync.isLoading && !detailAsync.hasValue,
-      shimmerSkeleton: ShowDetailSkeleton(twoPane: twoPane),
-      layoutConfig: BasePageLayoutConfig(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (final didPop, final _) {
+        if (!didPop) NavigationHandler.smartGoBack(context);
+      },
+      child: Scaffold(
         backgroundColor: colors.surface,
-        ambientColor: Colors.transparent,
-        particleColor: Colors.transparent,
-        // Afiş durum çubuğunun altına uzanır; güvenli alanı düzen kendisi
-        // uygular (üst ikonlar + alt çubuk).
-        safeAreaTop: false,
-        safeAreaBottom: false,
-      ),
-      child: detailAsync.when(
-        loading: () => ShowDetailSkeleton(twoPane: twoPane),
-        error: (final err, final stack) => SafeArea(
-          child: ShowDetailError(
-            onRetry: () => ref.invalidate(showDetailProvider(widget.showId)),
-          ),
-        ),
-        data: (final state) {
-          final data = ShowDetailData.from(state);
-          WidgetsBinding.instance
-              .addPostFrameCallback((final _) => _startEntrance());
-          return ShowDetailMobileLayout(
-            args: _args(data),
-            scrolled: _scrolled,
-          );
-        },
+        body: detailAsync.hasError && loaded == null
+            ? SafeArea(
+                child: ShowDetailError(
+                  onRetry: () =>
+                      ref.invalidate(showDetailProvider(widget.showId)),
+                ),
+              )
+            : ShowDetailMobileLayout(
+                args: _args(data),
+                scrolled: _scrolled,
+                contentReady: loaded != null,
+              ),
       ),
     );
   }

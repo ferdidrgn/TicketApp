@@ -6,7 +6,9 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/playbill.dart';
 import '../../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import 'show_detail_actions.dart';
 import 'show_detail_data.dart';
 import 'show_programme.dart';
@@ -273,7 +275,13 @@ class _PosterBand extends StatelessWidget {
       fit: BoxFit.cover,
       borderRadius: 0,
     );
-    if (hero) image = Hero(tag: 'show_${data.show.id}', child: image);
+    if (hero) {
+      image = TiyatrolHero(
+        tag: resolveTiyatrolHeroTag(
+            context, TiyatrolHeroTags.show(data.show.id)),
+        child: image,
+      );
+    }
 
     return Stack(
       fit: StackFit.expand,
@@ -441,21 +449,12 @@ class _ShowDetailTwoPaneLayoutState extends State<ShowDetailTwoPaneLayout> {
             const SizedBox(height: AppSpacing.lg),
             _TicketEntrance(
               animation: args.ticketIn,
-              child: AdmitTicket(
-                direction: Axis.vertical,
-                tear: args.tear,
-                body: ShowTicketBody(
-                  data: data,
-                  layout: ShowTicketLayout.aside,
-                  headlineReveal: args.headline,
-                  detailsFade: args.details,
-                  posterHeight: posterHeight,
-                ),
-                stub: ShowTicketStub(
-                  data: data,
-                  layout: ShowTicketLayout.aside,
-                  action: args.primaryStamp(),
-                ),
+              child: _PlaybillAside(
+                data: data,
+                posterHeight: posterHeight,
+                headline: args.headline,
+                details: args.details,
+                action: args.primaryStamp(),
               ),
             ),
           ],
@@ -557,21 +556,12 @@ class ShowDetailBannerLayout extends StatelessWidget {
                         const SizedBox(height: AppSpacing.lg),
                         _TicketEntrance(
                           animation: args.ticketIn,
-                          child: AdmitTicket(
-                            direction: Axis.horizontal,
-                            tear: args.tear,
-                            stubExtent: 280,
-                            body: ShowTicketBody(
-                              data: data,
-                              layout: ShowTicketLayout.banner,
-                              headlineReveal: args.headline,
-                              detailsFade: args.details,
-                            ),
-                            stub: ShowTicketStub(
-                              data: data,
-                              layout: ShowTicketLayout.banner,
-                              action: args.primaryStamp(compact: true),
-                            ),
+                          child: _PlaybillAside(
+                            data: data,
+                            posterHeight: 280,
+                            headline: args.headline,
+                            details: args.details,
+                            action: args.primaryStamp(compact: true),
                           ),
                         ),
                       ],
@@ -601,6 +591,82 @@ class ShowDetailBannerLayout extends StatelessWidget {
             bottom: AppSpacing.xxl,
             child: args.chatBubble!,
           ),
+      ],
+    );
+  }
+}
+
+class _PlaybillAside extends StatelessWidget {
+  final ShowDetailData data;
+  final double posterHeight;
+  final Animation<double> headline;
+  final Animation<double> details;
+  final Widget action;
+
+  const _PlaybillAside({
+    required this.data,
+    required this.posterHeight,
+    required this.headline,
+    required this.details,
+    required this.action,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    final show = data.show;
+    final bool hasPoster = show.imageUrl.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: SizedBox(
+            height: posterHeight,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: colors.surfaceContainerHighest),
+                if (hasPoster)
+                  TiyatrolHero(
+                    tag: resolveTiyatrolHeroTag(
+                        context, TiyatrolHeroTags.show(show.id)),
+                    child: OptimizedCachedImage(
+                      imageUrl: show.imageUrl,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
+                    ),
+                  ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x00000000), Color(0xB3000000)],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: AppSpacing.lg,
+                  right: AppSpacing.lg,
+                  bottom: AppSpacing.lg,
+                  child: PlaybillCoverTitle(
+                    title: show.name,
+                    reveal: headline,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        FadeTransition(
+          opacity: details,
+          child: TitleInkMark(color: colors.primary, reveal: details),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        FadeTransition(opacity: details, child: action),
       ],
     );
   }

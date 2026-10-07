@@ -6,27 +6,31 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/playbill.dart';
 import '../../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../show_team_credit.dart';
 import 'show_detail_actions.dart';
 import 'show_detail_data.dart';
 import 'show_detail_layouts.dart';
 
-/// Android oyun detayı — Keşfet dili.
+/// Android oyun detayı — program kapağı.
 ///
-/// Afiş kahraman (Hero); ad/sanat afişte. Altında yumuşak Material yüzey
-/// (süre / yaş / tür, en yakın seans). TEK birincil aksiyon: yapışkan
-/// "Bilet al". Koçan, damga ve bilet-üstüne-binen kimlik yok. Seans
-/// listesi satın alma adımı olduğu için programdaki koçanlar durur.
+/// Afiş tam kapak (Hero + Ken Burns), ad fotoğrafın üstünde perde gibi
+/// açılır. Altında yumuşak bilgi yüzeyi. TEK aksiyon: yapışkan "Bilet al".
+/// Koçan yok; seanslar programın I. perdesinde.
 class ShowDetailMobileLayout extends StatelessWidget {
   final ShowDetailViewArgs args;
   final ValueListenable<bool> scrolled;
+  final bool contentReady;
 
   const ShowDetailMobileLayout({
     super.key,
     required this.args,
     required this.scrolled,
+    this.contentReady = true,
   });
 
   static const double barHeight = 80;
@@ -42,7 +46,7 @@ class ShowDetailMobileLayout extends StatelessWidget {
       builder: (final context, final constraints) {
         final double width = constraints.maxWidth;
         final double posterHeight =
-            hasPoster ? (width * 1.15).clamp(300.0, 460.0) : safe.top + 72;
+            hasPoster ? (width * 1.28).clamp(340.0, 520.0) : safe.top + 72;
         final bool compact = width < 600;
 
         return Stack(
@@ -51,39 +55,38 @@ class ShowDetailMobileLayout extends StatelessWidget {
               controller: args.controller,
               slivers: [
                 SliverToBoxAdapter(
-                  child: _PosterHero(
+                  child: _Cover(
                     data: data,
                     height: posterHeight,
                     showImage: hasPoster,
+                    controller: args.controller,
+                    headline: args.headline,
+                    details: args.details,
+                    onSessions: args.onBuy,
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 680),
-                        child: _ShowFactsCard(
-                          data: data,
-                          headline: args.headline,
+                if (contentReady)
+                  SliverToBoxAdapter(
+                    child: FadeTransition(
+                      opacity: args.details,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.06),
+                          end: Offset.zero,
+                        ).animate(args.details),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.lg, AppSpacing.huge, AppSpacing.lg, 0),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 680),
+                              child: args.programme(compact: compact),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.xl, AppSpacing.huge, AppSpacing.xl, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 680),
-                        child: args.programme(compact: compact),
-                      ),
-                    ),
-                  ),
-                ),
                 if (args.footer != null) ...[
                   const SliverToBoxAdapter(
                       child: SizedBox(height: AppSpacing.section)),
@@ -110,23 +113,26 @@ class ShowDetailMobileLayout extends StatelessWidget {
                     children: [
                       ShowBackButton(onImage: hasPoster && !isScrolled),
                       const Spacer(),
-                      ShowFavoriteButton(
-                          showId: data.show.id,
-                          onImage: hasPoster && !isScrolled),
-                      const SizedBox(width: AppSpacing.sm),
-                      ShowShareButton(
-                          show: data.show, onImage: hasPoster && !isScrolled),
+                      if (contentReady) ...[
+                        ShowFavoriteButton(
+                            showId: data.show.id,
+                            onImage: hasPoster && !isScrolled),
+                        const SizedBox(width: AppSpacing.sm),
+                        ShowShareButton(
+                            show: data.show, onImage: hasPoster && !isScrolled),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
-            if (args.chatBubble != null)
+            if (contentReady && args.chatBubble != null)
               Positioned(
                 left: AppSpacing.xl,
                 bottom: barHeight + safe.bottom + AppSpacing.lg,
                 child: args.chatBubble!,
               ),
+            if (contentReady)
             Positioned(
               left: 0,
               right: 0,
@@ -159,213 +165,210 @@ class ShowDetailMobileLayout extends StatelessWidget {
   }
 }
 
-class _PosterHero extends StatelessWidget {
+class _Cover extends StatelessWidget {
   final ShowDetailData data;
   final double height;
   final bool showImage;
+  final ScrollController controller;
+  final Animation<double> headline;
+  final Animation<double> details;
+  final VoidCallback onSessions;
 
-  const _PosterHero({
+  const _Cover({
     required this.data,
     required this.height,
     required this.showImage,
+    required this.controller,
+    required this.headline,
+    required this.details,
+    required this.onSessions,
   });
 
   @override
   Widget build(final BuildContext context) {
     final colors = context.colors;
+    final show = data.show;
+    final bool reduce = MediaQuery.of(context).disableAnimations;
+    final String duration = show.duration.trim();
+    final String age = show.ageLimit.trim();
+    final String category = show.category.trim();
+    final ShowSession? next = data.nextSession;
+
     Widget image = OptimizedCachedImage(
-      imageUrl: data.show.imageUrl,
+      imageUrl: show.imageUrl,
       fit: BoxFit.cover,
       borderRadius: 0,
     );
-    image = Hero(tag: 'show_${data.show.id}', child: image);
+    image = TiyatrolHero(
+      tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.show(show.id)),
+      child: image,
+    );
+
+    if (showImage && !reduce) {
+      image = AnimatedBuilder(
+        animation: controller,
+        builder: (final context, final child) {
+          final double offset =
+              controller.hasClients ? controller.offset.clamp(0, height) : 0;
+          return Transform.translate(
+            offset: Offset(0, offset * 0.32),
+            child: child,
+          );
+        },
+        child: image,
+      );
+    }
 
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(AppRadius.xl),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ColoredBox(color: colors.surfaceContainerHighest),
-            if (showImage)
-              Semantics(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(color: colors.surfaceContainerHighest),
+          if (showImage)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(AppRadius.xl),
+              ),
+              child: Semantics(
                 image: true,
-                label: '${data.show.name} afişi',
+                label: '${show.name} afişi',
                 child: image,
               ),
-            if (showImage)
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 140,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0x73000000), Color(0x00000000)],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Afişin altındaki yumuşak bilgi yüzeyi. Oyun adı afişte olduğu için
-/// burada küçük; gerçek süre / yaş / tür / seans. Buton yığını yok.
-class _ShowFactsCard extends StatelessWidget {
-  final ShowDetailData data;
-  final Animation<double> headline;
-
-  const _ShowFactsCard({required this.data, required this.headline});
-
-  @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    final show = data.show;
-    final chips = <String>[
-      if (show.duration.trim().isNotEmpty) show.duration.trim(),
-      if (show.ageLimit.trim().isNotEmpty) show.ageLimit.trim(),
-      if (show.category.trim().isNotEmpty) show.category.trim(),
-    ];
-    final ShowSession? next = data.nextSession;
-    final double? lowest = data.lowestPrice;
-
-    return Material(
-      color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              header: true,
-              child: AuthWipeReveal(
-                reveal: headline,
-                child: Text(
-                  show.name,
-                  style: GoogleFonts.playfairDisplay(
-                    color: colors.onSurface,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    height: 1.1,
-                  ),
-                ),
-              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ShowTeamCredit(teamId: show.teamId),
-            ),
-            if (chips.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  for (final chip in chips)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Text(
-                        chip,
-                        style: context.textTheme.labelLarge?.copyWith(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x66000000),
+                  Color(0x00000000),
+                  Color(0xCC000000),
                 ],
+                stops: [0, 0.35, 1],
               ),
-            ],
-            if (!data.isExternal) ...[
-              const SizedBox(height: AppSpacing.lg),
-              _FactRow(
-                label: next == null ? 'Seans' : 'En yakın seans',
-                value: next?.shortLabel ?? 'Satışta seans yok',
-              ),
-              if (lowest != null) ...[
+            ),
+          ),
+          Positioned(
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            bottom: AppSpacing.xxl,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                PlaybillCoverTitle(
+                  title: show.name,
+                  reveal: headline,
+                  color: Colors.white,
+                ),
                 const SizedBox(height: AppSpacing.sm),
-                _FactRow(
-                  label: data.sessions
-                              .map((final s) => s.price)
-                              .whereType<double>()
-                              .toSet()
-                              .length >
-                          1
-                      ? 'En uygun'
-                      : 'Fiyat',
-                  value: formatTicketPrice(lowest),
+                TitleInkMark(color: Colors.white, reveal: details, width: 48),
+                const SizedBox(height: AppSpacing.md),
+                FadeTransition(
+                  opacity: details,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShowTeamCredit(teamId: show.teamId),
+                      if (duration.isNotEmpty ||
+                          age.isNotEmpty ||
+                          category.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
+                          children: [
+                            if (duration.isNotEmpty)
+                              _CoverChip(label: duration),
+                            if (age.isNotEmpty) _CoverChip(label: age),
+                            if (category.isNotEmpty)
+                              _CoverChip(
+                                label: category,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  NavigationHandler.goToDiscoverWithCategory(
+                                      context, category);
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (!data.isExternal && next != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        Semantics(
+                          button: true,
+                          label: 'En yakın seans, ${next.shortLabel}',
+                          excludeSemantics: true,
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              onSessions();
+                            },
+                            child: Text(
+                              next.shortLabel,
+                              style: GoogleFonts.playfairDisplay(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
-            ] else ...[
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Biletler başka bir platformda satılıyor.',
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FactRow extends StatelessWidget {
+class _CoverChip extends StatelessWidget {
   final String label;
-  final String value;
+  final VoidCallback? onTap;
 
-  const _FactRow({required this.label, required this.value});
+  const _CoverChip({required this.label, this.onTap});
 
   @override
   Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
+    final Widget child = Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
         ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            style: context.textTheme.titleSmall?.copyWith(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+      ),
+    );
+    final BoxDecoration deco = BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+    );
+    if (onTap == null) {
+      return DecoratedBox(decoration: deco, child: child);
+    }
+    return Semantics(
+      button: true,
+      label: '$label türündeki oyunlar',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: DecoratedBox(decoration: deco, child: child),
         ),
-      ],
+      ),
     );
   }
 }

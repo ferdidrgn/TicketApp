@@ -63,6 +63,7 @@ class RecommendedShowsSection extends ConsumerWidget {
                       width: 160,
                       child: TheatreShowCard(
                         show: show,
+                        heroFrom: 'recommended',
                         onTap: () =>
                             NavigationHandler.goToShow(context, show.id, show.name),
                       ),

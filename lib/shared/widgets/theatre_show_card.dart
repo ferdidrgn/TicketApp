@@ -11,6 +11,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../features/shows/domain/entities/show.dart';
 import 'optimized_cached_image.dart';
 import 'ticket/ticket_kit.dart';
+import 'tiyatrol_hero.dart';
 
 /// Paylaşılan oyun kartı — "bilet dili": kart, koçanı delik çizgisiyle
 /// ayrılmış bir tiyatro biletidir.
@@ -26,11 +27,13 @@ import 'ticket/ticket_kit.dart';
 class TheatreShowCard extends StatefulWidget {
   final Show show;
   final VoidCallback onTap;
+  final String heroFrom;
 
   const TheatreShowCard({
     super.key,
     required this.show,
     required this.onTap,
+    this.heroFrom = 'card',
   });
 
   @override
@@ -76,7 +79,14 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: widget.onTap,
+          onTap: () {
+            TiyatrolHeroFlight.prepare(
+              TiyatrolHeroTags.show(widget.show.id, widget.heroFrom),
+              imageUrl: widget.show.imageUrl,
+              title: widget.show.name,
+            );
+            widget.onTap();
+          },
           onHover: _setActive,
           onFocusChange: _setActive,
           mouseCursor: SystemMouseCursors.click,
@@ -106,6 +116,7 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
                           compact: compact,
                           revealUrl: hasReveal ? _revealImageUrl : null,
                           revealed: _active,
+                          heroFrom: widget.heroFrom,
                         ),
                       ),
                     ),
@@ -145,12 +156,14 @@ class _Body extends StatelessWidget {
   final bool compact;
   final String? revealUrl;
   final bool revealed;
+  final String heroFrom;
 
   const _Body({
     required this.show,
     required this.compact,
     required this.revealUrl,
     required this.revealed,
+    required this.heroFrom,
   });
 
   @override
@@ -169,10 +182,13 @@ class _Body extends StatelessWidget {
                 children: [
                   ColoredBox(
                     color: TicketInk.inkSoft(0.08),
-                    child: OptimizedCachedImage(
-                      imageUrl: show.imageUrl,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
+                    child: TiyatrolHero(
+                      tag: TiyatrolHeroTags.show(show.id, heroFrom),
+                      child: OptimizedCachedImage(
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
                     ),
                   ),
                   if (revealUrl != null)

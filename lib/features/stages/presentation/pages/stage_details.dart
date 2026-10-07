@@ -14,6 +14,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/providers/nearby_events_provider.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -107,6 +108,8 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         layout: layout,
         kind: 'SAHNE',
         name: stage.name,
+        heroTag: resolveTiyatrolHeroTag(
+            context, TiyatrolHeroTags.stage(stage.id)),
         imageUrl: stage.imageUrl,
         imageLabel: '${stage.name} fotoğrafı',
         placeholderIcon: Icons.theaters_rounded,

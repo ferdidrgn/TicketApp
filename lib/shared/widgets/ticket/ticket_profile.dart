@@ -15,6 +15,7 @@ import '../../../features/shows/presentation/widgets/detail/sticky_aside.dart';
 import '../../navigation/widgets/nav_handler.dart';
 import '../optimized_cached_image.dart';
 import '../theatre_show_card.dart';
+import '../tiyatrol_hero.dart';
 import 'ticket_kit.dart';
 import 'ticket_listing.dart';
 
@@ -136,6 +137,9 @@ class ProfileTicket extends StatefulWidget {
   /// Barkod tohumu (kimliğin gerçek id'si).
   final String seed;
 
+  /// Liste kartından uçan paylaşılmış fotoğraf etiketi.
+  final String? heroTag;
+
   const ProfileTicket({
     super.key,
     required this.layout,
@@ -144,6 +148,7 @@ class ProfileTicket extends StatefulWidget {
     required this.imageUrl,
     required this.imageLabel,
     required this.seed,
+    this.heroTag,
     this.portrait = false,
     this.placeholderIcon = Icons.theater_comedy_outlined,
     this.tagline,
@@ -248,6 +253,7 @@ class _ProfileTicketState extends State<ProfileTicket>
         icon: widget.placeholderIcon,
         width: width,
         height: height,
+        heroTag: widget.heroTag,
       );
 
   Widget _body(final BuildContext context) {
@@ -452,6 +458,7 @@ class _ProfilePhoto extends StatelessWidget {
   final IconData icon;
   final double? width;
   final double? height;
+  final String? heroTag;
 
   const _ProfilePhoto({
     required this.url,
@@ -459,11 +466,30 @@ class _ProfilePhoto extends StatelessWidget {
     required this.icon,
     this.width,
     this.height,
+    this.heroTag,
   });
 
   @override
   Widget build(final BuildContext context) {
     final bool hasImage = url.trim().isNotEmpty;
+    Widget image = hasImage
+        ? Semantics(
+            image: true,
+            label: label,
+            child: OptimizedCachedImage(
+              imageUrl: url,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              borderRadius: 0,
+            ),
+          )
+        : Center(
+            child: Icon(icon, size: 40, color: TicketInk.inkSoft(0.35)),
+          );
+    if (heroTag != null && heroTag!.isNotEmpty) {
+      image = TiyatrolHero(tag: heroTag!, child: image);
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.xs),
       child: SizedBox(
@@ -471,21 +497,7 @@ class _ProfilePhoto extends StatelessWidget {
         height: height,
         child: ColoredBox(
           color: TicketInk.inkSoft(0.08),
-          child: hasImage
-              ? Semantics(
-                  image: true,
-                  label: label,
-                  child: OptimizedCachedImage(
-                    imageUrl: url,
-                    width: width,
-                    height: height,
-                    fit: BoxFit.cover,
-                    borderRadius: 0,
-                  ),
-                )
-              : Center(
-                  child: Icon(icon, size: 40, color: TicketInk.inkSoft(0.35)),
-                ),
+          child: image,
         ),
       ),
     );
@@ -777,6 +789,7 @@ class ProfileShowsBlock extends StatelessWidget {
       itemBuilder: (final context, final i) => TheatreShowCard(
         key: ValueKey('profile-card-${shows[i].id}'),
         show: shows[i],
+        heroFrom: 'profile',
         onTap: () => _open(context, shows[i]),
       ),
     );

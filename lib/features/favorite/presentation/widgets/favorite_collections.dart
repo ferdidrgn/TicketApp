@@ -317,6 +317,7 @@ class FavoriteShowsView extends ConsumerWidget {
           TheatreShowCard(
             key: ValueKey('fav-show-${shows[i].id}'),
             show: shows[i],
+            heroFrom: 'fav',
             onTap: () => _open(context, shows[i]),
           ),
         ),

@@ -10,7 +10,9 @@ import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/playbill.dart';
 import '../../../../../shared/widgets/theatre_show_card.dart';
+import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
@@ -49,20 +51,34 @@ class ShowProgramme extends StatelessWidget {
         KeyedSubtree(
           key: sessionsKey,
           child: ProgrammeSection(
+            act: 'I. perde',
             title: 'Seanslar',
             meta: data.isExternal || data.sessions.isEmpty
                 ? null
                 : '${data.sessions.length} seans',
-            child: ShowSessionsBlock(
-              data: data,
-              onSelect: onSelectSession,
-              compact: compact,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!data.isExternal && data.sessions.isNotEmpty) ...[
+                  PlaybillSessionStrip(
+                    sessions: data.sessions,
+                    onSelect: onSelectSession,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                ShowSessionsBlock(
+                  data: data,
+                  onSelect: onSelectSession,
+                  compact: compact,
+                ),
+              ],
             ),
           ),
         ),
         if (story.isNotEmpty) ...[
           SizedBox(height: gap),
           ProgrammeSection(
+            act: 'II. perde',
             title: 'Hikâye',
             child: ShowStoryBlock(text: story, collapsible: compact),
           ),
@@ -70,6 +86,7 @@ class ShowProgramme extends StatelessWidget {
         if (data.cast.isNotEmpty || data.pastCast.isNotEmpty) ...[
           SizedBox(height: gap),
           ProgrammeSection(
+            act: 'III. perde',
             title: 'Oyuncular',
             child: ShowCastBlock(
               cast: data.cast,
@@ -109,6 +126,7 @@ class ShowProgramme extends StatelessWidget {
 class ProgrammeSection extends StatelessWidget {
   final String title;
   final String? meta;
+  final String? act;
   final Widget child;
 
   const ProgrammeSection({
@@ -116,6 +134,7 @@ class ProgrammeSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.meta,
+    this.act,
   });
 
   @override
@@ -124,37 +143,41 @@ class ProgrammeSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Semantics(
-          header: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  title,
-                  style: GoogleFonts.playfairDisplay(
-                    color: colors.onSurface,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    height: 1.1,
+        if (act != null)
+          PlaybillActHeader(act: act!, title: title, meta: meta)
+        else ...[
+          Semantics(
+            header: true,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.playfairDisplay(
+                      color: colors.onSurface,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
                   ),
                 ),
-              ),
-              if (meta != null) ...[
-                const SizedBox(width: AppSpacing.md),
-                Text(
-                  meta!,
-                  style: context.textTheme.bodyMedium
-                      ?.copyWith(color: colors.onSurfaceVariant),
-                ),
+                if (meta != null) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    meta!,
+                    style: context.textTheme.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Container(height: 1, color: colors.outlineVariant.withOpacity(0.6)),
-        const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.md),
+          TitleInkMark(color: colors.primary),
+          const SizedBox(height: AppSpacing.xl),
+        ],
         child,
       ],
     );
@@ -362,7 +385,7 @@ class ShowCastBlock extends StatelessWidget {
         ? null
         : compact
             ? SizedBox(
-                height: 136,
+                height: 148,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: cast.length,
@@ -415,6 +438,39 @@ const ColorFilter _grayscale = ColorFilter.matrix(<double>[
   0.2126, 0.7152, 0.0722, 0, 0, //
   0, 0, 0, 1, 0, //
 ]);
+
+class _HapPortrait extends StatelessWidget {
+  final Player player;
+  const _HapPortrait({required this.player});
+
+  static const double _w = 56;
+  static const double _h = 78;
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(_w / 2),
+      child: SizedBox(
+        width: _w,
+        height: _h,
+        child: player.imageUrl.trim().isEmpty
+            ? ColoredBox(
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.person_rounded,
+                    color: colors.onSurfaceVariant),
+              )
+            : OptimizedCachedImage(
+                imageUrl: player.imageUrl,
+                width: _w,
+                height: _h,
+                fit: BoxFit.cover,
+                borderRadius: 0,
+              ),
+      ),
+    );
+  }
+}
 
 class _Avatar extends StatelessWidget {
   final Player player;
@@ -470,7 +526,7 @@ class _CastPortrait extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Column(
               children: [
-                _Avatar(player: player, size: 72),
+                _HapPortrait(player: player),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   name,
@@ -709,6 +765,7 @@ class _ShowSimilarStripState extends ConsumerState<ShowSimilarStrip> {
                     width: widget.cardWidth,
                     child: TheatreShowCard(
                       show: show,
+                      heroFrom: 'related',
                       onTap: () =>
                           NavigationHandler.goToShow(context, show.id, show.name),
                     ),

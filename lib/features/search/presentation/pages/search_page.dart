@@ -18,12 +18,15 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
+import '../../../../shared/widgets/craft.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../providers/search_query_provider.dart';
+import '../widgets/search_place_cards.dart';
 
 // =============================================================================
 // ARAMA
@@ -34,8 +37,8 @@ import '../providers/search_query_provider.dart';
 // `searchResultProvider` (boş sorguda aktif-önce/en yeni oyunlar, yazınca
 // TÜM oyunlar içinde arama).
 //
-// - Mobil (<768): üstte kalan arama kutusu + tür çipleri; oyunlar kompakt
-//   BİLET SATIRLARI (`ShowTicketRow`), kişiler yatay şerit, yerler liste.
+// - Mobil (<768): üstte kalan arama kutusu + tür çipleri; oyunlar afiş
+//   ızgarası, kişiler hap portre, mekanlar sahne fotoğrafı, ekipler topluluk.
 // - Tablet (768–1023): aynı üst şerit; oyunlar bilet koçanlı kart ızgarası.
 // - Masaüstü (≥1024): solda sabit kenar çubuğu (arama kutusu + türler),
 //   sağda kayan sonuç ızgarası + site alt bilgisi.
@@ -74,6 +77,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
   final _textController = TextEditingController();
   bool _fieldFocused = false;
   String? _showCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.text = ref.read(searchQueryProvider);
+  }
 
   @override
   void dispose() {
@@ -184,6 +193,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
       showBackButton: false,
       showFab: true,
       customScrollController: scrollController,
+      onRefresh: () => ref.invalidate(searchResultProvider),
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: cs.surface,
         ambientColor: Colors.transparent,
@@ -289,30 +299,35 @@ class _SearchPageState extends ConsumerState<SearchPage>
         SliverPersistentHeader(
           pinned: true,
           delegate: PinnedBrowseHeader(
-            extent: 124,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                      gutter - AppSpacing.sm, AppSpacing.sm, gutter, 0),
-                  child: Row(
-                    children: [
-                      _backButton(context),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(child: _searchField(context)),
-                    ],
+            extent: 168,
+            child: ColoredBox(
+              color: Theme.of(context).colorScheme.surface,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                        gutter - AppSpacing.sm, AppSpacing.sm, gutter, 0),
+                    child: Row(
+                      children: [
+                        _backButton(context),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(child: _searchField(context)),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                BrowseChoiceChips(
-                  options: [for (final f in _kFacets) BrowseOption(f)],
-                  selectedIndex: filter,
-                  onSelected: _onSeeAll,
-                  padding: EdgeInsets.symmetric(horizontal: gutter),
-                ),
-                _progressLine(refreshing),
-              ],
+                  const SizedBox(height: AppSpacing.sm),
+                  CraftFacetRail(
+                    labels: _kFacets,
+                    icons: _kFacetIcons,
+                    selectedIndex: filter,
+                    onSelected: _onSeeAll,
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  _progressLine(refreshing),
+                ],
+              ),
             ),
           ),
         ),
@@ -523,15 +538,9 @@ class _SearchPageState extends ConsumerState<SearchPage>
       case 2:
         return [_playersGridSliver(data.players, gutter)];
       case 3:
-        return [
-          _tilesSliver(
-              [for (final s in data.stages) _stageTile(s)], layout, gutter)
-        ];
+        return [_stagesSliver(data.stages, layout, gutter)];
       case 4:
-        return [
-          _tilesSliver(
-              [for (final t in data.teams) _teamTile(t)], layout, gutter)
-        ];
+        return [_teamsSliver(data.teams, layout, gutter)];
     }
 
     final int showPreview = 8;
@@ -582,6 +591,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   width: 150,
                   child: HomePosterCard(
                     show: shows[i],
+                    heroFrom: 'search-rail',
                     onTap: () => _openShow(shows[i]),
                   ),
                 ),
@@ -626,9 +636,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 data.stages.length > tilePreview ? () => _onSeeAll(3) : null,
           ),
         ),
-        _tilesSliver([
-          for (final s in data.stages.take(tilePreview)) _stageTile(s),
-        ], layout, gutter),
+        _stagesSliver(
+            data.stages.take(tilePreview).toList(), layout, gutter),
       ],
       if (data.teams.isNotEmpty) ...[
         _boxed(
@@ -640,15 +649,20 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 data.teams.length > tilePreview ? () => _onSeeAll(4) : null,
           ),
         ),
-        _tilesSliver([
-          for (final t in data.teams.take(tilePreview)) _teamTile(t),
-        ], layout, gutter),
+        _teamsSliver(
+            data.teams.take(tilePreview).toList(), layout, gutter),
       ],
     ];
   }
 
   void _openShow(final Show show) =>
-      NavigationHandler.goToShow(context, show.id, show.name);
+      NavigationHandler.goToShow(
+        context,
+        show.id,
+        show.name,
+        imageUrl: show.imageUrl,
+        title: show.name,
+      );
 
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
@@ -669,6 +683,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         itemBuilder: (final context, final i) => HomePosterCard(
           key: ValueKey('search-show-${shows[i].id}'),
           show: shows[i],
+          heroFrom: 'search',
           onTap: () => _openShow(shows[i]),
         ),
       ),
@@ -729,8 +744,17 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ),
       );
 
-  Widget _tilesSliver(
-      final List<Widget> tiles, final _Layout layout, final double gutter) {
+  Widget _stagesSliver(
+      final List<Stage> stages, final _Layout layout, final double gutter) {
+    final List<Widget> tiles = [
+      for (final Stage stage in stages)
+        SearchStageCard(
+          key: ValueKey('search-stage-${stage.id}'),
+          stage: stage,
+          onTap: () =>
+              NavigationHandler.goToStage(context, stage.id, stage.name),
+        ),
+    ];
     final EdgeInsets padding = EdgeInsets.fromLTRB(
         gutter, 0, gutter, AppSpacing.section - AppSpacing.lg);
     if (layout == _Layout.mobile) {
@@ -739,7 +763,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         sliver: SliverList.separated(
           itemCount: tiles.length,
           separatorBuilder: (final _, final __) =>
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
           itemBuilder: (final context, final i) => tiles[i],
         ),
       );
@@ -747,30 +771,48 @@ class _SearchPageState extends ConsumerState<SearchPage>
     return SliverPadding(
       padding: padding,
       sliver: SliverGrid(
-        gridDelegate:
-            browseRowGridDelegate(maxRowWidth: 400, rowHeight: 72),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: layout == _Layout.desktop ? 420 : 480,
+          mainAxisExtent: 220,
+          mainAxisSpacing: AppSpacing.lg,
+          crossAxisSpacing: AppSpacing.lg,
+        ),
         delegate: SliverChildListDelegate(tiles),
       ),
     );
   }
 
-  Widget _stageTile(final Stage stage) => BrowseListTile(
-        key: ValueKey('search-stage-${stage.id}'),
-        imageUrl: stage.imageUrl,
-        title: stage.name,
-        subtitle: stage.address,
-        fallbackIcon: Icons.location_city_rounded,
-        onTap: () => NavigationHandler.goToStage(context, stage.id, stage.name),
+  Widget _teamsSliver(
+      final List<Team> teams, final _Layout layout, final double gutter) {
+    final List<Widget> tiles = [
+      for (final Team team in teams)
+        SearchTeamCard(
+          key: ValueKey('search-team-${team.id}'),
+          team: team,
+          onTap: () => NavigationHandler.goToTeam(context, team.id, team.name),
+        ),
+    ];
+    final EdgeInsets padding = EdgeInsets.fromLTRB(
+        gutter, 0, gutter, AppSpacing.section - AppSpacing.lg);
+    if (layout == _Layout.mobile) {
+      return SliverPadding(
+        padding: padding,
+        sliver: SliverList.separated(
+          itemCount: tiles.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(height: AppSpacing.md),
+          itemBuilder: (final context, final i) => tiles[i],
+        ),
       );
-
-  Widget _teamTile(final Team team) => BrowseListTile(
-        key: ValueKey('search-team-${team.id}'),
-        imageUrl: team.imageUrl,
-        title: team.name,
-        subtitle: team.showsId.isEmpty ? null : '${team.showsId.length} oyun',
-        fallbackIcon: Icons.groups_rounded,
-        onTap: () => NavigationHandler.goToTeam(context, team.id, team.name),
-      );
+    }
+    return SliverPadding(
+      padding: padding,
+      sliver: SliverGrid(
+        gridDelegate: browseRowGridDelegate(maxRowWidth: 480, rowHeight: 116),
+        delegate: SliverChildListDelegate(tiles),
+      ),
+    );
+  }
 
   /// İlk yükleme: seçili türün sonuç şeklinde iskelet.
   Widget _skeletonSliver(
@@ -788,14 +830,18 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ),
       );
     }
+    final double rowHeight = switch (filter) {
+      3 => 200,
+      4 => 112,
+      _ => showsShape ? 96 : 72,
+    };
     return SliverPadding(
       padding: padding,
       sliver: SliverList.separated(
         itemCount: 5,
         separatorBuilder: (final _, final __) =>
-            const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (final _, final __) =>
-            TicketRowSkeleton(height: showsShape ? 96 : 72),
+            SizedBox(height: filter == 3 ? AppSpacing.lg : AppSpacing.sm),
+        itemBuilder: (final _, final __) => TicketRowSkeleton(height: rowHeight),
       ),
     );
   }
@@ -879,13 +925,24 @@ class _PlayerAvatar extends StatelessWidget {
       if (player.firstName.isNotEmpty) player.firstName[0],
       if (player.lastName.isNotEmpty) player.lastName[0],
     ].join().toUpperCase();
+    final String heroTag = TiyatrolHeroTags.player(player.id, 'search');
     return Semantics(
       button: true,
       label: name,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => NavigationHandler.goToPlayer(context, player.id, name),
+        onTap: () {
+          TiyatrolHeroFlight.prepare(
+            heroTag,
+            imageUrl: player.imageUrl,
+            title: name,
+          );
+          NavigationHandler.goToPlayer(context, player.id, name,
+              heroTag: heroTag,
+              imageUrl: player.imageUrl,
+              title: name);
+        },
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: SizedBox(
@@ -893,21 +950,25 @@ class _PlayerAvatar extends StatelessWidget {
             child: Column(
               children: [
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(60),
-                    child: ColoredBox(
-                      color: cs.primary.withValues(alpha: 0.12),
-                      child: OptimizedCachedImage(
-                        imageUrl: player.imageUrl,
-                        fit: BoxFit.cover,
-                        width: cellWidth,
-                        errorBuilder: (final _, final __, final ___) => Center(
-                          child: Text(
-                            initials,
-                            style: TextStyle(
-                              color: cs.primary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 22,
+                  child: TiyatrolHero(
+                    tag: heroTag,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(60),
+                      child: ColoredBox(
+                        color: cs.primary.withValues(alpha: 0.12),
+                        child: OptimizedCachedImage(
+                          imageUrl: player.imageUrl,
+                          fit: BoxFit.cover,
+                          width: cellWidth,
+                          errorBuilder: (final _, final __, final ___) =>
+                              Center(
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 22,
+                              ),
                             ),
                           ),
                         ),

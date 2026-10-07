@@ -102,6 +102,9 @@ class ShowTicketBody extends StatelessWidget {
               strip,
               const SizedBox(height: AppSpacing.xl),
               headline,
+              const SizedBox(height: AppSpacing.sm),
+              TitleInkMark(
+                  color: TicketInk.accentOf(context), reveal: detailsFade),
               const SizedBox(height: AppSpacing.md),
               credit,
               if (fieldsRow != null) ...[
@@ -128,6 +131,9 @@ class ShowTicketBody extends StatelessWidget {
               ],
               const SizedBox(height: AppSpacing.xl),
               headline,
+              const SizedBox(height: AppSpacing.sm),
+              TitleInkMark(
+                  color: TicketInk.accentOf(context), reveal: detailsFade),
               const SizedBox(height: AppSpacing.md),
               credit,
               if (fieldsRow != null) ...[
@@ -171,6 +177,10 @@ class ShowTicketBody extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           headline,
+                          const SizedBox(height: AppSpacing.sm),
+                          TitleInkMark(
+                              color: TicketInk.accentOf(context),
+                              reveal: detailsFade),
                           const SizedBox(height: AppSpacing.md),
                           credit,
                           if (fieldsRow != null) ...[

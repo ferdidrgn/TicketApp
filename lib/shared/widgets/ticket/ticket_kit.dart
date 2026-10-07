@@ -880,6 +880,40 @@ class AuthWipeReveal extends StatelessWidget {
       );
 }
 
+/// Perde açılışının ardından büyüyen kısa mürekkep çizgisi.
+class TitleInkMark extends StatelessWidget {
+  final Animation<double>? reveal;
+  final Color color;
+  final double width;
+
+  const TitleInkMark({
+    super.key,
+    required this.color,
+    this.reveal,
+    this.width = 36,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    Widget line(final double t) => Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: width * t.clamp(0.0, 1.0),
+            height: 2,
+            child: ColoredBox(color: color),
+          ),
+        );
+    final Animation<double>? reveal = this.reveal;
+    if (reveal == null) {
+      return line(1);
+    }
+    return AnimatedBuilder(
+      animation: reveal,
+      builder: (final context, final _) => line(reveal.value),
+    );
+  }
+}
+
 /// Bugünün tarih/saatini biletin "SEANS" alanı için yazar (gerçek veri).
 String ticketDate(final DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';

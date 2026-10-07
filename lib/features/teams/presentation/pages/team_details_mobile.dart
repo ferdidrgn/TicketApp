@@ -10,6 +10,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
@@ -82,6 +83,8 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
         layout: layout,
         kind: 'TOPLULUK',
         name: team.name,
+        heroTag: resolveTiyatrolHeroTag(
+            context, TiyatrolHeroTags.team(team.id)),
         imageUrl: team.imageUrl,
         imageLabel: '${team.name} görseli',
         placeholderIcon: Icons.groups_2_rounded,

@@ -6,6 +6,7 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../teams/domain/entities/team.dart';
 import '../../../../teams/presentation/providers/team_provider.dart';
 
@@ -50,8 +51,12 @@ class _TeamsCarousel extends StatelessWidget {
             final team = teams[index];
             return _TeamCard(
               team: team,
-              onTap: () =>
-                  NavigationHandler.goToTeam(context, team.id, team.name),
+              onTap: () {
+                TiyatrolHeroFlight.prepare(
+                    TiyatrolHeroTags.team(team.id, 'home'));
+                NavigationHandler.goToTeam(context, team.id, team.name,
+                    heroTag: TiyatrolHeroTags.team(team.id, 'home'));
+              },
             );
           },
         ),
@@ -79,19 +84,22 @@ class _TeamCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CachedNetworkImage(
-                  imageUrl: team.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (final _, final __) => const ShimmerLoading(
-                    height: double.infinity,
-                    width: double.infinity,
-                    borderRadius: AppRadius.md,
-                  ),
-                  errorWidget: (final _, final __, final ___) => Container(
-                    color: context.colors.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.theater_comedy_outlined,
-                      color: context.colors.outline,
+                TiyatrolHero(
+                  tag: TiyatrolHeroTags.team(team.id, 'home'),
+                  child: CachedNetworkImage(
+                    imageUrl: team.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (final _, final __) => const ShimmerLoading(
+                      height: double.infinity,
+                      width: double.infinity,
+                      borderRadius: AppRadius.md,
+                    ),
+                    errorWidget: (final _, final __, final ___) => Container(
+                      color: context.colors.surfaceContainerHighest,
+                      child: Icon(
+                        Icons.theater_comedy_outlined,
+                        color: context.colors.outline,
+                      ),
                     ),
                   ),
                 ),

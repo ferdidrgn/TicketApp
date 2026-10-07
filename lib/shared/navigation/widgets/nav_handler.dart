@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/common/extentions/reg_exp_extentions.dart';
+import '../../widgets/tiyatrol_hero.dart';
 import '../providers/navigation_keys.dart';
 
 /// 🧭 Global Navigation Handler
@@ -19,6 +20,17 @@ class NavigationHandler {
       final BuildContext context, final String targetPath) {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (context.mounted) context.go(targetPath);
+    });
+  }
+
+  /// Detay sayfaları: `push` — kaynak kart ağaçta kalır, Hero geri uçabilir.
+  static void _safePush(
+    final BuildContext context,
+    final String targetPath, {
+    final Object? extra,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (context.mounted) context.push(targetPath, extra: extra);
     });
   }
 
@@ -75,24 +87,64 @@ class NavigationHandler {
           '/discover?category=${Uri.encodeQueryComponent(category.trim())}');
 
   static void goToShow(final BuildContext context, final String showId,
-          final String showSlug) =>
-      _safeNavigate(
-          context, _buildPath(context, '/show', slug: showSlug, id: showId));
+          final String showSlug,
+          {final String? heroTag,
+          final String? imageUrl,
+          final String? title}) =>
+      _safePush(
+        context,
+        _buildPath(context, '/show', slug: showSlug, id: showId),
+        extra: TiyatrolHeroFlight.extra(
+          heroTag: heroTag,
+          imageUrl: imageUrl,
+          title: title ?? showSlug,
+        ),
+      );
 
   static void goToPlayer(final BuildContext context, final String playerId,
-          final String playerSlug) =>
-      _safeNavigate(context,
-          _buildPath(context, '/player', slug: playerSlug, id: playerId));
+          final String playerSlug,
+          {final String? heroTag,
+          final String? imageUrl,
+          final String? title}) =>
+      _safePush(
+        context,
+        _buildPath(context, '/player', slug: playerSlug, id: playerId),
+        extra: TiyatrolHeroFlight.extra(
+          heroTag: heroTag,
+          imageUrl: imageUrl,
+          title: title ?? playerSlug,
+        ),
+      );
 
   static void goToStage(final BuildContext context, final String stageId,
-          final String stageSlug) =>
-      _safeNavigate(
-          context, _buildPath(context, '/stage', slug: stageSlug, id: stageId));
+          final String stageSlug,
+          {final String? heroTag,
+          final String? imageUrl,
+          final String? title}) =>
+      _safePush(
+        context,
+        _buildPath(context, '/stage', slug: stageSlug, id: stageId),
+        extra: TiyatrolHeroFlight.extra(
+          heroTag: heroTag,
+          imageUrl: imageUrl,
+          title: title ?? stageSlug,
+        ),
+      );
 
   static void goToTeam(final BuildContext context, final String teamId,
-          final String teamSlug) =>
-      _safeNavigate(
-          context, _buildPath(context, '/team', slug: teamSlug, id: teamId));
+          final String teamSlug,
+          {final String? heroTag,
+          final String? imageUrl,
+          final String? title}) =>
+      _safePush(
+        context,
+        _buildPath(context, '/team', slug: teamSlug, id: teamId),
+        extra: TiyatrolHeroFlight.extra(
+          heroTag: heroTag,
+          imageUrl: imageUrl,
+          title: title ?? teamSlug,
+        ),
+      );
 
   static void goToSeatSelection(final BuildContext context, final String showId,
           final String eventId, final String userId) =>
@@ -137,17 +189,19 @@ class NavigationHandler {
 // ═══════════════════════════════════════════════════════════════
 
   static void smartGoBack(final BuildContext context) {
-    final state = GoRouterState.of(context);
-    final fromRoute = state.uri.queryParameters['from'];
-
-    if (fromRoute != null && fromRoute.isNotEmpty)
-      context.go(Uri.decodeComponent(fromRoute));
-    else {
-      if (Navigator.canPop(context))
-        Navigator.pop(context);
-      else
-        context.go('/app');
+    // Push ile açılan detayda pop = Hero geri uçar. `from` yalnızca
+    // yığın yoksa (derin bağ) kullanılır.
+    if (context.canPop()) {
+      context.pop();
+      return;
     }
+    final String? fromRoute =
+        GoRouterState.of(context).uri.queryParameters['from'];
+    if (fromRoute != null && fromRoute.isNotEmpty) {
+      context.go(Uri.decodeComponent(fromRoute));
+      return;
+    }
+    context.go('/app');
   }
 
   static bool canGoBack(final BuildContext context) {

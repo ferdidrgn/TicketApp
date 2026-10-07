@@ -10,6 +10,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -53,9 +54,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
   late final AnimationController _entrance =
       AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _rest = CurvedAnimation(
+  late final Animation<double> _headline = CurvedAnimation(
       parent: _entrance,
-      curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
+      curve: const Interval(0.0, 0.75, curve: AppMotion.dramatic));
   bool _started = false;
 
   @override
@@ -95,7 +96,13 @@ class _HomePageState extends ConsumerState<HomePage>
   void _openSearch() => NavigationHandler.goToSearch(context);
 
   void _openShow(final Show show) =>
-      NavigationHandler.goToShow(context, show.id, show.name);
+      NavigationHandler.goToShow(
+        context,
+        show.id,
+        show.name,
+        imageUrl: show.imageUrl,
+        title: show.name,
+      );
 
   void _openTickets() {
     if (ref.read(isLoggedInProvider)) {
@@ -114,17 +121,13 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  Widget _settle(final Widget child) => AnimatedBuilder(
-        animation: _rest,
-        builder: (final context, final c) => Opacity(
-          opacity: _rest.value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - _rest.value) * 28),
-            child: c,
-          ),
-        ),
-        child: child,
-      );
+  void _refresh() {
+    ref.invalidate(campaignsProvider);
+    ref.invalidate(homeShowsActiveFirstProvider(true));
+    ref.invalidate(homeActiveShowsProvider(true));
+    ref.invalidate(stagesProvider(isLimit: true));
+    ref.invalidate(homeUpcomingSessionsProvider);
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -184,9 +187,10 @@ class _HomePageState extends ConsumerState<HomePage>
       customScrollController: _scrollController,
       appBar: isLargeScreen ? _buildWebAppBar(context) : _buildDynamicAppBar(),
       isLoading: isLoading && (campaignState.value == null),
+      onRefresh: _refresh,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: cs.surface,
-        ambientColor: cs.primary.withOpacity(0.05),
+        ambientColor: Colors.transparent,
         extendBody: true,
       ),
       child: hasError
@@ -215,47 +219,43 @@ class _HomePageState extends ConsumerState<HomePage>
                       else
                         const SizedBox(height: AppSpacing.xxl),
 
-                      // Selamlama + arama (sayfanın tek "hoş geldin" anı).
                       Padding(
                         padding: gutter,
-                        child: const HomeGreeting(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const HomeGreeting(),
+                            const SizedBox(height: AppSpacing.sm),
+                            AuthWipeReveal(
+                              reveal: _headline,
+                              child: Text(
+                                homeText(
+                                    context,
+                                    'Ne izlemek istersin?',
+                                    'What do you want to watch?'),
+                                style: GoogleFonts.playfairDisplay(
+                                  color: cs.onSurface,
+                                  fontSize: isLargeScreen ? 40 : 32,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.05,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       if (!isLargeScreen) ...[
                         const SizedBox(height: AppSpacing.md),
                         Padding(
                           padding: gutter,
-                          child: _settle(HomeSearchField(
+                          child: HomeSearchField(
                             onTap: _openSearch,
                             hint: l10n.homeHeroSearchPlaceholder,
-                          )),
-                        ),
-                      ],
-
-                      // Vitrin: kampanyalar + sahnedeki oyunlar, kendiliğinden
-                      // kayar; gösterge bir sonraki slayda kalan süreyi dolar.
-                      if (slides.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xl),
-                        _settle(HomeSpotlightCarousel(
-                          slides: slides,
-                          height: isLargeScreen ? 300 : 220,
-                          padding: gutter,
-                        )),
-                      ],
-
-                      // Bu hafta: gerçek seanslardan tek satırlık nabız.
-                      if (sessions.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xl),
-                        Padding(
-                          padding: gutter,
-                          child: HomeWeekPulse(
-                            sessions: sessions,
-                            onTap: () =>
-                                NavigationHandler.goToDiscover(context),
                           ),
                         ),
                       ],
 
-                      // Sıradaki seans — sayfadaki tek "bilet" anı.
+                      // Sıradaki seans — sayfanın tek bilet anı, üstte.
                       if (sessionsPending || featured != null)
                         _MobileSection(
                           title: homeText(
@@ -277,11 +277,32 @@ class _HomePageState extends ConsumerState<HomePage>
                           ),
                         ),
 
-                      // Ruh hâline göre: sahnedeki oyunların gerçek türleri.
+                      if (sessions.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: gutter,
+                          child: HomeWeekPulse(
+                            sessions: sessions,
+                            onTap: () =>
+                                NavigationHandler.goToDiscover(context),
+                          ),
+                        ),
+                      ],
+
+                      if (slides.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(context, 'Sahnede', 'On stage'),
+                          child: HomeSpotlightCarousel(
+                            slides: slides,
+                            height: isLargeScreen ? 300 : 220,
+                            padding: gutter,
+                          ),
+                        ),
+
                       if (shows.isNotEmpty)
                         _MobileSection(
-                          title: homeText(context, 'Bugün ne izlemek istersin?',
-                              'What are you in the mood for?'),
+                          title: homeText(
+                              context, 'Türe göre', 'By genre'),
                           child: HomeMoodPicker(
                               shows: shows, padding: gutter),
                         ),
@@ -301,6 +322,7 @@ class _HomePageState extends ConsumerState<HomePage>
                             itemBuilder: (final context, final i) =>
                                 HomePosterCard(
                               show: activeShows[i],
+                              heroFrom: 'home',
                               onTap: () => _openShow(activeShows[i]),
                             ),
                           ),
@@ -358,6 +380,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               itemBuilder: (final context, final i) =>
                                   TheatreShowCard(
                                 show: repertoire[i],
+                                heroFrom: 'repertoire',
                                 onTap: () => _openShow(repertoire[i]),
                               ),
                             ),

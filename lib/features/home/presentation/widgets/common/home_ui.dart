@@ -7,6 +7,7 @@ import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../stages/domain/entities/stage.dart';
 
@@ -398,18 +399,25 @@ class HomeStageCard extends StatelessWidget {
     final String capacityLabel = capacity.isEmpty || capacity == '0'
         ? ''
         : homeText(context, '$capacity kişilik', '$capacity seats');
+    final String heroTag = TiyatrolHeroTags.stage(stage.id, 'home');
     return HomeTappableCard(
       semanticLabel:
           capacityLabel.isEmpty ? stage.name : '${stage.name}, $capacityLabel',
-      onTap: onTap,
+      onTap: () {
+        TiyatrolHeroFlight.prepare(heroTag);
+        onTap();
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: OptimizedCachedImage(
-              imageUrl: stage.imageUrl,
-              fit: BoxFit.cover,
-              borderRadius: 0,
+            child: TiyatrolHero(
+              tag: heroTag,
+              child: OptimizedCachedImage(
+                imageUrl: stage.imageUrl,
+                fit: BoxFit.cover,
+                borderRadius: 0,
+              ),
             ),
           ),
           Padding(

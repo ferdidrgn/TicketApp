@@ -10,6 +10,7 @@ import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../players/presentation/providers/player_provider.dart';
@@ -657,7 +658,13 @@ class HomeMoodPicker extends StatelessWidget {
 class HomePosterCard extends StatelessWidget {
   final Show show;
   final VoidCallback onTap;
-  const HomePosterCard({super.key, required this.show, required this.onTap});
+  final String heroFrom;
+  const HomePosterCard({
+    super.key,
+    required this.show,
+    required this.onTap,
+    this.heroFrom = 'poster',
+  });
 
   @override
   Widget build(final BuildContext context) {
@@ -665,6 +672,7 @@ class HomePosterCard extends StatelessWidget {
     final String kind = show.hasExternalTicketing
         ? 'Başka platformda'
         : show.category.trim();
+    final String heroTag = TiyatrolHeroTags.show(show.id, heroFrom);
     return Semantics(
       button: true,
       label: show.name,
@@ -683,14 +691,24 @@ class HomePosterCard extends StatelessWidget {
                 child: Material(
                   color: cs.surfaceContainerHighest,
                   child: InkWell(
-                    onTap: onTap,
+                    onTap: () {
+                      TiyatrolHeroFlight.prepare(
+                        heroTag,
+                        imageUrl: show.imageUrl,
+                        title: show.name,
+                      );
+                      onTap();
+                    },
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        OptimizedCachedImage(
-                          imageUrl: show.imageUrl,
-                          fit: BoxFit.cover,
-                          borderRadius: 0,
+                        TiyatrolHero(
+                          tag: heroTag,
+                          child: OptimizedCachedImage(
+                            imageUrl: show.imageUrl,
+                            fit: BoxFit.cover,
+                            borderRadius: 0,
+                          ),
                         ),
                         if (show.isRecentlyAdded)
                           Positioned(
@@ -852,12 +870,21 @@ class HomePlayerStories extends ConsumerWidget {
             if (p.firstName.isNotEmpty) p.firstName[0],
             if (p.lastName.isNotEmpty) p.lastName[0],
           ].join().toUpperCase();
+          final String heroTag = TiyatrolHeroTags.player(p.id, 'stories');
           return Semantics(
             button: true,
             label: name,
             excludeSemantics: true,
             child: GestureDetector(
-              onTap: () => NavigationHandler.goToPlayer(context, p.id, name),
+              onTap: () {
+                TiyatrolHeroFlight.prepare(
+                  heroTag,
+                  imageUrl: p.imageUrl,
+                  title: name,
+                );
+                NavigationHandler.goToPlayer(context, p.id, name,
+                    heroTag: heroTag, imageUrl: p.imageUrl, title: name);
+              },
               child: SizedBox(
                 width: 72,
                 child: Column(
@@ -882,20 +909,23 @@ class HomePlayerStories extends ConsumerWidget {
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                             shape: BoxShape.circle, color: cs.surface),
-                        child: ClipOval(
-                          child: ColoredBox(
-                            color: cs.primaryContainer,
-                            child: OptimizedCachedImage(
-                              imageUrl: p.imageUrl,
-                              fit: BoxFit.cover,
-                              borderRadius: 0,
-                              errorBuilder: (final _, final __, final ___) =>
-                                  Center(
-                                child: Text(initials,
-                                    style: TextStyle(
-                                      color: cs.onPrimaryContainer,
-                                      fontWeight: FontWeight.w800,
-                                    )),
+                        child: TiyatrolHero(
+                          tag: heroTag,
+                          child: ClipOval(
+                            child: ColoredBox(
+                              color: cs.primaryContainer,
+                              child: OptimizedCachedImage(
+                                imageUrl: p.imageUrl,
+                                fit: BoxFit.cover,
+                                borderRadius: 0,
+                                errorBuilder: (final _, final __, final ___) =>
+                                    Center(
+                                  child: Text(initials,
+                                      style: TextStyle(
+                                        color: cs.onPrimaryContainer,
+                                        fontWeight: FontWeight.w800,
+                                      )),
+                                ),
                               ),
                             ),
                           ),
