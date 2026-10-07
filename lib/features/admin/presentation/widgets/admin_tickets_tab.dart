@@ -11,11 +11,13 @@ import '../../../events/domain/repositories/event_repository.dart'
 import '../../../events/presentation/providers/event_mutation_provider.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../seat/presentation/providers/seats_provider.dart';
+import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../tickets/domain/entities/ticket.dart';
 import '../../../tickets/presentation/providers/admin_ticket_provider.dart';
 import '../../../users/presentation/providers/user_provider.dart';
 import 'admin_form_widgets.dart';
+import 'admin_table_tools.dart';
 
 /// "Biletler / Koltuklar" sekmesi — Phase 2'nin gerçekten YENİ alanı.
 ///
@@ -38,11 +40,58 @@ class AdminTicketsTab extends ConsumerStatefulWidget {
 class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
   String? _selectedShowId;
   String? _selectedEventId;
+  final _showSearch = TextEditingController();
+  String _eventWhen = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _showSearch.addListener(_onShowSearch);
+  }
+
+  void _onShowSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _showSearch.removeListener(_onShowSearch);
+    _showSearch.dispose();
+    super.dispose();
+  }
+
+  List<Show> _visibleShows(final List<Show> shows) {
+    if (_showSearch.text.trim().isEmpty) {
+      return shows;
+    }
+    return shows
+        .where((final s) =>
+            adminQueryHits(_showSearch.text, [s.name, s.category, s.type]))
+        .toList();
+  }
+
+  List<Event> _visibleEvents(final List<Event> events) {
+    if (_eventWhen == 'all') {
+      return events;
+    }
+    return events.where((final e) {
+      final date = DateFormatter.parseDateString(e.date);
+      if (date == null) {
+        return false;
+      }
+      final past = date.isBefore(DateTime.now());
+      return _eventWhen == 'past' ? past : !past;
+    }).toList();
+  }
 
   @override
   Widget build(final BuildContext context) {
     final colors = context.colors;
     final showsAsync = ref.watch(showsProvider(isLimit: false));
+    final shows = showsAsync.value ?? const <Show>[];
+    final visibleShows = _visibleShows(shows);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -57,21 +106,29 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
             'durumunu gör.',
             style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
           ),
-          const SizedBox(height: AppSpacing.md),
+          AdminListToolbar(
+            searchController: _showSearch,
+            searchHint: 'Oyun ara…',
+            visibleCount: visibleShows.length,
+            totalCount: shows.length,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          ),
           showsAsync.when(
-            loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: LinearProgressIndicator()),
+            loading: () => const AdminListLoading(rows: 3),
             error: (final e, final st) =>
                 AdminInlineBanner(message: 'Oyunlar yüklenemedi: $e'),
-            data: (final shows) {
+            data: (final _) {
               if (shows.isEmpty)
                 return const AdminInlineBanner(
                     message: 'Henüz oyun eklenmemiş.');
+              if (visibleShows.isEmpty)
+                return const AdminEmptyList(
+                    message: 'Henüz oyun eklenmemiş.', isFiltered: true);
+              final dropdownShows = _dropdownShows(shows, visibleShows);
               return AdminDropdownField<String>(
                 label: 'Oyun',
                 value: _selectedShowId,
-                items: shows
+                items: dropdownShows
                     .map((final s) =>
                         DropdownMenuItem(value: s.id, child: Text(s.name)))
                     .toList(),
@@ -99,15 +156,45 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
                     if (events.isEmpty)
                       return const AdminInlineBanner(
                           message: 'Bu oyunun henüz bir seansı yok.');
-                    return AdminDropdownField<String>(
-                      label: 'Seans',
-                      value: _selectedEventId,
-                      items: events
-                          .map((final e) => DropdownMenuItem(
-                              value: e.id, child: Text(_sessionLabel(e))))
-                          .toList(),
-                      onChanged: (final v) =>
-                          setState(() => _selectedEventId = v),
+                    final visible = _visibleEvents(events);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AdminFilterChipRow(
+                          group: AdminFilterGroup(
+                            options: const [
+                              AdminFilterOption(id: 'all', label: 'Tümü'),
+                              AdminFilterOption(
+                                  id: 'upcoming', label: 'Yaklaşan'),
+                              AdminFilterOption(id: 'past', label: 'Geçmiş'),
+                            ],
+                            selectedId: _eventWhen,
+                            onSelected: (final id) => setState(() {
+                              _eventWhen = id;
+                              _selectedEventId = null;
+                            }),
+                          ),
+                        ),
+                        if (visible.isEmpty)
+                          const AdminEmptyList(
+                              message: 'Bu oyunun henüz bir seansı yok.',
+                              isFiltered: true)
+                        else
+                          AdminDropdownField<String>(
+                            label: 'Seans',
+                            value: visible.any(
+                                    (final e) => e.id == _selectedEventId)
+                                ? _selectedEventId
+                                : null,
+                            items: visible
+                                .map((final e) => DropdownMenuItem(
+                                    value: e.id,
+                                    child: Text(_sessionLabel(e))))
+                                .toList(),
+                            onChanged: (final v) =>
+                                setState(() => _selectedEventId = v),
+                          ),
+                      ],
                     );
                   },
                 );
@@ -124,6 +211,18 @@ class _AdminTicketsTabState extends ConsumerState<AdminTicketsTab> {
       ),
     );
   }
+
+  List<Show> _dropdownShows(
+      final List<Show> all, final List<Show> visible) {
+    if (_selectedShowId == null) {
+      return visible;
+    }
+    if (visible.any((final s) => s.id == _selectedShowId)) {
+      return visible;
+    }
+    final selected = all.where((final s) => s.id == _selectedShowId);
+    return [...selected, ...visible];
+  }
 }
 
 /// Seans seçicideki okunur etiket: "3 Eki 2026 Cmt, 15:30" — geçmiş
@@ -139,38 +238,197 @@ String _sessionLabel(final Event e) {
 // BİLET LİSTESİ
 // ==============================================================================
 
-class _TicketListSection extends ConsumerWidget {
+class _TicketListSection extends ConsumerStatefulWidget {
   final String eventId;
 
   const _TicketListSection({required this.eventId});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final ticketsAsync = ref.watch(ticketsByEventIdProvider(eventId));
-    final colors = context.colors;
+  ConsumerState<_TicketListSection> createState() => _TicketListSectionState();
+}
+
+class _TicketListSectionState extends ConsumerState<_TicketListSection> {
+  final _search = TextEditingController();
+  String _when = 'all';
+  String _sortId = 'updated';
+  bool _sortAsc = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.removeListener(_onSearch);
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<AdminTableColumn<Ticket>> get _columns => [
+        AdminTableColumn<Ticket>(
+          id: 'name',
+          label: 'Alıcı',
+          text: (final t) => t.customerId,
+          compare: (final a, final b) =>
+              adminCompareText(a.customerId, b.customerId),
+          cell: (final context, final t) => _TicketBuyerLabel(ticket: t),
+        ),
+        AdminTableColumn<Ticket>(
+          id: 'seats',
+          label: 'Koltuklar',
+          text: (final t) => t.buySeats.join(', '),
+          compare: (final a, final b) =>
+              adminCompareText(a.buySeats.join(', '), b.buySeats.join(', ')),
+        ),
+        AdminTableColumn<Ticket>(
+          id: 'price',
+          label: 'Tutar',
+          text: (final t) => '${t.orderPrice} ₺',
+          compare: (final a, final b) {
+            final pa = double.tryParse(a.orderPrice.replaceAll(',', '.')) ?? 0;
+            final pb = double.tryParse(b.orderPrice.replaceAll(',', '.')) ?? 0;
+            return pa.compareTo(pb);
+          },
+          numeric: true,
+        ),
+        AdminTableColumn<Ticket>(
+          id: 'updated',
+          label: 'Satın alma',
+          text: (final t) => adminFormatStamp(t.createdAt),
+          compare: (final a, final b) =>
+              adminCompareDate(a.createdAt, b.createdAt),
+        ),
+        AdminTableColumn<Ticket>(
+          id: 'status',
+          label: 'Durum',
+          text: (final t) => (t.isPast ?? false) ? 'Geçmiş' : 'Aktif',
+          compare: (final a, final b) =>
+              (a.isPast ?? false ? 1 : 0).compareTo(b.isPast ?? false ? 1 : 0),
+        ),
+      ];
+
+  List<Ticket> _visible(final List<Ticket> tickets) {
+    final filtered = tickets.where((final t) {
+      final past = t.isPast ?? false;
+      if (_when == 'past' && !past) {
+        return false;
+      }
+      if (_when == 'upcoming' && past) {
+        return false;
+      }
+      return adminQueryHits(_search.text, [
+        t.customerId,
+        t.buySeats.join(' '),
+        t.orderMethod,
+        t.orderPrice,
+        t.id,
+      ]);
+    }).toList();
+    return adminSorted(
+      items: filtered,
+      columns: _columns,
+      sortColumnId: _sortId,
+      sortAscending: _sortAsc,
+    );
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ticketsAsync = ref.watch(ticketsByEventIdProvider(widget.eventId));
+    final tickets = ticketsAsync.value ?? const <Ticket>[];
+    final visible = _visible(tickets);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const AdminSectionTitle(
             title: 'Satılan Biletler', icon: Icons.receipt_long_rounded),
+        AdminListToolbar(
+          searchController: _search,
+          searchHint: 'Alıcı, koltuk, sipariş…',
+          visibleCount: visible.length,
+          totalCount: tickets.length,
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          filterGroups: [
+            AdminFilterGroup(
+              options: const [
+                AdminFilterOption(id: 'all', label: 'Tümü'),
+                AdminFilterOption(id: 'upcoming', label: 'Aktif'),
+                AdminFilterOption(id: 'past', label: 'Geçmiş'),
+              ],
+              selectedId: _when,
+              onSelected: (final id) => setState(() => _when = id),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
         ticketsAsync.when(
-          loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-              child: Center(child: CircularProgressIndicator())),
+          loading: () => const AdminListLoading(rows: 4),
           error: (final e, final st) =>
               AdminInlineBanner(message: 'Biletler yüklenemedi: $e'),
-          data: (final tickets) {
+          data: (final _) {
             if (tickets.isEmpty)
-              return Text('Bu seans için henüz satılmış bir bilet yok.',
-                  style: TextStyle(color: colors.onSurfaceVariant));
-            return Column(
-              children:
-                  tickets.map((final t) => _TicketRow(ticket: t)).toList(),
+              return const AdminEmptyList(
+                  message: 'Bu seans için henüz satılmış bir bilet yok.');
+            if (visible.isEmpty)
+              return const AdminEmptyList(
+                  message: 'Bu seans için henüz satılmış bir bilet yok.',
+                  isFiltered: true);
+            return AdminCatalogPane<Ticket>(
+              items: visible,
+              shrinkWrap: true,
+              cardBuilder: (final t) => _TicketRow(ticket: t),
+              table: AdminSortableTable<Ticket>(
+                items: visible,
+                columns: _columns,
+                sortColumnId: _sortId,
+                sortAscending: _sortAsc,
+                onSort: ({required final columnId, required final ascending}) =>
+                    setState(() {
+                  _sortId = columnId;
+                  _sortAsc = ascending;
+                }),
+                semanticLabel: (final t) =>
+                    'Bilet ${t.id}, koltuk ${t.buySeats.join(', ')}',
+              ),
             );
           },
         ),
       ],
+    );
+  }
+}
+
+class _TicketBuyerLabel extends ConsumerWidget {
+  final Ticket ticket;
+
+  const _TicketBuyerLabel({required this.ticket});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final userAsync = ref.watch(userByIdProvider(ticket.customerId));
+    final colors = context.colors;
+    return userAsync.when(
+      loading: () => Text('Yükleniyor…',
+          style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
+      error: (final e, final st) => Text(ticket.customerId,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      data: (final user) => Text(
+        user != null
+            ? '${user.firstName} ${user.lastName}'
+            : 'uid: ${ticket.customerId}',
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
     );
   }
 }

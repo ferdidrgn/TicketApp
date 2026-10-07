@@ -31,13 +31,13 @@ class ShowDetailSkeleton extends StatelessWidget {
     final Widget ticket = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        block(twoPane ? 300 : 280, r: AppRadius.md),
+        block(twoPane ? 300 : 320, r: AppRadius.xl),
         const SizedBox(height: AppSpacing.lg),
-        block(34, w: 260),
+        block(34, w: 260, r: AppRadius.md),
         const SizedBox(height: AppSpacing.md),
-        block(20, w: 180),
+        block(20, w: 180, r: AppRadius.md),
         const SizedBox(height: AppSpacing.xl),
-        block(88, r: AppRadius.md),
+        block(twoPane ? 88 : 120, r: AppRadius.xl),
       ],
     );
 

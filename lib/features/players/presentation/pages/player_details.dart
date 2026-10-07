@@ -10,7 +10,6 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
-import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -18,19 +17,14 @@ import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
 import '../../../shows/presentation/widgets/detail/show_programme.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_provider.dart';
+import '../widgets/player_discovery_widgets.dart';
 
-/// OYUNCU SAYFASI — tiyatro programındaki "oyuncu künyesi".
+/// OYUNCU SAYFASI — Keşfet dili.
 ///
-/// Kimlik bir künye biletidir (portre, ad, oyuncunun kendi sözü); koçanda
-/// TEK birincil aksiyon: şu an sahnedeki oyununa git (tek oyun) ya da
-/// sahnedeki oyunlarına in (birden çok). Program: Sahnede (bilet
-/// kartları) → Hakkında → Geçmiş oyunlar → Ödüller ve başarılar →
-/// Birlikte çalıştıkları. Uydurma istatistik/rozet yok; sadece `Player`
-/// ve bağlı `Show` kayıtlarındaki gerçek alanlar.
-///
-/// Web + mobil aynı dosya; kompozisyonu genişlik belirler (bkz.
-/// `ProfileDetailLayout`): masaüstünde yapışkan künye + kayan program,
-/// tablette yatay bilet, mobilde tek sütun.
+/// Kimlik: 120 hap portre + Playfair ad (perde açılışı) + gerçek "şu an
+/// sahnede" alanı + TEK birincil aksiyon. Sahnedeki / geçmiş oyunlar
+/// `HomePosterCard` (koçan yok). Hakkında, ödüller, işbirlikleri yalnızca
+/// `Player` kaydındaki gerçek alanlar.
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
 
@@ -42,8 +36,6 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     with GlobalScrollMixin {
-  // `scrollController` GlobalScrollMixin'den gelir ve orada dispose edilir.
-  // (Eskiden burada İKİNCİ kez dispose ediliyordu.)
   final GlobalKey _onStageKey = GlobalKey();
 
   @override
@@ -72,14 +64,17 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     final String fullName =
         '${player.firstName} ${player.lastName}'.trim();
 
-    // `nowShowsId` elle tutulan bir liste; canlı takvimle çapraz kontrol
-    // edilir (eskiden sadece masaüstünde yapılıyordu ve aktif olmayanlar
-    // sayfadan tamamen kayboluyordu — artık "Geçmiş oyunlar"a iner).
     final split = splitShowsByLiveActivity(
       claimedActive: state.activeShows,
       past: state.pastShows,
       liveActive: ref.watch(activeShowsProvider(false)).value,
     );
+
+    final String onStageLabel = switch (split.active.length) {
+      0 => 'Sahnede oyunu yok',
+      1 => split.active.first.name,
+      _ => '${split.active.length} oyunda',
+    };
 
     return ProfileDetailLayout(
       controller: scrollController,
@@ -89,28 +84,13 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         onShare: () =>
             TiyatrolDeeplinkService.shareActor(id: player.id, name: fullName),
       ),
-      ticket: (final layout) => ProfileTicket(
-        layout: layout,
-        kind: 'OYUNCU',
-        name: fullName,
+      ticket: (final _) => PlayerIdentityCard(
+        fullName: fullName,
         imageUrl: player.imageUrl,
-        imageLabel: '$fullName portresi',
-        portrait: true,
-        placeholderIcon: Icons.person_rounded,
-        tagline: player.quote,
-        taglineIsQuote: true,
-        seed: player.id,
-        stubFields: [
-          TicketField(
-            label: 'ŞU AN SAHNEDE',
-            value: switch (split.active.length) {
-              0 => 'Sahnede oyunu yok',
-              1 => split.active.first.name,
-              _ => '${split.active.length} oyunda',
-            },
-          ),
-        ],
-        action: _primaryAction(context, split.active),
+        quote: player.quote,
+        onStageLabel: onStageLabel,
+        actionLabel: _actionLabel(split.active),
+        onAction: _actionTap(context, split.active),
       ),
       programme: (final compact) => _Programme(
         player: player,
@@ -122,23 +102,23 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  /// Sayfanın TEK birincil aksiyonu. Sahnede oyunu yoksa aksiyon yok
-  /// (koçanda barkod basılır).
-  Widget? _primaryAction(final BuildContext context, final List<Show> active) {
-    if (active.isEmpty) return null;
+  String? _actionLabel(final List<Show> active) {
+    if (active.isEmpty) {
+      return null;
+    }
+    return active.length == 1 ? 'Oyuna git' : 'Oyunlarını gör';
+  }
+
+  VoidCallback? _actionTap(
+      final BuildContext context, final List<Show> active) {
+    if (active.isEmpty) {
+      return null;
+    }
     if (active.length == 1) {
       final Show show = active.first;
-      return TicketStampButton(
-        label: 'Oyuna git',
-        leading: const Icon(Icons.theater_comedy_rounded),
-        onTap: () => NavigationHandler.goToShow(context, show.id, show.name),
-      );
+      return () => NavigationHandler.goToShow(context, show.id, show.name);
     }
-    return TicketStampButton(
-      label: 'Oyunlarını gör',
-      leading: const Icon(Icons.theater_comedy_rounded),
-      onTap: () => profileScrollTo(context, _onStageKey),
-    );
+    return () => profileScrollTo(context, _onStageKey);
   }
 }
 
@@ -181,7 +161,7 @@ class _Programme extends StatelessWidget {
             title: 'Sahnede',
             meta: activeShows.length > 1 ? '${activeShows.length} oyun' : null,
             child: activeShows.isNotEmpty
-                ? ProfileShowsBlock(shows: activeShows, compact: compact)
+                ? PlayerShowPosters(shows: activeShows, compact: compact)
                 : ProfileQuietNote(
                     icon: Icons.event_busy_rounded,
                     text: nothingLinked
@@ -210,7 +190,8 @@ class _Programme extends StatelessWidget {
           ProgrammeSection(
             title: 'Geçmiş oyunlar',
             meta: '${pastShows.length} oyun',
-            child: ProfileArchiveBlock(shows: pastShows),
+            child: PlayerShowPosters(
+                shows: pastShows, compact: compact, dimmed: true),
           ),
         ],
         if (achievements.isNotEmpty) ...[
@@ -232,8 +213,6 @@ class _Programme extends StatelessWidget {
   }
 }
 
-/// Program kitapçığındaki gibi yıl + başlık satırları (zaman çizelgesi
-/// noktaları/`IntrinsicHeight` yok).
 class _AchievementList extends StatelessWidget {
   final List<Map<String, String>> items;
   const _AchievementList({required this.items});
@@ -246,7 +225,9 @@ class _AchievementList extends StatelessWidget {
       children: [
         for (int i = 0; i < items.length; i++) ...[
           if (i > 0)
-            Divider(height: 1, color: colors.outlineVariant.withOpacity(0.5)),
+            Divider(
+                height: 1,
+                color: colors.outlineVariant.withValues(alpha: 0.5)),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: Row(
@@ -300,7 +281,6 @@ class _AchievementList extends StatelessWidget {
   }
 }
 
-/// Birlikte çalıştığı isimler — sade, çerçeveli etiketler (gölge yok).
 class _CreditList extends StatelessWidget {
   final List<String> names;
   const _CreditList({required this.names});
@@ -317,8 +297,8 @@ class _CreditList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.xs),
-              border: Border.all(color: colors.outlineVariant),
+              color: colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Text(
               name,

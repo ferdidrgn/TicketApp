@@ -42,12 +42,7 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 
 /// Kategori anahtarı: Türkçe büyük harfleri doğru küçültür, boşlukları
 /// sadeleştirir. Görünen ad, en sık kullanılan orijinal yazımdır.
-String discoveryCategoryKey(final String raw) => raw
-    .trim()
-    .replaceAll(RegExp(r'\s+'), ' ')
-    .replaceAll('İ', 'i')
-    .replaceAll('I', 'ı')
-    .toLowerCase();
+String discoveryCategoryKey(final String raw) => browseCategoryKey(raw);
 
 class _Category {
   final String key;
@@ -420,8 +415,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             if (v.categories.isNotEmpty) ...[
               _box(gutter, const BrowseSectionTitle(title: 'Türler')),
               SliverToBoxAdapter(
-                child: _CategoryStrip(
-                  categories: v.categories,
+                child: BrowseCategoryStrip(
+                  categories: [
+                    for (final c in v.categories)
+                      BrowseCategory(c.key, c.label, c.count, c.imageUrl),
+                  ],
                   selectedKey: v.categoryKey,
                   total: v.categories.fold(0, (final n, final c) => n + c.count),
                   onPick: _pickCategory,

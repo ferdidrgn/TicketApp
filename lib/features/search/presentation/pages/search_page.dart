@@ -5,6 +5,7 @@ import '../../../home/presentation/widgets/common/home_showcase.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
@@ -16,7 +17,6 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -73,6 +73,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
   bool _fieldFocused = false;
+  String? _showCategory;
 
   @override
   void dispose() {
@@ -97,6 +98,72 @@ class _SearchPageState extends ConsumerState<SearchPage>
   /// Boş sonuçta "Tümünde ara": sorgu korunur, tür filtresi kalkar.
   void _searchEverywhere() =>
       ref.read(searchFilterProvider.notifier).setFilter(0);
+
+  void _pickShowCategory(final String? key) {
+    HapticFeedback.selectionClick();
+    final String? next = (key == _showCategory) ? null : key;
+    setState(() => _showCategory = next);
+    final int filter = ref.read(searchFilterProvider);
+    if (next != null && filter != 0 && filter != 1) {
+      ref.read(searchFilterProvider.notifier).setFilter(1);
+    }
+  }
+
+  String? _activeCategory(final List<BrowseCategory> categories) {
+    final String? key = _showCategory;
+    if (key == null) return null;
+    for (final BrowseCategory category in categories) {
+      if (category.key == key) return key;
+    }
+    return null;
+  }
+
+  List<Show> _showsInCategory(
+      final List<Show> shows, final String? category) {
+    if (category == null) return shows;
+    return [
+      for (final Show show in shows)
+        if (browseCategoryKey(show.category) == category) show,
+    ];
+  }
+
+  Widget _desktopCategories(final List<Show> shows) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<BrowseCategory> categories = browseCategoriesOf(shows);
+    final String? active = _activeCategory(categories);
+    final List<Color> tones = [
+      cs.primaryContainer,
+      cs.tertiaryContainer,
+      cs.secondaryContainer,
+    ];
+    final List<Color> inks = [
+      cs.onPrimaryContainer,
+      cs.onTertiaryContainer,
+      cs.onSecondaryContainer,
+    ];
+    return Column(
+      children: [
+        BrowseSideOption(
+          label: 'Tümü',
+          icon: Icons.apps_rounded,
+          selected: active == null,
+          onTap: () => _pickShowCategory(null),
+        ),
+        for (int i = 0; i < categories.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: BrowseSideOption(
+              label: categories[i].label,
+              count: categories[i].count,
+              selected: active == categories[i].key,
+              tone: tones[i % 3],
+              toneInk: inks[i % 3],
+              onTap: () => _pickShowCategory(categories[i].key),
+            ),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -312,6 +379,13 @@ class _SearchPageState extends ConsumerState<SearchPage>
                       onTap: () => _onSeeAll(i),
                     ),
                   ),
+                if (browseCategoriesOf(state.value?.shows ?? const <Show>[])
+                        .length >=
+                    2) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  const BrowseSideLabel('Türler'),
+                  _desktopCategories(state.value?.shows ?? const <Show>[]),
+                ],
               ],
             ),
           ),
@@ -432,9 +506,20 @@ class _SearchPageState extends ConsumerState<SearchPage>
       ];
     }
 
+    final List<BrowseCategory> categories = browseCategoriesOf(data.shows);
+    final String? category = _activeCategory(categories);
+    final List<Show> shows = _showsInCategory(data.shows, category);
+    final bool showStrip = layout != _Layout.desktop && categories.length >= 2;
+
     switch (filter) {
       case 1:
-        return [_showsSliver(data.shows, layout, gutter)];
+        return [
+          if (showStrip) _categoryStrip(categories, data.shows, gutter),
+          if (category != null && shows.isEmpty)
+            _categoryEmpty(gutter, categories, category)
+          else
+            _showsSliver(shows, layout, gutter),
+        ];
       case 2:
         return [_playersGridSliver(data.players, gutter)];
       case 3:
@@ -449,13 +534,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ];
     }
 
-    // Tümü: her tür için kısa bir bölüm + "Tümünü gör".
-    final int showPreview = layout == _Layout.mobile ? 8 : 8;
+    final int showPreview = 8;
     final int tilePreview = layout == _Layout.mobile ? 4 : 6;
     final bool browsing = query.isEmpty;
     return [
-      // Göz atma (henüz yazılmadı): ruh hâli + türler — sonuç listesi
-      // değil, keşfe davet.
       if (browsing && data.shows.isNotEmpty) ...[
         _boxed(gutter, const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
         SliverToBoxAdapter(
@@ -464,32 +546,28 @@ class _SearchPageState extends ConsumerState<SearchPage>
               padding: EdgeInsets.symmetric(horizontal: gutter)),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
-        _boxed(gutter, const BrowseSectionTitle(title: 'Türlere göz at')),
-        _boxed(
-          gutter,
-          _GenreTiles(
-            shows: data.shows,
-            columns: layout == _Layout.mobile ? 2 : 4,
-            onPick: (final cat) {
-              _textController.text = cat;
-              _onQueryChanged(cat);
-            },
-          ),
-          bottom: AppSpacing.section - AppSpacing.lg,
-        ),
+      ],
+      if (showStrip) ...[
+        _boxed(gutter, const BrowseSectionTitle(title: 'Türler')),
+        _categoryStrip(categories, data.shows, gutter),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
       ],
       if (data.shows.isNotEmpty) ...[
         _boxed(
           gutter,
           BrowseSectionTitle(
-            title: 'Oyunlar',
-            count: data.shows.length,
-            onAction:
-                data.shows.length > showPreview ? () => _onSeeAll(1) : null,
+            title: category == null
+                ? 'Oyunlar'
+                : _categoryLabel(categories, category),
+            count: shows.length,
+            onAction: category == null && data.shows.length > showPreview
+                ? () => _onSeeAll(1)
+                : null,
           ),
         ),
-        if (layout == _Layout.mobile)
-          // Telefonda önizleme: afiş şeridi (bilet satırı değil).
+        if (category != null && shows.isEmpty)
+          _categoryEmpty(gutter, categories, category)
+        else if (layout == _Layout.mobile && category == null)
           _boxed(
             0,
             SizedBox(
@@ -497,14 +575,14 @@ class _SearchPageState extends ConsumerState<SearchPage>
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: gutter),
-                itemCount: math.min(showPreview, data.shows.length),
+                itemCount: math.min(showPreview, shows.length),
                 separatorBuilder: (final _, final __) =>
                     const SizedBox(width: AppSpacing.md),
                 itemBuilder: (final context, final i) => SizedBox(
                   width: 150,
                   child: HomePosterCard(
-                    show: data.shows[i],
-                    onTap: () => _openShow(data.shows[i]),
+                    show: shows[i],
+                    onTap: () => _openShow(shows[i]),
                   ),
                 ),
               ),
@@ -513,7 +591,9 @@ class _SearchPageState extends ConsumerState<SearchPage>
           )
         else
           _showsSliver(
-              data.shows.take(showPreview).toList(), layout, gutter),
+              category == null ? shows.take(showPreview).toList() : shows,
+              layout,
+              gutter),
       ],
       if (data.players.isNotEmpty) ...[
         _boxed(
@@ -570,34 +650,23 @@ class _SearchPageState extends ConsumerState<SearchPage>
   void _openShow(final Show show) =>
       NavigationHandler.goToShow(context, show.id, show.name);
 
-  /// Oyunlar: mobilde kompakt bilet satırları, tablet/masaüstünde bilet
-  /// koçanlı kart ızgarası.
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
-    final EdgeInsets padding = EdgeInsets.fromLTRB(
-        gutter, 0, gutter, AppSpacing.section - AppSpacing.lg);
-    if (layout == _Layout.mobile) {
-      return SliverPadding(
-        padding: padding,
-        sliver: SliverList.separated(
-          itemCount: shows.length,
-          separatorBuilder: (final _, final __) =>
-              const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (final context, final i) => ShowTicketRow(
-            key: ValueKey('search-show-${shows[i].id}'),
-            show: shows[i],
-            onTap: () => _openShow(shows[i]),
-          ),
-        ),
-      );
-    }
+    final int columns = layout == _Layout.mobile
+        ? 2
+        : (layout == _Layout.tablet ? 3 : 5);
     return SliverPadding(
-      padding: padding,
+      padding: EdgeInsets.fromLTRB(
+          gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
       sliver: SliverGrid.builder(
-        gridDelegate:
-            browseShowGridDelegate(layout == _Layout.tablet ? 220 : 240),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          mainAxisSpacing: AppSpacing.xl,
+          crossAxisSpacing: AppSpacing.lg,
+          childAspectRatio: 0.56,
+        ),
         itemCount: shows.length,
-        itemBuilder: (final context, final i) => TheatreShowCard(
+        itemBuilder: (final context, final i) => HomePosterCard(
           key: ValueKey('search-show-${shows[i].id}'),
           show: shows[i],
           onTap: () => _openShow(shows[i]),
@@ -605,6 +674,41 @@ class _SearchPageState extends ConsumerState<SearchPage>
       ),
     );
   }
+
+  Widget _categoryStrip(final List<BrowseCategory> categories,
+          final List<Show> shows, final double gutter) =>
+      SliverToBoxAdapter(
+        child: BrowseCategoryStrip(
+          categories: categories,
+          selectedKey: _activeCategory(categories),
+          total: shows.where((final s) => s.category.trim().isNotEmpty).length,
+          onPick: _pickShowCategory,
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+        ),
+      );
+
+  String _categoryLabel(
+      final List<BrowseCategory> categories, final String key) {
+    for (final BrowseCategory category in categories) {
+      if (category.key == key) return category.label;
+    }
+    return 'Oyunlar';
+  }
+
+  Widget _categoryEmpty(final double gutter,
+          final List<BrowseCategory> categories, final String? category) =>
+      _noticeSliver(
+        gutter,
+        TicketNotice(
+          label: 'TÜR',
+          title: category == null
+              ? 'Bu türde oyun yok'
+              : '“${_categoryLabel(categories, category)}” türünde oyun yok',
+          message: 'Başka bir tür seç ya da tümüne bak.',
+          actionLabel: 'Tüm türler',
+          onAction: () => _pickShowCategory(null),
+        ),
+      );
 
   Widget _playersGridSliver(final List<Player> players, final double gutter) =>
       SliverPadding(

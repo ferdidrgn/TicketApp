@@ -1,71 +1,167 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../pages/admin_stage_form_page.dart';
-import 'admin_form_widgets.dart';
+import 'admin_table_tools.dart';
 
-/// "Sahneler" sekmesi — Phase 2: GERÇEK `stagesProvider(isLimit: false)`
-/// verisiyle beslenen, düzenlemeye/silmeye giden tıklanabilir bir liste +
-/// üstte "Yeni Sahne" butonu (bkz. `AdminShowsTab`'daki AYNI desen).
-class AdminStagesTab extends ConsumerWidget {
+/// "Sahneler" sekmesi — GERÇEK `stagesProvider(isLimit: false)` listesini
+/// yerelde arar; adresi dolu / boş süzgeci; masaüstünde sıralanabilir
+/// tablo, mobilde kart.
+class AdminStagesTab extends ConsumerStatefulWidget {
   const AdminStagesTab({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<AdminStagesTab> createState() => _AdminStagesTabState();
+}
+
+class _AdminStagesTabState extends ConsumerState<AdminStagesTab> {
+  final _search = TextEditingController();
+  String _address = 'all';
+  String _sortId = 'name';
+  bool _sortAsc = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.removeListener(_onSearch);
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<AdminTableColumn<Stage>> get _columns => [
+        AdminTableColumn<Stage>(
+          id: 'name',
+          label: 'Ad',
+          text: (final s) => s.name,
+          compare: (final a, final b) => adminCompareText(a.name, b.name),
+          cell: (final context, final s) => Row(
+            children: [
+              AdminThumb(
+                  imageUrl: s.imageUrl, fallback: Icons.location_city_rounded),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(s.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+        AdminTableColumn<Stage>(
+          id: 'address',
+          label: 'Adres',
+          text: (final s) => s.address.isEmpty ? 'Adres yok' : s.address,
+          compare: (final a, final b) =>
+              adminCompareText(a.address, b.address),
+        ),
+        AdminTableColumn<Stage>(
+          id: 'updated',
+          label: 'Güncelleme',
+          text: (final s) => adminFormatStamp(s.updatedAt),
+          compare: (final a, final b) =>
+              adminCompareDate(a.updatedAt, b.updatedAt),
+        ),
+      ];
+
+  List<Stage> _visible(final List<Stage> stages) {
+    final filtered = stages.where((final s) {
+      final filled = s.address.trim().isNotEmpty;
+      if (_address == 'filled' && !filled) {
+        return false;
+      }
+      if (_address == 'empty' && filled) {
+        return false;
+      }
+      return adminQueryHits(_search.text, [
+        s.name,
+        s.address,
+        s.description,
+        s.capacity,
+      ]);
+    }).toList();
+    return adminSorted(
+      items: filtered,
+      columns: _columns,
+      sortColumnId: _sortId,
+      sortAscending: _sortAsc,
+    );
+  }
+
+  void _open(final Stage? stage) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (final _) => AdminStageFormPage(stage: stage)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final stagesAsync = ref.watch(stagesProvider(isLimit: false));
-    final colors = context.colors;
+    final stages = stagesAsync.value ?? const <Stage>[];
+    final visible = _visible(stages);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-          child: SizedBox(
-            width: double.infinity,
-            child: Semantics(
-              button: true,
-              label: 'Yeni sahne ekle',
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (final _) => const AdminStageFormPage())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Yeni Sahne'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
+        AdminListToolbar(
+          searchController: _search,
+          searchHint: 'Sahne adı, adres…',
+          visibleCount: visible.length,
+          totalCount: stages.length,
+          primaryLabel: 'Yeni Sahne',
+          primarySemantics: 'Yeni sahne ekle',
+          onPrimary: () => _open(null),
+          filterGroups: [
+            AdminFilterGroup(
+              options: const [
+                AdminFilterOption(id: 'all', label: 'Tümü'),
+                AdminFilterOption(id: 'filled', label: 'Adresi dolu'),
+                AdminFilterOption(id: 'empty', label: 'Adres yok'),
+              ],
+              selectedId: _address,
+              onSelected: (final id) => setState(() => _address = id),
             ),
-          ),
+          ],
         ),
         Expanded(
           child: stagesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final e, final st) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: AdminInlineBanner(message: 'Sahneler yüklenemedi: $e'),
-              ),
-            ),
-            data: (final stages) {
+            loading: () => const AdminListLoading(),
+            error: (final e, final st) =>
+                AdminListError(message: 'Sahneler yüklenemedi: $e'),
+            data: (final _) {
               if (stages.isEmpty)
-                return Center(
-                    child: Text('Henüz sahne eklenmemiş.',
-                        style: TextStyle(color: colors.onSurfaceVariant)));
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                itemCount: stages.length,
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (final context, final index) =>
-                    _StageRow(stage: stages[index]),
+                return const AdminEmptyList(
+                    message: 'Henüz sahne eklenmemiş.');
+              if (visible.isEmpty)
+                return const AdminEmptyList(
+                    message: 'Henüz sahne eklenmemiş.', isFiltered: true);
+              return AdminCatalogPane<Stage>(
+                items: visible,
+                cardBuilder: (final stage) => _StageRow(stage: stage),
+                table: AdminSortableTable<Stage>(
+                  items: visible,
+                  columns: _columns,
+                  sortColumnId: _sortId,
+                  sortAscending: _sortAsc,
+                  onSort: ({required final columnId, required final ascending}) =>
+                      setState(() {
+                    _sortId = columnId;
+                    _sortAsc = ascending;
+                  }),
+                  onRowTap: (final stage) => _open(stage),
+                  semanticLabel: (final s) =>
+                      '${s.name}, düzenlemek için dokun',
+                ),
               );
             },
           ),
@@ -81,63 +177,13 @@ class _StageRow extends StatelessWidget {
   const _StageRow({required this.stage});
 
   @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Semantics(
-      button: true,
-      label: '${stage.name}, düzenlemek için dokun',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+  Widget build(final BuildContext context) => AdminEntityCard(
+        title: stage.name,
+        subtitle: stage.address.isNotEmpty ? stage.address : 'Adres yok',
+        semanticLabel: '${stage.name}, düzenlemek için dokun',
+        leading: AdminThumb(
+            imageUrl: stage.imageUrl, fallback: Icons.location_city_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (final _) => AdminStageFormPage(stage: stage))),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: stage.imageUrl.isNotEmpty
-                    ? Image.network(stage.imageUrl,
-                        width: 44, height: 44, fit: BoxFit.cover,
-                        errorBuilder: (final c, final e, final s) =>
-                            _placeholderIcon(colors))
-                    : _placeholderIcon(colors),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(stage.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                      stage.address.isNotEmpty ? stage.address : 'Adres yok',
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.outline),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholderIcon(final ColorScheme colors) => Container(
-        width: 44,
-        height: 44,
-        color: colors.surfaceContainerHighest,
-        child: Icon(Icons.location_city_rounded,
-            color: colors.onSurfaceVariant, size: 20),
       );
 }

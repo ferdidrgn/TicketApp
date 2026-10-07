@@ -1,71 +1,193 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../pages/admin_show_form_page.dart';
-import 'admin_form_widgets.dart';
+import 'admin_table_tools.dart';
 
-/// "Oyunlar" sekmesi — GERÇEK `showsProvider(isLimit: false)` verisiyle
-/// beslenen liste + her satırda düzenlemeye giden bir ok + üstte "Yeni
-/// Oyun" butonu.
-class AdminShowsTab extends ConsumerWidget {
+/// "Oyunlar" sekmesi — GERÇEK `showsProvider(isLimit: false)` listesini
+/// yerelde arar, kategori / harici-iç bilet ile süzer; masaüstünde
+/// sıralanabilir tablo, mobilde kart.
+class AdminShowsTab extends ConsumerStatefulWidget {
   const AdminShowsTab({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<AdminShowsTab> createState() => _AdminShowsTabState();
+}
+
+class _AdminShowsTabState extends ConsumerState<AdminShowsTab> {
+  final _search = TextEditingController();
+  String _ticketKind = 'all';
+  String _category = 'all';
+  String _sortId = 'name';
+  bool _sortAsc = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.removeListener(_onSearch);
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<AdminTableColumn<Show>> get _columns => [
+        AdminTableColumn<Show>(
+          id: 'name',
+          label: 'Ad',
+          text: (final s) => s.name,
+          compare: (final a, final b) => adminCompareText(a.name, b.name),
+          cell: (final context, final s) => Row(
+            children: [
+              AdminThumb(
+                  imageUrl: s.imageUrl, fallback: Icons.theater_comedy_rounded),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(s.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+        AdminTableColumn<Show>(
+          id: 'category',
+          label: 'Kategori',
+          text: (final s) => s.category.isEmpty ? '—' : s.category,
+          compare: (final a, final b) =>
+              adminCompareText(a.category, b.category),
+        ),
+        AdminTableColumn<Show>(
+          id: 'ticket',
+          label: 'Bilet',
+          text: (final s) =>
+              s.hasExternalTicketing ? 'Harici' : 'Uygulama içi',
+          compare: (final a, final b) => (a.hasExternalTicketing ? 1 : 0)
+              .compareTo(b.hasExternalTicketing ? 1 : 0),
+        ),
+        AdminTableColumn<Show>(
+          id: 'updated',
+          label: 'Güncelleme',
+          text: (final s) => adminFormatStamp(s.updatedAt),
+          compare: (final a, final b) =>
+              adminCompareDate(a.updatedAt, b.updatedAt),
+        ),
+      ];
+
+  List<Show> _visible(final List<Show> shows) {
+    final filtered = shows.where((final s) {
+      if (_ticketKind == 'external' && !s.hasExternalTicketing) {
+        return false;
+      }
+      if (_ticketKind == 'internal' && s.hasExternalTicketing) {
+        return false;
+      }
+      if (_category != 'all' && s.category != _category) {
+        return false;
+      }
+      return adminQueryHits(_search.text, [
+        s.name,
+        s.category,
+        s.type,
+        s.description,
+      ]);
+    }).toList();
+    return adminSorted(
+      items: filtered,
+      columns: _columns,
+      sortColumnId: _sortId,
+      sortAscending: _sortAsc,
+    );
+  }
+
+  void _open(final Show? show) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (final _) => AdminShowFormPage(show: show)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final showsAsync = ref.watch(showsProvider(isLimit: false));
-    final colors = context.colors;
+    final shows = showsAsync.value ?? const <Show>[];
+    final visible = _visible(shows);
+    final categories = shows
+        .map((final s) => s.category.trim())
+        .where((final c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort(adminCompareText);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-          child: SizedBox(
-            width: double.infinity,
-            child: Semantics(
-              button: true,
-              label: 'Yeni oyun ekle',
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (final _) => const AdminShowFormPage())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Yeni Oyun'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
+        AdminListToolbar(
+          searchController: _search,
+          searchHint: 'Oyun adı, kategori…',
+          visibleCount: visible.length,
+          totalCount: shows.length,
+          primaryLabel: 'Yeni Oyun',
+          primarySemantics: 'Yeni oyun ekle',
+          onPrimary: () => _open(null),
+          filterGroups: [
+            AdminFilterGroup(
+              options: const [
+                AdminFilterOption(id: 'all', label: 'Tümü'),
+                AdminFilterOption(id: 'internal', label: 'Uygulama içi'),
+                AdminFilterOption(id: 'external', label: 'Harici bilet'),
+              ],
+              selectedId: _ticketKind,
+              onSelected: (final id) => setState(() => _ticketKind = id),
             ),
-          ),
+            if (categories.isNotEmpty)
+              AdminFilterGroup(
+                options: [
+                  const AdminFilterOption(id: 'all', label: 'Tüm kategoriler'),
+                  ...categories.map((final c) =>
+                      AdminFilterOption(id: c, label: c)),
+                ],
+                selectedId: _category,
+                onSelected: (final id) => setState(() => _category = id),
+              ),
+          ],
         ),
         Expanded(
           child: showsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final e, final st) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: AdminInlineBanner(message: 'Oyunlar yüklenemedi: $e'),
-              ),
-            ),
-            data: (final shows) {
+            loading: () => const AdminListLoading(),
+            error: (final e, final st) =>
+                AdminListError(message: 'Oyunlar yüklenemedi: $e'),
+            data: (final _) {
               if (shows.isEmpty)
-                return Center(
-                    child: Text('Henüz oyun eklenmemiş.',
-                        style: TextStyle(color: colors.onSurfaceVariant)));
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                itemCount: shows.length,
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (final context, final index) =>
-                    _ShowRow(show: shows[index]),
+                return const AdminEmptyList(message: 'Henüz oyun eklenmemiş.');
+              if (visible.isEmpty)
+                return const AdminEmptyList(
+                    message: 'Henüz oyun eklenmemiş.', isFiltered: true);
+              return AdminCatalogPane<Show>(
+                items: visible,
+                cardBuilder: (final show) => _ShowRow(show: show),
+                table: AdminSortableTable<Show>(
+                  items: visible,
+                  columns: _columns,
+                  sortColumnId: _sortId,
+                  sortAscending: _sortAsc,
+                  onSort: ({required final columnId, required final ascending}) =>
+                      setState(() {
+                    _sortId = columnId;
+                    _sortAsc = ascending;
+                  }),
+                  onRowTap: (final show) => _open(show),
+                  semanticLabel: (final s) =>
+                      '${s.name}, düzenlemek için dokun',
+                ),
               );
             },
           ),
@@ -81,65 +203,15 @@ class _ShowRow extends StatelessWidget {
   const _ShowRow({required this.show});
 
   @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Semantics(
-      button: true,
-      label: '${show.name}, düzenlemek için dokun',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+  Widget build(final BuildContext context) => AdminEntityCard(
+        title: show.name,
+        subtitle: show.hasExternalTicketing
+            ? 'Harici bilet'
+            : (show.category.isNotEmpty ? show.category : 'Kategori yok'),
+        semanticLabel: '${show.name}, düzenlemek için dokun',
+        leading: AdminThumb(
+            imageUrl: show.imageUrl, fallback: Icons.theater_comedy_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (final _) => AdminShowFormPage(show: show))),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: show.imageUrl.isNotEmpty
-                    ? Image.network(show.imageUrl,
-                        width: 44, height: 44, fit: BoxFit.cover,
-                        errorBuilder: (final c, final e, final s) =>
-                            _placeholderIcon(colors))
-                    : _placeholderIcon(colors),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(show.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                      show.hasExternalTicketing
-                          ? 'Harici bilet'
-                          : (show.category.isNotEmpty
-                              ? show.category
-                              : 'Kategori yok'),
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.outline),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholderIcon(final ColorScheme colors) => Container(
-        width: 44,
-        height: 44,
-        color: colors.surfaceContainerHighest,
-        child: Icon(Icons.theater_comedy_rounded,
-            color: colors.onSurfaceVariant, size: 20),
       );
 }

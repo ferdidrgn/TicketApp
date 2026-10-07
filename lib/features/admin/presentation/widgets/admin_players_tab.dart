@@ -1,75 +1,169 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../pages/admin_player_form_page.dart';
-import 'admin_form_widgets.dart';
+import 'admin_table_tools.dart';
 
-/// "Oyuncular" sekmesi — Phase 2: GERÇEK `playersProvider(isLimit: false)`
-/// verisiyle beslenen, düzenlemeye/silmeye giden tıklanabilir bir liste +
-/// üstte "Yeni Oyuncu" butonu (bkz. `AdminShowsTab`'daki AYNI desen).
-/// `achievements`/`collaborations` düzenleme artık `AdminPlayerFormPage`
-/// içinde gerçek bir editör (bkz. o dosya) — Phase 1'in bilinçli sınırı
-/// kapatıldı.
-class AdminPlayersTab extends ConsumerWidget {
+/// "Oyuncular" sekmesi — GERÇEK `playersProvider(isLimit: false)` listesini
+/// yerelde arar; görseli olan / olmayan süzgeci; masaüstünde sıralanabilir
+/// tablo, mobilde kart.
+class AdminPlayersTab extends ConsumerStatefulWidget {
   const AdminPlayersTab({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<AdminPlayersTab> createState() => _AdminPlayersTabState();
+}
+
+class _AdminPlayersTabState extends ConsumerState<AdminPlayersTab> {
+  final _search = TextEditingController();
+  String _image = 'all';
+  String _sortId = 'name';
+  bool _sortAsc = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.removeListener(_onSearch);
+    _search.dispose();
+    super.dispose();
+  }
+
+  String _fullName(final Player p) => '${p.firstName} ${p.lastName}'.trim();
+
+  List<AdminTableColumn<Player>> get _columns => [
+        AdminTableColumn<Player>(
+          id: 'name',
+          label: 'Ad',
+          text: _fullName,
+          compare: (final a, final b) =>
+              adminCompareText(_fullName(a), _fullName(b)),
+          cell: (final context, final p) => Row(
+            children: [
+              AdminThumb(imageUrl: p.imageUrl, fallback: Icons.person_rounded),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(_fullName(p),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+        AdminTableColumn<Player>(
+          id: 'image',
+          label: 'Görsel',
+          text: (final p) => p.imageUrl.trim().isEmpty ? 'Yok' : 'Var',
+          compare: (final a, final b) => (a.imageUrl.trim().isEmpty ? 0 : 1)
+              .compareTo(b.imageUrl.trim().isEmpty ? 0 : 1),
+        ),
+        AdminTableColumn<Player>(
+          id: 'updated',
+          label: 'Güncelleme',
+          text: (final p) => adminFormatStamp(p.updatedAt),
+          compare: (final a, final b) =>
+              adminCompareDate(a.updatedAt, b.updatedAt),
+        ),
+      ];
+
+  List<Player> _visible(final List<Player> players) {
+    final filtered = players.where((final p) {
+      final hasImage = p.imageUrl.trim().isNotEmpty;
+      if (_image == 'has' && !hasImage) {
+        return false;
+      }
+      if (_image == 'none' && hasImage) {
+        return false;
+      }
+      return adminQueryHits(_search.text, [
+        p.firstName,
+        p.lastName,
+        _fullName(p),
+        p.bio,
+      ]);
+    }).toList();
+    return adminSorted(
+      items: filtered,
+      columns: _columns,
+      sortColumnId: _sortId,
+      sortAscending: _sortAsc,
+    );
+  }
+
+  void _open(final Player? player) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (final _) => AdminPlayerFormPage(player: player)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final playersAsync = ref.watch(playersProvider(isLimit: false));
-    final colors = context.colors;
+    final players = playersAsync.value ?? const <Player>[];
+    final visible = _visible(players);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-          child: SizedBox(
-            width: double.infinity,
-            child: Semantics(
-              button: true,
-              label: 'Yeni oyuncu ekle',
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (final _) => const AdminPlayerFormPage())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Yeni Oyuncu'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
+        AdminListToolbar(
+          searchController: _search,
+          searchHint: 'Oyuncu adı…',
+          visibleCount: visible.length,
+          totalCount: players.length,
+          primaryLabel: 'Yeni Oyuncu',
+          primarySemantics: 'Yeni oyuncu ekle',
+          onPrimary: () => _open(null),
+          filterGroups: [
+            AdminFilterGroup(
+              options: const [
+                AdminFilterOption(id: 'all', label: 'Tümü'),
+                AdminFilterOption(id: 'has', label: 'Görseli var'),
+                AdminFilterOption(id: 'none', label: 'Görseli yok'),
+              ],
+              selectedId: _image,
+              onSelected: (final id) => setState(() => _image = id),
             ),
-          ),
+          ],
         ),
         Expanded(
           child: playersAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final e, final st) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child:
-                    AdminInlineBanner(message: 'Oyuncular yüklenemedi: $e'),
-              ),
-            ),
-            data: (final players) {
+            loading: () => const AdminListLoading(),
+            error: (final e, final st) =>
+                AdminListError(message: 'Oyuncular yüklenemedi: $e'),
+            data: (final _) {
               if (players.isEmpty)
-                return Center(
-                    child: Text('Henüz oyuncu eklenmemiş.',
-                        style: TextStyle(color: colors.onSurfaceVariant)));
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                itemCount: players.length,
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (final context, final index) =>
-                    _PlayerRow(player: players[index]),
+                return const AdminEmptyList(
+                    message: 'Henüz oyuncu eklenmemiş.');
+              if (visible.isEmpty)
+                return const AdminEmptyList(
+                    message: 'Henüz oyuncu eklenmemiş.', isFiltered: true);
+              return AdminCatalogPane<Player>(
+                items: visible,
+                cardBuilder: (final player) => _PlayerRow(player: player),
+                table: AdminSortableTable<Player>(
+                  items: visible,
+                  columns: _columns,
+                  sortColumnId: _sortId,
+                  sortAscending: _sortAsc,
+                  onSort: ({required final columnId, required final ascending}) =>
+                      setState(() {
+                    _sortId = columnId;
+                    _sortAsc = ascending;
+                  }),
+                  onRowTap: (final player) => _open(player),
+                  semanticLabel: (final p) =>
+                      '${_fullName(p)}, düzenlemek için dokun',
+                ),
               );
             },
           ),
@@ -86,61 +180,17 @@ class _PlayerRow extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Semantics(
-      button: true,
-      label: '${player.firstName} ${player.lastName}, düzenlemek için dokun',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (final _) => AdminPlayerFormPage(player: player))),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: player.imageUrl.isNotEmpty
-                    ? Image.network(player.imageUrl,
-                        width: 44, height: 44, fit: BoxFit.cover,
-                        errorBuilder: (final c, final e, final s) =>
-                            _placeholderIcon(colors))
-                    : _placeholderIcon(colors),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${player.firstName} ${player.lastName}',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                      '${player.achievements.length} ödül · '
-                      '${player.collaborations.length} iş birliği',
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.outline),
-            ],
-          ),
-        ),
-      ),
+    final name = '${player.firstName} ${player.lastName}'.trim();
+    return AdminEntityCard(
+      title: name,
+      subtitle: '${player.achievements.length} ödül · '
+          '${player.collaborations.length} iş birliği'
+          '${player.imageUrl.trim().isEmpty ? ' · görsel yok' : ''}',
+      semanticLabel: '$name, düzenlemek için dokun',
+      leading: AdminThumb(
+          imageUrl: player.imageUrl, fallback: Icons.person_rounded),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (final _) => AdminPlayerFormPage(player: player))),
     );
   }
-
-  Widget _placeholderIcon(final ColorScheme colors) => Container(
-        width: 44,
-        height: 44,
-        color: colors.surfaceContainerHighest,
-        child:
-            Icon(Icons.person_rounded, color: colors.onSurfaceVariant, size: 20),
-      );
 }

@@ -7,6 +7,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../shows/domain/entities/show.dart';
 
 /// Keşfet / Yakınımdakiler / Arama ekranlarının ortak, temaya bağlı tarama
 /// kontrolleri. Bunlar "araç" parçalarıdır (filtre, başlık, liste satırı) —
@@ -405,6 +406,8 @@ class BrowseSideOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
+  final Color? tone;
+  final Color? toneInk;
 
   const BrowseSideOption({
     super.key,
@@ -413,26 +416,37 @@ class BrowseSideOption extends StatelessWidget {
     required this.onTap,
     this.count,
     this.icon,
+    this.tone,
+    this.toneInk,
   });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool tinted = tone != null && toneInk != null;
+    final Color fg =
+        selected ? cs.onPrimary : (tinted ? toneInk! : cs.onSurface);
+    final Color meta = selected
+        ? cs.onPrimary.withValues(alpha: 0.8)
+        : (tinted ? toneInk!.withValues(alpha: 0.75) : cs.onSurfaceVariant);
     return Semantics(
       button: true,
       selected: selected,
       label: count == null ? label : '$label, $count',
       excludeSemantics: true,
       child: Material(
-        color: selected ? cs.primary.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
+        color: selected
+            ? (tinted ? cs.primary : cs.primary.withOpacity(0.1))
+            : (tinted ? tone! : Colors.transparent),
+        borderRadius:
+            BorderRadius.circular(tinted ? AppRadius.md : AppRadius.xs),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           focusColor: cs.primary.withOpacity(0.18),
           hoverColor: cs.onSurface.withOpacity(0.05),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: BoxConstraints(minHeight: tinted ? 48 : 44),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -441,7 +455,9 @@ class BrowseSideOption extends StatelessWidget {
                   if (icon != null) ...[
                     Icon(icon,
                         size: 18,
-                        color: selected ? cs.primary : cs.onSurfaceVariant),
+                        color: tinted
+                            ? fg
+                            : (selected ? cs.primary : cs.onSurfaceVariant)),
                     const SizedBox(width: AppSpacing.md),
                   ],
                   Expanded(
@@ -450,7 +466,9 @@ class BrowseSideOption extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: selected ? cs.primary : cs.onSurface,
+                        color: tinted
+                            ? fg
+                            : (selected ? cs.primary : cs.onSurface),
                         fontWeight:
                             selected ? FontWeight.w800 : FontWeight.w500,
                         fontSize: 14.5,
@@ -461,7 +479,7 @@ class BrowseSideOption extends StatelessWidget {
                     Text(
                       '$count',
                       style: TextStyle(
-                        color: cs.onSurfaceVariant,
+                        color: meta,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -727,3 +745,214 @@ SliverGridDelegate browseRowGridDelegate(
       mainAxisSpacing: AppSpacing.md,
       crossAxisSpacing: AppSpacing.lg,
     );
+
+/// Türkçe büyük/küçük harf ve boşluk farkını yok sayan tür anahtarı.
+String browseCategoryKey(final String raw) => raw
+    .trim()
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .replaceAll('İ', 'i')
+    .replaceAll('I', 'ı')
+    .toLowerCase();
+
+class BrowseCategory {
+  final String key;
+  final String label;
+  final int count;
+  final String imageUrl;
+
+  const BrowseCategory(this.key, this.label, this.count, this.imageUrl);
+}
+
+List<BrowseCategory> browseCategoriesOf(final List<Show> shows) {
+  final Map<String, Map<String, int>> spellings = {};
+  final Map<String, List<Show>> byKey = {};
+  for (final Show show in shows) {
+    final String raw = show.category.trim();
+    if (raw.isEmpty) continue;
+    final String key = browseCategoryKey(raw);
+    byKey.putIfAbsent(key, () => []).add(show);
+    final Map<String, int> spelling = spellings.putIfAbsent(key, () => {});
+    spelling[raw] = (spelling[raw] ?? 0) + 1;
+  }
+  final List<BrowseCategory> list = byKey.entries.map((final entry) {
+    final Map<String, int> spelling = spellings[entry.key]!;
+    final String label = (spelling.entries.toList()
+          ..sort((final a, final b) => b.value.compareTo(a.value)))
+        .first
+        .key;
+    final String image = entry.value
+        .map((final show) => show.imageUrl.trim())
+        .firstWhere((final url) => url.isNotEmpty, orElse: () => '');
+    return BrowseCategory(entry.key, label, entry.value.length, image);
+  }).toList()
+    ..sort((final a, final b) {
+      final int byCount = b.count.compareTo(a.count);
+      return byCount != 0 ? byCount : a.label.compareTo(b.label);
+    });
+  return list;
+}
+
+/// Keşfet'teki kayan tür şeridi. Dokununca süzer, tekrar dokununca Tümü.
+class BrowseCategoryStrip extends StatelessWidget {
+  final List<BrowseCategory> categories;
+  final String? selectedKey;
+  final int total;
+  final ValueChanged<String?> onPick;
+  final EdgeInsets padding;
+
+  const BrowseCategoryStrip({
+    super.key,
+    required this.categories,
+    required this.selectedKey,
+    required this.total,
+    required this.onPick,
+    required this.padding,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    if (categories.length < 2) return const SizedBox.shrink();
+    return ScrollConfiguration(
+      behavior: const BrowseDragScrollBehavior(),
+      child: SizedBox(
+        height: 96,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: padding,
+          children: [
+            _BrowseCategoryCard(
+              label: 'Tümü',
+              count: total,
+              imageUrl: '',
+              selected: selectedKey == null,
+              onTap: () => onPick(null),
+            ),
+            for (final BrowseCategory category in categories)
+              _BrowseCategoryCard(
+                label: category.label,
+                count: category.count,
+                imageUrl: category.imageUrl,
+                selected: selectedKey == category.key,
+                onTap: () => onPick(category.key),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BrowseCategoryCard extends StatelessWidget {
+  final String label;
+  final int count;
+  final String imageUrl;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BrowseCategoryCard({
+    required this.label,
+    required this.count,
+    required this.imageUrl,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool hasImage = imageUrl.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.md),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: '$label, $count oyun',
+        excludeSemantics: true,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          width: 132,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected ? cs.primary : Colors.transparent,
+              width: 2.4,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md - 2),
+            child: Material(
+              color: hasImage ? Colors.black : cs.primaryContainer,
+              child: InkWell(
+                onTap: onTap,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (hasImage)
+                      Opacity(
+                        opacity: selected ? 0.9 : 0.6,
+                        child: OptimizedCachedImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          borderRadius: 0,
+                        ),
+                      ),
+                    if (hasImage)
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x11000000), Color(0xCC000000)],
+                          ),
+                        ),
+                      ),
+                    if (selected)
+                      Positioned(
+                        top: AppSpacing.xs + 2,
+                        right: AppSpacing.xs + 2,
+                        child: Icon(Icons.check_circle_rounded,
+                            size: 20, color: cs.primary),
+                      ),
+                    Positioned(
+                      left: AppSpacing.sm + 2,
+                      right: AppSpacing.sm,
+                      bottom: AppSpacing.sm,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.playfairDisplay(
+                              color: hasImage
+                                  ? Colors.white
+                                  : cs.onPrimaryContainer,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '$count oyun',
+                            style: TextStyle(
+                              color: hasImage
+                                  ? const Color(0xCCFFFFFF)
+                                  : cs.onPrimaryContainer
+                                      .withValues(alpha: 0.8),
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

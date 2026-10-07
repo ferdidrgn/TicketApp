@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,7 +45,12 @@ class ShowQuietIconButton extends StatelessWidget {
       excludeSemantics: true,
       child: IconButton(
         tooltip: label,
-        onPressed: onPressed,
+        onPressed: onPressed == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onPressed?.call();
+              },
         icon: Icon(icon, size: 22),
         style: IconButton.styleFrom(
           minimumSize: const Size(48, 48),

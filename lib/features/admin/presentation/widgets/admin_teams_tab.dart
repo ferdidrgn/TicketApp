@@ -1,72 +1,162 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../pages/admin_team_form_page.dart';
-import 'admin_form_widgets.dart';
+import 'admin_table_tools.dart';
 
-/// "Topluluklar" sekmesi — Phase 2: GERÇEK `teamsProvider(isLimit: false)`
-/// verisiyle beslenen, düzenlemeye/silmeye giden tıklanabilir bir liste +
-/// üstte "Yeni Topluluk" butonu (bkz. `AdminShowsTab`'daki AYNI desen).
-class AdminTeamsTab extends ConsumerWidget {
+/// "Topluluklar" sekmesi — GERÇEK `teamsProvider(isLimit: false)` listesini
+/// yerelde arar; oyunu olan / boş süzgeci; masaüstünde sıralanabilir
+/// tablo, mobilde kart.
+class AdminTeamsTab extends ConsumerStatefulWidget {
   const AdminTeamsTab({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<AdminTeamsTab> createState() => _AdminTeamsTabState();
+}
+
+class _AdminTeamsTabState extends ConsumerState<AdminTeamsTab> {
+  final _search = TextEditingController();
+  String _shows = 'all';
+  String _sortId = 'name';
+  bool _sortAsc = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.removeListener(_onSearch);
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<AdminTableColumn<Team>> get _columns => [
+        AdminTableColumn<Team>(
+          id: 'name',
+          label: 'Ad',
+          text: (final t) => t.name,
+          compare: (final a, final b) => adminCompareText(a.name, b.name),
+          cell: (final context, final t) => Row(
+            children: [
+              AdminThumb(imageUrl: t.imageUrl, fallback: Icons.groups_rounded),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(t.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+        AdminTableColumn<Team>(
+          id: 'shows',
+          label: 'Oyunlar',
+          text: (final t) => '${t.showsId.length}',
+          compare: (final a, final b) =>
+              a.showsId.length.compareTo(b.showsId.length),
+          numeric: true,
+        ),
+        AdminTableColumn<Team>(
+          id: 'updated',
+          label: 'Güncelleme',
+          text: (final t) => adminFormatStamp(t.updatedAt),
+          compare: (final a, final b) =>
+              adminCompareDate(a.updatedAt, b.updatedAt),
+        ),
+      ];
+
+  List<Team> _visible(final List<Team> teams) {
+    final filtered = teams.where((final t) {
+      final hasShows = t.showsId.isNotEmpty;
+      if (_shows == 'has' && !hasShows) {
+        return false;
+      }
+      if (_shows == 'empty' && hasShows) {
+        return false;
+      }
+      return adminQueryHits(_search.text, [t.name, t.description]);
+    }).toList();
+    return adminSorted(
+      items: filtered,
+      columns: _columns,
+      sortColumnId: _sortId,
+      sortAscending: _sortAsc,
+    );
+  }
+
+  void _open(final Team? team) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (final _) => AdminTeamFormPage(team: team)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final teamsAsync = ref.watch(teamsProvider(isLimit: false));
-    final colors = context.colors;
+    final teams = teamsAsync.value ?? const <Team>[];
+    final visible = _visible(teams);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-          child: SizedBox(
-            width: double.infinity,
-            child: Semantics(
-              button: true,
-              label: 'Yeni topluluk ekle',
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (final _) => const AdminTeamFormPage())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Yeni Topluluk'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
+        AdminListToolbar(
+          searchController: _search,
+          searchHint: 'Topluluk adı, açıklama…',
+          visibleCount: visible.length,
+          totalCount: teams.length,
+          primaryLabel: 'Yeni Topluluk',
+          primarySemantics: 'Yeni topluluk ekle',
+          onPrimary: () => _open(null),
+          filterGroups: [
+            AdminFilterGroup(
+              options: const [
+                AdminFilterOption(id: 'all', label: 'Tümü'),
+                AdminFilterOption(id: 'has', label: 'Oyunu var'),
+                AdminFilterOption(id: 'empty', label: 'Oyunu yok'),
+              ],
+              selectedId: _shows,
+              onSelected: (final id) => setState(() => _shows = id),
             ),
-          ),
+          ],
         ),
         Expanded(
           child: teamsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final e, final st) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child:
-                    AdminInlineBanner(message: 'Topluluklar yüklenemedi: $e'),
-              ),
-            ),
-            data: (final teams) {
+            loading: () => const AdminListLoading(),
+            error: (final e, final st) =>
+                AdminListError(message: 'Topluluklar yüklenemedi: $e'),
+            data: (final _) {
               if (teams.isEmpty)
-                return Center(
-                    child: Text('Henüz topluluk eklenmemiş.',
-                        style: TextStyle(color: colors.onSurfaceVariant)));
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                itemCount: teams.length,
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (final context, final index) =>
-                    _TeamRow(team: teams[index]),
+                return const AdminEmptyList(
+                    message: 'Henüz topluluk eklenmemiş.');
+              if (visible.isEmpty)
+                return const AdminEmptyList(
+                    message: 'Henüz topluluk eklenmemiş.', isFiltered: true);
+              return AdminCatalogPane<Team>(
+                items: visible,
+                cardBuilder: (final team) => _TeamRow(team: team),
+                table: AdminSortableTable<Team>(
+                  items: visible,
+                  columns: _columns,
+                  sortColumnId: _sortId,
+                  sortAscending: _sortAsc,
+                  onSort: ({required final columnId, required final ascending}) =>
+                      setState(() {
+                    _sortId = columnId;
+                    _sortAsc = ascending;
+                  }),
+                  onRowTap: (final team) => _open(team),
+                  semanticLabel: (final t) =>
+                      '${t.name}, düzenlemek için dokun',
+                ),
               );
             },
           ),
@@ -82,65 +172,16 @@ class _TeamRow extends StatelessWidget {
   const _TeamRow({required this.team});
 
   @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Semantics(
-      button: true,
-      label: '${team.name}, düzenlemek için dokun',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+  Widget build(final BuildContext context) => AdminEntityCard(
+        title: team.name,
+        subtitle: team.showsId.isEmpty
+            ? 'Kayıtlı oyun yok'
+            : '${team.showsId.length} oyun'
+                '${team.description.isNotEmpty ? ' · ${team.description}' : ''}',
+        semanticLabel: '${team.name}, düzenlemek için dokun',
+        leading:
+            AdminThumb(imageUrl: team.imageUrl, fallback: Icons.groups_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (final _) => AdminTeamFormPage(team: team))),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: team.imageUrl.isNotEmpty
-                    ? Image.network(team.imageUrl,
-                        width: 44, height: 44, fit: BoxFit.cover,
-                        errorBuilder: (final c, final e, final s) =>
-                            _placeholderIcon(colors))
-                    : _placeholderIcon(colors),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(team.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                      team.description.isNotEmpty
-                          ? team.description
-                          : 'Açıklama yok',
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.outline),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholderIcon(final ColorScheme colors) => Container(
-        width: 44,
-        height: 44,
-        color: colors.surfaceContainerHighest,
-        child:
-            Icon(Icons.groups_rounded, color: colors.onSurfaceVariant, size: 20),
       );
 }

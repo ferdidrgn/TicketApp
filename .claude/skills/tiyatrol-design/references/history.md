@@ -119,3 +119,8 @@ EKLE"**. Bu artık uygulamanın imza dilidir:
 - Geri butonlu ortak başlıkta sabit pembe/kırmızı gradyan yazı → temaya
   bağlandı (düzeltildi).
 - Her yerde perde/spot/parlama/vignette "tiyatro efekti" — gimmick.
+
+## 08.10.2026 — Keşfet tür şeridi
+
+Keşfet kategori şeridi onaylı keşif filtresidir; arama aynı şeridi kullanır.
+Bilet her yerde değil.
