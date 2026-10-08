@@ -11,6 +11,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/stagecraft.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -101,12 +102,14 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 560),
-                    child: PlayerIdentityCard(
-                      playerId: player.id,
-                      fullName: fullName,
-                      imageUrl: player.imageUrl,
-                      quote: player.quote,
-                      onStageLabel: onStageLabel,
+                    child: PaperGrain(
+                      child: PlayerIdentityCard(
+                        playerId: player.id,
+                        fullName: fullName,
+                        imageUrl: player.imageUrl,
+                        quote: player.quote,
+                        onStageLabel: onStageLabel,
+                      ),
                     ),
                   ),
                 ),
@@ -172,12 +175,9 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
                       AppSpacing.md, AppSpacing.xl, AppSpacing.md),
-                  child: FilledButton(
+                  child: PlateButton(
+                    label: _actionLabel(split.active)!,
                     onPressed: _actionTap(context, split.active),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(48, 52),
-                    ),
-                    child: Text(_actionLabel(split.active)!),
                   ),
                 ),
               ),

@@ -6,11 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
-import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/playbill.dart';
+import '../../../../../shared/widgets/stagecraft.dart';
 import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../show_team_credit.dart';
@@ -125,13 +125,14 @@ class ShowDetailMobileLayout extends StatelessWidget {
                       safe.top + AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
                   child: Row(
                     children: [
-                      const ShowBackButton(onImage: false),
+                      ShowBackButton(onImage: !isScrolled),
                       const Spacer(),
                       if (contentReady) ...[
                         ShowFavoriteButton(
-                            showId: data.show.id, onImage: false),
+                            showId: data.show.id, onImage: !isScrolled),
                         const SizedBox(width: AppSpacing.sm),
-                        ShowShareButton(show: data.show, onImage: false),
+                        ShowShareButton(
+                            show: data.show, onImage: !isScrolled),
                       ],
                     ],
                   ),
@@ -211,6 +212,7 @@ class _Cover extends StatelessWidget {
       fit: BoxFit.cover,
       borderRadius: 0,
     );
+    image = KenBurns(enabled: showImage, child: image);
     image = TiyatrolHero(
       tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.show(show.id)),
       child: image,
@@ -223,7 +225,7 @@ class _Cover extends StatelessWidget {
           final double offset =
               controller.hasClients ? controller.offset.clamp(0, height) : 0;
           return Transform.translate(
-            offset: Offset(0, offset * 0.32),
+            offset: Offset(0, offset * 0.28),
             child: child,
           );
         },
@@ -234,110 +236,107 @@ class _Cover extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            MediaQuery.paddingOf(context).top + 56,
-            AppSpacing.xl,
-            0,
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              boxShadow: AppShadows.level3(colors.shadow),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              child: SizedBox(
-                height: height,
-                width: double.infinity,
-                child: showImage
-                    ? Semantics(
-                        image: true,
-                        label: '${show.name} afişi',
-                        child: image,
-                      )
-                    : ColoredBox(color: colors.surfaceContainerHighest),
-              ),
-            ),
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(0, -24),
-          child: Material(
-            color: colors.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl, AppSpacing.xxl, AppSpacing.xl, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  PlaybillCoverTitle(
-                    title: show.name,
-                    reveal: headline,
-                    color: colors.onSurface,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  TitleInkMark(
-                      color: colors.primary, reveal: details, width: 48),
-                  const SizedBox(height: AppSpacing.md),
-                  FadeTransition(
-                    opacity: details,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ShowTeamCredit(teamId: show.teamId),
-                        if (duration.isNotEmpty ||
-                            age.isNotEmpty ||
-                            category.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          Wrap(
-                            spacing: AppSpacing.sm,
-                            runSpacing: AppSpacing.sm,
-                            children: [
-                              if (duration.isNotEmpty)
-                                _CoverChip(label: duration),
-                              if (age.isNotEmpty) _CoverChip(label: age),
-                              if (category.isNotEmpty)
-                                _CoverChip(
-                                  label: category,
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    NavigationHandler.goToDiscoverWithCategory(
-                                        context, category);
-                                  },
-                                ),
-                            ],
-                          ),
-                        ],
-                        if (!data.isExternal && next != null) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          Semantics(
-                            button: true,
-                            label: 'En yakın seans, ${next.shortLabel}',
-                            excludeSemantics: true,
-                            child: InkWell(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                onSessions();
-                              },
-                              child: Text(
-                                next.shortLabel,
-                                style: GoogleFonts.playfairDisplay(
-                                  color: colors.primary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+        SizedBox(
+          height: height,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              showImage
+                  ? Semantics(
+                      image: true,
+                      label: '${show.name} afişi',
+                      child: image,
+                    )
+                  : ColoredBox(color: colors.surfaceContainerHighest),
+              const CinematicScrim(),
+              Positioned(
+                left: AppSpacing.xl,
+                right: AppSpacing.xl,
+                bottom: AppSpacing.huge,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PlaybillCoverTitle(
+                      title: show.name,
+                      reveal: headline,
+                      color: kPosterInk,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    TitleInkMark(
+                        color: colors.primary, reveal: details, width: 48),
+                    const SizedBox(height: AppSpacing.md),
+                    FadeTransition(
+                      opacity: details,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!data.isExternal && next != null)
+                            Semantics(
+                              button: true,
+                              label: 'En yakın seans, ${next.shortLabel}',
+                              excludeSemantics: true,
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  onSessions();
+                                },
+                                child: Text(
+                                  next.shortLabel,
+                                  style: GoogleFonts.playfairDisplay(
+                                    color: kPosterInk,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Material(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl, AppSpacing.xxl, AppSpacing.xl, 0),
+            child: FadeTransition(
+              opacity: details,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShowTeamCredit(teamId: show.teamId),
+                  if (duration.isNotEmpty ||
+                      age.isNotEmpty ||
+                      category.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: [
+                        if (duration.isNotEmpty) _CoverChip(label: duration),
+                        if (age.isNotEmpty) _CoverChip(label: age),
+                        if (category.isNotEmpty)
+                          _CoverChip(
+                            label: category,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              NavigationHandler.goToDiscoverWithCategory(
+                                  context, category);
+                            },
+                          ),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

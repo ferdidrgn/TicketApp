@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +9,8 @@ import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/craft.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/stagecraft.dart';
+import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../players/domain/entities/player.dart';
@@ -691,7 +691,7 @@ class HomePosterCard extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  boxShadow: AppShadows.level2(cs.shadow),
+                  boxShadow: AppShadows.level3(cs.shadow),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -861,13 +861,13 @@ class HomePlayerStories extends ConsumerWidget {
     if (players.isEmpty) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 112,
+      height: 196,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: padding,
         itemCount: players.length,
         separatorBuilder: (final _, final __) =>
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.md),
         itemBuilder: (final context, final i) {
           final p = players[i];
           final String name = '${p.firstName} ${p.lastName}'.trim();
@@ -880,7 +880,7 @@ class HomePlayerStories extends ConsumerWidget {
             button: true,
             label: name,
             excludeSemantics: true,
-            child: GestureDetector(
+            child: PressScale(
               onTap: () {
                 TiyatrolHeroFlight.prepare(
                   heroTag,
@@ -891,37 +891,25 @@ class HomePlayerStories extends ConsumerWidget {
                     heroTag: heroTag, imageUrl: p.imageUrl, title: name);
               },
               child: SizedBox(
-                width: 72,
+                width: 120,
                 child: Column(
                   children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      padding: const EdgeInsets.all(2.5),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: SweepGradient(
-                          transform: GradientRotation(i * math.pi / 5),
-                          colors: [
-                            cs.primary,
-                            cs.tertiary,
-                            cs.secondary,
-                            cs.primary,
-                          ],
-                        ),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
+                    Expanded(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                            shape: BoxShape.circle, color: cs.surface),
+                          borderRadius: BorderRadius.circular(60),
+                          boxShadow: AppShadows.level2(cs.shadow),
+                        ),
                         child: TiyatrolHero(
                           tag: heroTag,
-                          child: ClipOval(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(60),
                             child: ColoredBox(
                               color: cs.primaryContainer,
                               child: OptimizedCachedImage(
                                 imageUrl: p.imageUrl,
                                 fit: BoxFit.cover,
+                                width: 120,
                                 borderRadius: 0,
                                 errorBuilder: (final _, final __, final ___) =>
                                     Center(
@@ -929,6 +917,7 @@ class HomePlayerStories extends ConsumerWidget {
                                       style: TextStyle(
                                         color: cs.onPrimaryContainer,
                                         fontWeight: FontWeight.w800,
+                                        fontSize: 22,
                                       )),
                                 ),
                               ),
@@ -937,15 +926,17 @@ class HomePlayerStories extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
-                      p.firstName,
-                      maxLines: 1,
+                      '${p.firstName}\n${p.lastName}',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: cs.onSurface,
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
                       ),
                     ),
                   ],
@@ -954,6 +945,146 @@ class HomePlayerStories extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Ana sayfanın tek hero anı: gerçek afiş + oyun adı (wipe) + en yakın
+/// seans. Bilet koçanı yok; basılı afiş plağı.
+class FeaturedCinematicCover extends StatelessWidget {
+  final HomeFeatured featured;
+  final Animation<double> reveal;
+  final VoidCallback onOpen;
+  final String heroFrom;
+  final double height;
+
+  const FeaturedCinematicCover({
+    super.key,
+    required this.featured,
+    required this.reveal,
+    required this.onOpen,
+    this.heroFrom = 'home-cover',
+    this.height = 420,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Show show = featured.show;
+    final HomeSession? session = featured.session;
+    final String tag = TiyatrolHeroTags.show(show.id, heroFrom);
+    final String sessionLabel = session == null
+        ? (show.hasExternalTicketing ? 'Başka platformda' : 'Editörün seçimi')
+        : stageSessionLabel(session.date);
+    final String stageName = (session?.stage?.name ?? '').trim();
+
+    return Semantics(
+      button: true,
+      label: '${show.name} oyununu incele',
+      excludeSemantics: true,
+      child: PressScale(
+        onTap: () {
+          TiyatrolHeroFlight.prepare(
+            tag,
+            imageUrl: show.imageUrl,
+            title: show.name,
+          );
+          onOpen();
+        },
+        child: PosterPlate(
+          child: SizedBox(
+            height: height,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                TiyatrolHero(
+                  tag: tag,
+                  child: KenBurns(
+                    child: CachedPoster(
+                      url: show.imageUrl,
+                      semanticLabel: '${show.name} afişi',
+                    ),
+                  ),
+                ),
+                const CinematicScrim(),
+                Positioned(
+                  left: AppSpacing.xl,
+                  right: AppSpacing.xl,
+                  bottom: AppSpacing.xl,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        sessionLabel,
+                        style: TextStyle(
+                          color: cs.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AuthWipeReveal(
+                        reveal: reveal,
+                        child: Text(
+                          show.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.playfairDisplay(
+                            color: kPosterInk,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            height: 1.05,
+                          ),
+                        ),
+                      ),
+                      if (stageName.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          stageName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xCCF6F1E4),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        children: [
+                          Text(
+                            'Oyunu incele',
+                            style: TextStyle(
+                              color: kPosterInk,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: cs.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: AppShadows.level2(cs.shadow),
+                            ),
+                            child: Icon(Icons.arrow_forward_rounded,
+                                size: 22, color: cs.onPrimary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

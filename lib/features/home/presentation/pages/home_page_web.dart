@@ -15,8 +15,9 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
-import '../../../../shared/widgets/theatre_show_card.dart';
+import '../../../../shared/widgets/stagecraft.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -29,6 +30,7 @@ import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
 import '../widgets/common/home_ticket_widgets.dart';
 import '../widgets/common/home_ui.dart';
+import '../widgets/mobile/mobile_home_canvas.dart';
 
 /// ANA SAYFA — WEB. "Gişe": platformun bilet gişesi, giriş ekranındaki
 /// onaylı "bilet dili"yle.
@@ -94,8 +96,15 @@ class _HomePageState extends ConsumerState<HomePage>
 
   void _openSearch() => NavigationHandler.goToSearch(context);
 
-  void _openShow(final Show show) =>
-      NavigationHandler.goToShow(context, show.id, show.name);
+  void _openShow(final Show show, {final String from = 'web'}) =>
+      NavigationHandler.goToShow(
+        context,
+        show.id,
+        show.name,
+        heroTag: TiyatrolHeroTags.show(show.id, from),
+        imageUrl: show.imageUrl,
+        title: show.name,
+      );
 
   void _goToTickets() {
     if (ref.read(isLoggedInProvider)) {
@@ -108,6 +117,11 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(final BuildContext context) {
+    // Web derlemesinde de telefon genişliği native mobil yüzeyi görür.
+    // Aksi halde /app 390px'te hâlâ masaüstü gişesini çizer.
+    if (context.isMobile) {
+      return const MobileHomeCanvas();
+    }
     final cs = Theme.of(context).colorScheme;
     final campaignState = ref.watch(campaignsProvider);
     // Ana sayfa filtresi: SADECE TiyatRol + Ataşehir Tiyatro Topluluğu
@@ -171,7 +185,8 @@ class _HomePageState extends ConsumerState<HomePage>
             _WebHero(
               headline: _headline,
               rest: _rest,
-              featured: sessionsPending ? null : pickHomeFeatured(sessions, shows),
+              featured:
+                  sessionsPending ? null : pickHomeFeatured(sessions, shows),
               featuredPending: sessionsPending,
               showCount: sessions.map((final s) => s.show.id).toSet().length,
               stageCount: sessions
@@ -179,9 +194,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   .map((final s) => s.stage!.id)
                   .toSet()
                   .length,
-              nextTicketShowName: loggedIn
-                  ? _firstUpcomingShowName(ticketsAsync.value)
-                  : null,
+              nextTicketShowName:
+                  loggedIn ? _firstUpcomingShowName(ticketsAsync.value) : null,
               onSearch: _openSearch,
               onTickets: _goToTickets,
               onOpenShow: _openShow,
@@ -218,7 +232,8 @@ class _HomePageState extends ConsumerState<HomePage>
             if (sessions.isNotEmpty)
               _WebSection(
                 topGap: sectionGap,
-                title: homeText(context, 'Yaklaşan seanslar', 'Upcoming performances'),
+                title: homeText(
+                    context, 'Yaklaşan seanslar', 'Upcoming performances'),
                 child: HomeSessionBoard(
                   sessions: sessions,
                   onOpenShow: _openShow,
@@ -244,8 +259,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
                   child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: _gutter(context)),
+                    padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
                     child: const HomeQuoteOfDay(),
                   ),
                 ),
@@ -253,8 +267,8 @@ class _HomePageState extends ConsumerState<HomePage>
             ),
             _WebSection(
               topGap: sectionGap,
-              title: homeText(
-                  context, 'Sahnenin yüzleri', 'Faces of the stage'),
+              title:
+                  homeText(context, 'Sahnenin yüzleri', 'Faces of the stage'),
               bleedRail: true,
               child: HomePlayerStories(
                 padding: EdgeInsets.symmetric(horizontal: _gutter(context)),
@@ -319,8 +333,7 @@ String? _firstUpcomingShowName(final List<DetailedTicket>? tickets) {
   DetailedTicket? soonest;
   DateTime? soonestDate;
   for (final ticket in tickets) {
-    if (ticket.isPast || ticket.show == null || ticket.event == null)
-      continue;
+    if (ticket.isPast || ticket.show == null || ticket.event == null) continue;
     final date = DateFormatter.parseDateString(ticket.event!.date);
     if (date == null) continue;
     if (soonestDate == null || date.isBefore(soonestDate)) {
@@ -367,8 +380,7 @@ class _WebSection extends StatelessWidget {
       padding: EdgeInsets.only(top: topGap),
       child: Center(
         child: ConstrainedBox(
-          constraints:
-              BoxConstraints(maxWidth: _kMaxContentWidth + 2 * gutter),
+          constraints: BoxConstraints(maxWidth: _kMaxContentWidth + 2 * gutter),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -462,9 +474,6 @@ class _WebHero extends StatelessWidget {
     final double width = MediaQuery.sizeOf(context).width;
     final bool desktop = width >= ResponsiveUtils.tabletBreakpoint;
     final bool tablet = !desktop && width >= ResponsiveUtils.mobileBreakpoint;
-    final HomeTicketLayout layout = desktop
-        ? HomeTicketLayout.wide
-        : (tablet ? HomeTicketLayout.medium : HomeTicketLayout.compact);
     final double gutter = _gutter(context);
 
     final Widget title = Semantics(
@@ -541,14 +550,21 @@ class _WebHero extends StatelessWidget {
       ],
     );
 
-    final Widget? ticket = featuredPending
-        ? HomeFeaturedTicketSkeleton(layout: layout)
+    final Widget? cover = featuredPending
+        ? PosterPlate(
+            child: Container(
+              height: desktop ? 520 : 420,
+              color: cs.surfaceContainerHighest,
+            ),
+          )
         : (featured == null
             ? null
-            : HomeFeaturedTicket(
+            : FeaturedCinematicCover(
                 key: ValueKey(featured!.session?.event.id ?? featured!.show.id),
                 featured: featured!,
-                layout: layout,
+                reveal: headline,
+                heroFrom: 'web',
+                height: desktop ? 520 : (tablet ? 460 : 420),
                 onOpen: () => onOpenShow(featured!.show),
               ));
 
@@ -575,9 +591,10 @@ class _WebHero extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
                 _settle(intro),
               ],
-              if (ticket != null) ...[
-                SizedBox(height: desktop ? AppSpacing.massive : AppSpacing.xxxl),
-                _settle(ticket),
+              if (cover != null) ...[
+                SizedBox(
+                    height: desktop ? AppSpacing.massive : AppSpacing.xxxl),
+                _settle(cover),
               ],
             ],
           ),
@@ -606,7 +623,7 @@ class _ShowsGrid extends StatelessWidget {
         itemCount: shows.length,
         itemWidth: 168,
         height: 256,
-        itemBuilder: (final context, final i) => TheatreShowCard(
+        itemBuilder: (final context, final i) => HomePosterCard(
           show: shows[i],
           heroFrom: 'web-rail',
           onTap: () => onOpenShow(shows[i]),
@@ -624,7 +641,7 @@ class _ShowsGrid extends StatelessWidget {
         crossAxisSpacing: AppSpacing.xl,
         childAspectRatio: 0.66,
       ),
-      itemBuilder: (final context, final i) => TheatreShowCard(
+      itemBuilder: (final context, final i) => HomePosterCard(
         show: shows[i],
         heroFrom: 'web',
         onTap: () => onOpenShow(shows[i]),
@@ -675,7 +692,8 @@ class _WebLoadingState extends StatelessWidget {
                       (final i) => Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(
-                              right: i == (desktop ? 4 : 1) ? 0 : AppSpacing.xl),
+                              right:
+                                  i == (desktop ? 4 : 1) ? 0 : AppSpacing.xl),
                           child: const ShimmerLoading(
                             height: 260,
                             width: double.infinity,

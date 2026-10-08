@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -14,8 +15,8 @@ import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../home/presentation/widgets/common/home_showcase.dart';
 import '../../../shows/domain/entities/show.dart';
 
-/// Soyunma odası: hap ayna (120 / r=60), ad perde gibi açılır, replik,
-/// şu an sahnede. Koçan yok.
+/// Soyunma odası: hap ayna (148 / r=74, listede 120/r=60), ad perde gibi
+/// açılır, replik, şu an sahnede. Koçan yok.
 class PlayerIdentityCard extends StatefulWidget {
   final String playerId;
   final String fullName;
@@ -98,7 +99,13 @@ class _PlayerIdentityCardState extends State<PlayerIdentityCard>
 
     return Column(
       children: [
-        portrait,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(74),
+            boxShadow: AppShadows.level3(colors.shadow),
+          ),
+          child: portrait,
+        ),
         const SizedBox(height: AppSpacing.xl),
         Semantics(
           header: true,
@@ -215,9 +222,9 @@ class _PillPortrait extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
 
-  static const double _width = 120;
-  static const double _height = 168;
-  static const double _radius = 60;
+  static const double _width = 148;
+  static const double _height = 208;
+  static const double _radius = 74;
 
   const _PillPortrait({
     required this.url,

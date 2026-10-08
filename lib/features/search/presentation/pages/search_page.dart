@@ -1,7 +1,4 @@
 import 'dart:math' as math;
-import '../../../../shared/widgets/ticket/ticket_search.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../home/presentation/widgets/common/home_showcase.dart';
 
 import 'package:animations/animations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -10,22 +7,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/stagecraft.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
-import '../../../../shared/widgets/craft.dart';
-import '../../../../shared/widgets/playbill.dart';
+import '../../../../shared/widgets/ticket/ticket_search.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
+import '../../../home/presentation/widgets/common/home_showcase.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../stages/domain/entities/stage.dart';
@@ -70,6 +71,8 @@ const List<IconData> _kFacetIcons = [
 
 enum _Layout { mobile, tablet, desktop }
 
+const String _kRecentSearches = 'tiyatrol.recent_searches';
+
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -78,19 +81,42 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage>
-    with ResponsiveUtils, GlobalScrollMixin {
+    with ResponsiveUtils, GlobalScrollMixin, SingleTickerProviderStateMixin {
   final _textController = TextEditingController();
   bool _fieldFocused = false;
   String? _showCategory;
+  List<String> _recents = const [];
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic));
+  bool _started = false;
 
   @override
   void initState() {
     super.initState();
     _textController.text = ref.read(searchQueryProvider);
+    _loadRecents();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
   }
 
   @override
   void dispose() {
+    _entrance.dispose();
+    // Flutter 3.47 analyzer misses ValueNotifier.dispose on this type.
+    // ignore: undefined_method
     _textController.dispose();
     super.dispose();
   }
@@ -109,6 +135,47 @@ class _SearchPageState extends ConsumerState<SearchPage>
     ref.read(searchQueryProvider.notifier).update("");
   }
 
+  Future<void> _loadRecents() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) {
+      return;
+    }
+    setState(
+        () => _recents = prefs.getStringList(_kRecentSearches) ?? const []);
+  }
+
+  Future<void> _rememberQuery(final String raw) async {
+    final String clean = raw.trim();
+    if (clean.length < 2) {
+      return;
+    }
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> next = [
+      clean,
+      ...?prefs
+          .getStringList(_kRecentSearches)
+          ?.where((final item) => item.toLowerCase() != clean.toLowerCase()),
+    ].take(6).toList();
+    await prefs.setStringList(_kRecentSearches, next);
+    if (mounted) {
+      setState(() => _recents = next);
+    }
+  }
+
+  void _applyRecent(final String value) {
+    HapticFeedback.selectionClick();
+    _textController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    _onQueryChanged(value);
+  }
+
+  Future<void> _submitQuery(final String value) async {
+    FocusScope.of(context).unfocus();
+    await _rememberQuery(value);
+  }
+
   /// Boş sonuçta "Tümünde ara": sorgu korunur, tür filtresi kalkar.
   void _searchEverywhere() =>
       ref.read(searchFilterProvider.notifier).setFilter(0);
@@ -125,15 +192,21 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   String? _activeCategory(final List<BrowseCategory> categories) {
     final String? key = _showCategory;
-    if (key == null) return null;
+    if (key == null) {
+      return null;
+    }
     for (final BrowseCategory category in categories) {
-      if (category.key == key) return key;
+      if (category.key == key) {
+        return key;
+      }
     }
     return null;
   }
 
   List<Show> _showsInCategory(final List<Show> shows, final String? category) {
-    if (category == null) return shows;
+    if (category == null) {
+      return shows;
+    }
     return [
       for (final Show show in shows)
         if (browseCategoryKey(show.category) == category) show,
@@ -205,7 +278,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
       ),
       child: layout == _Layout.desktop
           ? _buildDesktop(context, state, filter, query, refreshing)
-          : _buildCompact(context, state, filter, query, refreshing, layout),
+          : layout == _Layout.mobile
+              ? _buildMobile(context, state, filter, query, refreshing)
+              : _buildCompact(
+                  context, state, filter, query, refreshing, layout),
     );
   }
 
@@ -213,9 +289,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
   // Arama kutusu
   // ─────────────────────────────────────────────────────────────────────
 
-  /// Ortak "gişe arama fişi" ([TicketSearchShell]): vurgu renginde arama
-  /// damgası + delik çizgisi + gerçek yazı alanı. Alan boşken dönen gerçek
-  /// örnekler ("Ara: …") gösterilir; yazmaya başlayınca kaybolur.
+  /// Onaylı ışıyan kenar + daktilo ipucu (gerçek oyun adları).
   Widget _searchField(final BuildContext context,
       {final bool autofocus = true}) {
     final ColorScheme cs = Theme.of(context).colorScheme;
@@ -244,7 +318,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   controller: _textController,
                   autofocus: autofocus,
                   onChanged: _onQueryChanged,
-                  onSubmitted: (final _) => FocusScope.of(context).unfocus(),
+                  onSubmitted: _submitQuery,
                   textInputAction: TextInputAction.search,
                   style: TextStyle(
                     color: cs.onSurface,
@@ -282,6 +356,198 @@ class _SearchPageState extends ConsumerState<SearchPage>
             : const SizedBox.shrink(),
       );
 
+  Widget _mobileSearchField(final BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return Focus(
+      onFocusChange: (final v) => setState(() => _fieldFocused = v),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _textController,
+        builder: (final context, final value, final _) {
+          return AnimatedContainer(
+            duration: AppMotion.fast,
+            height: 52,
+            padding: const EdgeInsets.only(
+              left: AppSpacing.lg,
+              right: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: _fieldFocused
+                  ? colors.surfaceContainerLowest
+                  : colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: _fieldFocused ? colors.primary : colors.outlineVariant,
+                width: _fieldFocused ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  color:
+                      _fieldFocused ? colors.primary : colors.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      if (value.text.isEmpty)
+                        IgnorePointer(
+                          child: Text(
+                            'Oyun, oyuncu, sahne veya ekip',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      Semantics(
+                        label: 'Oyun, oyuncu, sahne ya da ekip ara',
+                        textField: true,
+                        child: TextField(
+                          controller: _textController,
+                          autofocus: true,
+                          onChanged: _onQueryChanged,
+                          onSubmitted: _submitQuery,
+                          textInputAction: TextInputAction.search,
+                          keyboardType: TextInputType.text,
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          cursorColor: colors.primary,
+                          decoration: const InputDecoration(
+                            isCollapsed: true,
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (value.text.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Aramayı temizle',
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    onPressed: _clearQuery,
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMobile(
+      final BuildContext context,
+      final AsyncValue<SearchResultState> state,
+      final int filter,
+      final String query,
+      final bool refreshing) {
+    const double gutter = AppSpacing.xl;
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.deferToChild,
+      child: CustomScrollView(
+        controller: scrollController,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: PinnedBrowseHeader(
+              extent: 148,
+              child: ColoredBox(
+                color: Theme.of(context).colorScheme.surface,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        AppSpacing.sm,
+                        gutter,
+                        0,
+                      ),
+                      child: Row(
+                        children: [
+                          _backButton(context),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(child: _mobileSearchField(context)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ScopeRail(
+                      labels: _kFacets,
+                      selectedIndex: filter,
+                      onSelected: _onSeeAll,
+                      padding: const EdgeInsets.symmetric(horizontal: gutter),
+                    ),
+                    _progressLine(refreshing),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                gutter,
+                AppSpacing.xxl,
+                gutter,
+                query.trim().isEmpty ? AppSpacing.xl : AppSpacing.lg,
+              ),
+              child: _MobileSearchIntro(
+                key: ValueKey('$filter-${query.trim()}'),
+                query: query,
+                filter: filter,
+                total: state.value?.total,
+                reveal: _headline,
+              ),
+            ),
+          ),
+          if (query.trim().isEmpty && _recents.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  gutter,
+                  0,
+                  gutter,
+                  AppSpacing.xxl,
+                ),
+                child: _RecentSearches(
+                  recents: _recents,
+                  onPick: _applyRecent,
+                ),
+              ),
+            ),
+          ..._resultSlivers(state, filter, query, _Layout.mobile, gutter),
+          if (kIsWeb) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.section)),
+            const SliverToBoxAdapter(child: Footer()),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ],
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // Mobil / tablet
   // ─────────────────────────────────────────────────────────────────────
@@ -305,7 +571,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           SliverPersistentHeader(
             pinned: true,
             delegate: PinnedBrowseHeader(
-              extent: 168,
+              extent: 174,
               child: ColoredBox(
                 color: Theme.of(context).colorScheme.surface,
                 child: Column(
@@ -323,9 +589,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    CraftFacetRail(
+                    _ScopeRail(
                       labels: _kFacets,
-                      icons: _kFacetIcons,
                       selectedIndex: filter,
                       onSelected: _onSeeAll,
                       padding: EdgeInsets.symmetric(horizontal: gutter),
@@ -339,8 +604,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                  gutter, AppSpacing.xl, gutter, AppSpacing.lg),
+              padding: EdgeInsets.fromLTRB(gutter, AppSpacing.xxl, gutter,
+                  query.trim().isEmpty ? AppSpacing.xxl : AppSpacing.lg),
               child: PageTransitionSwitcher(
                 duration: AppMotion.normal,
                 reverse: false,
@@ -352,13 +617,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   fillColor: Theme.of(context).colorScheme.surface,
                   child: child,
                 ),
-                child: PlaybillActHeader(
+                child: _MobileSearchIntro(
                   key: ValueKey('$filter-${query.trim()}'),
-                  act: 'Foyer',
-                  title: query.trim().isEmpty
-                      ? 'Bu gece ne var?'
-                      : '“${query.trim()}”',
-                  meta: state.value == null ? null : '${state.value!.total}',
+                  query: query,
+                  filter: filter,
+                  total: state.value?.total,
+                  reveal: _headline,
                 ),
               ),
             ),
@@ -492,7 +756,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         sliver: SliverToBoxAdapter(child: child),
       );
 
-  Widget _noticeSliver(final double gutter, final TicketNotice notice) =>
+  Widget _noticeSliver(final double gutter, final _SearchNotice notice) =>
       _boxed(gutter, Align(alignment: Alignment.centerLeft, child: notice));
 
   List<Widget> _resultSlivers(
@@ -508,8 +772,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         return [
           _noticeSliver(
             gutter,
-            TicketNotice(
-              label: 'ARAMA',
+            _SearchNotice(
+              icon: Icons.wifi_off_rounded,
               title: 'Arama yapılamadı',
               message:
                   'Sonuçlara ulaşamadık. İnternet bağlantını kontrol edip tekrar dene.',
@@ -529,8 +793,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         return [
           _noticeSliver(
             gutter,
-            TicketNotice(
-              label: 'ARAMA',
+            _SearchNotice(
+              icon: Icons.search_off_rounded,
               title: '“$query” bulunamadı',
               message: narrowed
                   ? '${_kFacets[filter]} içinde eşleşen sonuç yok. Tüm türlerde aramayı dene.'
@@ -544,8 +808,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
       return [
         _noticeSliver(
           gutter,
-          TicketNotice(
-            label: 'ARAMA',
+          _SearchNotice(
+            icon: Icons.theater_comedy_outlined,
             title: 'Henüz içerik yok',
             message:
                 'Oyunlar, oyuncular ve sahneler eklendikçe burada listelenecek.',
@@ -582,7 +846,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final int tilePreview = layout == _Layout.mobile ? 4 : 6;
     final bool browsing = query.isEmpty;
     return [
-      if (browsing && data.shows.isNotEmpty) ...[
+      if (browsing && layout != _Layout.mobile && data.shows.isNotEmpty) ...[
         _boxed(gutter,
             const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
         SliverToBoxAdapter(
@@ -612,29 +876,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ),
         if (category != null && shows.isEmpty)
           _categoryEmpty(gutter, categories, category)
-        else if (layout == _Layout.mobile && category == null)
-          _boxed(
-            0,
-            SizedBox(
-              height: 262,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: gutter),
-                itemCount: math.min(showPreview, shows.length),
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(width: AppSpacing.md),
-                itemBuilder: (final context, final i) => SizedBox(
-                  width: 150,
-                  child: HomePosterCard(
-                    show: shows[i],
-                    heroFrom: 'search-rail',
-                    onTap: () => _openShow(shows[i], from: 'search-rail'),
-                  ),
-                ),
-              ),
-            ),
-            bottom: AppSpacing.section - AppSpacing.lg,
-          )
         else
           _showsSliver(
               category == null ? shows.take(showPreview).toList() : shows,
@@ -701,8 +942,22 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
-    final int columns =
-        layout == _Layout.mobile ? 2 : (layout == _Layout.tablet ? 3 : 5);
+    if (layout == _Layout.mobile) {
+      return SliverPadding(
+        padding: EdgeInsets.fromLTRB(
+            gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
+        sliver: SliverList.separated(
+          itemCount: shows.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(height: AppSpacing.md),
+          itemBuilder: (final context, final i) => _MobileShowResult(
+            show: shows[i],
+            onTap: () => _openShow(shows[i], from: 'search-mobile'),
+          ),
+        ),
+      );
+    }
+    final int columns = layout == _Layout.tablet ? 3 : 5;
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(
           gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
@@ -750,7 +1005,9 @@ class _SearchPageState extends ConsumerState<SearchPage>
   String _categoryLabel(
       final List<BrowseCategory> categories, final String key) {
     for (final BrowseCategory category in categories) {
-      if (category.key == key) return category.label;
+      if (category.key == key) {
+        return category.label;
+      }
     }
     return 'Oyunlar';
   }
@@ -759,8 +1016,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
           final List<BrowseCategory> categories, final String? category) =>
       _noticeSliver(
         gutter,
-        TicketNotice(
-          label: 'TÜR',
+        _SearchNotice(
+          icon: Icons.category_outlined,
           title: category == null
               ? 'Bu türde oyun yok'
               : '“${_categoryLabel(categories, category)}” türünde oyun yok',
@@ -878,15 +1135,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
     if (showsShape) {
       return SliverPadding(
         padding: padding,
-        sliver: SliverGrid.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.xl,
-            crossAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 0.56,
-          ),
-          itemCount: 6,
-          itemBuilder: (final context, final __) => const _PosterShimmerCard(),
+        sliver: SliverList.separated(
+          itemCount: 5,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(height: AppSpacing.md),
+          itemBuilder: (final context, final __) =>
+              const _SearchRowSkeleton(height: 124),
         ),
       );
     }
@@ -902,7 +1156,201 @@ class _SearchPageState extends ConsumerState<SearchPage>
         separatorBuilder: (final _, final __) =>
             SizedBox(height: filter == 3 ? AppSpacing.lg : AppSpacing.sm),
         itemBuilder: (final _, final __) =>
-            TicketRowSkeleton(height: rowHeight),
+            _SearchRowSkeleton(height: rowHeight),
+      ),
+    );
+  }
+}
+
+class _ScopeRail extends StatelessWidget {
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final EdgeInsets padding;
+
+  const _ScopeRail({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+    required this.padding,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: padding,
+        itemCount: labels.length,
+        separatorBuilder: (final _, final __) =>
+            const SizedBox(width: AppSpacing.xxl),
+        itemBuilder: (final context, final index) {
+          final bool selected = selectedIndex == index;
+          return Semantics(
+            button: true,
+            selected: selected,
+            label: '${labels[index]} kapsamında ara',
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelected(index);
+              },
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      labels[index],
+                      style: TextStyle(
+                        color: selected
+                            ? colors.onSurface
+                            : colors.onSurfaceVariant,
+                        fontSize: 14,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    AnimatedContainer(
+                      duration: AppMotion.fast,
+                      width: selected ? 24 : 0,
+                      height: 2,
+                      color: colors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RecentSearches extends StatelessWidget {
+  final List<String> recents;
+  final ValueChanged<String> onPick;
+
+  const _RecentSearches({required this.recents, required this.onPick});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Son aramalar',
+          style: context.textTheme.labelLarge?.copyWith(
+            color: colors.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final String recent in recents)
+              Semantics(
+                button: true,
+                label: '$recent aramasını tekrarla',
+                excludeSemantics: true,
+                child: ActionChip(
+                  onPressed: () => onPick(recent),
+                  avatar: Icon(
+                    Icons.history_rounded,
+                    size: 18,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  label: Text(recent),
+                  visualDensity: VisualDensity.comfortable,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchRowSkeleton extends StatelessWidget {
+  final double height;
+
+  const _SearchRowSkeleton({this.height = 124});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+    );
+  }
+}
+
+class _SearchNotice extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final IconData? actionIcon;
+  final VoidCallback onAction;
+
+  const _SearchNotice({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+    this.actionIcon,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 30, color: colors.primary),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              style: GoogleFonts.playfairDisplay(
+                color: colors.onSurface,
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              message,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            FilledButton.tonalIcon(
+              onPressed: onAction,
+              icon: Icon(actionIcon ?? Icons.arrow_forward_rounded),
+              label: Text(actionLabel),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -910,6 +1358,168 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
 extension on SearchResultState {
   int get total => shows.length + players.length + stages.length + teams.length;
+}
+
+class _MobileSearchIntro extends StatelessWidget {
+  final String query;
+  final int filter;
+  final int? total;
+  final Animation<double> reveal;
+
+  const _MobileSearchIntro({
+    super.key,
+    required this.query,
+    required this.filter,
+    required this.total,
+    required this.reveal,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    final String clean = query.trim();
+    final bool browsing = clean.isEmpty;
+    final String title = browsing
+        ? 'Sahnede ne arıyorsun?'
+        : filter == 0
+            ? '“$clean” için bulduklarımız'
+            : '${_kFacets[filter]} · “$clean”';
+    final String supporting = browsing
+        ? 'Bir oyun adı, oyuncu, sahne ya da topluluk yaz. '
+            'İstersen aşağıdaki seçkiden başla.'
+        : total == null
+            ? 'Arşiv taranıyor…'
+            : total == 0
+                ? 'Başka bir kelime ya da kapsam deneyebilirsin.'
+                : '$total gerçek içerik eşleşti.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: AuthWipeReveal(
+            reveal: reveal,
+            child: Text(
+              title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.playfairDisplay(
+                color: colors.onSurface,
+                fontSize: browsing ? 32 : 27,
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          supporting,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: colors.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MobileShowResult extends StatelessWidget {
+  final Show show;
+  final VoidCallback onTap;
+
+  const _MobileShowResult({required this.show, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    final String tag = TiyatrolHeroTags.show(show.id, 'search-mobile');
+    final List<String> meta = [
+      if (show.category.trim().isNotEmpty) show.category.trim(),
+      if (show.duration.trim().isNotEmpty) show.duration.trim(),
+    ];
+
+    return Semantics(
+      button: true,
+      label: '${show.name} oyununu aç',
+      excludeSemantics: true,
+      child: PosterPlate(
+        radius: AppRadius.md,
+        shadows: AppShadows.level2(colors.shadow),
+        child: Material(
+          color: colors.surfaceContainerLow,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              height: 132,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 94,
+                    child: TiyatrolHero(
+                      tag: tag,
+                      child: OptimizedCachedImage(
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              show.name,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.playfairDisplay(
+                                color: colors.onSurface,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                                height: 1.12,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  meta.join(' · '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 20,
+                                color: colors.primary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Masaüstü sonuç başlığı: ne arandığı + gerçek sonuç sayısı.
@@ -1051,138 +1661,6 @@ class _PlayerAvatar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// "Türlere göz at": her tür, o türdeki gerçek bir oyunun afişiyle kaplı
-/// fotoğraflı bir karo (karartmalı, tür adı + oyun sayısı). Dokununca o
-/// tür aranır.
-class _GenreTiles extends StatelessWidget {
-  final List<Show> shows;
-  final int columns;
-  final ValueChanged<String> onPick;
-
-  const _GenreTiles(
-      {required this.shows, required this.columns, required this.onPick});
-
-  @override
-  Widget build(final BuildContext context) {
-    final Map<String, List<Show>> byCat = {};
-    for (final s in shows) {
-      final c = s.category.trim();
-      if (c.isEmpty) continue;
-      byCat.putIfAbsent(c, () => []).add(s);
-    }
-    if (byCat.isEmpty) return const SizedBox.shrink();
-    final cats = byCat.keys.toList()
-      ..sort(
-          (final a, final b) => byCat[b]!.length.compareTo(byCat[a]!.length));
-    final shown = cats.take(columns * 2).toList();
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: shown.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        mainAxisSpacing: AppSpacing.md,
-        crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.6,
-      ),
-      itemBuilder: (final context, final i) {
-        final String cat = shown[i];
-        final list = byCat[cat]!;
-        final Show? cover = list.firstWhere(
-            (final s) => s.imageUrl.trim().isNotEmpty,
-            orElse: () => list.first);
-        return Semantics(
-          button: true,
-          label: '$cat, ${list.length} oyun',
-          excludeSemantics: true,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Material(
-              color: Colors.black,
-              child: InkWell(
-                onTap: () => onPick(cat),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (cover != null && cover.imageUrl.trim().isNotEmpty)
-                      Opacity(
-                        opacity: 0.75,
-                        child: OptimizedCachedImage(
-                          imageUrl: cover.imageUrl,
-                          fit: BoxFit.cover,
-                          borderRadius: 0,
-                        ),
-                      ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0x22000000), Color(0xCC000000)],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: AppSpacing.md,
-                      right: AppSpacing.md,
-                      bottom: AppSpacing.md,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            cat,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.playfairDisplay(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            '${list.length} oyun',
-                            style: const TextStyle(
-                                color: Color(0xCCFFFFFF), fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _PosterShimmerCard extends StatelessWidget {
-  const _PosterShimmerCard();
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool reduce = MediaQuery.disableAnimationsOf(context);
-    final Widget card = DecoratedBox(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-    );
-    if (reduce) return card;
-    return Shimmer.fromColors(
-      baseColor: cs.surfaceContainerHighest,
-      highlightColor: cs.surfaceContainerLow,
-      child: card,
     );
   }
 }
