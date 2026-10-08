@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
@@ -20,8 +19,8 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/stagecraft.dart';
-import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../shared/widgets/craft.dart';
+import '../../../../shared/widgets/listing.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/ticket/ticket_search.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
@@ -81,17 +80,11 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage>
-    with ResponsiveUtils, GlobalScrollMixin, SingleTickerProviderStateMixin {
+    with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
   bool _fieldFocused = false;
   String? _showCategory;
   List<String> _recents = const [];
-  late final AnimationController _entrance =
-      AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _headline = CurvedAnimation(
-      parent: _entrance,
-      curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic));
-  bool _started = false;
 
   @override
   void initState() {
@@ -101,20 +94,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _entrance.value = 1;
-    } else {
-      _entrance.forward();
-    }
-  }
-
-  @override
   void dispose() {
-    _entrance.dispose();
     // Flutter 3.47 analyzer misses ValueNotifier.dispose on this type.
     // ignore: undefined_method
     _textController.dispose();
@@ -289,55 +269,18 @@ class _SearchPageState extends ConsumerState<SearchPage>
   // Arama kutusu
   // ─────────────────────────────────────────────────────────────────────
 
-  /// Onaylı ışıyan kenar + daktilo ipucu (gerçek oyun adları).
+  /// Hap arama kutusu — listing dili (TicketSearchShell yok).
   Widget _searchField(final BuildContext context,
       {final bool autofocus = true}) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return Focus(
-      onFocusChange: (final v) => setState(() => _fieldFocused = v),
-      child: ValueListenableBuilder<TextEditingValue>(
-        valueListenable: _textController,
-        builder: (final context, final value, final _) => TicketSearchShell(
-          focused: _fieldFocused,
-          trailing: value.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: 'Aramayı temizle',
-                  icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant),
-                  onPressed: _clearQuery,
-                ),
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              if (value.text.isEmpty)
-                const IgnorePointer(child: RotatingSearchHint()),
-              Semantics(
-                label: 'Oyun, oyuncu, sahne ya da ekip ara',
-                textField: true,
-                child: TextField(
-                  controller: _textController,
-                  autofocus: autofocus,
-                  onChanged: _onQueryChanged,
-                  onSubmitted: _submitQuery,
-                  textInputAction: TextInputAction.search,
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  cursorColor: cs.primary,
-                  decoration: const InputDecoration(
-                    isCollapsed: true,
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _textController,
+      builder: (final context, final value, final _) => ListingSearchField(
+        controller: _textController,
+        autofocus: autofocus,
+        onChanged: _onQueryChanged,
+        onSubmitted: _submitQuery,
+        onClear: value.text.isEmpty ? null : _clearQuery,
+        hintOverlay: value.text.isEmpty ? const RotatingSearchHint() : null,
       ),
     );
   }
@@ -517,7 +460,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 query: query,
                 filter: filter,
                 total: state.value?.total,
-                reveal: _headline,
               ),
             ),
           ),
@@ -622,7 +564,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   query: query,
                   filter: filter,
                   total: state.value?.total,
-                  reveal: _headline,
                 ),
               ),
             ),
@@ -667,10 +608,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
                     const SizedBox(width: AppSpacing.xs),
                     Text(
                       'Ara',
-                      style: GoogleFonts.playfairDisplay(
+                      style: listingUi(
                         color: cs.onSurface,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
+                        size: 30,
+                        weight: FontWeight.w800,
                         height: 1.1,
                       ),
                     ),
@@ -1177,57 +1118,18 @@ class _ScopeRail extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: padding,
-        itemCount: labels.length,
-        separatorBuilder: (final _, final __) =>
-            const SizedBox(width: AppSpacing.xxl),
-        itemBuilder: (final context, final index) {
-          final bool selected = selectedIndex == index;
-          return Semantics(
-            button: true,
-            selected: selected,
-            label: '${labels[index]} kapsamında ara',
-            excludeSemantics: true,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onSelected(index);
-              },
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      labels[index],
-                      style: TextStyle(
-                        color: selected
-                            ? colors.onSurface
-                            : colors.onSurfaceVariant,
-                        fontSize: 14,
-                        fontWeight:
-                            selected ? FontWeight.w800 : FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    AnimatedContainer(
-                      duration: AppMotion.fast,
-                      width: selected ? 24 : 0,
-                      height: 2,
-                      color: colors.primary,
-                    ),
-                  ],
-                ),
-              ),
+    return Padding(
+      padding: padding,
+      child: ListingChipRow(
+        children: [
+          for (int i = 0; i < labels.length; i++)
+            ListingChip(
+              label: labels[i],
+              icon: _kFacetIcons[i],
+              selected: selectedIndex == i,
+              onTap: () => onSelected(i),
             ),
-          );
-        },
+        ],
       ),
     );
   }
@@ -1328,10 +1230,10 @@ class _SearchNotice extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(
               title,
-              style: GoogleFonts.playfairDisplay(
+              style: listingUi(
                 color: colors.onSurface,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
+                size: 25,
+                weight: FontWeight.w800,
                 height: 1.1,
               ),
             ),
@@ -1364,14 +1266,12 @@ class _MobileSearchIntro extends StatelessWidget {
   final String query;
   final int filter;
   final int? total;
-  final Animation<double> reveal;
 
   const _MobileSearchIntro({
     super.key,
     required this.query,
     required this.filter,
     required this.total,
-    required this.reveal,
   });
 
   @override
@@ -1398,27 +1298,25 @@ class _MobileSearchIntro extends StatelessWidget {
       children: [
         Semantics(
           header: true,
-          child: AuthWipeReveal(
-            reveal: reveal,
-            child: Text(
-              title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.playfairDisplay(
-                color: colors.onSurface,
-                fontSize: browsing ? 32 : 27,
-                fontWeight: FontWeight.w800,
-                height: 1.05,
-                letterSpacing: -0.3,
-              ),
+          child: Text(
+            title,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: listingUi(
+              color: colors.onSurface,
+              size: browsing ? 32 : 27,
+              weight: FontWeight.w800,
+              height: 1.05,
             ),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
           supporting,
-          style: context.textTheme.bodyMedium?.copyWith(
+          style: listingUi(
             color: colors.onSurfaceVariant,
+            size: 14,
+            weight: FontWeight.w500,
             height: 1.5,
           ),
         ),
@@ -1446,76 +1344,47 @@ class _MobileShowResult extends StatelessWidget {
       button: true,
       label: '${show.name} oyununu aç',
       excludeSemantics: true,
-      child: PosterPlate(
-        radius: AppRadius.md,
-        shadows: AppShadows.level2(colors.shadow),
-        child: Material(
-          color: colors.surfaceContainerLow,
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(
-              height: 132,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: 94,
-                    child: TiyatrolHero(
-                      tag: tag,
-                      child: OptimizedCachedImage(
-                        imageUrl: show.imageUrl,
-                        fit: BoxFit.cover,
-                        borderRadius: 0,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              show.name,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.playfairDisplay(
-                                color: colors.onSurface,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w800,
-                                height: 1.12,
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  meta.join(' · '),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: context.textTheme.bodySmall?.copyWith(
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 20,
-                                color: colors.primary,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+      child: PressScale(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TiyatrolHero(
+              tag: tag,
+              child: ListingPhotoFrame(
+                imageUrl: show.imageUrl,
+                overlay: show.category.trim().isEmpty
+                    ? null
+                    : show.category.trim(),
+                height: 180,
               ),
             ),
-          ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              show.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: listingUi(
+                color: colors.onSurface,
+                size: 18,
+                weight: FontWeight.w800,
+                height: 1.12,
+              ),
+            ),
+            if (meta.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                meta.join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: listingUi(
+                  color: colors.onSurfaceVariant,
+                  size: 12,
+                  weight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -1558,10 +1427,10 @@ class _ResultsHeadline extends StatelessWidget {
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.playfairDisplay(
+            style: listingUi(
               color: cs.onSurface,
-              fontSize: browseFluid(context, 28, 40),
-              fontWeight: FontWeight.w800,
+              size: browseFluid(context, 28, 40),
+              weight: FontWeight.w800,
               height: 1.1,
             ),
           ),

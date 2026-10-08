@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
@@ -11,7 +10,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
-import '../../../../shared/widgets/stagecraft.dart';
+import '../../../../shared/widgets/listing.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -102,14 +101,53 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 560),
-                    child: PaperGrain(
-                      child: PlayerIdentityCard(
-                        playerId: player.id,
-                        fullName: fullName,
-                        imageUrl: player.imageUrl,
-                        quote: player.quote,
-                        onStageLabel: onStageLabel,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PlayerIdentityCard(
+                          playerId: player.id,
+                          fullName: fullName,
+                          imageUrl: player.imageUrl,
+                          quote: player.quote,
+                          onStageLabel: onStageLabel,
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Row(
+                          children: [
+                            ListingMetricOrb(
+                              value: '${split.active.length}',
+                              unit: 'sahnede',
+                              emphasized: true,
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            ListingMetricOrb(
+                              value: '${split.past.length}',
+                              unit: 'geçmiş',
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            ListingMetricOrb(
+                              value:
+                                  '${player.achievements.where((final a) => (a['title'] ?? '').trim().isNotEmpty).length}',
+                              unit: 'ödül',
+                            ),
+                          ],
+                        ),
+                        if (split.active.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.xl),
+                          ListingLabel('Program'),
+                          ListingChipRow(
+                            children: [
+                              for (final Show show in split.active.take(8))
+                                ListingChip(
+                                  label: show.name,
+                                  selected: false,
+                                  onTap: () => NavigationHandler.goToShow(
+                                      context, show.id, show.name),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -162,25 +200,12 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         ),
         if (_actionLabel(split.active) != null)
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppRadius.xl),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
-                      AppSpacing.md, AppSpacing.xl, AppSpacing.md),
-                  child: PlateButton(
-                    label: _actionLabel(split.active)!,
-                    onPressed: _actionTap(context, split.active),
-                  ),
-                ),
-              ),
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
+            child: ListingCta(
+              label: _actionLabel(split.active)!,
+              onPressed: _actionTap(context, split.active),
             ),
           ),
       ],
@@ -378,10 +403,10 @@ class _AchievementList extends StatelessWidget {
                   width: 64,
                   child: Text(
                     (items[i]['year'] ?? '').trim(),
-                    style: GoogleFonts.playfairDisplay(
+                    style: listingUi(
                       color: colors.primary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      size: 18,
+                      weight: FontWeight.w700,
                       height: 1.3,
                     ),
                   ),

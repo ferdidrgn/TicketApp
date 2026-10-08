@@ -9,8 +9,7 @@ import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/craft.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/stagecraft.dart';
-import '../../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../players/domain/entities/player.dart';
@@ -950,11 +949,10 @@ class HomePlayerStories extends ConsumerWidget {
   }
 }
 
-/// Ana sayfanın tek hero anı: gerçek afiş + oyun adı (wipe) + en yakın
-/// seans. Bilet koçanı yok; basılı afiş plağı.
+/// Ana sayfa öne çıkan oyun — listing fotoğraf + metrik daireler.
 class FeaturedCinematicCover extends StatelessWidget {
   final HomeFeatured featured;
-  final Animation<double> reveal;
+  final Animation<double>? reveal;
   final VoidCallback onOpen;
   final String heroFrom;
   final double height;
@@ -962,7 +960,7 @@ class FeaturedCinematicCover extends StatelessWidget {
   const FeaturedCinematicCover({
     super.key,
     required this.featured,
-    required this.reveal,
+    this.reveal,
     required this.onOpen,
     this.heroFrom = 'home-cover',
     this.height = 420,
@@ -975,117 +973,75 @@ class FeaturedCinematicCover extends StatelessWidget {
     final HomeSession? session = featured.session;
     final String tag = TiyatrolHeroTags.show(show.id, heroFrom);
     final String sessionLabel = session == null
-        ? (show.hasExternalTicketing ? 'Başka platformda' : 'Editörün seçimi')
+        ? (show.hasExternalTicketing ? 'Başka platformda' : 'Programda')
         : stageSessionLabel(session.date);
     final String stageName = (session?.stage?.name ?? '').trim();
+    final String duration = show.duration.trim().isEmpty
+        ? '—'
+        : show.duration.replaceAll(RegExp(r'[^0-9]'), '').isEmpty
+            ? show.duration
+            : show.duration.replaceAll(RegExp(r'[^0-9]'), '');
+    final String age = show.ageLimit.trim().isEmpty ? '—' : show.ageLimit.trim();
 
-    return Semantics(
-      button: true,
-      label: '${show.name} oyununu incele',
-      excludeSemantics: true,
-      child: PressScale(
-        onTap: () {
-          TiyatrolHeroFlight.prepare(
-            tag,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TiyatrolHero(
+          tag: tag,
+          child: ListingPhotoFrame(
             imageUrl: show.imageUrl,
-            title: show.name,
-          );
-          onOpen();
-        },
-        child: PosterPlate(
-          child: SizedBox(
-            height: height,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                TiyatrolHero(
-                  tag: tag,
-                  child: KenBurns(
-                    child: CachedPoster(
-                      url: show.imageUrl,
-                      semanticLabel: '${show.name} afişi',
-                    ),
-                  ),
-                ),
-                const CinematicScrim(),
-                Positioned(
-                  left: AppSpacing.xl,
-                  right: AppSpacing.xl,
-                  bottom: AppSpacing.xl,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        sessionLabel,
-                        style: TextStyle(
-                          color: cs.primary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      AuthWipeReveal(
-                        reveal: reveal,
-                        child: Text(
-                          show.name,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.playfairDisplay(
-                            color: kPosterInk,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            height: 1.05,
-                          ),
-                        ),
-                      ),
-                      if (stageName.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          stageName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xCCF6F1E4),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.lg),
-                      Row(
-                        children: [
-                          Text(
-                            'Oyunu incele',
-                            style: TextStyle(
-                              color: kPosterInk,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: AppShadows.level2(cs.shadow),
-                            ),
-                            child: Icon(Icons.arrow_forward_rounded,
-                                size: 22, color: cs.onPrimary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            overlay: stageName.isEmpty ? null : stageName,
+            height: height.clamp(220, 360),
+            onTap: () {
+              TiyatrolHeroFlight.prepare(
+                tag,
+                imageUrl: show.imageUrl,
+                title: show.name,
+              );
+              onOpen();
+            },
           ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.xl),
+        ListingLabel('Seans'),
+        Text(
+          show.name,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: listingUi(
+            color: cs.onSurface,
+            size: 28,
+            weight: FontWeight.w800,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          session?.priceLabel ?? sessionLabel,
+          style: listingUi(
+            color: cs.onSurface,
+            size: 20,
+            weight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Row(
+          children: [
+            ListingMetricOrb(value: duration, unit: 'dk', emphasized: true),
+            const SizedBox(width: AppSpacing.md),
+            ListingMetricOrb(
+              value: session == null
+                  ? '—'
+                  : '${session.date.hour.toString().padLeft(2, '0')}:${session.date.minute.toString().padLeft(2, '0')}',
+              unit: 'saat',
+            ),
+            const SizedBox(width: AppSpacing.md),
+            ListingMetricOrb(value: age, unit: 'yaş'),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        ListingCta(label: 'Oyunu incele', onPressed: onOpen),
+      ],
     );
   }
 }

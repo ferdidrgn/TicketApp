@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/widgets/admin_test_entry.dart';
 import '../widgets/common/home_showcase.dart';
 
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
@@ -15,8 +13,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
-import '../../../../shared/widgets/stagecraft.dart';
-import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../shared/widgets/listing.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
@@ -60,36 +57,11 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage>
-    with SingleTickerProviderStateMixin {
+class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
-
-  // Sayfanın tek koreografili anı: başlık açılır, ardından bilet yerleşir.
-  late final AnimationController _entrance =
-      AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _headline = CurvedAnimation(
-      parent: _entrance,
-      curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic));
-  late final Animation<double> _rest = CurvedAnimation(
-      parent: _entrance,
-      curve: const Interval(0.35, 1.0, curve: AppMotion.standard));
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (MediaQuery.of(context).disableAnimations) {
-      _entrance.value = 1;
-    } else {
-      _entrance.forward();
-    }
-  }
 
   @override
   void dispose() {
-    _entrance.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -183,8 +155,6 @@ class _HomePageState extends ConsumerState<HomePage>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _WebHero(
-              headline: _headline,
-              rest: _rest,
               featured:
                   sessionsPending ? null : pickHomeFeatured(sessions, shows),
               featuredPending: sessionsPending,
@@ -301,15 +271,11 @@ class _HomePageState extends ConsumerState<HomePage>
 
     return Scaffold(
       backgroundColor: cs.surface,
-      body: TicketStage(
-        themed: true,
-        child: Column(
-          children: [
-            // Geçici: admin test girişi (release derlemesinde görünmez).
-            const AdminTestStrip(),
-            Expanded(child: body),
-          ],
-        ),
+      body: Column(
+        children: [
+          const AdminTestStrip(),
+          Expanded(child: body),
+        ],
       ),
     );
   }
@@ -431,8 +397,6 @@ class _EmptyHint extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 
 class _WebHero extends StatelessWidget {
-  final Animation<double> headline;
-  final Animation<double> rest;
   final HomeFeatured? featured;
   final bool featuredPending;
   final int showCount;
@@ -443,8 +407,6 @@ class _WebHero extends StatelessWidget {
   final ValueChanged<Show> onOpenShow;
 
   const _WebHero({
-    required this.headline,
-    required this.rest,
     required this.featured,
     required this.featuredPending,
     required this.showCount,
@@ -454,18 +416,6 @@ class _WebHero extends StatelessWidget {
     required this.onTickets,
     required this.onOpenShow,
   });
-
-  Widget _settle(final Widget child) => AnimatedBuilder(
-        animation: rest,
-        builder: (final context, final c) => Opacity(
-          opacity: rest.value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - rest.value) * 32),
-            child: c,
-          ),
-        ),
-        child: child,
-      );
 
   @override
   Widget build(final BuildContext context) {
@@ -478,17 +428,13 @@ class _WebHero extends StatelessWidget {
 
     final Widget title = Semantics(
       header: true,
-      child: AuthWipeReveal(
-        reveal: headline,
-        child: Text(
-          l10n.homeHeroHeadline,
-          style: GoogleFonts.playfairDisplay(
-            color: cs.onSurface,
-            fontSize: homeFluid(context, 36, 68),
-            fontWeight: FontWeight.w800,
-            height: 1.04,
-            letterSpacing: -0.5,
-          ),
+      child: Text(
+        l10n.homeHeroHeadline,
+        style: listingUi(
+          color: cs.onSurface,
+          size: homeFluid(context, 36, 68),
+          weight: FontWeight.w800,
+          height: 1.04,
         ),
       ),
     );
@@ -551,9 +497,10 @@ class _WebHero extends StatelessWidget {
     );
 
     final Widget? cover = featuredPending
-        ? PosterPlate(
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             child: Container(
-              height: desktop ? 520 : 420,
+              height: desktop ? 360 : 280,
               color: cs.surfaceContainerHighest,
             ),
           )
@@ -583,18 +530,18 @@ class _WebHero extends StatelessWidget {
                   children: [
                     Expanded(flex: 7, child: title),
                     const SizedBox(width: AppSpacing.section),
-                    Expanded(flex: 5, child: _settle(intro)),
+                    Expanded(flex: 5, child: intro),
                   ],
                 )
               else ...[
                 title,
                 const SizedBox(height: AppSpacing.lg),
-                _settle(intro),
+                intro,
               ],
               if (cover != null) ...[
                 SizedBox(
                     height: desktop ? AppSpacing.massive : AppSpacing.xxxl),
-                _settle(cover),
+                cover,
               ],
             ],
           ),

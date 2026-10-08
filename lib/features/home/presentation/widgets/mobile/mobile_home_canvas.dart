@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../../core/base/base_page_wrapper.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -14,9 +13,9 @@ import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../../shared/widgets/craft.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/stagecraft.dart';
-import '../../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
+import '../../../../users/presentation/providers/user_provider.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -45,36 +44,15 @@ class MobileHomeCanvas extends ConsumerStatefulWidget {
   ConsumerState<MobileHomeCanvas> createState() => _MobileHomeCanvasState();
 }
 
-class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas>
-    with SingleTickerProviderStateMixin {
+class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
   final ScrollController _scrollController = ScrollController();
   bool _buying = false;
-
-  late final AnimationController _entrance =
-      AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _headline = CurvedAnimation(
-    parent: _entrance,
-    curve: const Interval(0.0, 0.8, curve: AppMotion.dramatic),
-  );
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) {
-      return;
-    }
-    _started = true;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _entrance.value = 1;
-    } else {
-      _entrance.forward();
-    }
-  }
+  String? _when; // tonight | week | null
+  String? _genre;
+  String? _stageId;
 
   @override
   void dispose() {
-    _entrance.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -169,11 +147,35 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas>
         .toList();
     final List<Team> teams = teamState.value ?? const [];
 
-    final HomeFeatured? featured =
-        shows.isEmpty ? null : pickHomeFeatured(sessions, shows);
-    final List<HomeSession> tonight = _tonight(sessions);
-    final List<HomeSession> upcomingBoard =
-        tonight.isNotEmpty ? tonight : sessions.take(5).toList();
+    final List<HomeSession> filteredSessions = sessions.where((final s) {
+      if (_when == 'tonight' && !_isTonight(s.date)) {
+        return false;
+      }
+      if (_when == 'week' && !_isThisWeek(s.date)) {
+        return false;
+      }
+      if (_genre != null &&
+          browseCategoryKey(s.show.category) != _genre) {
+        return false;
+      }
+      if (_stageId != null && s.stage?.id != _stageId) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final List<Show> filteredShows = shows.where((final show) {
+      if (_genre != null && browseCategoryKey(show.category) != _genre) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final HomeFeatured? featured = filteredShows.isEmpty
+        ? null
+        : pickHomeFeatured(filteredSessions, filteredShows);
+    final List<HomeSession> tonight = _tonight(filteredSessions);
+    final List<HomeSession> upcomingBoard = tonight.isNotEmpty
+        ? tonight
+        : filteredSessions.take(5).toList();
     final Set<String> featuredIds = {
       if (featured != null) featured.show.id,
       ...upcomingBoard.map((final s) => s.show.id),
@@ -237,21 +239,82 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas>
                       ),
                     ),
                     SliverToBoxAdapter(
-                      child: _Opening(
-                        reveal: _headline,
+                      child: _Hello(
+                        name: (ref.watch(userProfileProvider).value?.firstName ??
+                                '')
+                            .trim(),
                         tonightCount: tonight.length,
                         onSearch: _openSearch,
                       ),
                     ),
+                    SliverToBoxAdapter(
+                      child: _Filters(
+                        when: _when,
+                        genre: _genre,
+                        stageId: _stageId,
+                        genres: genres,
+                        stages: stages,
+                        onWhen: (final v) => setState(() => _when = v),
+                        onGenre: (final v) => setState(() => _genre = v),
+                        onStage: (final v) => setState(() => _stageId = v),
+                      ),
+                    ),
                     if (featured != null)
                       SliverToBoxAdapter(
-                        child: _Cover(
+                        child: _ListingCover(
                           featured: featured,
                           buying: _buying,
-                          reveal: _headline,
                           onOpen: () =>
                               _openShow(featured.show, from: 'mobile-cover'),
                           onBuy: () => _buy(featured),
+                        ),
+                      ),
+                    if (tonight.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.xl,
+                            0,
+                            AppSpacing.xl,
+                            AppSpacing.xl,
+                          ),
+                          child: ListingWaveCard(
+                            onTap: () => NavigationHandler.goToDiscover(context),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Bu gece',
+                                  style: listingUi(
+                                    color: context.colors.onPrimaryContainer,
+                                    size: 13,
+                                    weight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  '${tonight.length} seans seni bekliyor',
+                                  style: listingUi(
+                                    color: context.colors.onPrimaryContainer,
+                                    size: 22,
+                                    weight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  tonight.first.show.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: listingUi(
+                                    color: context.colors.onPrimaryContainer
+                                        .withValues(alpha: 0.85),
+                                    size: 14,
+                                    weight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     if (upcomingBoard.isNotEmpty)
@@ -263,15 +326,6 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas>
                               _openShow(session.show, from: 'mobile-tonight'),
                           onSeeAll: () =>
                               NavigationHandler.goToDiscover(context),
-                        ),
-                      ),
-                    if (genres.length >= 2)
-                      SliverToBoxAdapter(
-                        child: _GenreBoard(
-                          genres: genres,
-                          onPick: (final label) =>
-                              NavigationHandler.goToDiscoverWithCategory(
-                                  context, label),
                         ),
                       ),
                     if (uniqueStories.isNotEmpty)
@@ -342,6 +396,20 @@ const List<String> _kMonths = [
   'Aralık',
 ];
 
+bool _isTonight(final DateTime date) {
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime day = DateTime(date.year, date.month, date.day);
+  return day == today && !date.isBefore(now);
+}
+
+bool _isThisWeek(final DateTime date) {
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime end = today.add(const Duration(days: 7));
+  return !date.isBefore(now) && date.isBefore(end);
+}
+
 String _dayPhrase(final DateTime date) {
   final DateTime now = DateTime.now();
   final DateTime today = DateTime(now.year, now.month, now.day);
@@ -355,13 +423,11 @@ String _dayPhrase(final DateTime date) {
   return '${date.day} ${_kMonths[date.month - 1]}';
 }
 
-TextStyle _display(final Color color, {final double size = 36}) =>
-    GoogleFonts.playfairDisplay(
+TextStyle _display(final Color color, {final double size = 36}) => listingUi(
       color: color,
-      fontSize: size,
-      fontWeight: FontWeight.w800,
+      size: size,
+      weight: FontWeight.w800,
       height: 1.04,
-      letterSpacing: -0.4,
     );
 
 class _Masthead extends StatelessWidget {
@@ -390,10 +456,10 @@ class _Masthead extends StatelessWidget {
         children: [
           Text(
             'TiyatRol',
-            style: GoogleFonts.playfairDisplay(
+            style: listingUi(
               color: colors.onSurface,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+              size: 22,
+              weight: FontWeight.w800,
               height: 1,
             ),
           ),
@@ -422,123 +488,143 @@ class _Masthead extends StatelessWidget {
   }
 }
 
-class _Opening extends StatelessWidget {
-  final Animation<double> reveal;
+class _Hello extends StatelessWidget {
+  final String name;
   final int tonightCount;
   final VoidCallback onSearch;
 
-  const _Opening({
-    required this.reveal,
+  const _Hello({
+    required this.name,
     required this.tonightCount,
     required this.onSearch,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme colors = context.colors;
-    final String supporting = tonightCount > 0
+    final String prompt = tonightCount > 0
         ? homeText(
             context,
-            'Bu gece $tonightCount seans. Afişe dokun, koltuğu seç.',
-            '$tonightCount performances tonight. Open a poster, take a seat.',
+            'Bu gece $tonightCount seans. Ne aramak istersin?',
+            '$tonightCount performances tonight. What are you looking for?',
           )
         : homeText(
             context,
-            'Sıradaki perdeler, sahneler ve yüzler — aramaya yazman yeterli.',
-            'Upcoming curtains, rooms and faces — start by searching.',
+            'Ne aramak istersin?',
+            'What are you looking for?',
           );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
         AppSpacing.sm,
         AppSpacing.xl,
-        AppSpacing.xxl,
+        AppSpacing.lg,
+      ),
+      child: ListingGreeting(
+        name: name,
+        prompt: prompt,
+        onSearch: onSearch,
+      ),
+    );
+  }
+}
+
+class _Filters extends StatelessWidget {
+  final String? when;
+  final String? genre;
+  final String? stageId;
+  final List<BrowseCategory> genres;
+  final List<Stage> stages;
+  final ValueChanged<String?> onWhen;
+  final ValueChanged<String?> onGenre;
+  final ValueChanged<String?> onStage;
+
+  const _Filters({
+    required this.when,
+    required this.genre,
+    required this.stageId,
+    required this.genres,
+    required this.stages,
+    required this.onWhen,
+    required this.onGenre,
+    required this.onStage,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        0,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AuthWipeReveal(
-            reveal: reveal,
-            child: Text(
-              homeText(
-                context,
-                'Bu gece\nperde kaçta?',
-                'What is on\ntonight?',
+          ListingLabel(homeText(context, 'Ne zaman', 'When')),
+          ListingChipRow(
+            children: [
+              ListingChip(
+                label: homeText(context, 'Bu gece', 'Tonight'),
+                selected: when == 'tonight',
+                onTap: () => onWhen(when == 'tonight' ? null : 'tonight'),
               ),
-              style: _display(colors.onSurface, size: 40),
-            ),
+              ListingChip(
+                label: homeText(context, 'Bu hafta', 'This week'),
+                selected: when == 'week',
+                onTap: () => onWhen(when == 'week' ? null : 'week'),
+              ),
+              ListingChip(
+                label: homeText(context, 'Tümü', 'All'),
+                selected: when == null,
+                onTap: () => onWhen(null),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            supporting,
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Semantics(
-            button: true,
-            label: 'Ara',
-            excludeSemantics: true,
-            child: Material(
-              color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onSearch,
-                child: SizedBox(
-                  height: 52,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.search_rounded,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Text(
-                            homeText(
-                              context,
-                              'Oyun, oyuncu, sahne ara',
-                              'Search a play, artist or venue',
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.textTheme.bodyLarge?.copyWith(
-                              color: colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+          if (genres.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            ListingLabel(homeText(context, 'Tür', 'Genre')),
+            ListingChipRow(
+              children: [
+                for (final BrowseCategory g in genres.take(8))
+                  ListingChip(
+                    label: g.label,
+                    selected: genre == g.key,
+                    onTap: () => onGenre(genre == g.key ? null : g.key),
                   ),
-                ),
-              ),
+              ],
             ),
-          ),
+          ],
+          if (stages.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            ListingLabel(homeText(context, 'Sahne', 'Venue')),
+            ListingChipRow(
+              children: [
+                for (final Stage stage in stages.take(8))
+                  ListingChip(
+                    label: stage.name,
+                    icon: Icons.place_outlined,
+                    selected: stageId == stage.id,
+                    onTap: () => onStage(stageId == stage.id ? null : stage.id),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Cover extends StatelessWidget {
+class _ListingCover extends StatelessWidget {
   final HomeFeatured featured;
   final bool buying;
-  final Animation<double> reveal;
   final VoidCallback onOpen;
   final VoidCallback onBuy;
 
-  const _Cover({
+  const _ListingCover({
     required this.featured,
     required this.buying,
-    required this.reveal,
     required this.onOpen,
     required this.onBuy,
   });
@@ -558,8 +644,13 @@ class _Cover extends StatelessWidget {
         : session == null
             ? homeText(context, 'Oyunu incele', 'View play')
             : homeText(context, 'Bilet al', 'Get tickets');
-    final double height =
-        (MediaQuery.sizeOf(context).height * 0.56).clamp(340.0, 460.0);
+    final String duration = show.duration.trim().isEmpty
+        ? '—'
+        : show.duration.replaceAll(RegExp(r'[^0-9]'), '').isEmpty
+            ? show.duration
+            : show.duration.replaceAll(RegExp(r'[^0-9]'), '');
+    final String age = show.ageLimit.trim().isEmpty ? '—' : show.ageLimit.trim();
+    final String price = session?.priceLabel ?? when;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -568,95 +659,63 @@ class _Cover extends StatelessWidget {
         AppSpacing.xl,
         AppSpacing.huge,
       ),
-      child: PosterPlate(
-        child: SizedBox(
-          height: height,
-          child: Stack(
-            fit: StackFit.expand,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TiyatrolHero(
+            tag: tag,
+            child: ListingPhotoFrame(
+              imageUrl: show.imageUrl,
+              overlay: where.isEmpty ? null : where,
+              height: 240,
+              onTap: onOpen,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          ListingLabel(homeText(context, 'Seans', 'Session')),
+          Text(
+            show.name,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: listingUi(
+              color: colors.onSurface,
+              size: 28,
+              weight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            price,
+            style: listingUi(
+              color: colors.onSurface,
+              size: 22,
+              weight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Row(
             children: [
-              Semantics(
-                button: true,
-                label: '${show.name} oyununu incele',
-                excludeSemantics: true,
-                child: PressScale(
-                  onTap: onOpen,
-                  child: TiyatrolHero(
-                    tag: tag,
-                    child: KenBurns(
-                      child: OptimizedCachedImage(
-                        imageUrl: show.imageUrl,
-                        fit: BoxFit.cover,
-                        borderRadius: 0,
-                        width: MediaQuery.sizeOf(context).width,
-                        height: height,
-                      ),
-                    ),
-                  ),
-                ),
+              ListingMetricOrb(
+                value: duration,
+                unit: homeText(context, 'dk', 'min'),
+                emphasized: true,
               ),
-              const IgnorePointer(child: CinematicScrim()),
-              Positioned(
-                left: AppSpacing.xl,
-                right: AppSpacing.xl,
-                bottom: AppSpacing.xl,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IgnorePointer(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            when,
-                            style: TextStyle(
-                              color: colors.primary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          AuthWipeReveal(
-                            reveal: reveal,
-                            child: Text(
-                              show.name,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.playfairDisplay(
-                                color: kPosterInk,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                height: 1.05,
-                              ),
-                            ),
-                          ),
-                          if (where.isNotEmpty) ...[
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              where,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xCCF6F1E4),
-                                fontSize: 14,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    PlateButton(
-                      label: action,
-                      busy: buying,
-                      onPressed: onBuy,
-                    ),
-                  ],
-                ),
+              const SizedBox(width: AppSpacing.md),
+              ListingMetricOrb(
+                value: session == null ? '—' : _clock(session.date),
+                unit: homeText(context, 'saat', 'time'),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              ListingMetricOrb(
+                value: age,
+                unit: homeText(context, 'yaş', 'age'),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.xl),
+          ListingCta(label: action, busy: buying, onPressed: onBuy),
+        ],
       ),
     );
   }
@@ -674,11 +733,43 @@ class _SectionHead extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => StageMasthead(
-        title: title,
-        actionLabel: action,
-        onAction: onAction,
-      );
+  Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        0,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: listingUi(
+                color: colors.onSurface,
+                size: 20,
+                weight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (action != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              child: Text(
+                action!,
+                style: listingUi(
+                  color: colors.primary,
+                  size: 14,
+                  weight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Programme extends StatelessWidget {
@@ -777,10 +868,10 @@ class _ProgrammeRow extends StatelessWidget {
                         session.show.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.playfairDisplay(
+                        style: listingUi(
                           color: colors.onSurface,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          size: 18,
+                          weight: FontWeight.w700,
                           height: 1.15,
                         ),
                       ),
@@ -1002,10 +1093,10 @@ class _StoryRow extends StatelessWidget {
                       show.name,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.playfairDisplay(
+                      style: listingUi(
                         color: colors.onSurface,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+                        size: 20,
+                        weight: FontWeight.w800,
                         height: 1.12,
                       ),
                     ),
@@ -1215,10 +1306,10 @@ class _Venues extends StatelessWidget {
                                   stage.name,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.playfairDisplay(
+                                  style: listingUi(
                                     color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
+                                    size: 20,
+                                    weight: FontWeight.w800,
                                     height: 1.1,
                                   ),
                                 ),
@@ -1366,10 +1457,10 @@ class _CampaignBanner extends StatelessWidget {
                         campaign.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.playfairDisplay(
+                        style: listingUi(
                           color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
+                          size: 22,
+                          weight: FontWeight.w800,
                           height: 1.1,
                         ),
                       ),

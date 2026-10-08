@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/listing.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../shows/domain/entities/show.dart';
 
 /// Keşfet / Yakınımdakiler / Arama ekranlarının ortak, temaya bağlı tarama
@@ -41,44 +41,12 @@ class BrowseDragScrollBehavior extends MaterialScrollBehavior {
 // Sayfa başlığı
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Sayfa başlığı: Playfair Display, soldan sağa perde açılışı (sahibinin
-/// sevdiği `AuthWipeReveal`) — sayfanın TEK koreografili anı. Azaltılmış
-/// harekette doğrudan açık gelir.
-class BrowseHeading extends StatefulWidget {
+/// Sayfa başlığı — listing Manrope, perde açılışı yok.
+class BrowseHeading extends StatelessWidget {
   final String title;
   final String? lede;
 
   const BrowseHeading({super.key, required this.title, this.lede});
-
-  @override
-  State<BrowseHeading> createState() => _BrowseHeadingState();
-}
-
-class _BrowseHeadingState extends State<BrowseHeading>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: AppMotion.slow);
-  late final Animation<double> _reveal =
-      CurvedAnimation(parent: _controller, curve: AppMotion.dramatic);
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (MediaQuery.of(context).disableAnimations) {
-      _controller.value = 1;
-    } else {
-      _controller.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(final BuildContext context) {
@@ -89,33 +57,27 @@ class _BrowseHeadingState extends State<BrowseHeading>
       children: [
         Semantics(
           header: true,
-          child: AuthWipeReveal(
-            reveal: _reveal,
-            child: Text(
-              widget.title,
-              style: GoogleFonts.playfairDisplay(
-                color: cs.onSurface,
-                fontSize: browseFluid(context, 32, 52),
-                fontWeight: FontWeight.w800,
-                height: 1.05,
-                letterSpacing: -0.5,
-              ),
+          child: Text(
+            title,
+            style: listingUi(
+              color: cs.onSurface,
+              size: browseFluid(context, 32, 52),
+              weight: FontWeight.w800,
+              height: 1.05,
             ),
           ),
         ),
-        if (widget.lede != null) ...[
+        if (lede != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          FadeTransition(
-            opacity: _reveal,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Text(
-                widget.lede!,
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontSize: 15,
-                  height: 1.5,
-                ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Text(
+              lede!,
+              style: listingUi(
+                color: cs.onSurfaceVariant,
+                size: 15,
+                weight: FontWeight.w500,
+                height: 1.5,
               ),
             ),
           ),
