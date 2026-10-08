@@ -4,18 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/base/base_page_wrapper.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
-import '../../../../../l10n/app_localizations.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../../shared/widgets/craft.dart';
-import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/listing.dart';
+import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
-import '../../../../users/presentation/providers/user_provider.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -29,14 +26,15 @@ import '../../../../stages/domain/entities/stage.dart';
 import '../../../../stages/presentation/providers/stage_provider.dart';
 import '../../../../teams/domain/entities/team.dart';
 import '../../../../teams/presentation/providers/team_provider.dart';
+import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
 import '../../providers/home_show_filter_provider.dart';
 import '../common/home_ui.dart';
 
-/// Telefon ana sayfası — web gişesinden bağımsız, sıfırdan program yüzeyi.
+/// Telefon ana sayfası — "Akşam Defteri".
 ///
-/// İlk bakışta: bu gece ne var, hangisi öne çıkar, kimler sahnede, ne yapılır.
-/// Bilet kromu yok; görsel gerçek afiş/fotoğraftan, renkler temadan gelir.
+/// İlk bakış: marka + selamlama + arama, sonra afiş kapak ve program satırları.
+/// Bilet kromu yok; renkler temadan; görsel gerçek afiş/fotoğraftan.
 class MobileHomeCanvas extends ConsumerStatefulWidget {
   const MobileHomeCanvas({super.key});
 
@@ -154,8 +152,7 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
       if (_when == 'week' && !_isThisWeek(s.date)) {
         return false;
       }
-      if (_genre != null &&
-          browseCategoryKey(s.show.category) != _genre) {
+      if (_genre != null && browseCategoryKey(s.show.category) != _genre) {
         return false;
       }
       if (_stageId != null && s.stage?.id != _stageId) {
@@ -173,36 +170,35 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
         ? null
         : pickHomeFeatured(filteredSessions, filteredShows);
     final List<HomeSession> tonight = _tonight(filteredSessions);
-    final List<HomeSession> upcomingBoard = tonight.isNotEmpty
+    final List<HomeSession> programme = tonight.isNotEmpty
         ? tonight
-        : filteredSessions.take(5).toList();
+        : filteredSessions.take(6).toList();
     final Set<String> featuredIds = {
       if (featured != null) featured.show.id,
-      ...upcomingBoard.map((final s) => s.show.id),
+      ...programme.map((final s) => s.show.id),
     };
-    final List<Show> stories = [
-      ...activeShows.where((final s) => !featuredIds.contains(s.id)),
-      ...shows.where((final s) => !featuredIds.contains(s.id)),
-    ];
-    final List<Show> uniqueStories = <Show>[];
+    final List<Show> moreShows = <Show>[];
     final Set<String> seen = {};
-    for (final Show show in stories) {
-      if (seen.add(show.id)) {
-        uniqueStories.add(show);
+    for (final Show show in [...activeShows, ...shows]) {
+      if (featuredIds.contains(show.id) || !seen.add(show.id)) {
+        continue;
       }
-      if (uniqueStories.length >= 6) {
+      moreShows.add(show);
+      if (moreShows.length >= 8) {
         break;
       }
     }
     final List<BrowseCategory> genres = browseCategoriesOf(shows);
-    Campaign? foundCampaign;
+    Campaign? campaign;
     for (final Campaign item in campaigns) {
       if (item.imageUrl.trim().isNotEmpty) {
-        foundCampaign = item;
+        campaign = item;
         break;
       }
     }
-    final Campaign? campaign = foundCampaign;
+
+    final String firstName =
+        (ref.watch(userProfileProvider).value?.firstName ?? '').trim();
 
     return BasePageWrapper(
       showBackButton: false,
@@ -240,9 +236,7 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
                     ),
                     SliverToBoxAdapter(
                       child: _Hello(
-                        name: (ref.watch(userProfileProvider).value?.firstName ??
-                                '')
-                            .trim(),
+                        name: firstName,
                         tonightCount: tonight.length,
                         onSearch: _openSearch,
                       ),
@@ -254,14 +248,23 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
                         stageId: _stageId,
                         genres: genres,
                         stages: stages,
-                        onWhen: (final v) => setState(() => _when = v),
-                        onGenre: (final v) => setState(() => _genre = v),
-                        onStage: (final v) => setState(() => _stageId = v),
+                        onWhen: (final v) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _when = v);
+                        },
+                        onGenre: (final v) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _genre = v);
+                        },
+                        onStage: (final v) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _stageId = v);
+                        },
                       ),
                     ),
                     if (featured != null)
                       SliverToBoxAdapter(
-                        child: _ListingCover(
+                        child: _Cover(
                           featured: featured,
                           buying: _buying,
                           onOpen: () =>
@@ -269,58 +272,10 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
                           onBuy: () => _buy(featured),
                         ),
                       ),
-                    if (tonight.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.xl,
-                            0,
-                            AppSpacing.xl,
-                            AppSpacing.xl,
-                          ),
-                          child: ListingWaveCard(
-                            onTap: () => NavigationHandler.goToDiscover(context),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Bu gece',
-                                  style: listingUi(
-                                    color: context.colors.onPrimaryContainer,
-                                    size: 13,
-                                    weight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Text(
-                                  '${tonight.length} seans seni bekliyor',
-                                  style: listingUi(
-                                    color: context.colors.onPrimaryContainer,
-                                    size: 22,
-                                    weight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  tonight.first.show.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: listingUi(
-                                    color: context.colors.onPrimaryContainer
-                                        .withValues(alpha: 0.85),
-                                    size: 14,
-                                    weight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (upcomingBoard.isNotEmpty)
+                    if (programme.isNotEmpty)
                       SliverToBoxAdapter(
                         child: _Programme(
-                          sessions: upcomingBoard,
+                          sessions: programme,
                           tonight: tonight.isNotEmpty,
                           onOpen: (final session) =>
                               _openShow(session.show, from: 'mobile-tonight'),
@@ -328,12 +283,12 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
                               NavigationHandler.goToDiscover(context),
                         ),
                       ),
-                    if (uniqueStories.isNotEmpty)
+                    if (moreShows.isNotEmpty)
                       SliverToBoxAdapter(
-                        child: _Stories(
-                          shows: uniqueStories,
+                        child: _PosterRail(
+                          shows: moreShows,
                           onOpen: (final show) =>
-                              _openShow(show, from: 'mobile-stories'),
+                              _openShow(show, from: 'mobile-rail'),
                           onSeeAll: () =>
                               NavigationHandler.goToDiscover(context),
                         ),
@@ -350,7 +305,7 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
                           campaign: campaign,
                           onOpen: () => NavigationHandler.goToCampaigns(
                             context,
-                            index: campaigns.indexOf(campaign),
+                            index: campaigns.indexOf(campaign!),
                           ),
                         ),
                       ),
@@ -368,6 +323,8 @@ class _MobileHomeCanvasState extends ConsumerState<MobileHomeCanvas> {
     return loggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
   }
 }
+
+// ─── helpers ────────────────────────────────────────────────────────────────
 
 List<HomeSession> _tonight(final List<HomeSession> sessions) {
   final DateTime now = DateTime.now();
@@ -423,12 +380,7 @@ String _dayPhrase(final DateTime date) {
   return '${date.day} ${_kMonths[date.month - 1]}';
 }
 
-TextStyle _display(final Color color, {final double size = 36}) => listingUi(
-      color: color,
-      size: size,
-      weight: FontWeight.w800,
-      height: 1.04,
-    );
+// ─── masthead ───────────────────────────────────────────────────────────────
 
 class _Masthead extends StatelessWidget {
   final int unreadCount;
@@ -449,44 +401,105 @@ class _Masthead extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
         top,
+        AppSpacing.xl,
         AppSpacing.sm,
-        AppSpacing.md,
       ),
       child: Row(
         children: [
-          Text(
-            'TiyatRol',
-            style: listingUi(
-              color: colors.onSurface,
-              size: 22,
-              weight: FontWeight.w800,
-              height: 1,
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: listingUi(
+                  color: colors.onSurface,
+                  size: 24,
+                  weight: FontWeight.w800,
+                  height: 1.0,
+                ),
+                children: [
+                  const TextSpan(text: 'Tiyat'),
+                  TextSpan(
+                    text: 'Rol',
+                    style: TextStyle(color: colors.primary),
+                  ),
+                ],
+              ),
             ),
           ),
-          const Spacer(),
-          IconButton(
-            tooltip: homeText(context, 'Biletlerim', 'My tickets'),
-            onPressed: onTickets,
-            color: colors.onSurface,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            icon: const Icon(Icons.confirmation_number_outlined),
+          _IconBtn(
+            icon: Icons.confirmation_number_outlined,
+            label: 'Biletlerim',
+            onTap: onTickets,
           ),
-          IconButton(
-            tooltip: AppLocalizations.of(context)!.homeTooltipNotifications,
-            onPressed: onNotifications,
-            color: colors.onSurface,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            icon: Badge(
-              isLabelVisible: unreadCount > 0,
-              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
-              child: const Icon(Icons.notifications_none_rounded),
-            ),
+          const SizedBox(width: AppSpacing.sm),
+          _IconBtn(
+            icon: Icons.notifications_none_rounded,
+            label: 'Bildirimler',
+            badge: unreadCount,
+            onTap: onNotifications,
           ),
         ],
       ),
     );
   }
 }
+
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final int badge;
+
+  const _IconBtn({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
+    return Semantics(
+      button: true,
+      label: label,
+      child: PressScale(
+        onTap: onTap,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: colors.outlineVariant),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(icon, size: 22, color: colors.onSurface),
+                if (badge > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── hello + search ─────────────────────────────────────────────────────────
 
 class _Hello extends StatelessWidget {
   final String name;
@@ -501,32 +514,102 @@ class _Hello extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final String prompt = tonightCount > 0
+    final ColorScheme colors = context.colors;
+    final String greet = name.isEmpty
+        ? homeText(context, 'Merhaba', 'Hello')
+        : homeText(context, 'Merhaba $name', 'Hello $name');
+    final String headline = tonightCount > 0
+        ? homeText(
+            context, 'Bu akşam sahnede ne var?', "What's on tonight?")
+        : homeText(
+            context, 'Bu hafta ne izlemek istersin?', 'What to watch this week?');
+    final String hint = tonightCount > 0
         ? homeText(
             context,
-            'Bu gece $tonightCount seans. Ne aramak istersin?',
-            '$tonightCount performances tonight. What are you looking for?',
+            '$tonightCount seans bu gece · ara',
+            '$tonightCount shows tonight · search',
           )
         : homeText(
             context,
-            'Ne aramak istersin?',
-            'What are you looking for?',
+            'Oyun, oyuncu veya sahne ara',
+            'Search plays, actors or venues',
           );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
         AppSpacing.sm,
         AppSpacing.xl,
-        AppSpacing.lg,
+        AppSpacing.md,
       ),
-      child: ListingGreeting(
-        name: name,
-        prompt: prompt,
-        onSearch: onSearch,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greet,
+            style: listingUi(
+              color: colors.onSurfaceVariant,
+              size: 13,
+              weight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            headline,
+            style: listingUi(
+              color: colors.onSurface,
+              size: 30,
+              weight: FontWeight.w800,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Semantics(
+            button: true,
+            label: hint,
+            child: PressScale(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSearch();
+              },
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: colors.outlineVariant),
+                  boxShadow: AppShadows.level1(colors.shadow),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded,
+                        color: colors.onSurfaceVariant, size: 22),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: listingUi(
+                          color: colors.onSurfaceVariant,
+                          size: 14,
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+// ─── filters ────────────────────────────────────────────────────────────────
 
 class _Filters extends StatelessWidget {
   final String? when;
@@ -551,63 +634,45 @@ class _Filters extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        0,
-        AppSpacing.xl,
-        AppSpacing.xl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final ColorScheme colors = context.colors;
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.md,
+        ),
         children: [
-          ListingLabel(homeText(context, 'Ne zaman', 'When')),
-          ListingChipRow(
-            children: [
-              ListingChip(
-                label: homeText(context, 'Bu gece', 'Tonight'),
-                selected: when == 'tonight',
-                onTap: () => onWhen(when == 'tonight' ? null : 'tonight'),
-              ),
-              ListingChip(
-                label: homeText(context, 'Bu hafta', 'This week'),
-                selected: when == 'week',
-                onTap: () => onWhen(when == 'week' ? null : 'week'),
-              ),
-              ListingChip(
-                label: homeText(context, 'Tümü', 'All'),
-                selected: when == null,
-                onTap: () => onWhen(null),
-              ),
-            ],
+          _Chip(
+            label: homeText(context, 'Bu gece', 'Tonight'),
+            selected: when == 'tonight',
+            onTap: () => onWhen(when == 'tonight' ? null : 'tonight'),
           ),
-          if (genres.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            ListingLabel(homeText(context, 'Tür', 'Genre')),
-            ListingChipRow(
-              children: [
-                for (final BrowseCategory g in genres.take(8))
-                  ListingChip(
-                    label: g.label,
-                    selected: genre == g.key,
-                    onTap: () => onGenre(genre == g.key ? null : g.key),
-                  ),
-              ],
+          const SizedBox(width: AppSpacing.sm),
+          _Chip(
+            label: homeText(context, 'Bu hafta', 'This week'),
+            selected: when == 'week',
+            onTap: () => onWhen(when == 'week' ? null : 'week'),
+          ),
+          for (final BrowseCategory g in genres.take(6)) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _Chip(
+              label: g.label,
+              selected: genre == g.key,
+              onTap: () => onGenre(genre == g.key ? null : g.key),
             ),
           ],
-          if (stages.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            ListingLabel(homeText(context, 'Sahne', 'Venue')),
-            ListingChipRow(
-              children: [
-                for (final Stage stage in stages.take(8))
-                  ListingChip(
-                    label: stage.name,
-                    icon: Icons.place_outlined,
-                    selected: stageId == stage.id,
-                    onTap: () => onStage(stageId == stage.id ? null : stage.id),
-                  ),
-              ],
+          for (final Stage s in stages.take(4)) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _Chip(
+              label: s.name,
+              selected: stageId == s.id,
+              onTap: () => onStage(stageId == s.id ? null : s.id),
+              tone: colors.secondaryContainer,
+              ink: colors.onSecondaryContainer,
             ),
           ],
         ],
@@ -616,13 +681,63 @@ class _Filters extends StatelessWidget {
   }
 }
 
-class _ListingCover extends StatelessWidget {
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color? tone;
+  final Color? ink;
+
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.tone,
+    this.ink,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
+    final Color bg = selected
+        ? colors.onSurface
+        : (tone ?? colors.surfaceContainerHighest);
+    final Color fg = selected
+        ? colors.surface
+        : (ink ?? colors.onSurface);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Text(
+            label,
+            style: listingUi(color: fg, size: 13, weight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── cover ──────────────────────────────────────────────────────────────────
+
+class _Cover extends StatelessWidget {
   final HomeFeatured featured;
   final bool buying;
   final VoidCallback onOpen;
   final VoidCallback onBuy;
 
-  const _ListingCover({
+  const _Cover({
     required this.featured,
     required this.buying,
     required this.onOpen,
@@ -636,141 +751,167 @@ class _ListingCover extends StatelessWidget {
     final HomeSession? session = featured.session;
     final String tag = TiyatrolHeroTags.show(show.id, 'mobile-cover');
     final String when = session == null
-        ? homeText(context, 'Programda', 'On the bill')
-        : '${_dayPhrase(session.date)}  ·  ${_clock(session.date)}';
-    final String where = (session?.stage?.name ?? '').trim();
-    final String action = show.hasExternalTicketing
-        ? homeText(context, 'Bileti aç', 'Open tickets')
-        : session == null
-            ? homeText(context, 'Oyunu incele', 'View play')
-            : homeText(context, 'Bilet al', 'Get tickets');
-    final String duration = show.duration.trim().isEmpty
-        ? '—'
-        : show.duration.replaceAll(RegExp(r'[^0-9]'), '').isEmpty
-            ? show.duration
-            : show.duration.replaceAll(RegExp(r'[^0-9]'), '');
-    final String age = show.ageLimit.trim().isEmpty ? '—' : show.ageLimit.trim();
-    final String price = session?.priceLabel ?? when;
+        ? homeText(context, 'Yakında', 'Coming soon')
+        : '${_dayPhrase(session.date)} · ${_clock(session.date)}';
+    final String place = [
+      if (session?.stage?.name.trim().isNotEmpty == true)
+        session!.stage!.name.trim(),
+      if (session?.priceLabel != null)
+        homeText(
+          context,
+          '${session!.priceLabel}\'den',
+          'from ${session.priceLabel}',
+        ),
+    ].join(' · ');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        0,
-        AppSpacing.xl,
-        AppSpacing.huge,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TiyatrolHero(
-            tag: tag,
-            child: ListingPhotoFrame(
-              imageUrl: show.imageUrl,
-              overlay: where.isEmpty ? null : where,
-              height: 240,
-              onTap: onOpen,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          ListingLabel(homeText(context, 'Seans', 'Session')),
-          Text(
-            show.name,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: listingUi(
-              color: colors.onSurface,
-              size: 28,
-              weight: FontWeight.w800,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            price,
-            style: listingUi(
-              color: colors.onSurface,
-              size: 22,
-              weight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              ListingMetricOrb(
-                value: duration,
-                unit: homeText(context, 'dk', 'min'),
-                emphasized: true,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              ListingMetricOrb(
-                value: session == null ? '—' : _clock(session.date),
-                unit: homeText(context, 'saat', 'time'),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              ListingMetricOrb(
-                value: age,
-                unit: homeText(context, 'yaş', 'age'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          ListingCta(label: action, busy: buying, onPressed: onBuy),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHead extends StatelessWidget {
-  final String title;
-  final String? action;
-  final VoidCallback? onAction;
-
-  const _SectionHead({
-    required this.title,
-    this.action,
-    this.onAction,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        0,
         AppSpacing.lg,
-        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.xl,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: listingUi(
-                color: colors.onSurface,
-                size: 20,
-                weight: FontWeight.w800,
+      child: Semantics(
+        button: true,
+        label: '${show.name}, $when',
+        child: PressScale(
+          onTap: onOpen,
+          child: AspectRatio(
+            aspectRatio: 3 / 4.2,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: AppShadows.level3(colors.shadow),
               ),
-            ),
-          ),
-          if (action != null && onAction != null)
-            TextButton(
-              onPressed: onAction,
-              child: Text(
-                action!,
-                style: listingUi(
-                  color: colors.primary,
-                  size: 14,
-                  weight: FontWeight.w700,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    TiyatrolHero(
+                      tag: tag,
+                      child: OptimizedCachedImage(
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x00000000),
+                            Color(0x99000000),
+                            Color(0xE6000000),
+                          ],
+                          stops: [0.35, 0.72, 1],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: AppSpacing.lg,
+                      right: AppSpacing.lg,
+                      bottom: AppSpacing.lg,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.xs + 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.16),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                when.toUpperCase(),
+                                style: listingUi(
+                                  color: Colors.white,
+                                  size: 11,
+                                  weight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            show.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: listingUi(
+                              color: Colors.white,
+                              size: 28,
+                              weight: FontWeight.w800,
+                              height: 1.05,
+                            ),
+                          ),
+                          if (place.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              place,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: listingUi(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                size: 13,
+                                weight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.lg),
+                          SizedBox(
+                            height: 48,
+                            child: FilledButton(
+                              onPressed: buying ? null : onBuy,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: colors.primary,
+                                foregroundColor: colors.onPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
+                                ),
+                              ),
+                              child: buying
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colors.onPrimary,
+                                      ),
+                                    )
+                                  : Text(
+                                      homeText(
+                                          context, 'Bilet al', 'Get tickets'),
+                                      style: listingUi(
+                                        color: colors.onPrimary,
+                                        size: 15,
+                                        weight: FontWeight.w800,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
 }
+
+// ─── programme ──────────────────────────────────────────────────────────────
 
 class _Programme extends StatelessWidget {
   final List<HomeSession> sessions;
@@ -787,32 +928,23 @@ class _Programme extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionHead(
             title: tonight
-                ? homeText(context, 'Bu gece', 'Tonight')
-                : homeText(context, 'Sıradaki perdeler', 'Next curtains'),
+                ? homeText(context, 'Program', 'Programme')
+                : homeText(context, 'Yaklaşan', 'Upcoming'),
             action: homeText(context, 'Tümü', 'See all'),
             onAction: onSeeAll,
           ),
-          for (int i = 0; i < sessions.length; i++) ...[
-            if (i > 0)
-              Divider(
-                height: 1,
-                color: colors.outlineVariant.withValues(alpha: 0.6),
-                indent: AppSpacing.xl,
-                endIndent: AppSpacing.xl,
-              ),
+          for (final HomeSession session in sessions)
             _ProgrammeRow(
-              session: sessions[i],
-              onTap: () => onOpen(sessions[i]),
+              session: session,
+              onTap: () => onOpen(session),
             ),
-          ],
         ],
       ),
     );
@@ -828,72 +960,115 @@ class _ProgrammeRow extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme colors = context.colors;
-    final String venue = (session.stage?.name ?? '').trim();
+    final Show show = session.show;
+    final String tag = TiyatrolHeroTags.show(show.id, 'mobile-tonight');
     return Semantics(
       button: true,
-      label: '${session.show.name}, ${_clock(session.date)}',
-      excludeSemantics: true,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 72),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.md,
+      label: '${show.name}, ${_clock(session.date)}',
+      child: PressScale(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.sm,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: colors.outlineVariant),
+              ),
             ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 58,
-                  child: Text(
-                    _clock(session.date),
-                    style: context.textTheme.titleMedium?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.show.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: listingUi(
-                          color: colors.onSurface,
-                          size: 18,
-                          weight: FontWeight.w700,
-                          height: 1.15,
-                        ),
-                      ),
-                      if (venue.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xs),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 52,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          venue,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.textTheme.bodySmall?.copyWith(
+                          _clock(session.date),
+                          style: listingUi(
+                            color: colors.onSurface,
+                            size: 14,
+                            weight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          _dayPhrase(session.date),
+                          style: listingUi(
                             color: colors.onSurfaceVariant,
+                            size: 11,
+                            weight: FontWeight.w700,
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: colors.onSurfaceVariant,
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.md),
+                  SizedBox(
+                    width: 56,
+                    height: 74,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
+                        boxShadow: AppShadows.level1(colors.shadow),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
+                        child: TiyatrolHero(
+                          tag: tag,
+                          child: OptimizedCachedImage(
+                            imageUrl: show.imageUrl,
+                            fit: BoxFit.cover,
+                            width: 56,
+                            height: 74,
+                            borderRadius: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          show.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: listingUi(
+                            color: colors.onSurface,
+                            size: 15,
+                            weight: FontWeight.w800,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          session.stage?.name.trim().isNotEmpty == true
+                              ? session.stage!.name
+                              : (show.category.trim().isNotEmpty
+                                  ? show.category
+                                  : homeText(
+                                      context, 'Oyunu aç', 'Open show')),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: listingUi(
+                            color: colors.onSurfaceVariant,
+                            size: 12,
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -902,85 +1077,89 @@ class _ProgrammeRow extends StatelessWidget {
   }
 }
 
-class _GenreBoard extends StatelessWidget {
-  final List<BrowseCategory> genres;
-  final ValueChanged<String> onPick;
+// ─── poster rail ────────────────────────────────────────────────────────────
 
-  const _GenreBoard({required this.genres, required this.onPick});
+class _PosterRail extends StatelessWidget {
+  final List<Show> shows;
+  final ValueChanged<Show> onOpen;
+  final VoidCallback onSeeAll;
+
+  const _PosterRail({
+    required this.shows,
+    required this.onOpen,
+    required this.onSeeAll,
+  });
 
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionHead(
-            title: homeText(context, 'Ne izlemek istersin?', 'What mood?'),
+            title: homeText(context, 'Daha fazla', 'More'),
+            action: homeText(context, 'Keşfet', 'Discover'),
+            onAction: onSeeAll,
           ),
           SizedBox(
-            height: 92,
+            height: 220,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              itemCount: genres.length,
+              itemCount: shows.length,
               separatorBuilder: (final _, final __) =>
                   const SizedBox(width: AppSpacing.md),
               itemBuilder: (final context, final i) {
-                final BrowseCategory genre = genres[i];
+                final Show show = shows[i];
+                final String tag =
+                    TiyatrolHeroTags.show(show.id, 'mobile-rail');
                 return Semantics(
                   button: true,
-                  label: '${genre.label}, ${genre.count} oyun',
-                  excludeSemantics: true,
+                  label: show.name,
                   child: PressScale(
-                    onTap: () => onPick(genre.label),
+                    onTap: () => onOpen(show),
                     child: SizedBox(
-                      width: 168,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            ColoredBox(
-                              color: context.colors.surfaceContainerHighest,
-                              child: genre.imageUrl.isEmpty
-                                  ? null
-                                  : OptimizedCachedImage(
-                                      imageUrl: genre.imageUrl,
-                                      fit: BoxFit.cover,
-                                      borderRadius: 0,
-                                    ),
-                            ),
-                            const ColoredBox(color: Color(0x73000000)),
-                            Padding(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Spacer(),
-                                  Text(
-                                    genre.label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                    ),
+                      width: 128,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                                boxShadow:
+                                    AppShadows.level2(context.colors.shadow),
+                              ),
+                              child: ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                                child: TiyatrolHero(
+                                  tag: tag,
+                                  child: OptimizedCachedImage(
+                                    imageUrl: show.imageUrl,
+                                    fit: BoxFit.cover,
+                                    width: 128,
+                                    borderRadius: 0,
                                   ),
-                                  Text(
-                                    '${genre.count}',
-                                    style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.8),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            show.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: listingUi(
+                              color: context.colors.onSurface,
+                              size: 13,
+                              weight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -994,133 +1173,7 @@ class _GenreBoard extends StatelessWidget {
   }
 }
 
-class _Stories extends StatelessWidget {
-  final List<Show> shows;
-  final ValueChanged<Show> onOpen;
-  final VoidCallback onSeeAll;
-
-  const _Stories({
-    required this.shows,
-    required this.onOpen,
-    required this.onSeeAll,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SectionHead(
-            title: homeText(context, 'Hikâyeler', 'Stories'),
-            action: homeText(context, 'Keşfet', 'Browse'),
-            onAction: onSeeAll,
-          ),
-          for (final Show show in shows)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                0,
-                AppSpacing.xl,
-                AppSpacing.lg,
-              ),
-              child: _StoryRow(
-                show: show,
-                onTap: () => onOpen(show),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoryRow extends StatelessWidget {
-  final Show show;
-  final VoidCallback onTap;
-
-  const _StoryRow({required this.show, required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme colors = context.colors;
-    final String tag = TiyatrolHeroTags.show(show.id, 'mobile-stories');
-    final List<String> meta = [
-      if (show.category.trim().isNotEmpty) show.category.trim(),
-      if (show.duration.trim().isNotEmpty) show.duration.trim(),
-    ];
-    return Semantics(
-      button: true,
-      label: '${show.name} oyununu aç',
-      excludeSemantics: true,
-      child: PressScale(
-        onTap: onTap,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 84,
-              height: 118,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  boxShadow: AppShadows.level2(colors.shadow),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  child: TiyatrolHero(
-                    tag: tag,
-                    child: OptimizedCachedImage(
-                      imageUrl: show.imageUrl,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
-                      width: 84,
-                      height: 118,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: SizedBox(
-                height: 118,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      show.name,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: listingUi(
-                        color: colors.onSurface,
-                        size: 20,
-                        weight: FontWeight.w800,
-                        height: 1.12,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      meta.isEmpty
-                          ? homeText(context, 'Oyunu incele', 'View play')
-                          : meta.join('  ·  '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ─── faces / venues / companies ─────────────────────────────────────────────
 
 class _Faces extends StatelessWidget {
   final List<Player> players;
@@ -1130,7 +1183,7 @@ class _Faces extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1235,10 +1288,10 @@ class _FaceCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                style: listingUi(
                   color: colors.onSurface,
+                  size: 12,
+                  weight: FontWeight.w700,
                   height: 1.2,
                 ),
               ),
@@ -1257,20 +1310,23 @@ class _Venues extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionHead(
-            title: homeText(context, 'Sahne', 'Venues'),
+            title: homeText(context, 'Mekanlar', 'Venues'),
+            action: homeText(context, 'Tümü', 'See all'),
+            onAction: () => NavigationHandler.goToSearch(context),
           ),
           SizedBox(
-            height: 168,
+            height: 148,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              itemCount: stages.length,
+              itemCount: stages.take(8).length,
               separatorBuilder: (final _, final __) =>
                   const SizedBox(width: AppSpacing.md),
               itemBuilder: (final context, final i) {
@@ -1278,7 +1334,6 @@ class _Venues extends StatelessWidget {
                 return Semantics(
                   button: true,
                   label: stage.name,
-                  excludeSemantics: true,
                   child: PressScale(
                     onTap: () => NavigationHandler.goToStage(
                       context,
@@ -1292,26 +1347,38 @@ class _Venues extends StatelessWidget {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            OptimizedCachedImage(
-                              imageUrl: stage.imageUrl,
-                              fit: BoxFit.cover,
-                              borderRadius: 0,
+                            ColoredBox(
+                              color: colors.surfaceContainerHighest,
+                              child: OptimizedCachedImage(
+                                imageUrl: stage.imageUrl,
+                                fit: BoxFit.cover,
+                                borderRadius: 0,
+                              ),
                             ),
-                            const ColoredBox(color: Color(0x66000000)),
-                            Padding(
-                              padding: const EdgeInsets.all(AppSpacing.lg),
-                              child: Align(
-                                alignment: Alignment.bottomLeft,
-                                child: Text(
-                                  stage.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: listingUi(
-                                    color: Colors.white,
-                                    size: 20,
-                                    weight: FontWeight.w800,
-                                    height: 1.1,
-                                  ),
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0x00000000),
+                                    Color(0xCC000000),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: AppSpacing.md,
+                              right: AppSpacing.md,
+                              bottom: AppSpacing.md,
+                              child: Text(
+                                stage.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: listingUi(
+                                  color: Colors.white,
+                                  size: 15,
+                                  weight: FontWeight.w800,
                                 ),
                               ),
                             ),
@@ -1337,20 +1404,23 @@ class _Companies extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.section),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionHead(
             title: homeText(context, 'Topluluklar', 'Companies'),
+            action: homeText(context, 'Tümü', 'See all'),
+            onAction: () => NavigationHandler.goToSearch(context),
           ),
           SizedBox(
-            height: 72,
+            height: 96,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              itemCount: teams.length,
+              itemCount: teams.take(10).length,
               separatorBuilder: (final _, final __) =>
                   const SizedBox(width: AppSpacing.sm),
               itemBuilder: (final context, final i) {
@@ -1358,50 +1428,51 @@ class _Companies extends StatelessWidget {
                 return Semantics(
                   button: true,
                   label: team.name,
-                  excludeSemantics: true,
                   child: PressScale(
                     onTap: () => NavigationHandler.goToTeam(
                       context,
                       team.id,
                       team.name,
                     ),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      child: Material(
-                        color: context.colors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.xs,
-                            AppSpacing.xs,
-                            AppSpacing.lg,
-                            AppSpacing.xs,
-                          ),
-                          child: Row(
-                            children: [
-                              ClipOval(
-                                child: SizedBox(
-                                  width: 52,
-                                  height: 52,
-                                  child: OptimizedCachedImage(
-                                    imageUrl: team.imageUrl,
-                                    fit: BoxFit.cover,
-                                    borderRadius: 0,
-                                  ),
-                                ),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: colors.outlineVariant),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.xs),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: OptimizedCachedImage(
+                                imageUrl: team.imageUrl,
+                                fit: BoxFit.cover,
+                                borderRadius: 0,
                               ),
-                              const SizedBox(width: AppSpacing.md),
-                              Text(
-                                team.name,
-                                style: TextStyle(
-                                  color: context.colors.onSurface,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: AppSpacing.md),
+                          Flexible(
+                            child: Text(
+                              team.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: listingUi(
+                                color: colors.onSurface,
+                                size: 13,
+                                weight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1433,40 +1504,16 @@ class _CampaignBanner extends StatelessWidget {
       child: Semantics(
         button: true,
         label: campaign.title,
-        excludeSemantics: true,
         child: PressScale(
           onTap: onOpen,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: SizedBox(
-              height: 132,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  OptimizedCachedImage(
-                    imageUrl: campaign.imageUrl,
-                    fit: BoxFit.cover,
-                    borderRadius: 0,
-                  ),
-                  const ColoredBox(color: Color(0x59000000)),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        campaign.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: listingUi(
-                          color: Colors.white,
-                          size: 22,
-                          weight: FontWeight.w800,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          child: AspectRatio(
+            aspectRatio: 16 / 7,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: OptimizedCachedImage(
+                imageUrl: campaign.imageUrl,
+                fit: BoxFit.cover,
+                borderRadius: 0,
               ),
             ),
           ),
@@ -1476,38 +1523,60 @@ class _CampaignBanner extends StatelessWidget {
   }
 }
 
-class _HomeSkeleton extends StatelessWidget {
-  const _HomeSkeleton();
+// ─── section / states ───────────────────────────────────────────────────────
+
+class _SectionHead extends StatelessWidget {
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+
+  const _SectionHead({
+    required this.title,
+    this.action,
+    this.onAction,
+  });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme colors = context.colors;
-    Widget block(final double height, {final double radius = AppRadius.md}) =>
-        Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(radius),
-          ),
-        );
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
-        AppSpacing.massive,
+        0,
         AppSpacing.xl,
-        120,
+        AppSpacing.md,
       ),
-      children: [
-        block(72),
-        const SizedBox(height: AppSpacing.xl),
-        block(52),
-        const SizedBox(height: AppSpacing.xxl),
-        block(360, radius: 0),
-        const SizedBox(height: AppSpacing.xxl),
-        block(72),
-        const SizedBox(height: AppSpacing.md),
-        block(72),
-      ],
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: listingUi(
+                color: colors.onSurface,
+                size: 22,
+                weight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (action != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                foregroundColor: colors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                minimumSize: const Size(48, 40),
+              ),
+              child: Text(
+                action!,
+                style: listingUi(
+                  color: colors.primary,
+                  size: 13,
+                  weight: FontWeight.w800,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1524,40 +1593,67 @@ class _HomeError extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.theater_comedy_outlined,
-              size: 64,
-              color: colors.outline,
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              AppLocalizations.of(context)!.homeErrorTitleMobile,
-              textAlign: TextAlign.center,
-              style: _display(colors.onSurface, size: 26),
-            ),
-            const SizedBox(height: AppSpacing.md),
             Text(
               homeText(
                 context,
-                'Program yüklenemedi. Bağlantını kontrol edip tekrar dene.',
-                'The programme could not load. Check the connection and retry.',
+                'Program yüklenemedi',
+                'Could not load programme',
               ),
               textAlign: TextAlign.center,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-                height: 1.45,
+              style: listingUi(
+                color: colors.onSurface,
+                size: 18,
+                weight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: onRetry,
-              child: Text(AppLocalizations.of(context)!.homeErrorRetryMobile),
+              child: Text(homeText(context, 'Tekrar dene', 'Try again')),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme colors = context.colors;
+    Widget box(final double h, {final double? w}) => Container(
+          height: h,
+          width: w,
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        );
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      children: [
+        SizedBox(height: MediaQuery.paddingOf(context).top),
+        box(28, w: 140),
+        const SizedBox(height: AppSpacing.xl),
+        box(16, w: 120),
+        const SizedBox(height: AppSpacing.sm),
+        box(36, w: 260),
+        const SizedBox(height: AppSpacing.lg),
+        box(52),
+        const SizedBox(height: AppSpacing.lg),
+        box(420),
+        const SizedBox(height: AppSpacing.xl),
+        box(22, w: 100),
+        const SizedBox(height: AppSpacing.md),
+        box(72),
+        const SizedBox(height: AppSpacing.sm),
+        box(72),
+      ],
     );
   }
 }
