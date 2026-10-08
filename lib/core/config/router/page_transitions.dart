@@ -1,5 +1,8 @@
 import 'dart:ui';
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
+
+import '../../theme/app_motion.dart';
 
 /// Saydamlaşarak geçiş (Fade)
 Widget fadeTransition(
@@ -23,8 +26,37 @@ Widget heroSharedTransition(
     FadeTransition(
       opacity: CurvedAnimation(
         parent: animation,
-        curve: const Interval(0.18, 1.0, curve: Curves.easeOutCubic),
+        curve: const Interval(0.18, 1.0, curve: AppMotion.emphasized),
       ),
+      child: child,
+    );
+
+/// Material Shared Axis Z — arama gibi "bir kat yukarı" açılan sayfalar.
+Widget sharedAxisZTransition(
+  final BuildContext context,
+  final Animation<double> animation,
+  final Animation<double> secondaryAnimation,
+  final Widget child,
+) =>
+    SharedAxisTransition(
+      animation: animation,
+      secondaryAnimation: secondaryAnimation,
+      transitionType: SharedAxisTransitionType.scaled,
+      fillColor: Theme.of(context).colorScheme.surface,
+      child: child,
+    );
+
+/// Material Fade Through — ilişkisiz içerik değişimi (sekme / filtre).
+Widget fadeThroughPageTransition(
+  final BuildContext context,
+  final Animation<double> animation,
+  final Animation<double> secondaryAnimation,
+  final Widget child,
+) =>
+    FadeThroughTransition(
+      animation: animation,
+      secondaryAnimation: secondaryAnimation,
+      fillColor: Theme.of(context).colorScheme.surface,
       child: child,
     );
 

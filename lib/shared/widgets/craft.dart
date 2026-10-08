@@ -29,9 +29,9 @@ class _PressScaleState extends State<PressScale> {
   Widget build(final BuildContext context) {
     final bool reduce = MediaQuery.disableAnimationsOf(context);
     final Widget scaled = AnimatedScale(
-      scale: _down && !reduce ? 0.98 : 1,
+      scale: _down && !reduce ? 0.96 : 1,
       duration: AppMotion.fast,
-      curve: AppMotion.standard,
+      curve: AppMotion.spring,
       child: widget.child,
     );
     if (widget.onTap == null) return scaled;
@@ -88,41 +88,37 @@ class CraftFacetRail extends StatelessWidget {
             button: true,
             selected: on,
             label: labels[i],
-            child: Material(
-              color: on ? cs.primary : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onSelected(i);
-                },
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 72, minHeight: 48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          icons[i],
-                          size: 22,
-                          color: on ? cs.onPrimary : cs.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          labels[i],
-                          style: TextStyle(
-                            color: on ? cs.onPrimary : cs.onSurface,
-                            fontSize: 11,
-                            fontWeight: on ? FontWeight.w800 : FontWeight.w600,
-                            height: 1,
-                          ),
-                        ),
-                      ],
+            child: PressScale(
+              onTap: () => onSelected(i),
+              child: AnimatedContainer(
+                duration: AppMotion.fast,
+                curve: AppMotion.spring,
+                constraints: const BoxConstraints(minWidth: 72, minHeight: 48),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: on ? cs.primary : cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icons[i],
+                      size: 22,
+                      color: on ? cs.onPrimary : cs.onSurfaceVariant,
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      labels[i],
+                      style: TextStyle(
+                        color: on ? cs.onPrimary : cs.onSurface,
+                        fontSize: 11,
+                        fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                        height: 1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

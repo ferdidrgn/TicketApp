@@ -18,7 +18,8 @@ class ShowDetailSkeleton extends StatelessWidget {
     final Color base = colors.surfaceContainerHighest;
     final Color highlight = colors.surfaceContainerLow;
 
-    Widget block(final double h, {final double? w, final double r = AppRadius.sm}) =>
+    Widget block(final double h,
+            {final double? w, final double r = AppRadius.sm}) =>
         Container(
           height: h,
           width: w ?? double.infinity,
@@ -109,6 +110,75 @@ class ShowDetailSkeleton extends StatelessWidget {
                 baseColor: base,
                 highlightColor: highlight,
                 child: scroll,
+              ),
+      ),
+    );
+  }
+}
+
+/// Uçan afişin ALTINDA program iskeleti — kapağı yemez, Hero yaşar.
+class ShowProgrammeSkeleton extends StatelessWidget {
+  const ShowProgrammeSkeleton({super.key});
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    final bool reduce = MediaQuery.of(context).disableAnimations;
+    final Color base = colors.surfaceContainerHighest;
+    final Color highlight = colors.surfaceContainerLow;
+
+    Widget block(final double h, {final double? w}) => Container(
+          height: h,
+          width: w ?? double.infinity,
+          decoration: BoxDecoration(
+            color: base,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        );
+
+    final Widget body = Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.huge, AppSpacing.lg, AppSpacing.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          block(18, w: 88),
+          const SizedBox(height: AppSpacing.sm),
+          block(32, w: 220),
+          const SizedBox(height: AppSpacing.xl),
+          block(108),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              for (int i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: AppSpacing.sm),
+                Expanded(child: block(88)),
+              ],
+            ],
+          ),
+          const SizedBox(height: AppSpacing.huge),
+          block(18, w: 72),
+          const SizedBox(height: AppSpacing.sm),
+          block(28, w: 180),
+          const SizedBox(height: AppSpacing.xl),
+          block(16),
+          const SizedBox(height: AppSpacing.sm),
+          block(16),
+          const SizedBox(height: AppSpacing.sm),
+          block(16, w: 240),
+        ],
+      ),
+    );
+
+    return Semantics(
+      label: 'Program yükleniyor',
+      child: ExcludeSemantics(
+        child: reduce
+            ? body
+            : Shimmer.fromColors(
+                baseColor: base,
+                highlightColor: highlight,
+                child: body,
               ),
       ),
     );

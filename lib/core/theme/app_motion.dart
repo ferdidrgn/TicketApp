@@ -31,4 +31,11 @@ class AppMotion {
 
   /// Dramatik, "sahne anı" hareketleri için (bkz. `curtainTransition`).
   static const Curve dramatic = Curves.easeInOutQuart;
+
+  /// Material 3 Expressive — yumuşak yay: hızlı çıkış, yavaş oturuş.
+  /// https://m3.material.io/blog/m3-expressive-motion-theming
+  static const Curve spring = Cubic(0.16, 1, 0.3, 1);
+
+  /// Material emphasized decelerate — sayfa / yüzey girişleri.
+  static const Curve emphasized = Cubic(0.05, 0.7, 0.1, 1);
 }

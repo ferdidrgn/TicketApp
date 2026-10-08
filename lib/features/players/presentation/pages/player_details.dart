@@ -15,6 +15,7 @@ import '../../../../shared/widgets/ticket/ticket_profile.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
 import '../../../shows/presentation/widgets/detail/show_programme.dart';
 import '../../../search/presentation/providers/search_query_provider.dart';
 import '../../domain/entities/player.dart';
@@ -47,19 +48,19 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       child: Scaffold(
         backgroundColor: context.colors.surface,
         body: playerAsync.when(
-        loading: () => _PreviewPlayer(
-          playerId: widget.playerId,
-          fullName: TiyatrolHeroFlight.field(context, 'title') ?? '',
-          imageUrl: TiyatrolHeroFlight.field(context, 'imageUrl') ?? '',
-        ),
-        error: (final err, final _) => ProfileErrorView(
-          error: err,
-          notFoundTitle: 'Bu oyuncu bulunamadı',
-          failedTitle: 'Oyuncu bilgileri yüklenemedi',
-          onRetry: () =>
-              ref.invalidate(playerDetailProvider(widget.playerId)),
-        ),
-        data: (final state) => _buildPage(context, state),
+          loading: () => _PreviewPlayer(
+            playerId: widget.playerId,
+            fullName: TiyatrolHeroFlight.field(context, 'title') ?? '',
+            imageUrl: TiyatrolHeroFlight.field(context, 'imageUrl') ?? '',
+          ),
+          error: (final err, final _) => ProfileErrorView(
+            error: err,
+            notFoundTitle: 'Bu oyuncu bulunamadı',
+            failedTitle: 'Oyuncu bilgileri yüklenemedi',
+            onRetry: () =>
+                ref.invalidate(playerDetailProvider(widget.playerId)),
+          ),
+          data: (final state) => _buildPage(context, state),
         ),
       ),
     );
@@ -67,8 +68,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
 
   Widget _buildPage(final BuildContext context, final PlayerDetailState state) {
     final Player player = state.player;
-    final String fullName =
-        '${player.firstName} ${player.lastName}'.trim();
+    final String fullName = '${player.firstName} ${player.lastName}'.trim();
     final EdgeInsets safe = MediaQuery.paddingOf(context);
     final bool compact =
         MediaQuery.sizeOf(context).width < ResponsiveUtils.tabletBreakpoint;
@@ -138,7 +138,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
             ),
             if (kIsWeb) const SliverToBoxAdapter(child: Footer()),
             SliverToBoxAdapter(
-              child: SizedBox(height: 80 + MediaQuery.paddingOf(context).bottom),
+              child:
+                  SizedBox(height: 80 + MediaQuery.paddingOf(context).bottom),
             ),
           ],
         ),
@@ -169,8 +170,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
+                      AppSpacing.md, AppSpacing.xl, AppSpacing.md),
                   child: FilledButton(
                     onPressed: _actionTap(context, split.active),
                     style: FilledButton.styleFrom(
@@ -237,6 +238,8 @@ class _PreviewPlayer extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.section),
+            const ShowProgrammeSkeleton(),
           ],
         ),
         Positioned(
@@ -365,8 +368,7 @@ class _AchievementList extends StatelessWidget {
         for (int i = 0; i < items.length; i++) ...[
           if (i > 0)
             Divider(
-                height: 1,
-                color: colors.outlineVariant.withValues(alpha: 0.5)),
+                height: 1, color: colors.outlineVariant.withValues(alpha: 0.5)),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: Row(

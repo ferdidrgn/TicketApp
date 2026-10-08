@@ -23,8 +23,11 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
+import '../../../../shared/widgets/playbill.dart';
+import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../widgets/common/home_ticket_widgets.dart';
 import '../widgets/common/home_ui.dart';
+import '../widgets/mobile/home_overture.dart';
 import '../widgets/mobile/home_teams_strip.dart';
 
 /// ANA SAYFA — MOBİL (Android/iOS; tablet dahil). Dikey anlatı, "bilet
@@ -95,11 +98,12 @@ class _HomePageState extends ConsumerState<HomePage>
 
   void _openSearch() => NavigationHandler.goToSearch(context);
 
-  void _openShow(final Show show) =>
+  void _openShow(final Show show, {final String from = 'home'}) =>
       NavigationHandler.goToShow(
         context,
         show.id,
         show.name,
+        heroTag: TiyatrolHeroTags.show(show.id, from),
         imageUrl: show.imageUrl,
         title: show.name,
       );
@@ -167,10 +171,8 @@ class _HomePageState extends ConsumerState<HomePage>
         .take(isLargeScreen ? 6 : 4)
         .toList();
 
-    final HomeTicketLayout ticketLayout =
-        isLargeScreen ? HomeTicketLayout.medium : HomeTicketLayout.compact;
     final HomeFeatured? featured =
-        sessionsPending ? null : pickHomeFeatured(sessions, shows);
+        shows.isEmpty ? null : pickHomeFeatured(sessions, shows);
 
     const EdgeInsets gutter = EdgeInsets.symmetric(horizontal: AppSpacing.xl);
     // Vitrin slaytları: kampanyalar önce, sonra sahnedeki oyunlar.
@@ -186,12 +188,14 @@ class _HomePageState extends ConsumerState<HomePage>
       showFab: true,
       customScrollController: _scrollController,
       appBar: isLargeScreen ? _buildWebAppBar(context) : _buildDynamicAppBar(),
-      isLoading: isLoading && (campaignState.value == null),
+      isLoading: isLoading && shows.isEmpty,
+      shimmerSkeleton: const HomeOvertureSkeleton(),
       onRefresh: _refresh,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: cs.surface,
         ambientColor: Colors.transparent,
         extendBody: true,
+        safeAreaTop: false,
       ),
       child: hasError
           ? _buildErrorWidget(context, ref)
@@ -207,117 +211,81 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Geçici: admin panelini rol kontrolü olmadan test
-                      // etme girişi (release derlemesinde görünmez).
-                      const AdminTestStrip(),
-                      if (!isLargeScreen)
-                        _MobileTopBar(
-                          unreadCount: _unreadCount(),
-                          onTickets: _openTickets,
-                          onNotifications: _openNotifications,
-                        )
-                      else
-                        const SizedBox(height: AppSpacing.xxl),
-
-                      Padding(
-                        padding: gutter,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const HomeGreeting(),
-                            const SizedBox(height: AppSpacing.sm),
-                            AuthWipeReveal(
-                              reveal: _headline,
-                              child: Text(
-                                homeText(
-                                    context,
-                                    'Ne izlemek istersin?',
-                                    'What do you want to watch?'),
-                                style: GoogleFonts.playfairDisplay(
-                                  color: cs.onSurface,
-                                  fontSize: isLargeScreen ? 40 : 32,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.05,
+                      if (featured != null)
+                        HomeOverture(
+                          show: featured.show,
+                          session: featured.session,
+                          reveal: _headline,
+                          onOpen: () => _openShow(
+                            featured.show,
+                            from: 'home-overture',
+                          ),
+                          onSearch: _openSearch,
+                          topBar: isLargeScreen
+                              ? const SizedBox(height: AppSpacing.xxl)
+                              : _MobileTopBar(
+                                  unreadCount: _unreadCount(),
+                                  onTickets: _openTickets,
+                                  onNotifications: _openNotifications,
+                                  onPhoto: false,
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!isLargeScreen) ...[
-                        const SizedBox(height: AppSpacing.md),
+                        )
+                      else if (isLoading || sessionsPending)
+                        const HomeOvertureSkeleton()
+                      else ...[
+                        if (!isLargeScreen)
+                          _MobileTopBar(
+                            unreadCount: _unreadCount(),
+                            onTickets: _openTickets,
+                            onNotifications: _openNotifications,
+                          )
+                        else
+                          const SizedBox(height: AppSpacing.xxl),
                         Padding(
                           padding: gutter,
-                          child: HomeSearchField(
-                            onTap: _openSearch,
-                            hint: l10n.homeHeroSearchPlaceholder,
+                          child: AuthWipeReveal(
+                            reveal: _headline,
+                            child: Text(
+                              homeText(context, 'Ne izlemek istersin?',
+                                  'What do you want to watch?'),
+                              style: GoogleFonts.playfairDisplay(
+                                color: cs.onSurface,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                height: 1.05,
+                              ),
+                            ),
                           ),
                         ),
                       ],
-
-                      // Sıradaki seans — sayfanın tek bilet anı, üstte.
-                      if (sessionsPending || featured != null)
-                        _MobileSection(
-                          title: homeText(
-                              context, 'Sıradaki seans', 'Next performance'),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg),
-                            child: sessionsPending
-                                ? HomeFeaturedTicketSkeleton(
-                                    layout: ticketLayout)
-                                : HomeFeaturedTicket(
-                                    key: ValueKey(
-                                        featured!.session?.event.id ??
-                                            featured!.show.id),
-                                    featured: featured!,
-                                    layout: ticketLayout,
-                                    onOpen: () => _openShow(featured!.show),
-                                  ),
-                          ),
-                        ),
-
-                      if (sessions.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xl),
+                      const AdminTestStrip(),
+                      if (sessions.isNotEmpty)
                         Padding(
-                          padding: gutter,
+                          padding: EdgeInsets.fromLTRB(
+                              gutter.left, AppSpacing.huge, gutter.right, 0),
                           child: HomeWeekPulse(
                             sessions: sessions,
                             onTap: () =>
                                 NavigationHandler.goToDiscover(context),
                           ),
                         ),
-                      ],
-
-                      if (slides.isNotEmpty)
-                        _MobileSection(
-                          title: homeText(context, 'Sahnede', 'On stage'),
-                          child: HomeSpotlightCarousel(
-                            slides: slides,
-                            height: isLargeScreen ? 300 : 220,
-                            padding: gutter,
-                          ),
-                        ),
-
                       if (shows.isNotEmpty)
                         _MobileSection(
-                          title: homeText(
-                              context, 'Türe göre', 'By genre'),
-                          child: HomeMoodPicker(
-                              shows: shows, padding: gutter),
+                          act: 'I. perde',
+                          title: homeText(context, 'Türe göre', 'By genre'),
+                          child: HomeMoodPicker(shows: shows, padding: gutter),
                         ),
-
-                      // Şu an sahnede — sinematik afiş kartları.
                       if (activeShows.isNotEmpty)
                         _MobileSection(
+                          act: 'II. perde',
                           title: l10n.homeActiveShowsSubtitle,
                           actionLabel: l10n.homeSeeAll,
                           onAction: () =>
                               NavigationHandler.goToDiscover(context),
                           child: HomeRail(
                             itemCount: activeShows.length,
-                            itemWidth: 150,
-                            height: 262,
+                            itemWidth: 168,
+                            height: 286,
                             padding: gutter,
                             itemBuilder: (final context, final i) =>
                                 HomePosterCard(
@@ -327,18 +295,25 @@ class _HomePageState extends ConsumerState<HomePage>
                             ),
                           ),
                         ),
-
-                      // Günün repliği — sayfaya nefes aldıran tipografi.
+                      if (slides.isNotEmpty)
+                        _MobileSection(
+                          title: homeText(context, 'Sahnede', 'On stage'),
+                          child: HomeSpotlightCarousel(
+                            slides: slides,
+                            height: isLargeScreen ? 320 : 240,
+                            padding: gutter,
+                          ),
+                        ),
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                             gutter.left, AppSpacing.section, gutter.right, 0),
                         child: const HomeQuoteOfDay(),
                       ),
-
                       if (sessions.isNotEmpty)
                         _MobileSection(
-                          title: homeText(
-                              context, 'Yaklaşan seanslar', 'Upcoming performances'),
+                          act: 'III. perde',
+                          title: homeText(context, 'Yaklaşan seanslar',
+                              'Upcoming performances'),
                           child: HomeSessionBoard(
                             sessions: sessions,
                             onOpenShow: _openShow,
@@ -347,8 +322,6 @@ class _HomePageState extends ConsumerState<HomePage>
                             listPadding: gutter,
                           ),
                         ),
-
-                      // Sahnenin yüzleri — hikâye biçiminde oyuncular.
                       _MobileSection(
                         title: homeText(
                             context, 'Sahnenin yüzleri', 'Faces of the stage'),
@@ -356,7 +329,6 @@ class _HomePageState extends ConsumerState<HomePage>
                         onAction: () => context.push('/search'),
                         child: HomePlayerStories(padding: gutter),
                       ),
-
                       if (repertoire.isNotEmpty)
                         _MobileSection(
                           title: homeText(context, 'Repertuvar', 'Repertoire'),
@@ -381,12 +353,12 @@ class _HomePageState extends ConsumerState<HomePage>
                                   TheatreShowCard(
                                 show: repertoire[i],
                                 heroFrom: 'repertoire',
-                                onTap: () => _openShow(repertoire[i]),
+                                onTap: () => _openShow(repertoire[i],
+                                    from: 'repertoire'),
                               ),
                             ),
                           ),
                         ),
-
                       if (stages.isNotEmpty)
                         _MobileSection(
                           title: l10n.homeVenuesSubtitle,
@@ -403,7 +375,6 @@ class _HomePageState extends ConsumerState<HomePage>
                             ),
                           ),
                         ),
-
                       _MobileSection(
                         title: l10n.homeTeamsTitle,
                         child: const HomeTeamsStrip(),
@@ -522,27 +493,31 @@ class _MobileTopBar extends StatelessWidget {
   final int unreadCount;
   final VoidCallback onTickets;
   final VoidCallback onNotifications;
+  final bool onPhoto;
 
   const _MobileTopBar({
     required this.unreadCount,
     required this.onTickets,
     required this.onNotifications,
+    this.onPhoto = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final cs = context.colors;
+    final Color ink = onPhoto ? Colors.white : context.colors.onSurface;
+    final double top = MediaQuery.paddingOf(context).top + AppSpacing.sm;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.sm, AppSpacing.sm, AppSpacing.lg),
+      padding:
+          EdgeInsets.fromLTRB(AppSpacing.xl, top, AppSpacing.sm, AppSpacing.lg),
       child: Row(
         children: [
-          Icon(Icons.theater_comedy_rounded, size: 20, color: cs.primary),
+          Icon(Icons.theater_comedy_rounded,
+              size: 20, color: onPhoto ? Colors.white : context.colors.primary),
           const SizedBox(width: AppSpacing.sm),
           Text(
             'TİYATROL',
             style: GoogleFonts.playfairDisplay(
-              color: cs.onSurface,
+              color: ink,
               fontSize: 17,
               fontWeight: FontWeight.w800,
               letterSpacing: 3,
@@ -553,13 +528,13 @@ class _MobileTopBar extends StatelessWidget {
             tooltip: homeText(context, 'Biletlerim', 'My tickets'),
             onPressed: onTickets,
             icon: const Icon(Icons.confirmation_number_outlined),
-            color: cs.onSurface,
+            color: ink,
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
           IconButton(
             tooltip: AppLocalizations.of(context)!.homeTooltipNotifications,
             onPressed: onNotifications,
-            color: cs.onSurface,
+            color: ink,
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: Badge(
               isLabelVisible: unreadCount > 0,
@@ -577,6 +552,7 @@ class _MobileTopBar extends StatelessWidget {
 /// boşluklarını taşır, ekran kenarına kadar akar).
 class _MobileSection extends StatelessWidget {
   final String title;
+  final String? act;
   final String? actionLabel;
   final VoidCallback? onAction;
   final Widget child;
@@ -584,6 +560,7 @@ class _MobileSection extends StatelessWidget {
   const _MobileSection({
     required this.title,
     required this.child,
+    this.act,
     this.actionLabel,
     this.onAction,
   });
@@ -597,11 +574,13 @@ class _MobileSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(
                   AppSpacing.xl, 0, AppSpacing.sm, AppSpacing.md),
-              child: HomeSectionHeader(
-                title: title,
-                actionLabel: actionLabel,
-                onAction: onAction,
-              ),
+              child: act == null
+                  ? HomeSectionHeader(
+                      title: title,
+                      actionLabel: actionLabel,
+                      onAction: onAction,
+                    )
+                  : PlaybillActHeader(act: act!, title: title),
             ),
             child,
           ],

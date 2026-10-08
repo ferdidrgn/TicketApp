@@ -32,6 +32,7 @@ import '../../../shared/navigation/providers/navigation_keys.dart';
 import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../../shared/navigation/widgets/web_top_navigation_bar.dart';
 import '../../errors/not_found_page.dart';
+import '../../theme/app_motion.dart';
 import 'page_transitions.dart';
 
 // 🔑 KRİTİK DÜZELTME:
@@ -107,7 +108,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       return null;
     },
     routes: [
-
       /// 🎭 STATEFUL SHELL ROUTE - TAB NAVIGATION
       StatefulShellRoute.indexedStack(
         builder: (final context, final state, final navigationShell) {
@@ -253,8 +253,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: SearchPage(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionsBuilder: sharedAxisZTransition,
+          transitionDuration: AppMotion.normal,
         ),
       ),
 

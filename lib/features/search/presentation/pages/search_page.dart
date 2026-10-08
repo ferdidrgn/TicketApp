@@ -3,15 +3,19 @@ import '../../../../shared/widgets/ticket/ticket_search.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../home/presentation/widgets/common/home_showcase.dart';
 
+import 'package:animations/animations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -19,6 +23,7 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/craft.dart';
+import '../../../../shared/widgets/playbill.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -127,8 +132,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     return null;
   }
 
-  List<Show> _showsInCategory(
-      final List<Show> shows, final String? category) {
+  List<Show> _showsInCategory(final List<Show> shows, final String? category) {
     if (category == null) return shows;
     return [
       for (final Show show in shows)
@@ -212,7 +216,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
   /// Ortak "gişe arama fişi" ([TicketSearchShell]): vurgu renginde arama
   /// damgası + delik çizgisi + gerçek yazı alanı. Alan boşken dönen gerçek
   /// örnekler ("Ara: …") gösterilir; yazmaya başlayınca kaybolur.
-  Widget _searchField(final BuildContext context, {final bool autofocus = true}) {
+  Widget _searchField(final BuildContext context,
+      {final bool autofocus = true}) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Focus(
       onFocusChange: (final v) => setState(() => _fieldFocused = v),
@@ -291,55 +296,82 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final double gutter =
         layout == _Layout.tablet ? AppSpacing.xxl : AppSpacing.lg;
 
-    return CustomScrollView(
-      controller: scrollController,
-      physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics()),
-      slivers: [
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: PinnedBrowseHeader(
-            extent: 168,
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        gutter - AppSpacing.sm, AppSpacing.sm, gutter, 0),
-                    child: Row(
-                      children: [
-                        _backButton(context),
-                        const SizedBox(width: AppSpacing.xs),
-                        Expanded(child: _searchField(context)),
-                      ],
+    return AnimationLimiter(
+      child: CustomScrollView(
+        controller: scrollController,
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: PinnedBrowseHeader(
+              extent: 168,
+              child: ColoredBox(
+                color: Theme.of(context).colorScheme.surface,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                          gutter - AppSpacing.sm, AppSpacing.sm, gutter, 0),
+                      child: Row(
+                        children: [
+                          _backButton(context),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(child: _searchField(context)),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  CraftFacetRail(
-                    labels: _kFacets,
-                    icons: _kFacetIcons,
-                    selectedIndex: filter,
-                    onSelected: _onSeeAll,
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  _progressLine(refreshing),
-                ],
+                    const SizedBox(height: AppSpacing.sm),
+                    CraftFacetRail(
+                      labels: _kFacets,
+                      icons: _kFacetIcons,
+                      selectedIndex: filter,
+                      onSelected: _onSeeAll,
+                      padding: EdgeInsets.symmetric(horizontal: gutter),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    _progressLine(refreshing),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-        ..._resultSlivers(state, filter, query, layout, gutter),
-        if (kIsWeb) ...[
-          const SliverToBoxAdapter(
-              child: SizedBox(height: AppSpacing.section)),
-          const SliverToBoxAdapter(child: Footer()),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                  gutter, AppSpacing.xl, gutter, AppSpacing.lg),
+              child: PageTransitionSwitcher(
+                duration: AppMotion.normal,
+                reverse: false,
+                transitionBuilder:
+                    (final child, final animation, final secondaryAnimation) =>
+                        FadeThroughTransition(
+                  animation: animation,
+                  secondaryAnimation: secondaryAnimation,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  child: child,
+                ),
+                child: PlaybillActHeader(
+                  key: ValueKey('$filter-${query.trim()}'),
+                  act: 'Foyer',
+                  title: query.trim().isEmpty
+                      ? 'Bu gece ne var?'
+                      : '“${query.trim()}”',
+                  meta: state.value == null ? null : '${state.value!.total}',
+                ),
+              ),
+            ),
+          ),
+          ..._resultSlivers(state, filter, query, layout, gutter),
+          if (kIsWeb) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.section)),
+            const SliverToBoxAdapter(child: Footer()),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ],
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
-      ],
+      ),
     );
   }
 
@@ -360,8 +392,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         SizedBox(
           width: 300,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxl,
-                AppSpacing.lg, AppSpacing.xxl),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl, AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -413,14 +445,16 @@ class _SearchPageState extends ConsumerState<SearchPage>
               Expanded(
                 child: LayoutBuilder(
                   builder: (final context, final constraints) {
-                    final double gutter = math.max(AppSpacing.huge,
-                        (constraints.maxWidth - 1240) / 2);
+                    final double gutter = math.max(
+                        AppSpacing.huge, (constraints.maxWidth - 1240) / 2);
                     return CustomScrollView(
                       controller: scrollController,
                       slivers: [
                         SliverPadding(
-                          padding: EdgeInsets.fromLTRB(gutter,
-                              AppSpacing.xxl + AppSpacing.sm, gutter,
+                          padding: EdgeInsets.fromLTRB(
+                              gutter,
+                              AppSpacing.xxl + AppSpacing.sm,
+                              gutter,
                               AppSpacing.xl),
                           sliver: SliverToBoxAdapter(
                             child: _ResultsHeadline(
@@ -513,7 +547,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
           TicketNotice(
             label: 'ARAMA',
             title: 'Henüz içerik yok',
-            message: 'Oyunlar, oyuncular ve sahneler eklendikçe burada listelenecek.',
+            message:
+                'Oyunlar, oyuncular ve sahneler eklendikçe burada listelenecek.',
             actionLabel: "Keşfet'e git",
             onAction: () => NavigationHandler.goToDiscover(context),
           ),
@@ -548,7 +583,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final bool browsing = query.isEmpty;
     return [
       if (browsing && data.shows.isNotEmpty) ...[
-        _boxed(gutter, const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
+        _boxed(gutter,
+            const BrowseSectionTitle(title: 'Bugün ne izlemek istersin?')),
         SliverToBoxAdapter(
           child: HomeMoodPicker(
               shows: data.shows,
@@ -592,7 +628,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   child: HomePosterCard(
                     show: shows[i],
                     heroFrom: 'search-rail',
-                    onTap: () => _openShow(shows[i]),
+                    onTap: () => _openShow(shows[i], from: 'search-rail'),
                   ),
                 ),
               ),
@@ -636,8 +672,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 data.stages.length > tilePreview ? () => _onSeeAll(3) : null,
           ),
         ),
-        _stagesSliver(
-            data.stages.take(tilePreview).toList(), layout, gutter),
+        _stagesSliver(data.stages.take(tilePreview).toList(), layout, gutter),
       ],
       if (data.teams.isNotEmpty) ...[
         _boxed(
@@ -649,26 +684,25 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 data.teams.length > tilePreview ? () => _onSeeAll(4) : null,
           ),
         ),
-        _teamsSliver(
-            data.teams.take(tilePreview).toList(), layout, gutter),
+        _teamsSliver(data.teams.take(tilePreview).toList(), layout, gutter),
       ],
     ];
   }
 
-  void _openShow(final Show show) =>
+  void _openShow(final Show show, {final String from = 'search'}) =>
       NavigationHandler.goToShow(
         context,
         show.id,
         show.name,
+        heroTag: TiyatrolHeroTags.show(show.id, from),
         imageUrl: show.imageUrl,
         title: show.name,
       );
 
   Widget _showsSliver(
       final List<Show> shows, final _Layout layout, final double gutter) {
-    final int columns = layout == _Layout.mobile
-        ? 2
-        : (layout == _Layout.tablet ? 3 : 5);
+    final int columns =
+        layout == _Layout.mobile ? 2 : (layout == _Layout.tablet ? 3 : 5);
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(
           gutter, 0, gutter, AppSpacing.section - AppSpacing.lg),
@@ -680,11 +714,22 @@ class _SearchPageState extends ConsumerState<SearchPage>
           childAspectRatio: 0.56,
         ),
         itemCount: shows.length,
-        itemBuilder: (final context, final i) => HomePosterCard(
-          key: ValueKey('search-show-${shows[i].id}'),
-          show: shows[i],
-          heroFrom: 'search',
-          onTap: () => _openShow(shows[i]),
+        itemBuilder: (final context, final i) =>
+            AnimationConfiguration.staggeredGrid(
+          position: i,
+          duration: const Duration(milliseconds: 420),
+          columnCount: columns,
+          child: SlideAnimation(
+            verticalOffset: 36,
+            child: FadeInAnimation(
+              child: HomePosterCard(
+                key: ValueKey('search-show-${shows[i].id}'),
+                show: shows[i],
+                heroFrom: 'search',
+                onTap: () => _openShow(shows[i]),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -830,10 +875,25 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ),
       );
     }
+    if (showsShape) {
+      return SliverPadding(
+        padding: padding,
+        sliver: SliverGrid.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: AppSpacing.xl,
+            crossAxisSpacing: AppSpacing.lg,
+            childAspectRatio: 0.56,
+          ),
+          itemCount: 6,
+          itemBuilder: (final context, final __) => const _PosterShimmerCard(),
+        ),
+      );
+    }
     final double rowHeight = switch (filter) {
       3 => 200,
       4 => 112,
-      _ => showsShape ? 96 : 72,
+      _ => 72,
     };
     return SliverPadding(
       padding: padding,
@@ -841,7 +901,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         itemCount: 5,
         separatorBuilder: (final _, final __) =>
             SizedBox(height: filter == 3 ? AppSpacing.lg : AppSpacing.sm),
-        itemBuilder: (final _, final __) => TicketRowSkeleton(height: rowHeight),
+        itemBuilder: (final _, final __) =>
+            TicketRowSkeleton(height: rowHeight),
       ),
     );
   }
@@ -897,8 +958,7 @@ class _ResultsHeadline extends StatelessWidget {
         ),
         if (sub != null) ...[
           const SizedBox(height: AppSpacing.xs),
-          Text(sub,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
+          Text(sub, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
         ],
       ],
     );
@@ -939,9 +999,7 @@ class _PlayerAvatar extends StatelessWidget {
             title: name,
           );
           NavigationHandler.goToPlayer(context, player.id, name,
-              heroTag: heroTag,
-              imageUrl: player.imageUrl,
-              title: name);
+              heroTag: heroTag, imageUrl: player.imageUrl, title: name);
         },
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
@@ -1018,8 +1076,8 @@ class _GenreTiles extends StatelessWidget {
     }
     if (byCat.isEmpty) return const SizedBox.shrink();
     final cats = byCat.keys.toList()
-      ..sort((final a, final b) =>
-          byCat[b]!.length.compareTo(byCat[a]!.length));
+      ..sort(
+          (final a, final b) => byCat[b]!.length.compareTo(byCat[a]!.length));
     final shown = cats.take(columns * 2).toList();
 
     return GridView.builder(
@@ -1103,6 +1161,28 @@ class _GenreTiles extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _PosterShimmerCard extends StatelessWidget {
+  const _PosterShimmerCard();
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool reduce = MediaQuery.disableAnimationsOf(context);
+    final Widget card = DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+    );
+    if (reduce) return card;
+    return Shimmer.fromColors(
+      baseColor: cs.surfaceContainerHighest,
+      highlightColor: cs.surfaceContainerLow,
+      child: card,
     );
   }
 }

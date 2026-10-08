@@ -62,8 +62,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _reduceMotion = MediaQuery.of(context).disableAnimations;
-    // Afiş Hero ilk karede durur; yazılar uçuş biter bitmez açılır.
-    // Shimmer yok — iskelet Hero hedefini geciktirip geçişi öldürüyordu.
+    // Afiş Hero ilk karede durur; program shimmer'ı kapağın altında
+    // bekler — tam sayfa iskelet uçuşu öldürür.
     if (!_entranceStarted) {
       _entranceStarted = true;
       if (_reduceMotion) {

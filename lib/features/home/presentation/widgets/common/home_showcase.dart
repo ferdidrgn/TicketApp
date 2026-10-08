@@ -9,6 +9,7 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/craft.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
@@ -69,9 +70,8 @@ class HomeSlide {
     }
     for (final s in shows) {
       if (slides.length >= max) break;
-      final String img = s.photosShowId.isNotEmpty
-          ? s.photosShowId.first
-          : s.imageUrl;
+      final String img =
+          s.photosShowId.isNotEmpty ? s.photosShowId.first : s.imageUrl;
       if (img.trim().isEmpty) continue;
       final String kind = s.category.trim();
       slides.add(HomeSlide(
@@ -217,19 +217,19 @@ class _HomeSpotlightCarouselState extends State<HomeSpotlightCarousel>
                           height: 7,
                           decoration: BoxDecoration(
                             color: cs.outlineVariant,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.pill),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
                           ),
                           alignment: Alignment.centerLeft,
                           child: i == _index
                               ? FractionallySizedBox(
-                                  widthFactor:
-                                      _auto ? _progress.value.clamp(0.15, 1.0) : 1,
+                                  widthFactor: _auto
+                                      ? _progress.value.clamp(0.15, 1.0)
+                                      : 1,
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: cs.primary,
-                                      borderRadius: BorderRadius.circular(
-                                          AppRadius.pill),
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.pill),
                                     ),
                                   ),
                                 )
@@ -388,8 +388,7 @@ class HomeGreeting extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final String? name =
-        ref.watch(userProfileProvider).value?.firstName.trim();
+    final String? name = ref.watch(userProfileProvider).value?.firstName.trim();
     final String hello = _part(DateTime.now().hour);
     return Text(
       (name == null || name.isEmpty) ? hello : '$hello, $name',
@@ -669,36 +668,35 @@ class HomePosterCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final String kind = show.hasExternalTicketing
-        ? 'Başka platformda'
-        : show.category.trim();
+    final String kind =
+        show.hasExternalTicketing ? 'Başka platformda' : show.category.trim();
     final String heroTag = TiyatrolHeroTags.show(show.id, heroFrom);
     return Semantics(
       button: true,
       label: show.name,
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                boxShadow: AppShadows.level2(cs.shadow),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Material(
-                  color: cs.surfaceContainerHighest,
-                  child: InkWell(
-                    onTap: () {
-                      TiyatrolHeroFlight.prepare(
-                        heroTag,
-                        imageUrl: show.imageUrl,
-                        title: show.name,
-                      );
-                      onTap();
-                    },
+      child: PressScale(
+        onTap: () {
+          TiyatrolHeroFlight.prepare(
+            heroTag,
+            imageUrl: show.imageUrl,
+            title: show.name,
+          );
+          onTap();
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  boxShadow: AppShadows.level2(cs.shadow),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Material(
+                    color: cs.surfaceContainerHighest,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -737,26 +735,26 @@ class HomePosterCard extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            show.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (kind.isNotEmpty)
+            const SizedBox(height: AppSpacing.sm),
             Text(
-              kind,
+              show.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-        ],
+            if (kind.isNotEmpty)
+              Text(
+                kind,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -772,16 +770,23 @@ class HomeQuoteOfDay extends StatelessWidget {
   /// Telif sorunu olmayan klasik (Shakespeare) replikler; gün değiştikçe
   /// sırayla döner.
   static const List<(String, String)> _lines = [
-    ('Bütün dünya bir sahnedir; bütün kadınlar ve erkekler yalnızca oyuncu.',
-        'Shakespeare, Size Nasıl Geliyorsa'),
+    (
+      'Bütün dünya bir sahnedir; bütün kadınlar ve erkekler yalnızca oyuncu.',
+      'Shakespeare, Size Nasıl Geliyorsa'
+    ),
     ('Olmak ya da olmamak, işte bütün mesele bu.', 'Shakespeare, Hamlet'),
     ('Biz rüyaların yapıldığı kumaştanız.', 'Shakespeare, Fırtına'),
     ('Az konuşan, çok iş görür.', 'Shakespeare, V. Henry'),
-    ('Her şeyin sonu iyi biterse, her şey iyidir.',
-        'Shakespeare, Sonu İyi Biten Her Şey İyidir'),
+    (
+      'Her şeyin sonu iyi biterse, her şey iyidir.',
+      'Shakespeare, Sonu İyi Biten Her Şey İyidir'
+    ),
     ('Aşk gözle değil, gönülle bakar.', 'Shakespeare, Bir Yaz Gecesi Rüyası'),
-    ('Hayat yürüyen bir gölgeden, sahnede bir saat çalım satan zavallı bir '
-        'oyuncudan başka nedir ki?', 'Shakespeare, Macbeth'),
+    (
+      'Hayat yürüyen bir gölgeden, sahnede bir saat çalım satan zavallı bir '
+          'oyuncudan başka nedir ki?',
+      'Shakespeare, Macbeth'
+    ),
   ];
 
   @override
@@ -848,11 +853,11 @@ class HomePlayerStories extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final List<Player> players = (ref.watch(playersProvider()).value ??
-            const <Player>[])
-        .where((final p) => p.firstName.trim().isNotEmpty)
-        .take(14)
-        .toList();
+    final List<Player> players =
+        (ref.watch(playersProvider()).value ?? const <Player>[])
+            .where((final p) => p.firstName.trim().isNotEmpty)
+            .take(14)
+            .toList();
     if (players.isEmpty) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     return SizedBox(
