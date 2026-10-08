@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TiyatRol — Akşam Defteri (maket)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --ink: #1A1612;
+    --muted: #6B635A;
+    --line: #E4DDD2;
+    --brand: #C43B2C;
+    --brand-soft: #F3D9D4;
+    --chip: #EFE9E0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Manrope, system-ui, sans-serif;
+    background: #2A2622;
+    color: var(--ink);
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    padding: 32px 16px 64px;
+    flex-wrap: wrap;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  }
+  .phone h-label, .label {
+    position: absolute;
+    top: -28px;
+    left: 0;
+    color: #cfc8bf;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .scroll { height: 100%; overflow-y: auto; padding-bottom: 88px; }
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 54px 20px 8px;
+  }
+  .mark {
+    font-family: "Playfair Display", serif;
+    font-size: 22px; font-weight: 800; letter-spacing: -.02em;
+  }
+  .mark span { color: var(--brand); }
+  .icons { display: flex; gap: 8px; }
+  .icon {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--line);
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .hello { padding: 8px 20px 0; }
+  .hello .hi {
+    font-size: 13px; font-weight: 700; color: var(--muted);
+  }
+  .hello h1 {
+    font-family: "Playfair Display", serif;
+    font-size: 30px; line-height: 1.05; font-weight: 800;
+    margin: 4px 0 14px; max-width: 16ch;
+  }
+  .search {
+    margin: 0 20px 14px;
+    height: 52px; border-radius: 999px;
+    background: var(--surface);
+    border: 1.5px solid transparent;
+    background-image: linear-gradient(var(--surface), var(--surface)),
+      conic-gradient(from 180deg, var(--brand), #D4A017, #6B8F71, var(--brand));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 18px; color: var(--muted); font-weight: 600; font-size: 14px;
+  }
+  .chips {
+    display: flex; gap: 8px; padding: 0 20px 16px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto; height: 36px; padding: 0 14px; border-radius: 999px;
+    background: var(--chip); color: var(--ink); font-size: 13px; font-weight: 700;
+    display: grid; place-items: center; border: 1px solid transparent;
+  }
+  .chip.on { background: var(--ink); color: #fff; }
+  .cover {
+    margin: 0 16px 18px; border-radius: 22px; overflow: hidden;
+    position: relative; height: 420px;
+    background: #222 url('https://images.unsplash.com/photo-1503095396549-807759245b35?w=800&q=80') center/cover;
+  }
+  .cover::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 35%, rgba(12,10,8,.88) 100%);
+  }
+  .cover-body {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+    padding: 20px; color: #fff;
+  }
+  .cover .tag {
+    display: inline-block; font-size: 11px; font-weight: 800;
+    letter-spacing: .06em; text-transform: uppercase;
+    background: rgba(255,255,255,.14); padding: 6px 10px; border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .cover h2 {
+    font-family: "Playfair Display", serif;
+    font-size: 28px; line-height: 1.05; font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .cover p { font-size: 13px; font-weight: 600; opacity: .85; margin-bottom: 14px; }
+  .cta {
+    height: 48px; border: 0; border-radius: 14px;
+    background: var(--brand); color: #fff;
+    font-weight: 800; font-size: 15px; width: 100%;
+  }
+  .sec { padding: 0 20px 8px; display: flex; align-items: baseline; justify-content: space-between; }
+  .sec h3 {
+    font-family: "Playfair Display", serif;
+    font-size: 22px; font-weight: 800;
+  }
+  .sec a { font-size: 13px; font-weight: 800; color: var(--brand); text-decoration: none; }
+  .prog { padding: 0 12px 20px; }
+  .row {
+    display: grid; grid-template-columns: 52px 56px 1fr;
+    gap: 12px; align-items: center;
+    padding: 12px 8px; border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: 0; }
+  .time { font-weight: 800; font-size: 14px; }
+  .time small { display: block; color: var(--muted); font-size: 11px; font-weight: 700; }
+  .thumb {
+    width: 56px; height: 74px; border-radius: 10px;
+    background: #ccc center/cover; box-shadow: 0 6px 14px rgba(0,0,0,.12);
+  }
+  .meta .title { font-weight: 800; font-size: 15px; line-height: 1.2; }
+  .meta .place { color: var(--muted); font-size: 12px; font-weight: 600; margin-top: 3px; }
+  .rail { display: flex; gap: 12px; padding: 0 20px 22px; overflow-x: auto; scrollbar-width: none; }
+  .poster {
+    flex: 0 0 128px; width: 128px;
+  }
+  .poster .ph {
+    height: 172px; border-radius: 14px; background: #bbb center/cover;
+    box-shadow: 0 8px 18px rgba(0,0,0,.12);
+  }
+  .poster .n { margin-top: 8px; font-weight: 800; font-size: 13px; line-height: 1.2; }
+  .faces { display: flex; gap: 12px; padding: 0 20px 22px; overflow-x: auto; }
+  .face { flex: 0 0 100px; text-align: center; }
+  .face .av {
+    width: 100px; height: 132px; border-radius: 50px;
+    background: #ccc center/cover; object-fit: cover;
+  }
+  .face .n { margin-top: 8px; font-size: 12px; font-weight: 800; line-height: 1.2; }
+  .nav {
+    position: absolute; left: 12px; right: 12px; bottom: 12px; height: 64px;
+    background: #1A1612; border-radius: 20px; color: #fff;
+    display: grid; grid-template-columns: repeat(4,1fr); place-items: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .nav .active { color: #F3B4AA; }
+
+  /* SEARCH */
+  .s-top {
+    padding: 54px 16px 12px; display: flex; gap: 10px; align-items: center;
+  }
+  .back {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--line);
+    display: grid; place-items: center; font-size: 18px;
+  }
+  .s-field {
+    flex: 1; height: 52px; border-radius: 999px;
+    background: var(--surface);
+    border: 1.5px solid transparent;
+    background-image: linear-gradient(var(--surface), var(--surface)),
+      conic-gradient(from 90deg, var(--brand), #D4A017, #6B8F71, var(--brand));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; font-weight: 600; color: var(--muted); font-size: 14px;
+  }
+  .facets { display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; }
+  .intro { padding: 4px 20px 12px; }
+  .intro h2 {
+    font-family: "Playfair Display", serif;
+    font-size: 26px; font-weight: 800; line-height: 1.1;
+  }
+  .intro p { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .recent { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 16px; }
+  .recent span {
+    background: var(--chip); border-radius: 999px; padding: 8px 12px;
+    font-size: 12px; font-weight: 700;
+  }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    padding: 0 16px 24px;
+  }
+  .card .ph {
+    aspect-ratio: 2/3; border-radius: 16px; background: #bbb center/cover;
+  }
+  .card .n { margin-top: 8px; font-weight: 800; font-size: 13px; line-height: 1.2; }
+  .card .m { color: var(--muted); font-size: 11px; font-weight: 600; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div style="position:relative">
+    <div class="label">ANASAYFA — Akşam defteri</div>
+    <div class="phone" id="home">
+      <div class="scroll">
+        <div class="top">
+          <div class="mark">Tiyat<span>Rol</span></div>
+          <div class="icons"><div class="icon">🎫</div><div class="icon">🔔</div></div>
+        </div>
+        <div class="hello">
+          <div class="hi">Merhaba Ferdi</div>
+          <h1>Bu akşam sahnede ne var?</h1>
+        </div>
+        <div class="search">🔍 Oyun, oyuncu veya sahne ara</div>
+        <div class="chips">
+          <div class="chip on">Bu gece</div>
+          <div class="chip">Bu hafta</div>
+          <div class="chip">Komedi</div>
+          <div class="chip">Drama</div>
+          <div class="chip">Çocuk</div>
+        </div>
+        <div class="cover">
+          <div class="cover-body">
+            <div class="tag">Bu gece · 20:30</div>
+            <h2>Bir Yaz Gecesi Rüyası</h2>
+            <p>Caddebostan Kültür Merkezi · 350 ₺’den</p>
+            <button class="cta">Bilet al</button>
+          </div>
+        </div>
+        <div class="sec"><h3>Program</h3><a href="#">Tümü</a></div>
+        <div class="prog">
+          <div class="row">
+            <div class="time">20:30<small>Bu gece</small></div>
+            <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1503095396549-807759245b35?w=200')"></div>
+            <div class="meta"><div class="title">Bir Yaz Gecesi Rüyası</div><div class="place">Caddebostan KM</div></div>
+          </div>
+          <div class="row">
+            <div class="time">21:00<small>Bu gece</small></div>
+            <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=200')"></div>
+            <div class="meta"><div class="title">Godot’yu Beklerken</div><div class="place">Moda Sahnesi</div></div>
+          </div>
+          <div class="row">
+            <div class="time">19:00<small>Yarın</small></div>
+            <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=200')"></div>
+            <div class="meta"><div class="title">Kırmızı Pazartesi</div><div class="place">Ataşehir Sahne</div></div>
+          </div>
+        </div>
+        <div class="sec"><h3>Daha fazla</h3><a href="#">Keşfet</a></div>
+        <div class="rail">
+          <div class="poster"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=300')"></div><div class="n">Cyrano</div></div>
+          <div class="poster"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300')"></div><div class="n">Martı</div></div>
+          <div class="poster"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=300')"></div><div class="n">Hamlet</div></div>
+        </div>
+        <div class="sec"><h3>Yüzler</h3></div>
+        <div class="faces">
+          <div class="face"><div class="av" style="background-image:url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200')"></div><div class="n">Can<br/>Yılmaz</div></div>
+          <div class="face"><div class="av" style="background-image:url('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200')"></div><div class="n">Ayşe<br/>Kaya</div></div>
+          <div class="face"><div class="av" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200')"></div><div class="n">Deniz<br/>Arslan</div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div class="active">Ana</div><div>Keşfet</div><div>Yakın</div><div>Profil</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <div class="label">SEARCH — Katalog</div>
+    <div class="phone" id="search">
+      <div class="scroll">
+        <div class="s-top">
+          <div class="back">←</div>
+          <div class="s-field">🔍 Oyun, oyuncu, sahne…</div>
+        </div>
+        <div class="facets">
+          <div class="chip on">Tümü</div>
+          <div class="chip">Oyunlar</div>
+          <div class="chip">Oyuncular</div>
+          <div class="chip">Mekanlar</div>
+          <div class="chip">Ekipler</div>
+        </div>
+        <div class="intro">
+          <h2>Sahnede ne arıyorsun?</h2>
+          <p>Son aramaların ve çok bakılan oyunlar</p>
+        </div>
+        <div class="recent">
+          <span>Hamlet</span><span>Moda Sahnesi</span><span>komedi</span><span>Godot</span>
+        </div>
+        <div class="sec"><h3>Çok bakılanlar</h3></div>
+        <div class="grid">
+          <div class="card"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1503095396549-807759245b35?w=400')"></div><div class="n">Bir Yaz Gecesi Rüyası</div><div class="m">Komedi</div></div>
+          <div class="card"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=400')"></div><div class="n">Godot’yu Beklerken</div><div class="m">Drama</div></div>
+          <div class="card"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=400')"></div><div class="n">Kırmızı Pazartesi</div><div class="m">Drama</div></div>
+          <div class="card"><div class="ph" style="background-image:url('https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=400')"></div><div class="n">Cyrano</div><div class="m">Klasik</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
