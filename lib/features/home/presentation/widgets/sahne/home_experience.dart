@@ -248,8 +248,8 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                 ),
               ),
               SliverToBoxAdapter(
-                child: pad(Transform.translate(
-                  offset: const Offset(0, -28),
+                child: pad(Padding(
+                  padding: const EdgeInsets.only(top: 4),
                   child: _SearchPill(
                     onTap: () => NavigationHandler.goToSearch(context),
                     hints: [for (final Show s in shows.take(4)) s.name],
@@ -593,19 +593,24 @@ class _HeroState extends State<_Hero> {
                     child: TiyatrolHero(
                       tag: TiyatrolHeroTags.show(
                           widget.slides[i].show.id, 'home-stage'),
-                      child: ClipRect(
-                        child: OverflowBox(
-                          maxWidth: double.infinity,
-                          child: Transform.translate(
-                            offset: Offset(-delta * 60, 0),
-                            child: FractionallySizedBox(
-                              widthFactor: 1.2,
-                              heightFactor: 1,
-                              child: SkImage(
-                                  url: widget.slides[i].show.imageUrl),
+                      child: LayoutBuilder(
+                        builder: (final context, final c) {
+                          final double w = c.maxWidth;
+                          return ClipRect(
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: -0.1 * w - delta * 50,
+                                  width: 1.2 * w,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: SkImage(
+                                      url: widget.slides[i].show.imageUrl),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ),
                   );
@@ -621,13 +626,14 @@ class _HeroState extends State<_Hero> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.5),
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.35),
-                    Colors.black.withValues(alpha: 0.88),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.9),
                     cs.surface,
                   ],
-                  stops: const [0.0, 0.22, 0.52, 0.86, 1.0],
+                  stops: const [0.0, 0.2, 0.42, 0.7, 0.9, 1.0],
                 ),
               ),
             ),
@@ -636,12 +642,16 @@ class _HeroState extends State<_Hero> {
           Positioned(
             left: 22,
             right: 22,
-            bottom: 52,
+            bottom: 62,
             child: IgnorePointer(
               ignoring: false,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 420),
                 switchInCurve: Curves.easeOutCubic,
+                layoutBuilder: (final current, final previous) => Stack(
+                  alignment: Alignment.bottomLeft,
+                  children: [...previous, if (current != null) current],
+                ),
                 transitionBuilder: (final c, final a) => FadeTransition(
                   opacity: a,
                   child: SlideTransition(
@@ -663,8 +673,8 @@ class _HeroState extends State<_Hero> {
             ),
           ),
           Positioned(
-            right: 22,
-            bottom: 62,
+            left: 22,
+            bottom: 38,
             child: _Dots(count: widget.slides.length, index: _index),
           ),
         ],
@@ -731,6 +741,14 @@ class _HeroState extends State<_Hero> {
                         children: [
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 420),
+                            layoutBuilder: (final current, final previous) =>
+                                Stack(
+                              alignment: Alignment.centerLeft,
+                              children: [
+                                ...previous,
+                                if (current != null) current,
+                              ],
+                            ),
                             child: _HeroInfo(
                               key: ValueKey<String>(current.show.id),
                               featured: current,
@@ -847,7 +865,7 @@ class _Dots extends StatelessWidget {
         for (int i = 0; i < count; i++)
           AnimatedContainer(
             duration: const Duration(milliseconds: 260),
-            margin: const EdgeInsets.only(left: 5),
+            margin: const EdgeInsets.only(right: 5),
             width: i == index ? 22 : 6,
             height: 6,
             decoration: BoxDecoration(
@@ -894,7 +912,9 @@ class _HeroInfo extends StatelessWidget {
     final String cta =
         external ? 'Biletini bul' : (s == null ? 'Oyunu gör' : 'Bilet al');
 
-    return Column(
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -977,6 +997,7 @@ class _HeroInfo extends StatelessWidget {
           ],
         ),
       ],
+    ),
     );
   }
 }

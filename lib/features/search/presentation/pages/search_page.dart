@@ -19,14 +19,17 @@ import '../providers/search_query_provider.dart';
 // ARAMA — "Sahne"
 // =============================================================================
 //
-// Mantık: searchQueryProvider / searchFilterProvider / searchResultProvider
-// (değişmedi). Yüzey: odaklanınca canlanan arama alanı, tür çipleri, son
-// aramalar (kalıcı), yazdıkça canlı sonuçlar, eşleşen harfler vurgulu,
-// afiş ızgarası + oyuncu/mekân/topluluk satırları. Tek yüzey: telefon,
-// tablet, web.
+// Kural (sahibinin kararı): her kategori YATAY bir şerittir ve şeritte en
+// fazla 10 öğe yan yana durur. Başlığın yanındaki "Tümü" o kategoriyi
+// AŞAĞI DOĞRU ızgaraya açar (yerinde genişler), "Daralt" geri toplar.
+//
+// Mantık: searchQueryProvider / searchFilterProvider / searchResultProvider.
 
 const List<String> _kFacets = ['Tümü', 'Oyunlar', 'Oyuncular', 'Mekânlar', 'Topluluklar'];
 const String _kRecentSearches = 'tiyatrol.recent_searches';
+const int _kRailMax = 10;
+
+enum _Sec { genres, shows, players, stages, teams }
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -41,6 +44,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final ScrollController _scroll = ScrollController();
   String? _category;
   List<String> _recents = const [];
+  final Set<_Sec> _open = {};
 
   @override
   void initState() {
@@ -76,7 +80,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     await _saveRecents([
       clean,
       ..._recents.where((final r) => r.toLowerCase() != clean.toLowerCase()),
-    ].take(8).toList());
+    ].take(10).toList());
   }
 
   void _setQuery(final String v) {
@@ -97,6 +101,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _focus.requestFocus();
   }
 
+  void _toggle(final _Sec s) {
+    HapticFeedback.selectionClick();
+    setState(() => _open.contains(s) ? _open.remove(s) : _open.add(s));
+  }
+
   void _openShow(final Show s) {
     _remember(_text.text);
     NavigationHandler.goToShow(context, s.id, s.name,
@@ -112,6 +121,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         heroTag: TiyatrolHeroTags.player(p.id, 'search'),
         imageUrl: p.imageUrl,
         title: n);
+  }
+
+  void _openStage(final Stage s) {
+    _remember(_text.text);
+    NavigationHandler.goToStage(context, s.id, s.name,
+        heroTag: TiyatrolHeroTags.stage(s.id, 'search'),
+        imageUrl: s.imageUrl,
+        title: s.name);
+  }
+
+  void _openTeam(final Team t) {
+    _remember(_text.text);
+    NavigationHandler.goToTeam(context, t.id, t.name,
+        imageUrl: t.imageUrl, title: t.name);
   }
 
   @override
@@ -134,14 +157,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       child: LayoutBuilder(builder: (final context, final box) {
         final double w = box.maxWidth;
         final double gutter = Sk.gutter(w);
-        final bool desktop = w >= 1024;
         return Column(
           children: [
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 0),
+                  padding: EdgeInsets.symmetric(horizontal: gutter),
                   child: SafeArea(
                     bottom: false,
                     child: Column(
@@ -211,8 +233,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   actionLabel: 'Tekrar dene',
                   onAction: () => ref.invalidate(searchResultProvider),
                 ),
-                data: (final data) => _results(
-                    context, data, query, filter, w, gutter, desktop),
+                data: (final data) =>
+                    _results(context, data, query, w, gutter, w >= 1024),
               ),
             ),
           ],
@@ -249,14 +271,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
       child: Row(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Icon(
-              Icons.search_rounded,
-              key: ValueKey<bool>(focused),
-              color: focused ? cs.primary : cs.onSurfaceVariant,
-            ),
-          ),
+          Icon(Icons.search_rounded,
+              color: focused ? cs.primary : cs.onSurfaceVariant),
           const SizedBox(width: 10),
           Expanded(
             child: Semantics(
@@ -306,7 +322,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final BuildContext context,
     final SearchResultState data,
     final String query,
-    final int filter,
     final double width,
     final double gutter,
     final bool desktop,
@@ -314,297 +329,530 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool browsing = query.trim().isEmpty;
     final List<BrowseCategory> categories = browseCategoriesOf(data.shows);
-    final String? activeCat = categories.any((final c) => c.key == _category)
-        ? _category
-        : null;
+    final String? activeCat =
+        categories.any((final c) => c.key == _category) ? _category : null;
     final List<Show> shows = activeCat == null
         ? data.shows
         : data.shows
             .where((final s) => browseCategoryKey(s.category) == activeCat)
             .toList();
-    final int total =
-        shows.length + data.players.length + data.stages.length + data.teams.length;
+    final int total = shows.length +
+        data.players.length +
+        data.stages.length +
+        data.teams.length;
 
-    final double inner = (width > Sk.maxWidth ? Sk.maxWidth : width) - 2 * gutter;
-    final int cols = (inner / 176).floor().clamp(2, 6);
-    final double cellW = (inner - (cols - 1) * 14) / cols;
+    final double inner =
+        (width > Sk.maxWidth ? Sk.maxWidth : width) - 2 * gutter;
 
-    final List<Widget> slivers = [];
-
-    SliverToBoxAdapter box(final Widget child, {final double top = 0}) =>
-        SliverToBoxAdapter(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(gutter, top, gutter, 0),
-                child: child,
-              ),
+    Widget pad(final Widget child, {final double top = 0}) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(gutter, top, gutter, 0),
+              child: SizedBox(width: double.infinity, child: child),
             ),
           ),
         );
 
-    if (browsing) {
-      if (_recents.isNotEmpty) {
-        slivers.add(box(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SkSectionHead(
-                title: 'Son aramalar',
-                actionLabel: 'Temizle',
-                onAction: () => _saveRecents(const []),
+    final List<Widget> blocks = [];
+
+    // ── Başlık / sonuç sayısı ──
+    blocks.add(pad(
+      browsing
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Ne izlemek\nistersin?',
+                    style: Sk.display(context, size: 34, height: 1.05)),
+                const SizedBox(height: 6),
+                Text('Oyunları, oyuncuları ve sahneleri keşfet.',
+                    style: Sk.ui(context,
+                        size: 14,
+                        color: cs.onSurfaceVariant,
+                        weight: FontWeight.w500)),
+              ],
+            )
+          : Text(
+              total == 0
+                  ? '“${query.trim()}” için sonuç yok'
+                  : '$total sonuç · “${query.trim()}”',
+              style: Sk.ui(context,
+                  size: 13,
+                  color: cs.onSurfaceVariant,
+                  weight: FontWeight.w700),
+            ),
+      top: 18,
+    ));
+
+    // ── Son aramalar (yatay) ──
+    if (browsing && _recents.isNotEmpty) {
+      blocks.add(Padding(
+        padding: const EdgeInsets.only(top: 26),
+        child: _HRail(
+          gutter: gutter,
+          width: width,
+          height: 44,
+          title: 'Son aramalar',
+          actionLabel: 'Temizle',
+          onAction: () => _saveRecents(const []),
+          children: [
+            for (final String r in _recents)
+              InputChip(
+                label: Text(r),
+                avatar: const Icon(Icons.history_rounded, size: 18),
+                onPressed: () => _apply(r),
+                onDeleted: () => _saveRecents(
+                    _recents.where((final x) => x != r).toList()),
+                deleteButtonTooltipMessage: 'Kaldır',
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final String r in _recents)
-                    InputChip(
-                      label: Text(r),
-                      avatar: const Icon(Icons.history_rounded, size: 18),
-                      onPressed: () => _apply(r),
-                      onDeleted: () => _saveRecents(
-                          _recents.where((final x) => x != r).toList()),
-                      deleteButtonTooltipMessage: 'Kaldır',
-                    ),
-                ],
-              ),
-            ],
-          ),
-          top: 18,
-        ));
-      }
-      if (categories.length > 1) {
-        slivers.add(box(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SkSectionHead(
-                  title: 'Türe göre gez',
-                  subtitle: 'Bir tür seç, oyunlar süzülsün'),
-              const SizedBox(height: 14),
-              LayoutBuilder(builder: (final context, final b) {
-                final int cols = b.maxWidth >= 700 ? 4 : 2;
-                final double tw = (b.maxWidth - (cols - 1) * 12) / cols;
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    for (final BrowseCategory c in categories)
-                      SizedBox(
-                        width: tw,
-                        height: 92,
-                        child: _GenreTile(
-                          category: c,
-                          selected: activeCat == c.key,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() =>
-                                _category = activeCat == c.key ? null : c.key);
-                            final int f = ref.read(searchFilterProvider);
-                            if (f != 0 && f != 1) {
-                              ref
-                                  .read(searchFilterProvider.notifier)
-                                  .setFilter(1);
-                            }
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              }),
-            ],
-          ),
-          top: 26,
-        ));
-      }
-    } else {
-      slivers.add(box(
-        Text(
-          total == 0
-              ? '“${query.trim()}” için sonuç yok'
-              : '$total sonuç · “${query.trim()}”',
-          style: Sk.ui(context,
-              size: 13,
-              color: cs.onSurfaceVariant,
-              weight: FontWeight.w700),
+          ],
         ),
-        top: 14,
+      ));
+    }
+
+    // ── Popüler aramalar: gerçek oyun adları (yatay) ──
+    if (browsing && data.shows.isNotEmpty) {
+      blocks.add(Padding(
+        padding: const EdgeInsets.only(top: 22),
+        child: _HRail(
+          gutter: gutter,
+          width: width,
+          height: 44,
+          title: 'Şunlara göz at',
+          children: [
+            for (final Show s in data.shows.take(_kRailMax))
+              ActionChip(
+                label: Text(s.name),
+                avatar: const Icon(Icons.north_east_rounded, size: 16),
+                onPressed: () => _apply(s.name),
+              ),
+          ],
+        ),
+      ));
+    }
+
+    // ── Türler ──
+    if (browsing && categories.length > 1) {
+      blocks.add(_Section<BrowseCategory>(
+        key: const ValueKey<String>('sec-genres'),
+        title: 'Türler',
+        subtitle: 'Bir tür seç, oyunlar süzülsün',
+        items: categories,
+        open: _open.contains(_Sec.genres),
+        onToggle: () => _toggle(_Sec.genres),
+        gutter: gutter,
+        width: width,
+        inner: inner,
+        railW: 210,
+        railH: 110,
+        minCell: 210,
+        gap: 14,
+        builder: (final c, final w) => SizedBox(
+          width: w,
+          height: 110,
+          child: _GenreTile(
+            category: c,
+            selected: activeCat == c.key,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _category = activeCat == c.key ? null : c.key);
+              final int f = ref.read(searchFilterProvider);
+              if (f != 0 && f != 1) {
+                ref.read(searchFilterProvider.notifier).setFilter(1);
+              }
+            },
+          ),
+        ),
       ));
     }
 
     if (total == 0) {
-      slivers.add(SliverToBoxAdapter(
-        child: SizedBox(
-          height: 380,
-          child: SkEmpty(
-            icon: Icons.search_off_rounded,
-            title: browsing ? 'Henüz içerik yok' : 'Bulamadık',
-            message: browsing
-                ? 'Katalog dolunca burada oyunları, oyuncuları ve mekânları göreceksin.'
-                : 'Yazımı kontrol et ya da başka bir ad dene. Önerilen oyunlara göz atabilirsin.',
-            actionLabel: browsing ? null : 'Aramayı temizle',
-            onAction: browsing ? null : _clear,
-          ),
+      blocks.add(SizedBox(
+        height: 360,
+        child: SkEmpty(
+          icon: Icons.search_off_rounded,
+          title: browsing ? 'Henüz içerik yok' : 'Bulamadık',
+          message: browsing
+              ? 'Katalog dolunca burada oyunları, oyuncuları ve mekânları göreceksin.'
+              : 'Yazımı kontrol et ya da başka bir ad dene.',
+          actionLabel: browsing ? null : 'Aramayı temizle',
+          onAction: browsing ? null : _clear,
         ),
       ));
     }
 
+    // ── Oyunlar ──
     if (shows.isNotEmpty) {
-      slivers.add(box(
-        SkSectionHead(
-          title: browsing ? 'Önerilen oyunlar' : 'Oyunlar',
-          subtitle: '${shows.length} oyun',
-        ),
-        top: 28,
-      ));
-      slivers.add(SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-            _side(width, gutter), 14, _side(width, gutter), 0),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            mainAxisSpacing: 18,
-            crossAxisSpacing: 14,
-            mainAxisExtent: cellW * 1.48 + 66,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (final context, final i) => Reveal(
-              index: i % cols,
-              child: _ShowCell(
-                show: shows[i],
-                width: cellW,
-                query: query,
-                onTap: () => _openShow(shows[i]),
-              ),
-            ),
-            childCount: shows.length,
-          ),
+      blocks.add(_Section<Show>(
+        key: const ValueKey<String>('sec-shows'),
+        title: browsing ? 'Önerilen oyunlar' : 'Oyunlar',
+        subtitle: activeCat == null ? null : 'Tür: ${categories.firstWhere((final c) => c.key == activeCat).label}',
+        items: shows,
+        open: _open.contains(_Sec.shows),
+        onToggle: () => _toggle(_Sec.shows),
+        gutter: gutter,
+        width: width,
+        inner: inner,
+        railW: 158,
+        railH: 158 * 1.5,
+        minCell: 158,
+        gap: 14,
+        builder: (final s, final w) => _ShowCard(
+          show: s,
+          width: w,
+          query: query,
+          onTap: () => _openShow(s),
         ),
       ));
     }
 
+    // ── Oyuncular ──
     if (data.players.isNotEmpty) {
-      slivers.add(box(
-        SkSectionHead(
-            title: 'Oyuncular', subtitle: '${data.players.length} kişi'),
-        top: 34,
-      ));
-      slivers.add(SliverToBoxAdapter(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
-            child: SizedBox(
-              height: 236,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.fromLTRB(gutter, 14, gutter, 0),
-                itemCount: data.players.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (final context, final i) => _PlayerCell(
-                  player: data.players[i],
-                  query: query,
-                  onTap: () => _openPlayer(data.players[i]),
-                ),
-              ),
-            ),
-          ),
+      blocks.add(_Section<Player>(
+        key: const ValueKey<String>('sec-players'),
+        title: 'Oyuncular',
+        items: data.players,
+        open: _open.contains(_Sec.players),
+        onToggle: () => _toggle(_Sec.players),
+        gutter: gutter,
+        width: width,
+        inner: inner,
+        railW: 124,
+        railH: 244,
+        minCell: 124,
+        gap: 14,
+        builder: (final p, final w) => _PlayerCard(
+          player: p,
+          query: query,
+          onTap: () => _openPlayer(p),
         ),
       ));
     }
 
+    // ── Mekânlar ──
     if (data.stages.isNotEmpty) {
-      slivers.add(box(
-        SkSectionHead(
-            title: 'Mekânlar', subtitle: '${data.stages.length} sahne'),
-        top: 30,
-      ));
-      slivers.add(SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-            _side(width, gutter), 14, _side(width, gutter), 0),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 520,
-            mainAxisExtent: 104,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 14,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (final context, final i) => _StageRow(
-              stage: data.stages[i],
-              query: query,
-              onTap: () {
-                _remember(_text.text);
-                final Stage s = data.stages[i];
-                NavigationHandler.goToStage(context, s.id, s.name,
-                    imageUrl: s.imageUrl, title: s.name);
-              },
-            ),
-            childCount: data.stages.length,
-          ),
+      blocks.add(_Section<Stage>(
+        key: const ValueKey<String>('sec-stages'),
+        title: 'Mekânlar',
+        items: data.stages,
+        open: _open.contains(_Sec.stages),
+        onToggle: () => _toggle(_Sec.stages),
+        gutter: gutter,
+        width: width,
+        inner: inner,
+        railW: 270,
+        railH: 168,
+        minCell: 270,
+        gap: 14,
+        builder: (final s, final w) => _StageCard(
+          stage: s,
+          width: w,
+          query: query,
+          onTap: () => _openStage(s),
         ),
       ));
     }
 
+    // ── Topluluklar ──
     if (data.teams.isNotEmpty) {
-      slivers.add(box(
-        SkSectionHead(
-            title: 'Topluluklar', subtitle: '${data.teams.length} topluluk'),
-        top: 30,
-      ));
-      slivers.add(SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-            _side(width, gutter), 14, _side(width, gutter), 0),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 520,
-            mainAxisExtent: 84,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 14,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (final context, final i) => _TeamRow(
-              team: data.teams[i],
-              query: query,
-              onTap: () {
-                _remember(_text.text);
-                final Team t = data.teams[i];
-                NavigationHandler.goToTeam(context, t.id, t.name,
-                    imageUrl: t.imageUrl, title: t.name);
-              },
-            ),
-            childCount: data.teams.length,
-          ),
+      blocks.add(_Section<Team>(
+        key: const ValueKey<String>('sec-teams'),
+        title: 'Topluluklar',
+        items: data.teams,
+        open: _open.contains(_Sec.teams),
+        onToggle: () => _toggle(_Sec.teams),
+        gutter: gutter,
+        width: width,
+        inner: inner,
+        railW: 96,
+        railH: 132,
+        minCell: 96,
+        gap: 14,
+        builder: (final t, final w) => _TeamCard(
+          team: t,
+          query: query,
+          onTap: () => _openTeam(t),
         ),
       ));
     }
 
-    slivers.add(SliverToBoxAdapter(
-      child: desktop
-          ? const Padding(padding: EdgeInsets.only(top: 72), child: Footer())
-          : const SizedBox(height: 130),
-    ));
+    blocks.add(desktop
+        ? const Padding(padding: EdgeInsets.only(top: 72), child: Footer())
+        : const SizedBox(height: 130));
 
     return ScrollConfiguration(
       behavior: const SkScrollBehavior(),
-      child: CustomScrollView(
+      child: ListView(
         controller: _scroll,
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics()),
-        slivers: slivers,
+        padding: EdgeInsets.zero,
+        children: blocks,
       ),
     );
   }
-
-  /// Ortalanmış `maxWidth` içinde sliver kenar boşluğu.
-  double _side(final double width, final double gutter) =>
-      width > Sk.maxWidth ? (width - Sk.maxWidth) / 2 + gutter : gutter;
 }
 
-// ─── hücreler ───────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// ŞERİT + AŞAĞI AÇILAN IZGARA
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Yatay, başlıklı basit şerit (çipler için).
+class _HRail extends StatelessWidget {
+  final double gutter;
+  final double width;
+  final double height;
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final List<Widget> children;
+
+  const _HRail({
+    required this.gutter,
+    required this.width,
+    required this.height,
+    required this.title,
+    required this.children,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: gutter),
+                child: SkSectionHead(
+                    title: title, actionLabel: actionLabel, onAction: onAction),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: height,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: gutter),
+                  itemCount: children.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, final i) => children[i],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+/// Bir kategori: üstte başlık + "Tümü", altında en fazla 10 öğelik yatay
+/// şerit. "Tümü"ye basınca şerit YERİNDE aşağı doğru ızgaraya genişler.
+class _Section<T> extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final List<T> items;
+  final bool open;
+  final VoidCallback onToggle;
+  final double gutter;
+  final double width;
+  final double inner;
+  final double railW;
+  final double railH;
+  final double minCell;
+  final double gap;
+  final Widget Function(T item, double width) builder;
+
+  const _Section({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.items,
+    required this.open,
+    required this.onToggle,
+    required this.gutter,
+    required this.width,
+    required this.inner,
+    required this.railW,
+    required this.railH,
+    required this.minCell,
+    required this.gap,
+    required this.builder,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool more = items.length > _kRailMax;
+    final List<T> railItems = items.take(_kRailMax).toList();
+
+    final Widget content;
+    if (open) {
+      final int cols =
+          ((inner + gap) / (minCell + gap)).floor().clamp(1, 12).toInt();
+      final double cell = (inner - gap * (cols - 1)) / cols;
+      content = Padding(
+        key: const ValueKey<String>('grid'),
+        padding: EdgeInsets.symmetric(horizontal: gutter),
+        child: Wrap(
+          spacing: gap,
+          runSpacing: 18,
+          children: [
+            for (int i = 0; i < items.length; i++)
+              SizedBox(
+                width: cell,
+                child: Reveal(
+                  index: i % cols,
+                  dy: 10,
+                  child: builder(items[i], cell),
+                ),
+              ),
+          ],
+        ),
+      );
+    } else {
+      content = SizedBox(
+        key: const ValueKey<String>('rail'),
+        height: railH,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          itemCount: railItems.length + (more ? 1 : 0),
+          separatorBuilder: (_, __) => SizedBox(width: gap),
+          itemBuilder: (final context, final i) {
+            if (i == railItems.length) {
+              return PressScale(
+                onTap: onToggle,
+                semanticLabel: '$title tümünü göster',
+                child: Container(
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                            color: cs.primary, shape: BoxShape.circle),
+                        child: Icon(Icons.arrow_downward_rounded,
+                            color: cs.onPrimary),
+                      ),
+                      const SizedBox(height: 10),
+                      Text('+${items.length - _kRailMax}',
+                          style: Sk.display(context, size: 22, height: 1.0)),
+                      Text('daha',
+                          style: Sk.ui(context,
+                              size: 12,
+                              color: cs.onSurfaceVariant,
+                              weight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return builder(railItems[i], railW);
+          },
+        ),
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 34),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: gutter),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Semantics(
+                            header: true,
+                            child: Text(title,
+                                style: Sk.display(context,
+                                    size: 24, height: 1.1)),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            subtitle ?? '${items.length} sonuç',
+                            style: Sk.ui(context,
+                                size: 12.5,
+                                color: cs.onSurfaceVariant,
+                                weight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (more || open)
+                      PressScale(
+                        onTap: onToggle,
+                        semanticLabel: open ? 'Daralt' : 'Tümünü göster',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: cs.secondaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(open ? 'Daralt' : 'Tümü',
+                                  style: Sk.ui(context,
+                                      size: 13,
+                                      color: cs.onSecondaryContainer,
+                                      weight: FontWeight.w800)),
+                              const SizedBox(width: 4),
+                              AnimatedRotation(
+                                turns: open ? 0.5 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                child: Icon(Icons.keyboard_arrow_down_rounded,
+                                    size: 18, color: cs.onSecondaryContainer),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  layoutBuilder: (final current, final previous) => Stack(
+                    alignment: Alignment.topLeft,
+                    children: [...previous, if (current != null) current],
+                  ),
+                  child: content,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// KARTLAR
+// ═════════════════════════════════════════════════════════════════════════════
 
 /// Eşleşen kısmı vurgulayan metin.
 Widget _highlight(final BuildContext context, final String text,
@@ -634,13 +882,14 @@ Widget _highlight(final BuildContext context, final String text,
   );
 }
 
-class _ShowCell extends StatelessWidget {
+/// Afişin üstüne yazılmış başlıklı oyun kartı (dergi kapağı).
+class _ShowCard extends StatelessWidget {
   final Show show;
   final double width;
   final String query;
   final VoidCallback onTap;
 
-  const _ShowCell({
+  const _ShowCard({
     required this.show,
     required this.width,
     required this.query,
@@ -649,74 +898,99 @@ class _ShowCell extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
     return PressScale(
       onTap: onTap,
       semanticLabel: show.name,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TiyatrolHero(
-            tag: TiyatrolHeroTags.show(show.id, 'search'),
-            child: Stack(
-              children: [
-                SkImage(
-                    url: show.imageUrl,
-                    width: width,
-                    height: width * 1.48,
-                    radius: 18),
-                if (show.hasExternalTicketing)
-                  const Positioned(
-                    left: 8,
-                    top: 8,
-                    child: SkBadge(
-                        label: 'Başka platform',
-                        onImage: true,
-                        icon: Icons.open_in_new_rounded),
-                  )
-                else if (show.isRecentlyAdded)
-                  const Positioned(
-                      left: 8, top: 8, child: SkBadge(label: 'Yeni', accent: true)),
-              ],
-            ),
+      child: Container(
+        width: width,
+        height: width * 1.5,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: skSoftShadow(context),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              TiyatrolHero(
+                tag: TiyatrolHeroTags.show(show.id, 'search'),
+                child: SkImage(url: show.imageUrl),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.84),
+                    ],
+                    stops: const [0.5, 1.0],
+                  ),
+                ),
+              ),
+              if (show.hasExternalTicketing)
+                const Positioned(
+                  left: 8,
+                  top: 8,
+                  child: SkBadge(
+                      label: 'Başka platform',
+                      onImage: true,
+                      icon: Icons.open_in_new_rounded),
+                )
+              else if (show.isRecentlyAdded)
+                const Positioned(
+                    left: 8, top: 8, child: SkBadge(label: 'Yeni', accent: true)),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (show.category.trim().isNotEmpty)
+                      Text(show.category.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 11,
+                              color: Colors.white70,
+                              weight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    _highlight(
+                      context,
+                      show.name,
+                      query,
+                      Sk.display(context,
+                          size: 16, color: Colors.white, height: 1.1),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          _highlight(context, show.name, query,
-              Sk.ui(context,
-                  size: 14,
-                  weight: FontWeight.w800,
-                  height: 1.2,
-                  color: cs.onSurface)),
-          if (show.category.trim().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(show.category.trim(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Sk.ui(context,
-                      size: 12,
-                      color: cs.onSurfaceVariant,
-                      weight: FontWeight.w500)),
-            ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _PlayerCell extends StatelessWidget {
+class _PlayerCard extends StatelessWidget {
   final Player player;
   final String query;
   final VoidCallback onTap;
 
-  const _PlayerCell(
+  const _PlayerCard(
       {required this.player, required this.query, required this.onTap});
 
   @override
   Widget build(final BuildContext context) {
     final String name = '${player.firstName} ${player.lastName}'.trim();
     return SizedBox(
-      width: 120,
+      width: 124,
       child: PressScale(
         onTap: onTap,
         semanticLabel: name,
@@ -724,20 +998,26 @@ class _PlayerCell extends StatelessWidget {
           children: [
             TiyatrolHero(
               tag: TiyatrolHeroTags.player(player.id, 'search'),
-              child: SkImage(
-                url: player.imageUrl,
-                width: 120,
-                height: 168,
-                radius: 60,
-                fallbackIcon: Icons.person_rounded,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(62),
+                  boxShadow: skSoftShadow(context, strength: 0.8),
+                ),
+                child: SkImage(
+                  url: player.imageUrl,
+                  width: 124,
+                  height: 174,
+                  radius: 62,
+                  fallbackIcon: Icons.person_rounded,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             _highlight(
               context,
               name,
               query,
-              Sk.ui(context, size: 13, weight: FontWeight.w700, height: 1.2),
+              Sk.ui(context, size: 13, weight: FontWeight.w800, height: 1.2),
             ),
           ],
         ),
@@ -746,127 +1026,141 @@ class _PlayerCell extends StatelessWidget {
   }
 }
 
-class _StageRow extends StatelessWidget {
+class _StageCard extends StatelessWidget {
   final Stage stage;
+  final double width;
   final String query;
   final VoidCallback onTap;
 
-  const _StageRow(
-      {required this.stage, required this.query, required this.onTap});
+  const _StageCard({
+    required this.stage,
+    required this.width,
+    required this.query,
+    required this.onTap,
+  });
 
   @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: stage.name,
-      scale: 0.985,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            SkImage(
-                url: stage.imageUrl,
-                width: 84,
-                height: 84,
-                radius: 16,
-                fallbackIcon: Icons.location_city_rounded),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _highlight(context, stage.name, query,
-                      Sk.ui(context, size: 15, weight: FontWeight.w800)),
-                  if (stage.address.trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(stage.address.trim(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Sk.ui(context,
-                              size: 12.5,
-                              color: cs.onSurfaceVariant,
-                              weight: FontWeight.w500)),
+  Widget build(final BuildContext context) => PressScale(
+        onTap: onTap,
+        semanticLabel: stage.name,
+        child: Container(
+          width: width,
+          height: 168,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: skSoftShadow(context),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                TiyatrolHero(
+                  tag: TiyatrolHeroTags.stage(stage.id, 'search'),
+                  child: SkImage(
+                      url: stage.imageUrl,
+                      fallbackIcon: Icons.location_city_rounded),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.82),
+                      ],
+                      stops: const [0.3, 1.0],
                     ),
-                ],
-              ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _highlight(
+                        context,
+                        stage.name,
+                        query,
+                        Sk.display(context,
+                            size: 19, color: Colors.white, height: 1.1),
+                      ),
+                      if (stage.address.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(stage.address.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Sk.ui(context,
+                                  size: 12,
+                                  color: Colors.white70,
+                                  weight: FontWeight.w600)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TeamRow extends StatelessWidget {
-  final Team team;
-  final String query;
-  final VoidCallback onTap;
-
-  const _TeamRow(
-      {required this.team, required this.query, required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: team.name,
-      scale: 0.985,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            ClipOval(
-              child: SkImage(
-                  url: team.imageUrl,
-                  width: 56,
-                  height: 56,
-                  fallbackIcon: Icons.groups_rounded),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _highlight(context, team.name, query,
-                  Sk.ui(context, size: 15, weight: FontWeight.w800)),
-            ),
-            Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Skeleton extends StatelessWidget {
-  const _Skeleton();
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Wrap(
-          spacing: 14,
-          runSpacing: 18,
-          children: List.generate(
-            6,
-            (_) => const SkBone(width: 160, height: 280, radius: 18),
           ),
         ),
       );
 }
 
+class _TeamCard extends StatelessWidget {
+  final Team team;
+  final String query;
+  final VoidCallback onTap;
+
+  const _TeamCard(
+      {required this.team, required this.query, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 96,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: team.name,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: SweepGradient(
+                    colors: [cs.primary, cs.tertiary, cs.secondary, cs.primary]),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration:
+                    BoxDecoration(color: cs.surface, shape: BoxShape.circle),
+                child: ClipOval(
+                  child: SkImage(
+                      url: team.imageUrl,
+                      width: 72,
+                      height: 72,
+                      fallbackIcon: Icons.groups_rounded),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _highlight(
+              context,
+              team.name,
+              query,
+              Sk.ui(context, size: 12, weight: FontWeight.w800, height: 1.2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _GenreTile extends StatelessWidget {
   final BrowseCategory category;
@@ -889,13 +1183,13 @@ class _GenreTile extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(26),
           border: Border.all(
               color: selected ? cs.primary : Colors.transparent, width: 2.5),
           boxShadow: skSoftShadow(context, strength: 0.6),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(21),
+          borderRadius: BorderRadius.circular(23),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -906,14 +1200,14 @@ class _GenreTile extends StatelessWidget {
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      Colors.black.withValues(alpha: 0.78),
+                      Colors.black.withValues(alpha: 0.8),
                       Colors.black.withValues(alpha: 0.2),
                     ],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -922,10 +1216,11 @@ class _GenreTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Sk.display(context,
-                            size: 19, color: Colors.white, height: 1.1)),
+                            size: 21, color: Colors.white, height: 1.1)),
+                    const SizedBox(height: 2),
                     Text('${category.count} oyun',
                         style: Sk.ui(context,
-                            size: 11.5,
+                            size: 12,
                             color: Colors.white70,
                             weight: FontWeight.w700)),
                   ],
@@ -933,8 +1228,8 @@ class _GenreTile extends StatelessWidget {
               ),
               if (selected)
                 const Positioned(
-                  right: 10,
-                  top: 10,
+                  right: 12,
+                  top: 12,
                   child: Icon(Icons.check_circle_rounded,
                       color: Colors.white, size: 22),
                 ),
@@ -944,4 +1239,27 @@ class _GenreTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Skeleton extends StatelessWidget {
+  const _Skeleton();
+
+  @override
+  Widget build(final BuildContext context) => const Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkBone(width: 220, height: 34, radius: 10),
+            SizedBox(height: 26),
+            SkBone(height: 110, radius: 26),
+            SizedBox(height: 26),
+            Row(children: [
+              SkBone(width: 158, height: 236, radius: 26),
+              SizedBox(width: 14),
+              SkBone(width: 158, height: 236, radius: 26),
+            ]),
+          ],
+        ),
+      );
 }
