@@ -270,9 +270,10 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                 ),
               if (sessions.isNotEmpty)
                 SliverToBoxAdapter(
-                  child: pad(Padding(
+                  child: Padding(
                     padding: const EdgeInsets.only(top: 36),
-                    child: _ProgrammeSection(
+                    child: rail(_ProgrammeSection(
+                      gutter: gutter,
                       sessions: sessions,
                       programme: programme,
                       selectedDay: _day,
@@ -288,8 +289,8 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                         _day = null;
                         _genre = null;
                       }),
-                    ),
-                  )),
+                    )),
+                  ),
                 ),
               if (shelf.isNotEmpty)
                 SliverToBoxAdapter(
@@ -924,7 +925,7 @@ class _HeroInfo extends StatelessWidget {
           children: [
             SkGlass(
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(s == null ? Icons.open_in_new_rounded : Icons.schedule_rounded,
+                Icon(external ? Icons.open_in_new_rounded : Icons.schedule_rounded,
                     size: 14, color: Colors.white),
                 const SizedBox(width: 6),
                 Text(when,
@@ -1193,7 +1194,7 @@ class _Genres extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PROGRAM
+// PROGRAM — gün şeridi + yatay seans şeridi (Tümü → aşağı açılır)
 // ═════════════════════════════════════════════════════════════════════════════
 
 class _ProgrammeSection extends StatelessWidget {
@@ -1202,6 +1203,7 @@ class _ProgrammeSection extends StatelessWidget {
   final DateTime? selectedDay;
   final bool hasGenre;
   final bool wide;
+  final double gutter;
   final ValueChanged<DateTime?> onDay;
   final ValueChanged<HomeSession> onOpen;
   final VoidCallback onClear;
@@ -1212,6 +1214,7 @@ class _ProgrammeSection extends StatelessWidget {
     required this.selectedDay,
     required this.hasGenre,
     required this.wide,
+    required this.gutter,
     required this.onDay,
     required this.onOpen,
     required this.onClear,
@@ -1230,110 +1233,97 @@ class _ProgrammeSection extends StatelessWidget {
       for (int i = 0; i < 14; i++) today.add(Duration(days: i)),
     ];
 
-    final bool filtered = selectedDay != null || hasGenre;
-    final List<HomeSession> list =
-        filtered ? programme : programme.take(10).toList();
+    final Widget strip = SizedBox(
+      height: 84,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: gutter),
+        itemCount: days.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (final context, final i) {
+          if (i == 0) {
+            return _DayTile(
+              top: 'Hepsi',
+              big: '${sessions.length}',
+              selected: selectedDay == null,
+              enabled: true,
+              onTap: () => onDay(null),
+            );
+          }
+          final DateTime d = days[i - 1];
+          final int c = counts[d] ?? 0;
+          return _DayTile(
+            top: i == 1 ? 'Bugün' : kDaysShortTr[d.weekday - 1],
+            big: '${d.day}',
+            dot: c > 0,
+            selected: selectedDay == d,
+            enabled: c > 0,
+            onTap: () => onDay(d),
+          );
+        },
+      ),
+    );
 
-    final Map<DateTime, List<HomeSession>> groups = {};
-    for (final HomeSession s in list) {
-      groups.putIfAbsent(s.day, () => []).add(s);
+    if (programme.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: gutter),
+            child: const SkSectionHead(
+                title: 'Program', subtitle: 'Perde açılmadan önce'),
+          ),
+          const SizedBox(height: 16),
+          strip,
+          Padding(
+            padding: EdgeInsets.fromLTRB(gutter, 18, gutter, 0),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(26),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.event_busy_rounded,
+                      color: cs.onSurfaceVariant, size: 30),
+                  const SizedBox(height: 10),
+                  Text('Bu seçimde seans yok',
+                      style: Sk.ui(context, size: 15, weight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text('Başka bir gün ya da tür seçebilirsin.',
+                      style: Sk.ui(context,
+                          size: 13,
+                          color: cs.onSurfaceVariant,
+                          weight: FontWeight.w500)),
+                  const SizedBox(height: 12),
+                  TextButton(
+                      onPressed: onClear,
+                      child: const Text('Süzgeçleri temizle')),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SkSectionHead(
-          title: 'Program',
-          subtitle: '${sessions.length} yaklaşan seans',
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 84,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            itemCount: days.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (final context, final i) {
-              if (i == 0) {
-                return _DayTile(
-                  top: 'Hepsi',
-                  big: '${sessions.length}',
-                  selected: selectedDay == null,
-                  enabled: true,
-                  onTap: () => onDay(null),
-                );
-              }
-              final DateTime d = days[i - 1];
-              final int c = counts[d] ?? 0;
-              return _DayTile(
-                top: i == 1 ? 'Bugün' : kDaysShortTr[d.weekday - 1],
-                big: '${d.day}',
-                dot: c > 0,
-                selected: selectedDay == d,
-                enabled: c > 0,
-                onTap: () => onDay(d),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 20),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          child: list.isEmpty
-              ? Container(
-                  key: const ValueKey<String>('empty'),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(26),
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.event_busy_rounded,
-                          color: cs.onSurfaceVariant, size: 30),
-                      const SizedBox(height: 10),
-                      Text('Bu seçimde seans yok',
-                          style: Sk.ui(context,
-                              size: 15, weight: FontWeight.w800)),
-                      const SizedBox(height: 4),
-                      Text('Başka bir gün ya da tür seçebilirsin.',
-                          style: Sk.ui(context,
-                              size: 13,
-                              color: cs.onSurfaceVariant,
-                              weight: FontWeight.w500)),
-                      const SizedBox(height: 12),
-                      TextButton(
-                          onPressed: onClear,
-                          child: const Text('Süzgeçleri temizle')),
-                    ],
-                  ),
-                )
-              : Column(
-                  key: ValueKey<String>('$selectedDay|$hasGenre'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final MapEntry<DateTime, List<HomeSession>> g
-                        in groups.entries) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6, bottom: 12),
-                        child: Text(
-                          '${skDayPhrase(g.key)} · ${g.key.day} ${kMonthsTr[g.key.month - 1]}',
-                          style: Sk.display(context,
-                              size: 18, color: cs.primary, height: 1.1),
-                        ),
-                      ),
-                      _SessionGrid(
-                        sessions: g.value,
-                        wide: wide,
-                        onOpen: onOpen,
-                      ),
-                    ],
-                  ],
-                ),
-        ),
-      ],
+    return SkRail<HomeSession>(
+      key: ValueKey<String>('programme|$selectedDay|$hasGenre'),
+      title: 'Program',
+      subtitle: '${programme.length} seans · perde açılmadan önce',
+      items: programme,
+      gutter: gutter,
+      railW: 308,
+      railH: 146,
+      minCell: 308,
+      belowHeader: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: strip,
+      ),
+      builder: (final s, final w) =>
+          _SessionCard(session: s, width: w, onTap: () => onOpen(s)),
     );
   }
 }
@@ -1412,102 +1402,73 @@ class _DayTile extends StatelessWidget {
   }
 }
 
-class _SessionGrid extends StatelessWidget {
-  final List<HomeSession> sessions;
-  final bool wide;
-  final ValueChanged<HomeSession> onOpen;
-
-  const _SessionGrid(
-      {required this.sessions, required this.wide, required this.onOpen});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (!wide) {
-      return Column(
-        children: [
-          for (int i = 0; i < sessions.length; i++)
-            Reveal(
-              index: i,
-              child: _SessionRow(
-                  session: sessions[i], onTap: () => onOpen(sessions[i])),
-            ),
-        ],
-      );
-    }
-    return LayoutBuilder(builder: (final context, final box) {
-      final int cols = box.maxWidth >= 1000 ? 3 : 2;
-      final double w = (box.maxWidth - (cols - 1) * 18) / cols;
-      return Wrap(
-        spacing: 18,
-        children: [
-          for (int i = 0; i < sessions.length; i++)
-            SizedBox(
-              width: w,
-              child: Reveal(
-                index: i,
-                child: _SessionRow(
-                    session: sessions[i], onTap: () => onOpen(sessions[i])),
-              ),
-            ),
-        ],
-      );
-    });
-  }
-}
-
-class _SessionRow extends StatelessWidget {
+/// Yatay seans kartı: solda afiş, sağda tarih rozeti, ad ve mekân.
+class _SessionCard extends StatelessWidget {
   final HomeSession session;
+  final double width;
   final VoidCallback onTap;
 
-  const _SessionRow({required this.session, required this.onTap});
+  const _SessionCard(
+      {required this.session, required this.width, required this.onTap});
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final Show show = session.show;
     final String venue = (session.stage?.name ?? '').trim();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: PressScale(
-        onTap: onTap,
-        semanticLabel: '${show.name}, ${skClock(session.date)}',
-        scale: 0.985,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: skSoftShadow(context, strength: 0.6),
-          ),
+    final DateTime d = session.date;
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: '${show.name}, ${skClock(d)}',
+      scale: 0.985,
+      child: Container(
+        width: width,
+        height: 146,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: skSoftShadow(context, strength: 0.7),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
           child: Row(
             children: [
-              SkImage(url: show.imageUrl, width: 74, height: 100, radius: 20),
-              const SizedBox(width: 14),
+              SizedBox(
+                width: 98,
+                height: 146,
+                child: TiyatrolHero(
+                  tag: TiyatrolHeroTags.show(show.id, 'home-programme'),
+                  child: SkImage(url: show.imageUrl),
+                ),
+              ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(skClock(session.date),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: cs.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${skDayPhrase(d)} · ${skClock(d)}',
                           style: Sk.ui(context,
-                              size: 13,
+                              size: 12,
                               color: cs.onPrimaryContainer,
-                              weight: FontWeight.w900)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(show.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Sk.display(context,
-                            size: 17, height: 1.15, weight: FontWeight.w700)),
-                    if (venue.isNotEmpty || session.priceLabel != null) ...[
-                      const SizedBox(height: 5),
+                              weight: FontWeight.w900),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(show.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.display(context,
+                              size: 17, height: 1.15, weight: FontWeight.w700)),
+                      const Spacer(),
                       Text(
                         [
                           if (venue.isNotEmpty) venue,
@@ -1521,19 +1482,9 @@ class _SessionRow extends StatelessWidget {
                             weight: FontWeight.w600),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: cs.secondaryContainer, shape: BoxShape.circle),
-                child: Icon(Icons.arrow_outward_rounded,
-                    size: 20, color: cs.onSecondaryContainer),
-              ),
-              const SizedBox(width: 4),
             ],
           ),
         ),
@@ -1543,7 +1494,7 @@ class _SessionRow extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ŞERİTLER
+// ŞERİTLER (hepsi SkRail: en fazla 10, Tümü → aşağı açılır)
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Afişin üstüne yazılmış başlıklı kartlar — dergi kapağı gibi.
@@ -1564,121 +1515,106 @@ class _PosterShelf extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double cardW = wide ? 230 : 172;
-    final double cardH = cardW * 1.5;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          child: SkSectionHead(
-            title: 'Vitrinde',
-            subtitle: 'Sahnedeki ve yakında gelen oyunlar',
-            actionLabel: 'Tümü',
-            onAction: onAll,
+    final double w = wide ? 220 : 164;
+    return SkRail<Show>(
+      title: 'Vitrinde',
+      subtitle: 'Sahnedeki ve yakında gelen oyunlar',
+      items: shows,
+      gutter: gutter,
+      railW: w,
+      railH: w * 1.5,
+      minCell: w,
+      builder: (final s, final cw) => _PosterCard(show: s, width: cw, onTap: () => onOpen(s)),
+    );
+  }
+}
+
+class _PosterCard extends StatelessWidget {
+  final Show show;
+  final double width;
+  final VoidCallback onTap;
+
+  const _PosterCard(
+      {required this.show, required this.width, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) => PressScale(
+        onTap: onTap,
+        semanticLabel: show.name,
+        child: Container(
+          width: width,
+          height: width * 1.5,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: skSoftShadow(context),
           ),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: cardH + 20,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.symmetric(horizontal: gutter),
-            itemCount: shows.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
-            itemBuilder: (final context, final i) {
-              final Show s = shows[i];
-              return Reveal(
-                index: i,
-                dy: 0,
-                child: SizedBox(
-                  width: cardW,
-                  child: PressScale(
-                    onTap: () => onOpen(s),
-                    semanticLabel: s.name,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: skSoftShadow(context),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            TiyatrolHero(
-                              tag: TiyatrolHeroTags.show(s.id, 'home-shelf'),
-                              child: SkImage(url: s.imageUrl),
-                            ),
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.82),
-                                  ],
-                                  stops: const [0.5, 1.0],
-                                ),
-                              ),
-                            ),
-                            if (s.hasExternalTicketing)
-                              const Positioned(
-                                left: 10,
-                                top: 10,
-                                child: SkBadge(
-                                    label: 'Başka platform',
-                                    onImage: true,
-                                    icon: Icons.open_in_new_rounded),
-                              )
-                            else if (s.isRecentlyAdded)
-                              const Positioned(
-                                left: 10,
-                                top: 10,
-                                child: SkBadge(label: 'Yeni', accent: true),
-                              ),
-                            Positioned(
-                              left: 14,
-                              right: 14,
-                              bottom: 14,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (s.category.trim().isNotEmpty)
-                                    Text(s.category.trim(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Sk.ui(context,
-                                            size: 11.5,
-                                            color: Colors.white70,
-                                            weight: FontWeight.w700)),
-                                  const SizedBox(height: 3),
-                                  Text(s.name,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Sk.display(context,
-                                          size: 18,
-                                          color: Colors.white,
-                                          height: 1.1)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                TiyatrolHero(
+                  tag: TiyatrolHeroTags.show(show.id, 'home-shelf'),
+                  child: SkImage(url: show.imageUrl),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.84),
+                      ],
+                      stops: const [0.5, 1.0],
                     ),
                   ),
                 ),
-              );
-            },
+                if (show.hasExternalTicketing)
+                  const Positioned(
+                    left: 10,
+                    top: 10,
+                    child: SkBadge(
+                        label: 'Başka platform',
+                        onImage: true,
+                        icon: Icons.open_in_new_rounded),
+                  )
+                else if (show.isRecentlyAdded)
+                  const Positioned(
+                    left: 10,
+                    top: 10,
+                    child: SkBadge(label: 'Yeni', accent: true),
+                  ),
+                Positioned(
+                  left: 14,
+                  right: 14,
+                  bottom: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (show.category.trim().isNotEmpty)
+                        Text(show.category.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Sk.ui(context,
+                                size: 11.5,
+                                color: Colors.white70,
+                                weight: FontWeight.w700)),
+                      const SizedBox(height: 3),
+                      Text(show.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.display(context,
+                              size: 18, color: Colors.white, height: 1.1)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
-    );
-  }
+      );
 }
 
 class _Faces extends StatelessWidget {
@@ -1690,77 +1626,63 @@ class _Faces extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          child: const SkSectionHead(
-              title: 'Sahnenin yüzleri',
-              subtitle: 'Perdenin önündeki oyuncular'),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 244,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.symmetric(horizontal: gutter),
-            itemCount: players.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (final context, final i) {
-              final Player p = players[i];
-              final String name = '${p.firstName} ${p.lastName}'.trim();
-              return SizedBox(
-                width: 120,
-                child: PressScale(
-                  onTap: () => NavigationHandler.goToPlayer(
-                    context,
-                    p.id,
-                    name,
-                    heroTag: TiyatrolHeroTags.player(p.id, 'home'),
-                    imageUrl: p.imageUrl,
-                    title: name,
-                  ),
-                  semanticLabel: name,
-                  child: Column(
-                    children: [
-                      TiyatrolHero(
-                        tag: TiyatrolHeroTags.player(p.id, 'home'),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(60),
-                            boxShadow: skSoftShadow(context, strength: 0.8),
-                          ),
-                          child: SkImage(
-                            url: p.imageUrl,
-                            width: 120,
-                            height: 168,
-                            radius: 60,
-                            fallbackIcon: Icons.person_rounded,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${p.firstName}\n${p.lastName}'.trim(),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Sk.ui(context,
-                            size: 13,
-                            color: cs.onSurface,
-                            weight: FontWeight.w800,
-                            height: 1.2),
-                      ),
-                    ],
+    return SkRail<Player>(
+      title: 'Sahnenin yüzleri',
+      subtitle: 'Perdenin önündeki oyuncular',
+      items: players,
+      gutter: gutter,
+      railW: 124,
+      railH: 248,
+      minCell: 124,
+      builder: (final p, final w) {
+        final String name = '${p.firstName} ${p.lastName}'.trim();
+        return SizedBox(
+          width: 124,
+          child: PressScale(
+            onTap: () => NavigationHandler.goToPlayer(
+              context,
+              p.id,
+              name,
+              heroTag: TiyatrolHeroTags.player(p.id, 'home'),
+              imageUrl: p.imageUrl,
+              title: name,
+            ),
+            semanticLabel: name,
+            child: Column(
+              children: [
+                TiyatrolHero(
+                  tag: TiyatrolHeroTags.player(p.id, 'home'),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(62),
+                      boxShadow: skSoftShadow(context, strength: 0.8),
+                    ),
+                    child: SkImage(
+                      url: p.imageUrl,
+                      width: 124,
+                      height: 174,
+                      radius: 62,
+                      fallbackIcon: Icons.person_rounded,
+                    ),
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 12),
+                Text(
+                  '${p.firstName}\n${p.lastName}'.trim(),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.ui(context,
+                      size: 13,
+                      color: cs.onSurface,
+                      weight: FontWeight.w800,
+                      height: 1.2),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -1776,114 +1698,92 @@ class _Venues extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final double w = wide ? 340 : 276;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          child: SkSectionHead(
-            title: 'Mekânlar',
-            subtitle: 'Perdenin açıldığı sahneler',
-            actionLabel: 'Yakınımda',
-            onAction: () => NavigationHandler.goToNearby(context),
+    return SkRail<Stage>(
+      title: 'Mekânlar',
+      subtitle: 'Perdenin açıldığı sahneler',
+      items: stages,
+      gutter: gutter,
+      railW: w,
+      railH: 190,
+      minCell: w,
+      builder: (final s, final cw) => PressScale(
+        onTap: () => NavigationHandler.goToStage(context, s.id, s.name,
+            heroTag: TiyatrolHeroTags.stage(s.id, 'home'),
+            imageUrl: s.imageUrl,
+            title: s.name),
+        semanticLabel: s.name,
+        child: Container(
+          width: cw,
+          height: 190,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: skSoftShadow(context),
           ),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 204,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.symmetric(horizontal: gutter),
-            itemCount: stages.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
-            itemBuilder: (final context, final i) {
-              final Stage s = stages[i];
-              return SizedBox(
-                width: w,
-                child: PressScale(
-                  onTap: () => NavigationHandler.goToStage(context, s.id, s.name,
-                      heroTag: TiyatrolHeroTags.stage(s.id, 'home'),
-                      imageUrl: s.imageUrl,
-                      title: s.name),
-                  semanticLabel: s.name,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: skSoftShadow(context),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          TiyatrolHero(
-                            tag: TiyatrolHeroTags.stage(s.id, 'home'),
-                            child: SkImage(
-                                url: s.imageUrl,
-                                fallbackIcon: Icons.location_city_rounded),
-                          ),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.8),
-                                ],
-                                stops: const [0.35, 1],
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 18,
-                            right: 18,
-                            bottom: 16,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(s.name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Sk.display(context,
-                                        size: 21,
-                                        color: Colors.white,
-                                        height: 1.1)),
-                                if (s.address.trim().isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 5),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.place_rounded,
-                                            size: 14, color: Colors.white70),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(s.address.trim(),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: Sk.ui(context,
-                                                  size: 12,
-                                                  color: Colors.white70,
-                                                  weight: FontWeight.w600)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                TiyatrolHero(
+                  tag: TiyatrolHeroTags.stage(s.id, 'home'),
+                  child: SkImage(
+                      url: s.imageUrl,
+                      fallbackIcon: Icons.location_city_rounded),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.8),
+                      ],
+                      stops: const [0.35, 1],
                     ),
                   ),
                 ),
-              );
-            },
+                Positioned(
+                  left: 18,
+                  right: 18,
+                  bottom: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(s.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.display(context,
+                              size: 21, color: Colors.white, height: 1.1)),
+                      if (s.address.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.place_rounded,
+                                  size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(s.address.trim(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Sk.ui(context,
+                                        size: 12,
+                                        color: Colors.white70,
+                                        weight: FontWeight.w600)),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1897,73 +1797,57 @@ class _Troupes extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          child: const SkSectionHead(
-              title: 'Topluluklar', subtitle: 'Perdeyi açan ekipler'),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 124,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: gutter),
-            itemCount: teams.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 18),
-            itemBuilder: (final context, final i) {
-              final Team t = teams[i];
-              return SizedBox(
-                width: 88,
-                child: PressScale(
-                  onTap: () => NavigationHandler.goToTeam(context, t.id, t.name,
-                      imageUrl: t.imageUrl, title: t.name),
-                  semanticLabel: t.name,
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: SweepGradient(colors: [
-                            cs.primary,
-                            cs.tertiary,
-                            cs.secondary,
-                            cs.primary,
-                          ]),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                              color: cs.surface, shape: BoxShape.circle),
-                          child: ClipOval(
-                            child: SkImage(
-                                url: t.imageUrl,
-                                width: 64,
-                                height: 64,
-                                fallbackIcon: Icons.groups_rounded),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(t.name,
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: Sk.ui(context,
-                              size: 12,
-                              weight: FontWeight.w800,
-                              height: 1.2)),
-                    ],
+    return SkRail<Team>(
+      title: 'Topluluklar',
+      subtitle: 'Perdeyi açan ekipler',
+      items: teams,
+      gutter: gutter,
+      railW: 96,
+      railH: 128,
+      minCell: 96,
+      builder: (final t, final w) => SizedBox(
+        width: 96,
+        child: PressScale(
+          onTap: () => NavigationHandler.goToTeam(context, t.id, t.name,
+              imageUrl: t.imageUrl, title: t.name),
+          semanticLabel: t.name,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(colors: [
+                    cs.primary,
+                    cs.tertiary,
+                    cs.secondary,
+                    cs.primary,
+                  ]),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration:
+                      BoxDecoration(color: cs.surface, shape: BoxShape.circle),
+                  child: ClipOval(
+                    child: SkImage(
+                        url: t.imageUrl,
+                        width: 72,
+                        height: 72,
+                        fallbackIcon: Icons.groups_rounded),
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 8),
+              Text(t.name,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.ui(context,
+                      size: 12, weight: FontWeight.w800, height: 1.2)),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

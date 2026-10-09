@@ -13,6 +13,8 @@ import '../../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../providers/show_detail_provider.dart';
+import '../../providers/show_provider.dart';
+import '../../../domain/entities/show.dart';
 import '../detail/show_detail_actions.dart';
 import '../detail/show_detail_data.dart';
 import '../show_team_credit.dart';
@@ -142,6 +144,15 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
     }
     if (loaded != null) _maybeScrollFromLink();
 
+    final String cat = data.show.category.trim().toLowerCase();
+    final List<Show> similar = [
+      for (final Show x in ref.watch(showsActiveFirstProvider(false)).value ?? const <Show>[])
+        if (x.id != data.show.id &&
+            cat.isNotEmpty &&
+            x.category.trim().toLowerCase() == cat)
+          x,
+    ];
+
     final ShowSession? chosen = _selected != null &&
             data.sessions.any((final s) => s.event.id == _selected!.event.id)
         ? _selected
@@ -175,6 +186,7 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
         onSeats: _seats,
         onExternal: () => _external(data.show.externalTicketUrl),
         opening: _opening,
+        similar: similar,
       );
 
       final Widget bar = _BuyBar(
@@ -767,6 +779,7 @@ class _Content extends StatelessWidget {
   final ValueChanged<ShowSession> onSeats;
   final VoidCallback onExternal;
   final bool opening;
+  final List<Show> similar;
 
   const _Content({
     required this.data,
@@ -781,6 +794,7 @@ class _Content extends StatelessWidget {
     required this.onSeats,
     required this.onExternal,
     required this.opening,
+    this.similar = const [],
   });
 
   @override
@@ -842,6 +856,7 @@ class _Content extends StatelessWidget {
         if (data.venues.isNotEmpty)
           section(4, _Venues(venues: data.venues)),
         for (final Widget g in gallery) section(5, g),
+        if (similar.isNotEmpty) section(6, _Similar(shows: similar)),
       ],
     );
   }
@@ -1185,60 +1200,119 @@ class _Cast extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double w = large ? 110 : 84;
-    final double h = large ? 150 : 112;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SkSectionHead(title: title),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: h + 52,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            itemCount: players.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (final context, final i) {
-              final Player p = players[i];
-              final String name = '${p.firstName} ${p.lastName}'.trim();
-              final String tag = TiyatrolHeroTags.player(p.id, 'show');
-              return SizedBox(
-                width: w + 8,
-                child: PressScale(
-                  onTap: () => NavigationHandler.goToPlayer(context, p.id, name,
-                      heroTag: tag, imageUrl: p.imageUrl, title: name),
-                  semanticLabel: name,
-                  child: Column(
-                    children: [
-                      TiyatrolHero(
-                        tag: tag,
-                        child: SkImage(
-                            url: p.imageUrl,
-                            width: w,
-                            height: h,
-                            radius: w / 2,
-                            fallbackIcon: Icons.person_rounded),
-                      ),
-                      const SizedBox(height: 8),
-                      Text('${p.firstName}\n${p.lastName}'.trim(),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Sk.ui(context,
-                              size: large ? 13 : 12,
-                              weight: FontWeight.w700,
-                              height: 1.2)),
-                    ],
-                  ),
+    final double w = large ? 112 : 88;
+    final double h = large ? 156 : 122;
+    return SkRail<Player>(
+      title: title,
+      subtitle: '${players.length} oyuncu',
+      items: players,
+      gutter: 0,
+      railW: w + 8,
+      railH: h + 56,
+      minCell: w + 8,
+      builder: (final p, final cw) {
+        final String name = '${p.firstName} ${p.lastName}'.trim();
+        final String tag = TiyatrolHeroTags.player(p.id, 'show');
+        return SizedBox(
+          width: w + 8,
+          child: PressScale(
+            onTap: () => NavigationHandler.goToPlayer(context, p.id, name,
+                heroTag: tag, imageUrl: p.imageUrl, title: name),
+            semanticLabel: name,
+            child: Column(
+              children: [
+                TiyatrolHero(
+                  tag: tag,
+                  child: SkImage(
+                      url: p.imageUrl,
+                      width: w,
+                      height: h,
+                      radius: w / 2,
+                      fallbackIcon: Icons.person_rounded),
                 ),
-              );
-            },
+                const SizedBox(height: 8),
+                Text('${p.firstName}\n${p.lastName}'.trim(),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Sk.ui(context,
+                        size: large ? 13 : 12,
+                        weight: FontWeight.w700,
+                        height: 1.2)),
+              ],
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
+}
+
+/// Aynı türden diğer oyunlar — yatay şerit, Tümü → aşağı açılır.
+class _Similar extends StatelessWidget {
+  final List<Show> shows;
+  const _Similar({required this.shows});
+
+  @override
+  Widget build(final BuildContext context) => SkRail<Show>(
+        title: 'Bunlar da hoşuna gidebilir',
+        subtitle: 'Aynı türden oyunlar',
+        items: shows,
+        gutter: 0,
+        railW: 150,
+        railH: 225,
+        minCell: 150,
+        builder: (final s, final w) => PressScale(
+          onTap: () => NavigationHandler.goToShow(context, s.id, s.name,
+              heroTag: TiyatrolHeroTags.show(s.id, 'similar'),
+              imageUrl: s.imageUrl,
+              title: s.name),
+          semanticLabel: s.name,
+          child: Container(
+            width: w,
+            height: w * 1.5,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: skSoftShadow(context),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  TiyatrolHero(
+                    tag: TiyatrolHeroTags.show(s.id, 'similar'),
+                    child: SkImage(url: s.imageUrl),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.82),
+                        ],
+                        stops: const [0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: Text(s.name,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Sk.display(context,
+                            size: 16, color: Colors.white, height: 1.1)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class _Venues extends StatelessWidget {
@@ -1341,30 +1415,20 @@ class _Gallery extends StatelessWidget {
   }
 
   @override
-  Widget build(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SkSectionHead(title: 'Galeri', subtitle: '${photos.length} fotoğraf'),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 150,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            itemCount: photos.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (final context, final i) => PressScale(
-              onTap: () => _open(context, i),
-              semanticLabel: 'Fotoğraf ${i + 1}',
-              child: SkImage(
-                  url: photos[i], width: 200, height: 150, radius: 18),
-            ),
-          ),
+  Widget build(final BuildContext context) => SkRail<String>(
+        title: 'Galeri',
+        subtitle: '${photos.length} fotoğraf',
+        items: photos,
+        gutter: 0,
+        railW: 210,
+        railH: 150,
+        minCell: 150,
+        builder: (final url, final w) => PressScale(
+          onTap: () => _open(context, photos.indexOf(url)),
+          semanticLabel: 'Fotoğraf',
+          child: SkImage(url: url, width: w, height: 150, radius: 20),
         ),
-      ],
-    );
-  }
+      );
 }
 
 class _Viewer extends StatefulWidget {

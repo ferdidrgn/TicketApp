@@ -783,54 +783,61 @@ class _BodyState extends State<_Body> {
         if (widget.past.isNotEmpty)
           section(
             4,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkSectionHead(
-                    title: 'Geçmiş oyunlar',
-                    subtitle: '${widget.past.length} oyun'),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 250,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    clipBehavior: Clip.none,
-                    itemCount: widget.past.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 14),
-                    itemBuilder: (final context, final i) {
-                      final Show s = widget.past[i];
-                      return SizedBox(
-                        width: 130,
-                        child: PressScale(
-                          onTap: () => widget.onShow(s),
-                          semanticLabel: s.name,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TiyatrolHero(
-                                tag: TiyatrolHeroTags.show(s.id, 'player'),
-                                child: SkImage(
-                                    url: s.imageUrl,
-                                    width: 130,
-                                    height: 188,
-                                    radius: 16),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(s.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Sk.ui(context,
-                                      size: 13,
-                                      weight: FontWeight.w800,
-                                      height: 1.2)),
-                            ],
+            SkRail<Show>(
+              title: 'Geçmiş oyunlar',
+              subtitle: '${widget.past.length} oyun',
+              items: widget.past,
+              gutter: 0,
+              railW: 138,
+              railH: 207,
+              minCell: 138,
+              builder: (final s, final w) => PressScale(
+                onTap: () => widget.onShow(s),
+                semanticLabel: s.name,
+                child: Container(
+                  width: w,
+                  height: w * 1.5,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: skSoftShadow(context),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        TiyatrolHero(
+                          tag: TiyatrolHeroTags.show(s.id, 'player'),
+                          child: SkImage(url: s.imageUrl),
+                        ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.82),
+                              ],
+                              stops: const [0.5, 1.0],
+                            ),
                           ),
                         ),
-                      );
-                    },
+                        Positioned(
+                          left: 12,
+                          right: 12,
+                          bottom: 12,
+                          child: Text(s.name,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: Sk.display(context,
+                                  size: 15, color: Colors.white, height: 1.1)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
       ],

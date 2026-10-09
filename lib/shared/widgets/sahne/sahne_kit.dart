@@ -673,3 +673,228 @@ List<BoxShadow> skSoftShadow(final BuildContext context,
     ),
   ];
 }
+
+
+// ─── Şerit + aşağı açılan ızgara ────────────────────────────────────────────
+
+/// En fazla [max] öğelik YATAY şerit. Başlığın yanındaki "Tümü" bu kategoriyi
+/// yerinde AŞAĞI DOĞRU ızgaraya açar; "Daralt" geri toplar. Sahibinin kararı:
+/// arama ve ana sayfadaki her kategori bu bileşenle çizilir.
+class SkRail<T> extends StatefulWidget {
+  final String title;
+  final String? subtitle;
+  final List<T> items;
+  final double gutter;
+  final double railW;
+  final double railH;
+  final double gap;
+  final int max;
+
+  /// Izgarada bir hücrenin en az genişliği (sütun sayısı buradan çıkar).
+  final double minCell;
+  final Widget Function(T item, double width) builder;
+
+  /// Başlıkla şerit arasına girecek ek yüzey (ör. gün şeridi).
+  final Widget? belowHeader;
+
+  const SkRail({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.items,
+    required this.gutter,
+    required this.railW,
+    required this.railH,
+    required this.minCell,
+    required this.builder,
+    this.gap = 14,
+    this.max = 10,
+    this.belowHeader,
+  });
+
+  @override
+  State<SkRail<T>> createState() => _SkRailState<T>();
+}
+
+class _SkRailState<T> extends State<SkRail<T>> {
+  bool _open = false;
+
+  void _toggle() {
+    HapticFeedback.selectionClick();
+    setState(() => _open = !_open);
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool more = widget.items.length > widget.max;
+    final List<T> railItems = widget.items.take(widget.max).toList();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
+        child: LayoutBuilder(builder: (final context, final box) {
+          final double inner = box.maxWidth - 2 * widget.gutter;
+
+          final Widget content;
+          if (_open) {
+            final int cols =
+                ((inner + widget.gap) / (widget.minCell + widget.gap))
+                    .floor()
+                    .clamp(1, 12)
+                    .toInt();
+            final double cell = (inner - widget.gap * (cols - 1)) / cols;
+            content = Padding(
+              key: const ValueKey<String>('grid'),
+              padding: EdgeInsets.symmetric(horizontal: widget.gutter),
+              child: Wrap(
+                spacing: widget.gap,
+                runSpacing: 18,
+                children: [
+                  for (int i = 0; i < widget.items.length; i++)
+                    SizedBox(
+                      width: cell,
+                      child: Reveal(
+                        index: i % cols,
+                        dy: 10,
+                        child: widget.builder(widget.items[i], cell),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          } else {
+            content = SizedBox(
+              key: const ValueKey<String>('rail'),
+              height: widget.railH,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: widget.gutter),
+                itemCount: railItems.length + (more ? 1 : 0),
+                separatorBuilder: (_, __) => SizedBox(width: widget.gap),
+                itemBuilder: (final context, final i) {
+                  if (i == railItems.length) {
+                    return PressScale(
+                      onTap: _toggle,
+                      semanticLabel: '${widget.title} tümünü göster',
+                      child: Container(
+                        width: 116,
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                  color: cs.primary, shape: BoxShape.circle),
+                              child: Icon(Icons.arrow_downward_rounded,
+                                  color: cs.onPrimary),
+                            ),
+                            const SizedBox(height: 10),
+                            Text('+${widget.items.length - widget.max}',
+                                style: Sk.display(context,
+                                    size: 22, height: 1.0)),
+                            Text('daha',
+                                style: Sk.ui(context,
+                                    size: 12,
+                                    color: cs.onSurfaceVariant,
+                                    weight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return widget.builder(railItems[i], widget.railW);
+                },
+              ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: widget.gutter),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Semantics(
+                            header: true,
+                            child: Text(widget.title,
+                                style:
+                                    Sk.display(context, size: 24, height: 1.1)),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            widget.subtitle ?? '${widget.items.length} sonuç',
+                            style: Sk.ui(context,
+                                size: 12.5,
+                                color: cs.onSurfaceVariant,
+                                weight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (more || _open)
+                      PressScale(
+                        onTap: _toggle,
+                        semanticLabel: _open ? 'Daralt' : 'Tümünü göster',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: cs.secondaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_open ? 'Daralt' : 'Tümü',
+                                  style: Sk.ui(context,
+                                      size: 13,
+                                      color: cs.onSecondaryContainer,
+                                      weight: FontWeight.w800)),
+                              const SizedBox(width: 4),
+                              AnimatedRotation(
+                                turns: _open ? 0.5 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                child: Icon(Icons.keyboard_arrow_down_rounded,
+                                    size: 18, color: cs.onSecondaryContainer),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (widget.belowHeader != null) widget.belowHeader!,
+              AnimatedSize(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  layoutBuilder: (final current, final previous) => Stack(
+                    alignment: Alignment.topLeft,
+                    children: [...previous, if (current != null) current],
+                  ),
+                  child: content,
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}

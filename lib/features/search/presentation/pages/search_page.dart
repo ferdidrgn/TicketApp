@@ -433,16 +433,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // ── Türler ──
     if (browsing && categories.length > 1) {
-      blocks.add(_Section<BrowseCategory>(
+      blocks.add(SkRail<BrowseCategory>(
         key: const ValueKey<String>('sec-genres'),
         title: 'Türler',
         subtitle: 'Bir tür seç, oyunlar süzülsün',
         items: categories,
-        open: _open.contains(_Sec.genres),
-        onToggle: () => _toggle(_Sec.genres),
         gutter: gutter,
-        width: width,
-        inner: inner,
         railW: 210,
         railH: 110,
         minCell: 210,
@@ -483,16 +479,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // ── Oyunlar ──
     if (shows.isNotEmpty) {
-      blocks.add(_Section<Show>(
+      blocks.add(SkRail<Show>(
         key: const ValueKey<String>('sec-shows'),
         title: browsing ? 'Önerilen oyunlar' : 'Oyunlar',
         subtitle: activeCat == null ? null : 'Tür: ${categories.firstWhere((final c) => c.key == activeCat).label}',
         items: shows,
-        open: _open.contains(_Sec.shows),
-        onToggle: () => _toggle(_Sec.shows),
         gutter: gutter,
-        width: width,
-        inner: inner,
         railW: 158,
         railH: 158 * 1.5,
         minCell: 158,
@@ -508,15 +500,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // ── Oyuncular ──
     if (data.players.isNotEmpty) {
-      blocks.add(_Section<Player>(
+      blocks.add(SkRail<Player>(
         key: const ValueKey<String>('sec-players'),
         title: 'Oyuncular',
         items: data.players,
-        open: _open.contains(_Sec.players),
-        onToggle: () => _toggle(_Sec.players),
         gutter: gutter,
-        width: width,
-        inner: inner,
         railW: 124,
         railH: 244,
         minCell: 124,
@@ -531,15 +519,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // ── Mekânlar ──
     if (data.stages.isNotEmpty) {
-      blocks.add(_Section<Stage>(
+      blocks.add(SkRail<Stage>(
         key: const ValueKey<String>('sec-stages'),
         title: 'Mekânlar',
         items: data.stages,
-        open: _open.contains(_Sec.stages),
-        onToggle: () => _toggle(_Sec.stages),
         gutter: gutter,
-        width: width,
-        inner: inner,
         railW: 270,
         railH: 168,
         minCell: 270,
@@ -555,15 +539,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // ── Topluluklar ──
     if (data.teams.isNotEmpty) {
-      blocks.add(_Section<Team>(
+      blocks.add(SkRail<Team>(
         key: const ValueKey<String>('sec-teams'),
         title: 'Topluluklar',
         items: data.teams,
-        open: _open.contains(_Sec.teams),
-        onToggle: () => _toggle(_Sec.teams),
         gutter: gutter,
-        width: width,
-        inner: inner,
         railW: 96,
         railH: 132,
         minCell: 96,
@@ -645,209 +625,6 @@ class _HRail extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// Bir kategori: üstte başlık + "Tümü", altında en fazla 10 öğelik yatay
-/// şerit. "Tümü"ye basınca şerit YERİNDE aşağı doğru ızgaraya genişler.
-class _Section<T> extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final List<T> items;
-  final bool open;
-  final VoidCallback onToggle;
-  final double gutter;
-  final double width;
-  final double inner;
-  final double railW;
-  final double railH;
-  final double minCell;
-  final double gap;
-  final Widget Function(T item, double width) builder;
-
-  const _Section({
-    super.key,
-    required this.title,
-    this.subtitle,
-    required this.items,
-    required this.open,
-    required this.onToggle,
-    required this.gutter,
-    required this.width,
-    required this.inner,
-    required this.railW,
-    required this.railH,
-    required this.minCell,
-    required this.gap,
-    required this.builder,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool more = items.length > _kRailMax;
-    final List<T> railItems = items.take(_kRailMax).toList();
-
-    final Widget content;
-    if (open) {
-      final int cols =
-          ((inner + gap) / (minCell + gap)).floor().clamp(1, 12).toInt();
-      final double cell = (inner - gap * (cols - 1)) / cols;
-      content = Padding(
-        key: const ValueKey<String>('grid'),
-        padding: EdgeInsets.symmetric(horizontal: gutter),
-        child: Wrap(
-          spacing: gap,
-          runSpacing: 18,
-          children: [
-            for (int i = 0; i < items.length; i++)
-              SizedBox(
-                width: cell,
-                child: Reveal(
-                  index: i % cols,
-                  dy: 10,
-                  child: builder(items[i], cell),
-                ),
-              ),
-          ],
-        ),
-      );
-    } else {
-      content = SizedBox(
-        key: const ValueKey<String>('rail'),
-        height: railH,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: gutter),
-          itemCount: railItems.length + (more ? 1 : 0),
-          separatorBuilder: (_, __) => SizedBox(width: gap),
-          itemBuilder: (final context, final i) {
-            if (i == railItems.length) {
-              return PressScale(
-                onTap: onToggle,
-                semanticLabel: '$title tümünü göster',
-                child: Container(
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                            color: cs.primary, shape: BoxShape.circle),
-                        child: Icon(Icons.arrow_downward_rounded,
-                            color: cs.onPrimary),
-                      ),
-                      const SizedBox(height: 10),
-                      Text('+${items.length - _kRailMax}',
-                          style: Sk.display(context, size: 22, height: 1.0)),
-                      Text('daha',
-                          style: Sk.ui(context,
-                              size: 12,
-                              color: cs.onSurfaceVariant,
-                              weight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              );
-            }
-            return builder(railItems[i], railW);
-          },
-        ),
-      );
-    }
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 34),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: gutter),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Semantics(
-                            header: true,
-                            child: Text(title,
-                                style: Sk.display(context,
-                                    size: 24, height: 1.1)),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            subtitle ?? '${items.length} sonuç',
-                            style: Sk.ui(context,
-                                size: 12.5,
-                                color: cs.onSurfaceVariant,
-                                weight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (more || open)
-                      PressScale(
-                        onTap: onToggle,
-                        semanticLabel: open ? 'Daralt' : 'Tümünü göster',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: cs.secondaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(open ? 'Daralt' : 'Tümü',
-                                  style: Sk.ui(context,
-                                      size: 13,
-                                      color: cs.onSecondaryContainer,
-                                      weight: FontWeight.w800)),
-                              const SizedBox(width: 4),
-                              AnimatedRotation(
-                                turns: open ? 0.5 : 0,
-                                duration: const Duration(milliseconds: 250),
-                                child: Icon(Icons.keyboard_arrow_down_rounded,
-                                    size: 18, color: cs.onSecondaryContainer),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 380),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
-                  layoutBuilder: (final current, final previous) => Stack(
-                    alignment: Alignment.topLeft,
-                    children: [...previous, if (current != null) current],
-                  ),
-                  child: content,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
