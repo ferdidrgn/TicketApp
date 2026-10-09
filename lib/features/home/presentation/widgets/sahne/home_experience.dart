@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/util/date_formatter.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
@@ -22,14 +23,19 @@ import '../../../../stages/domain/entities/stage.dart';
 import '../../../../stages/presentation/providers/stage_provider.dart';
 import '../../../../teams/domain/entities/team.dart';
 import '../../../../teams/presentation/providers/team_provider.dart';
+import '../../../../tickets/presentation/providers/my_ticket_provider.dart';
+import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
 import '../../providers/home_show_filter_provider.dart';
 
 /// ANA SAYFA — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
 ///
-/// Kenardan kenara afiş kahramanı (başlık afişin üstünde), altında yumuşak
-/// Material tonlu yüzeyler: tür halkaları, gün şeridiyle canlı program,
-/// afiş vitrini, oyuncular, mekânlar, topluluklar. Hepsi gerçek veri.
+/// Gerçek bir uygulama düzeni: uygulama çubuğu (selam + bilet/bildirim),
+/// arama, hızlı tarih çipleri, afiş bannerları, sıradaki biletin, tür
+/// halkaları, TAKVİM (gün şeridi + event kartları), koleksiyon şeritleri
+/// (hafta sonu, yeni, uygun fiyatlı, tür seçmeleri), vitrin, oyuncular,
+/// mekânlar, topluluklar. Her kategori yatay şerit (en çok 10), "Tümü" aşağı
+/// açar. Hepsi gerçek veri.
 class HomeExperience extends ConsumerStatefulWidget {
   final ScrollController controller;
 
@@ -50,10 +56,14 @@ class HomeExperience extends ConsumerStatefulWidget {
   ConsumerState<HomeExperience> createState() => _HomeExperienceState();
 }
 
+enum _Range { tonight, tomorrow, weekend, week }
+
 class _HomeExperienceState extends ConsumerState<HomeExperience> {
-  DateTime? _day; // null → tüm yaklaşan seanslar
+  DateTime? _day; // takvimde seçili gün
+  _Range? _range; // hızlı tarih çipi
   String? _genre;
   bool _buying = false;
+  final GlobalKey _programmeKey = GlobalKey();
 
   void _openShow(final Show show, {final String from = 'home'}) =>
       NavigationHandler.goToShow(
@@ -112,6 +122,38 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     }
   }
 
+  void _scrollToProgramme() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final BuildContext? c = _programmeKey.currentContext;
+      if (c == null) return;
+      Scrollable.ensureVisible(c,
+          duration: Sk.reduceMotion(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.02);
+    });
+  }
+
+  bool _inRange(final DateTime d, final _Range r) {
+    final DateTime now = DateTime.now();
+    final DateTime today = skDay(now);
+    final DateTime day = skDay(d);
+    switch (r) {
+      case _Range.tonight:
+        return day == today && !d.isBefore(now);
+      case _Range.tomorrow:
+        return day == today.add(const Duration(days: 1));
+      case _Range.weekend:
+        return (d.weekday == DateTime.saturday ||
+                d.weekday == DateTime.sunday) &&
+            day.difference(today).inDays < 14;
+      case _Range.week:
+        return !d.isBefore(now) &&
+            day.difference(today).inDays < 7;
+    }
+  }
+
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
@@ -122,6 +164,12 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     final campaignState = ref.watch(campaignsProvider);
     final playerState = ref.watch(playersProvider());
     final teamState = ref.watch(teamsProvider(isLimit: true));
+    final profile = ref.watch(userProfileProvider).value;
+    final bool loggedIn = ref.watch(isLoggedInProvider);
+    final String uid = ref.watch(currentUserIdProvider) ?? '';
+    final List<DetailedTicket> tickets = loggedIn && uid.isNotEmpty
+        ? (ref.watch(myTicketsProvider(uid)).value ?? const <DetailedTicket>[])
+        : const <DetailedTicket>[];
 
     final List<Show> shows = showState.value ?? const [];
     final List<Show> activeShows = activeShowState.value ?? const [];
@@ -140,7 +188,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
 
     final List<BrowseCategory> genres = browseCategoriesOf(shows);
 
-    // Vitrin: her oyunun EN YAKIN seansı; seans yoksa oyunun kendisi.
+    // Banner: her oyunun EN YAKIN seansı; seans yoksa oyunun kendisi.
     final Set<String> seen = {};
     final List<HomeFeatured> slides = [];
     for (final HomeSession s in sessions) {
@@ -156,14 +204,41 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       }
     }
 
-    // Program: gün + tür süzgeci.
+    // Takvim: gün / hızlı çip + tür süzgeci.
     final List<HomeSession> programme = sessions.where((final s) {
       if (_day != null && s.day != _day) return false;
+      if (_range != null && !_inRange(s.date, _range!)) return false;
       if (_genre != null && browseCategoryKey(s.show.category) != _genre) {
         return false;
       }
       return true;
     }).toList();
+
+    // Hızlı çip sayıları.
+    int count(final _Range r) =>
+        sessions.where((final s) => _inRange(s.date, r)).length;
+    final Map<_Range, int> rangeCounts = {
+      for (final _Range r in _Range.values) r: count(r),
+    };
+
+    // Koleksiyonlar (hepsi gerçek seans/oyun verisinden).
+    final List<HomeSession> weekend = sessions
+        .where((final s) => _inRange(s.date, _Range.weekend))
+        .toList();
+    final List<Show> fresh =
+        shows.where((final s) => s.isRecentlyAdded).take(12).toList();
+    double? priceOf(final HomeSession s) =>
+        double.tryParse(s.event.price.trim().replaceAll(',', '.'));
+    final Set<String> cheapSeen = {};
+    final List<HomeSession> cheap = ([
+      for (final HomeSession s in sessions)
+        if ((priceOf(s) ?? 0) > 0) s,
+    ]..sort((final a, final b) => priceOf(a)!.compareTo(priceOf(b)!)))
+        .where((final s) => cheapSeen.add(s.show.id))
+        .take(12)
+        .toList();
+    final List<BrowseCategory> topGenres =
+        genres.where((final g) => g.count >= 2).take(2).toList();
 
     final Set<String> slideIds = slides.map((final f) => f.show.id).toSet();
     final Set<String> shelfSeen = {};
@@ -179,6 +254,21 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
         break;
       }
     }
+
+    // Sıradaki bilet (gerçek).
+    DetailedTicket? nextTicket;
+    DateTime? nextTicketDate;
+    for (final DetailedTicket t in tickets) {
+      if (t.isPast || t.show == null || t.event == null) continue;
+      final DateTime? d = DateFormatter.parseDateString(t.event!.date);
+      if (d == null || d.isBefore(DateTime.now())) continue;
+      if (nextTicketDate == null || d.isBefore(nextTicketDate)) {
+        nextTicket = t;
+        nextTicketDate = d;
+      }
+    }
+
+    final String firstName = (profile?.firstName ?? '').trim();
 
     return LayoutBuilder(builder: (final context, final box) {
       final double w = box.maxWidth;
@@ -202,12 +292,62 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
             ),
           );
 
-      final Widget topBar = _TopBar(
-        showActions: widget.showActions,
-        unread: _unread(),
-        onTickets: _openTickets,
-        onNotifications: _openNotifications,
-      );
+      Widget gap(final Widget child, [final double top = 40]) =>
+          SliverToBoxAdapter(
+            child: Padding(padding: EdgeInsets.only(top: top), child: child),
+          );
+
+      Widget sessionRail(
+        final String key,
+        final String title,
+        final String subtitle,
+        final IconData icon,
+        final List<HomeSession> items,
+      ) =>
+          SkRail<HomeSession>(
+            key: ValueKey<String>(key),
+            title: title,
+            subtitle: subtitle,
+            icon: icon,
+            items: items,
+            gutter: gutter,
+            railW: 308,
+            railH: 146,
+            minCell: 308,
+            builder: (final s, final cw) => _SessionCard(
+              session: s,
+              width: cw,
+              heroFrom: 'home-$key',
+              onTap: () => _openShow(s.show, from: 'home-$key'),
+            ),
+          );
+
+      Widget showRail(
+        final String key,
+        final String title,
+        final String subtitle,
+        final IconData icon,
+        final List<Show> items,
+      ) {
+        final double pw = wide ? 210 : 158;
+        return SkRail<Show>(
+          key: ValueKey<String>(key),
+          title: title,
+          subtitle: subtitle,
+          icon: icon,
+          items: items,
+          gutter: gutter,
+          railW: pw,
+          railH: pw * 1.5,
+          minCell: pw,
+          builder: (final s, final cw) => _PosterCard(
+            show: s,
+            width: cw,
+            heroFrom: 'home-$key',
+            onTap: () => _openShow(s, from: 'home-$key'),
+          ),
+        );
+      }
 
       final Widget scroll = ScrollConfiguration(
         behavior: const SkScrollBehavior(),
@@ -217,10 +357,37 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
               parent: AlwaysScrollableScrollPhysics()),
           slivers: [
             const SliverToBoxAdapter(child: AdminTestStrip()),
+            SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: pad(_AppBar(
+                  name: firstName,
+                  imageUrl: profile?.imageUrl ?? '',
+                  tonight: sessions
+                      .where((final s) => _inRange(s.date, _Range.tonight))
+                      .length,
+                  showActions: widget.showActions,
+                  unread: loggedIn
+                      ? ref.watch(unreadNotificationCountProvider(uid))
+                      : 0,
+                  onTickets: _openTickets,
+                  onNotifications: _openNotifications,
+                )),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: pad(Padding(
+                padding: const EdgeInsets.only(top: 18),
+                child: _SearchPill(
+                  onTap: () => NavigationHandler.goToSearch(context),
+                  hints: [for (final Show s in shows.take(4)) s.name],
+                ),
+              )),
+            ),
             if (failed)
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 520,
+                  height: 420,
                   child: SkEmpty(
                     icon: Icons.cloud_off_rounded,
                     title: 'Program yüklenemedi',
@@ -231,34 +398,50 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   ),
                 ),
               )
-            else if (loading || slides.isEmpty)
-              SliverToBoxAdapter(
-                child: _HeroSkeleton(wide: wide, topBar: topBar),
-              )
+            else if (loading)
+              SliverToBoxAdapter(child: pad(const _HomeSkeleton()))
             else ...[
-              SliverToBoxAdapter(
-                child: _Hero(
-                  slides: slides,
-                  wide: wide,
-                  buying: _buying,
-                  gutter: gutter,
-                  topBar: topBar,
-                  onOpen: (final f) => _openShow(f.show, from: 'home-stage'),
-                  onBuy: _buy,
+              if (sessions.isNotEmpty)
+                gap(
+                  rail(_RangeChips(
+                    gutter: gutter,
+                    selected: _range,
+                    counts: rangeCounts,
+                    onPick: (final r) {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _range = _range == r ? null : r;
+                        _day = null;
+                      });
+                      if (_range != null) _scrollToProgramme();
+                    },
+                  )),
+                  16,
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: pad(Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: _SearchPill(
-                    onTap: () => NavigationHandler.goToSearch(context),
-                    hints: [for (final Show s in shows.take(4)) s.name],
+              if (slides.isNotEmpty)
+                gap(
+                  _Banners(
+                    slides: slides,
+                    wide: wide,
+                    gutter: gutter,
+                    buying: _buying,
+                    onOpen: (final f) => _openShow(f.show, from: 'home-stage'),
+                    onBuy: _buy,
                   ),
-                )),
-              ),
+                  26,
+                ),
+              if (nextTicket != null)
+                gap(
+                  pad(_NextTicket(
+                    ticket: nextTicket,
+                    date: nextTicketDate!,
+                    onTap: _openTickets,
+                  )),
+                  26,
+                ),
               if (genres.length > 1)
-                SliverToBoxAdapter(
-                  child: rail(_Genres(
+                gap(
+                  rail(_Genres(
                     genres: genres,
                     selected: _genre,
                     gutter: gutter,
@@ -267,78 +450,90 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                       setState(() => _genre = _genre == g ? null : g);
                     },
                   )),
+                  36,
                 ),
               if (sessions.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 36),
+                gap(
+                  KeyedSubtree(
+                    key: _programmeKey,
                     child: rail(_ProgrammeSection(
                       gutter: gutter,
                       sessions: sessions,
                       programme: programme,
                       selectedDay: _day,
-                      hasGenre: _genre != null,
+                      hasFilter: _genre != null || _range != null,
                       wide: wide,
                       onDay: (final d) {
                         HapticFeedback.selectionClick();
-                        setState(() => _day = d);
+                        setState(() {
+                          _day = d;
+                          _range = null;
+                        });
                       },
                       onOpen: (final s) =>
                           _openShow(s.show, from: 'home-programme'),
                       onClear: () => setState(() {
                         _day = null;
+                        _range = null;
                         _genre = null;
                       }),
                     )),
                   ),
+                  40,
+                ),
+              if (weekend.isNotEmpty)
+                gap(
+                  rail(sessionRail('weekend', 'Hafta sonu planı',
+                      'Cumartesi ve pazar perdeleri', Icons.weekend_rounded, weekend)),
+                ),
+              if (fresh.isNotEmpty)
+                gap(
+                  rail(showRail('fresh', 'Yeni eklenenler',
+                      'Programa yeni giren oyunlar', Icons.auto_awesome_rounded, fresh)),
+                ),
+              if (cheap.length >= 2)
+                gap(
+                  rail(sessionRail('cheap', 'Uygun fiyatlı seanslar',
+                      'En düşük bilet fiyatından başlayarak', Icons.savings_rounded, cheap)),
+                ),
+              for (final BrowseCategory g in topGenres)
+                gap(
+                  rail(showRail(
+                    'genre-${g.key}',
+                    '${g.label} seçmeleri',
+                    '${g.count} oyun',
+                    Icons.theater_comedy_rounded,
+                    [
+                      for (final Show s in shows)
+                        if (browseCategoryKey(s.category) == g.key) s,
+                    ],
+                  )),
                 ),
               if (shelf.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 44),
-                    child: rail(_PosterShelf(
-                      shows: shelf,
-                      gutter: gutter,
-                      wide: wide,
-                      onOpen: (final s) => _openShow(s, from: 'home-shelf'),
-                      onAll: () => NavigationHandler.goToDiscover(context),
-                    )),
-                  ),
+                gap(
+                  rail(_PosterShelf(
+                    shows: shelf,
+                    gutter: gutter,
+                    wide: wide,
+                    onOpen: (final s) => _openShow(s, from: 'home-shelf'),
+                    onAll: () => NavigationHandler.goToDiscover(context),
+                  )),
                 ),
               if (campaign != null)
-                SliverToBoxAdapter(
-                  child: pad(Padding(
-                    padding: const EdgeInsets.only(top: 44),
-                    child: _CampaignCard(
-                      campaign: campaign,
-                      wide: wide,
-                      onOpen: () => NavigationHandler.goToCampaigns(context,
-                          index: campaigns.indexOf(campaign!)),
-                    ),
+                gap(
+                  pad(_CampaignCard(
+                    campaign: campaign,
+                    wide: wide,
+                    onOpen: () => NavigationHandler.goToCampaigns(context,
+                        index: campaigns.indexOf(campaign!)),
                   )),
                 ),
               if (players.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 44),
-                    child: rail(_Faces(players: players, gutter: gutter)),
-                  ),
-                ),
+                gap(rail(_Faces(players: players, gutter: gutter))),
               if (stages.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 44),
-                    child: rail(
-                        _Venues(stages: stages, gutter: gutter, wide: wide)),
-                  ),
-                ),
+                gap(rail(_Venues(stages: stages, gutter: gutter, wide: wide))),
               if (teams.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 44),
-                    child: rail(_Troupes(teams: teams, gutter: gutter)),
-                  ),
-                ),
+                gap(rail(_Troupes(teams: teams, gutter: gutter))),
             ],
             SliverToBoxAdapter(
               child: widget.footer ?? const SizedBox(height: 130),
@@ -355,70 +550,129 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       );
     });
   }
-
-  int _unread() {
-    final bool loggedIn = ref.watch(isLoggedInProvider);
-    final String uid = ref.watch(currentUserIdProvider) ?? '';
-    return loggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
-  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// KAHRAMAN (HERO)
+// UYGULAMA ÇUBUĞU
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// Fotoğraf üstü üst çubuk: marka + bilet/bildirim (cam butonlar).
-class _TopBar extends StatelessWidget {
+class _AppBar extends StatelessWidget {
+  final String name;
+  final String imageUrl;
+  final int tonight;
   final bool showActions;
   final int unread;
   final VoidCallback onTickets;
   final VoidCallback onNotifications;
 
-  const _TopBar({
+  const _AppBar({
+    required this.name,
+    required this.imageUrl,
+    required this.tonight,
     required this.showActions,
     required this.unread,
     required this.onTickets,
     required this.onNotifications,
   });
 
+  String get _greeting {
+    final int h = DateTime.now().hour;
+    return h < 6
+        ? 'İyi geceler'
+        : (h < 12 ? 'Günaydın' : (h < 18 ? 'İyi günler' : 'İyi akşamlar'));
+  }
+
   @override
   Widget build(final BuildContext context) {
-    if (!showActions) return const SizedBox.shrink();
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 14, 0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text('TiyatRol',
-                  style: Sk.display(context,
-                      size: 24, color: Colors.white, height: 1.0)),
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final String initial = name.isEmpty ? 'T' : name.characters.first.toUpperCase();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                  colors: [cs.primary, cs.tertiary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
             ),
-            _GlassIcon(
+            child: Container(
+              decoration:
+                  BoxDecoration(color: cs.surface, shape: BoxShape.circle),
+              padding: const EdgeInsets.all(2),
+              child: ClipOval(
+                child: imageUrl.trim().startsWith('http')
+                    ? SkImage(
+                        url: imageUrl,
+                        fallbackIcon: Icons.person_rounded)
+                    : Container(
+                        color: cs.primaryContainer,
+                        alignment: Alignment.center,
+                        child: Text(initial,
+                            style: Sk.display(context,
+                                size: 20,
+                                color: cs.onPrimaryContainer,
+                                height: 1.0)),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isEmpty ? _greeting : '$_greeting, $name',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.display(context, size: 20, height: 1.1),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  tonight > 0
+                      ? 'Bu akşam $tonight perde açılıyor'
+                      : 'Bu hafta ne izlesek?',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.ui(context,
+                      size: 13,
+                      color: cs.onSurfaceVariant,
+                      weight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          if (showActions) ...[
+            _RoundBtn(
                 icon: Icons.confirmation_number_outlined,
                 label: 'Biletlerim',
                 onTap: onTickets),
             const SizedBox(width: 8),
-            _GlassIcon(
+            _RoundBtn(
                 icon: Icons.notifications_none_rounded,
                 label: 'Bildirimler',
                 onTap: onNotifications,
                 badge: unread),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _GlassIcon extends StatelessWidget {
+class _RoundBtn extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final int badge;
 
-  const _GlassIcon({
+  const _RoundBtn({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -439,10 +693,12 @@ class _GlassIcon extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              SkGlass(
-                radius: 22,
-                padding: const EdgeInsets.all(10),
-                child: Icon(icon, size: 22, color: Colors.white),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: cs.surfaceContainerHigh, shape: BoxShape.circle),
+                child: Icon(icon, size: 22, color: cs.onSurface),
               ),
               if (badge > 0)
                 Positioned(
@@ -469,83 +725,117 @@ class _GlassIcon extends StatelessWidget {
   }
 }
 
-class _HeroSkeleton extends StatelessWidget {
-  final bool wide;
-  final Widget topBar;
-  const _HeroSkeleton({required this.wide, required this.topBar});
+// ═════════════════════════════════════════════════════════════════════════════
+// HIZLI TARİH ÇİPLERİ
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _RangeChips extends StatelessWidget {
+  final double gutter;
+  final _Range? selected;
+  final Map<_Range, int> counts;
+  final ValueChanged<_Range> onPick;
+
+  const _RangeChips({
+    required this.gutter,
+    required this.selected,
+    required this.counts,
+    required this.onPick,
+  });
+
+  static const List<(_Range, String, IconData)> _items = [
+    (_Range.tonight, 'Bu akşam', Icons.nights_stay_rounded),
+    (_Range.tomorrow, 'Yarın', Icons.wb_twilight_rounded),
+    (_Range.weekend, 'Hafta sonu', Icons.weekend_rounded),
+    (_Range.week, 'Bu hafta', Icons.date_range_rounded),
+  ];
 
   @override
   Widget build(final BuildContext context) {
-    final double h = wide
-        ? 560
-        : (MediaQuery.sizeOf(context).height * 0.66).clamp(480.0, 620.0);
+    // Sadece seansı olan aralıklar gösterilir (boş çip yok).
+    final List<(_Range, String, IconData)> items = [
+      for (final it in _items)
+        if ((counts[it.$1] ?? 0) > 0) it,
+    ];
+    if (items.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: h,
-      child: Stack(
-        children: [
-          Positioned.fill(child: SkBone(height: h, radius: 0)),
-          Positioned(top: 0, left: 0, right: 0, child: topBar),
-        ],
-      ),
-    );
+        height: 44,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          itemCount: items.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (final context, final i) {
+            final (_Range r, String label, IconData icon) = items[i];
+            return SkChip(
+              label: label,
+              icon: icon,
+              count: counts[r],
+              selected: selected == r,
+              onTap: () => onPick(r),
+            );
+          },
+        ),
+      );
   }
 }
 
-class _Hero extends StatefulWidget {
+// ═════════════════════════════════════════════════════════════════════════════
+// AFİŞ BANNERLARI
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _Banners extends StatefulWidget {
   final List<HomeFeatured> slides;
   final bool wide;
-  final bool buying;
   final double gutter;
-  final Widget topBar;
+  final bool buying;
   final ValueChanged<HomeFeatured> onOpen;
   final ValueChanged<HomeFeatured> onBuy;
 
-  const _Hero({
+  const _Banners({
     required this.slides,
     required this.wide,
-    required this.buying,
     required this.gutter,
-    required this.topBar,
+    required this.buying,
     required this.onOpen,
     required this.onBuy,
   });
 
   @override
-  State<_Hero> createState() => _HeroState();
+  State<_Banners> createState() => _BannersState();
 }
 
-class _HeroState extends State<_Hero> {
-  final PageController _page = PageController();
+class _BannersState extends State<_Banners> {
+  late PageController _page;
   Timer? _auto;
   int _index = 0;
   bool _paused = false;
+  late bool _wide;
+
+  double _fraction(final bool wide) => wide ? 0.46 : 0.9;
 
   @override
   void initState() {
     super.initState();
-    _auto = Timer.periodic(const Duration(seconds: 7), (_) => _next());
-  }
-
-  void _go(final int i) {
-    if (!mounted) return;
-    if (widget.wide) {
-      setState(() => _index = i);
-    } else if (_page.hasClients) {
-      _page.animateToPage(i,
+    _wide = widget.wide;
+    _page = PageController(viewportFraction: _fraction(_wide));
+    _auto = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted || _paused || widget.slides.length < 2) return;
+      if (Sk.reduceMotion(context) || !_page.hasClients) return;
+      _page.animateToPage((_index + 1) % widget.slides.length,
           duration: const Duration(milliseconds: 650),
           curve: Curves.easeInOutCubic);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant final _Banners old) {
+    super.didUpdateWidget(old);
+    if (old.wide != widget.wide) {
+      _page.dispose();
+      _page = PageController(
+          viewportFraction: _fraction(widget.wide), initialPage: _index);
+      _wide = widget.wide;
     }
-  }
-
-  void _next() {
-    if (!mounted || _paused || widget.slides.length < 2) return;
-    if (Sk.reduceMotion(context)) return;
-    _go((_index + 1) % widget.slides.length);
-  }
-
-  void _pause() {
-    _paused = true;
-    Future<void>.delayed(const Duration(seconds: 8), () => _paused = false);
   }
 
   @override
@@ -557,340 +847,86 @@ class _HeroState extends State<_Hero> {
 
   @override
   Widget build(final BuildContext context) {
-    final HomeFeatured current =
-        widget.slides[_index.clamp(0, widget.slides.length - 1)];
-    return widget.wide ? _wide(context, current) : _mobile(context, current);
-  }
-
-  // ─── telefon / tablet: kenardan kenara afiş ──────────────────────────────
-
-  Widget _mobile(final BuildContext context, final HomeFeatured current) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final double h =
-        (MediaQuery.sizeOf(context).height * 0.7).clamp(500.0, 660.0);
-    return SizedBox(
-      height: h,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Listener(
-            onPointerDown: (_) => _pause(),
-            child: PageView.builder(
-              controller: _page,
-              itemCount: widget.slides.length,
-              onPageChanged: (final i) {
-                HapticFeedback.selectionClick();
-                setState(() => _index = i);
+    final double h = _wide ? 300 : 232;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(widget.gutter, 0, widget.gutter, 14),
+              child: const SkSectionHead(
+                  title: 'Öne çıkanlar',
+                  subtitle: 'Sıradaki seansı olan oyunlar',
+                  icon: Icons.local_fire_department_rounded),
+            ),
+            Listener(
+              onPointerDown: (_) {
+                _paused = true;
+                Future<void>.delayed(
+                    const Duration(seconds: 8), () => _paused = false);
               },
-              itemBuilder: (final context, final i) => AnimatedBuilder(
-                animation: _page,
-                builder: (final context, _) {
-                  double delta = (_index - i).toDouble();
-                  if (_page.hasClients && _page.position.haveDimensions) {
-                    delta = (_page.page ?? _index.toDouble()) - i;
-                  }
-                  return GestureDetector(
-                    onTap: () => widget.onOpen(widget.slides[i]),
-                    child: TiyatrolHero(
-                      tag: TiyatrolHeroTags.show(
-                          widget.slides[i].show.id, 'home-stage'),
-                      child: LayoutBuilder(
-                        builder: (final context, final c) {
-                          final double w = c.maxWidth;
-                          return ClipRect(
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: -0.1 * w - delta * 50,
-                                  width: 1.2 * w,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: SkImage(
-                                      url: widget.slides[i].show.imageUrl),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+              child: SizedBox(
+                height: h,
+                child: PageView.builder(
+                  controller: _page,
+                  padEnds: !_wide,
+                  clipBehavior: Clip.none,
+                  itemCount: widget.slides.length,
+                  onPageChanged: (final i) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _index = i);
+                  },
+                  itemBuilder: (final context, final i) => Padding(
+                    padding: EdgeInsets.only(
+                        left: _wide && i == 0 ? widget.gutter : 6,
+                        right: 6),
+                    child: _BannerCard(
+                      featured: widget.slides[i],
+                      buying: widget.buying,
+                      onOpen: () => widget.onOpen(widget.slides[i]),
+                      onBuy: () => widget.onBuy(widget.slides[i]),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-          // Üstte ve altta okunurluk karartması + zemine karışan alt kenar.
-          IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.5),
-                    Colors.transparent,
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.55),
-                    Colors.black.withValues(alpha: 0.9),
-                    cs.surface,
-                  ],
-                  stops: const [0.0, 0.2, 0.42, 0.7, 0.9, 1.0],
-                ),
-              ),
-            ),
-          ),
-          Positioned(top: 0, left: 0, right: 0, child: widget.topBar),
-          Positioned(
-            left: 22,
-            right: 22,
-            bottom: 62,
-            child: IgnorePointer(
-              ignoring: false,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 420),
-                switchInCurve: Curves.easeOutCubic,
-                layoutBuilder: (final current, final previous) => Stack(
-                  alignment: Alignment.bottomLeft,
-                  children: [...previous, if (current != null) current],
-                ),
-                transitionBuilder: (final c, final a) => FadeTransition(
-                  opacity: a,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, 0.08), end: Offset.zero)
-                        .animate(a),
-                    child: c,
                   ),
                 ),
-                child: _HeroInfo(
-                  key: ValueKey<String>(current.show.id),
-                  featured: current,
-                  wide: false,
-                  buying: widget.buying,
-                  onOpen: () => widget.onOpen(current),
-                  onBuy: () => widget.onBuy(current),
-                ),
               ),
             ),
-          ),
-          Positioned(
-            left: 22,
-            bottom: 38,
-            child: _Dots(count: widget.slides.length, index: _index),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── web / geniş: bulanık sahne + büyük afiş ─────────────────────────────
-
-  Widget _wide(final BuildContext context, final HomeFeatured current) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 600,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 700),
-            child: KeyedSubtree(
-              key: ValueKey<String>('bg-${current.show.id}'),
-              child: ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
-                child: SizedBox.expand(
-                  child: SkImage(url: current.show.imageUrl),
-                ),
-              ),
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Colors.black.withValues(alpha: 0.82),
-                  Colors.black.withValues(alpha: 0.35),
-                ],
-              ),
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, cs.surface],
-                stops: const [0.72, 1.0],
-              ),
-            ),
-          ),
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                    widget.gutter, 36, widget.gutter, 56),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 6,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 420),
-                            layoutBuilder: (final current, final previous) =>
-                                Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                ...previous,
-                                if (current != null) current,
-                              ],
-                            ),
-                            child: _HeroInfo(
-                              key: ValueKey<String>(current.show.id),
-                              featured: current,
-                              wide: true,
-                              buying: widget.buying,
-                              onOpen: () => widget.onOpen(current),
-                              onBuy: () => widget.onBuy(current),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          Row(
-                            children: [
-                              for (int i = 0; i < widget.slides.length; i++)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 10),
-                                  child: PressScale(
-                                    onTap: () {
-                                      _pause();
-                                      _go(i);
-                                    },
-                                    semanticLabel: widget.slides[i].show.name,
-                                    child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 220),
-                                      padding: const EdgeInsets.all(2.5),
-                                      decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: i == _index
-                                              ? Colors.white
-                                              : Colors.transparent,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Opacity(
-                                        opacity: i == _index ? 1 : 0.6,
-                                        child: SkImage(
-                                            url: widget.slides[i].show.imageUrl,
-                                            width: 46,
-                                            height: 66,
-                                            radius: 10),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (int i = 0; i < widget.slides.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 260),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _index ? 24 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: i == _index
+                          ? cs.primary
+                          : cs.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    const SizedBox(width: 40),
-                    Expanded(
-                      flex: 5,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: AspectRatio(
-                          aspectRatio: 2 / 3,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 500),
-                            child: PressScale(
-                              key: ValueKey<String>('poster-${current.show.id}'),
-                              onTap: () => widget.onOpen(current),
-                              semanticLabel: current.show.name,
-                              scale: 0.985,
-                              child: TiyatrolHero(
-                                tag: TiyatrolHeroTags.show(
-                                    current.show.id, 'home-stage'),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(28),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.5),
-                                        blurRadius: 50,
-                                        offset: const Offset(0, 26),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(28),
-                                    child: SkImage(
-                                        url: current.show.imageUrl),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _Dots extends StatelessWidget {
-  final int count;
-  final int index;
-  const _Dots({required this.count, required this.index});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        for (int i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            margin: const EdgeInsets.only(right: 5),
-            width: i == index ? 22 : 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: i == index ? cs.primary : Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Afiş üstü bilgi: zaman rozeti, ad, mekân/fiyat, birincil aksiyon.
-class _HeroInfo extends StatelessWidget {
+/// Bulanık afiş zemini üstünde küçük afiş + bilgi + "Bilet al".
+class _BannerCard extends StatelessWidget {
   final HomeFeatured featured;
-  final bool wide;
   final bool buying;
   final VoidCallback onOpen;
   final VoidCallback onBuy;
 
-  const _HeroInfo({
-    super.key,
+  const _BannerCard({
     required this.featured,
-    required this.wide,
     required this.buying,
     required this.onOpen,
     required this.onBuy,
@@ -901,106 +937,272 @@ class _HeroInfo extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final Show show = featured.show;
     final HomeSession? s = featured.session;
-    final String venue = (s?.stage?.name ?? '').trim();
     final bool external = show.hasExternalTicketing;
     final String when = s == null
         ? (external ? 'Başka platformda' : 'Programda')
         : '${skDayPhrase(s.date)} · ${skClock(s.date)}';
-    final String meta = [
-      if (venue.isNotEmpty) venue,
-      if (s?.priceLabel != null) '${s!.priceLabel}\'den',
-    ].join('  ·  ');
+    final String venue = (s?.stage?.name ?? '').trim();
     final String cta =
         external ? 'Biletini bul' : (s == null ? 'Oyunu gör' : 'Bilet al');
 
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            SkGlass(
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(external ? Icons.open_in_new_rounded : Icons.schedule_rounded,
-                    size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(when,
-                    style: Sk.ui(context,
-                        size: 12.5,
-                        color: Colors.white,
-                        weight: FontWeight.w800)),
-              ]),
-            ),
-            if (show.category.trim().isNotEmpty)
-              SkGlass(
-                child: Text(show.category.trim(),
-                    style: Sk.ui(context,
-                        size: 12.5,
-                        color: Colors.white,
-                        weight: FontWeight.w700)),
+    return PressScale(
+      onTap: onOpen,
+      semanticLabel: show.name,
+      scale: 0.99,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: skSoftShadow(context),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                child: SkImage(url: show.imageUrl),
               ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          show.name,
-          maxLines: wide ? 3 : 2,
-          overflow: TextOverflow.ellipsis,
-          style: Sk.display(context,
-                  size: wide ? 58 : 38, color: Colors.white, height: 1.02)
-              .copyWith(shadows: [
-            Shadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 18,
-                offset: const Offset(0, 4)),
-          ]),
-        ),
-        if (meta.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Text(meta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Sk.ui(context,
-                  size: 14,
-                  color: Colors.white.withValues(alpha: 0.82),
-                  weight: FontWeight.w600)),
-        ],
-        const SizedBox(height: 20),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FilledButton.icon(
-              onPressed: buying ? null : onBuy,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 54),
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                shape: const StadiumBorder(),
-                elevation: 0,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.72),
+                      Colors.black.withValues(alpha: 0.38),
+                    ],
+                  ),
+                ),
               ),
-              icon: buying
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(external
-                      ? Icons.open_in_new_rounded
-                      : Icons.confirmation_number_rounded),
-              label: Text(cta,
-                  style: Sk.ui(context,
-                      size: 15, weight: FontWeight.w800, color: cs.onPrimary)),
-            ),
-            const SizedBox(width: 10),
-            ShowFavoriteButton(showId: show.id, onImage: true),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 2 / 3,
+                      child: TiyatrolHero(
+                        tag: TiyatrolHeroTags.show(show.id, 'home-stage'),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 22,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: SkImage(
+                              url: show.imageUrl, radius: 20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkGlass(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                    external
+                                        ? Icons.open_in_new_rounded
+                                        : Icons.schedule_rounded,
+                                    size: 13,
+                                    color: Colors.white),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(when,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Sk.ui(context,
+                                          size: 12,
+                                          color: Colors.white,
+                                          weight: FontWeight.w800)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            show.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: Sk.display(context,
+                                size: 22, color: Colors.white, height: 1.08),
+                          ),
+                          if (venue.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(venue,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Sk.ui(context,
+                                    size: 12.5,
+                                    color: Colors.white70,
+                                    weight: FontWeight.w600)),
+                          ],
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: FilledButton(
+                                  onPressed: buying ? null : onBuy,
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size(0, 44),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14),
+                                    shape: const StadiumBorder(),
+                                  ),
+                                  child: Text(cta,
+                                      maxLines: 1,
+                                      style: Sk.ui(context,
+                                          size: 14,
+                                          color: cs.onPrimary,
+                                          weight: FontWeight.w800)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ShowFavoriteButton(
+                                  showId: show.id, onImage: true),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
-    ),
+      ),
     );
   }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SIRADAKİ BİLETİN
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _NextTicket extends StatelessWidget {
+  final DetailedTicket ticket;
+  final DateTime date;
+  final VoidCallback onTap;
+
+  const _NextTicket(
+      {required this.ticket, required this.date, required this.onTap});
+
+  String _countdown() {
+    final int days = skDay(date).difference(skDay(DateTime.now())).inDays;
+    if (days <= 0) {
+      final Duration left = date.difference(DateTime.now());
+      return left.inHours >= 1 ? '${left.inHours} saat sonra' : 'Birazdan';
+    }
+    return days == 1 ? 'Yarın' : '$days gün sonra';
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Show show = ticket.show!;
+    final String venue = (ticket.stage?.name ?? '').trim();
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: 'Sıradaki biletin: ${show.name}',
+      scale: 0.99,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [cs.primaryContainer, cs.tertiaryContainer],
+          ),
+          boxShadow: skSoftShadow(context, strength: 0.7),
+        ),
+        child: Row(
+          children: [
+            SkImage(url: show.imageUrl, width: 62, height: 86, radius: 16),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Sıradaki biletin',
+                      style: Sk.ui(context,
+                          size: 12,
+                          color: cs.onPrimaryContainer.withValues(alpha: 0.75),
+                          weight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  Text(show.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Sk.display(context,
+                          size: 18,
+                          color: cs.onPrimaryContainer,
+                          height: 1.12)),
+                  const SizedBox(height: 5),
+                  Text(
+                    [
+                      '${skDayPhrase(date)} · ${skClock(date)}',
+                      if (venue.isNotEmpty) venue,
+                    ].join('  ·  '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Sk.ui(context,
+                        size: 12.5,
+                        color: cs.onPrimaryContainer.withValues(alpha: 0.85),
+                        weight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: cs.surface.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(_countdown(),
+                  style: Sk.ui(context,
+                      size: 12.5,
+                      color: cs.onSurface,
+                      weight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
+
+  @override
+  Widget build(final BuildContext context) => const Padding(
+        padding: EdgeInsets.only(top: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkBone(height: 44, radius: 22),
+            SizedBox(height: 24),
+            SkBone(height: 232, radius: 30),
+            SizedBox(height: 28),
+            SkBone(height: 84, radius: 24),
+            SizedBox(height: 18),
+            SkBone(height: 146, radius: 28),
+          ],
+        ),
+      );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1129,7 +1331,8 @@ class _Genres extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: gutter),
           child: const SkSectionHead(
               title: 'Türlere göz at',
-              subtitle: 'Seçtiğin tür aşağıdaki programı süzer'),
+              subtitle: 'Seçtiğin tür takvimi süzer',
+              icon: Icons.category_rounded),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -1201,7 +1404,7 @@ class _ProgrammeSection extends StatelessWidget {
   final List<HomeSession> sessions;
   final List<HomeSession> programme;
   final DateTime? selectedDay;
-  final bool hasGenre;
+  final bool hasFilter;
   final bool wide;
   final double gutter;
   final ValueChanged<DateTime?> onDay;
@@ -1212,7 +1415,7 @@ class _ProgrammeSection extends StatelessWidget {
     required this.sessions,
     required this.programme,
     required this.selectedDay,
-    required this.hasGenre,
+    required this.hasFilter,
     required this.wide,
     required this.gutter,
     required this.onDay,
@@ -1271,7 +1474,9 @@ class _ProgrammeSection extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: gutter),
             child: const SkSectionHead(
-                title: 'Program', subtitle: 'Perde açılmadan önce'),
+                title: 'Takvim',
+                subtitle: 'Perde açılmadan önce',
+                icon: Icons.calendar_month_rounded),
           ),
           const SizedBox(height: 16),
           strip,
@@ -1310,9 +1515,10 @@ class _ProgrammeSection extends StatelessWidget {
     }
 
     return SkRail<HomeSession>(
-      key: ValueKey<String>('programme|$selectedDay|$hasGenre'),
-      title: 'Program',
+      key: ValueKey<String>('programme|$selectedDay|$hasFilter'),
+      title: 'Takvim',
       subtitle: '${programme.length} seans · perde açılmadan önce',
+      icon: Icons.calendar_month_rounded,
       items: programme,
       gutter: gutter,
       railW: 308,
@@ -1407,9 +1613,14 @@ class _SessionCard extends StatelessWidget {
   final HomeSession session;
   final double width;
   final VoidCallback onTap;
+  final String heroFrom;
 
-  const _SessionCard(
-      {required this.session, required this.width, required this.onTap});
+  const _SessionCard({
+    required this.session,
+    required this.width,
+    required this.onTap,
+    this.heroFrom = 'home-programme',
+  });
 
   @override
   Widget build(final BuildContext context) {
@@ -1437,7 +1648,7 @@ class _SessionCard extends StatelessWidget {
                 width: 98,
                 height: 146,
                 child: TiyatrolHero(
-                  tag: TiyatrolHeroTags.show(show.id, 'home-programme'),
+                  tag: TiyatrolHeroTags.show(show.id, heroFrom),
                   child: SkImage(url: show.imageUrl),
                 ),
               ),
@@ -1533,9 +1744,14 @@ class _PosterCard extends StatelessWidget {
   final Show show;
   final double width;
   final VoidCallback onTap;
+  final String heroFrom;
 
-  const _PosterCard(
-      {required this.show, required this.width, required this.onTap});
+  const _PosterCard({
+    required this.show,
+    required this.width,
+    required this.onTap,
+    this.heroFrom = 'home-shelf',
+  });
 
   @override
   Widget build(final BuildContext context) => PressScale(
@@ -1554,7 +1770,7 @@ class _PosterCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 TiyatrolHero(
-                  tag: TiyatrolHeroTags.show(show.id, 'home-shelf'),
+                  tag: TiyatrolHeroTags.show(show.id, heroFrom),
                   child: SkImage(url: show.imageUrl),
                 ),
                 DecoratedBox(

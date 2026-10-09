@@ -349,6 +349,7 @@ class AmbientBackdrop extends StatelessWidget {
 class SkSectionHead extends StatelessWidget {
   final String title;
   final String? subtitle;
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -356,6 +357,7 @@ class SkSectionHead extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.icon,
     this.actionLabel,
     this.onAction,
   });
@@ -366,6 +368,16 @@ class SkSectionHead extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
+        if (icon != null) ...[
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+                color: cs.primaryContainer, shape: BoxShape.circle),
+            child: Icon(icon, size: 21, color: cs.onPrimaryContainer),
+          ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,6 +695,7 @@ List<BoxShadow> skSoftShadow(final BuildContext context,
 class SkRail<T> extends StatefulWidget {
   final String title;
   final String? subtitle;
+  final IconData? icon;
   final List<T> items;
   final double gutter;
   final double railW;
@@ -701,6 +714,7 @@ class SkRail<T> extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.icon,
     required this.items,
     required this.gutter,
     required this.railW,
@@ -822,6 +836,18 @@ class _SkRailState<T> extends State<SkRail<T>> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    if (widget.icon != null) ...[
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                            color: cs.primaryContainer,
+                            shape: BoxShape.circle),
+                        child: Icon(widget.icon,
+                            size: 21, color: cs.onPrimaryContainer),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
