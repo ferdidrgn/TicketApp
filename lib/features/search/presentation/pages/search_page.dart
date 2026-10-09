@@ -231,11 +231,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       height: 52,
       padding: const EdgeInsets.only(left: 16, right: 4),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: focused ? cs.primary : cs.outlineVariant.withValues(alpha: 0.5),
-          width: focused ? 1.8 : 1,
+          color: focused ? cs.primary : Colors.transparent,
+          width: 1.8,
         ),
         boxShadow: focused
             ? [
@@ -381,28 +381,40 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SkSectionHead(title: 'Türe göre gez'),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final BrowseCategory c in categories)
-                    SkChip(
-                      label: c.label,
-                      count: c.count,
-                      selected: activeCat == c.key,
-                      onTap: () {
-                        setState(
-                            () => _category = activeCat == c.key ? null : c.key);
-                        final int f = ref.read(searchFilterProvider);
-                        if (f != 0 && f != 1) {
-                          ref.read(searchFilterProvider.notifier).setFilter(1);
-                        }
-                      },
-                    ),
-                ],
-              ),
+              const SkSectionHead(
+                  title: 'Türe göre gez',
+                  subtitle: 'Bir tür seç, oyunlar süzülsün'),
+              const SizedBox(height: 14),
+              LayoutBuilder(builder: (final context, final b) {
+                final int cols = b.maxWidth >= 700 ? 4 : 2;
+                final double tw = (b.maxWidth - (cols - 1) * 12) / cols;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (final BrowseCategory c in categories)
+                      SizedBox(
+                        width: tw,
+                        height: 92,
+                        child: _GenreTile(
+                          category: c,
+                          selected: activeCat == c.key,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() =>
+                                _category = activeCat == c.key ? null : c.key);
+                            final int f = ref.read(searchFilterProvider);
+                            if (f != 0 && f != 1) {
+                              ref
+                                  .read(searchFilterProvider.notifier)
+                                  .setFilter(1);
+                            }
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              }),
             ],
           ),
           top: 26,
@@ -853,4 +865,83 @@ class _Skeleton extends StatelessWidget {
           ),
         ),
       );
+}
+
+
+class _GenreTile extends StatelessWidget {
+  final BrowseCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _GenreTile({
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: category.label,
+      scale: 0.96,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+              color: selected ? cs.primary : Colors.transparent, width: 2.5),
+          boxShadow: skSoftShadow(context, strength: 0.6),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(21),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              SkImage(url: category.imageUrl),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.78),
+                      Colors.black.withValues(alpha: 0.2),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(category.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Sk.display(context,
+                            size: 19, color: Colors.white, height: 1.1)),
+                    Text('${category.count} oyun',
+                        style: Sk.ui(context,
+                            size: 11.5,
+                            color: Colors.white70,
+                            weight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              if (selected)
+                const Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Icon(Icons.check_circle_rounded,
+                      color: Colors.white, size: 22),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

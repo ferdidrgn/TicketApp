@@ -262,32 +262,33 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
                 SliverToBoxAdapter(
-                  child: Stack(
-                    children: [
-                      AmbientBackdrop(url: data.show.imageUrl, height: 640),
-                      Center(
+                  child: _ShowHero(
+                      data: data, offset: _offset, ready: loaded != null),
+                ),
+                SliverToBoxAdapter(
+                  child: Transform.translate(
+                    offset: const Offset(0, -30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(34)),
+                      ),
+                      child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 720),
                           child: Padding(
-                            padding: EdgeInsets.fromLTRB(
-                                gutter, safe.top + 72, gutter, 0),
-                            child: _MobileHead(
-                                data: data,
-                                offset: _offset,
-                                ready: loaded != null),
+                            padding:
+                                EdgeInsets.fromLTRB(gutter, 26, gutter, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (loaded != null) _FactTiles(data: data),
+                                content,
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 720),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: gutter),
-                        child: content,
                       ),
                     ),
                   ),
@@ -426,48 +427,175 @@ List<Widget> _facts(final BuildContext context, final ShowDetailData d) {
   ];
 }
 
-class _MobileHead extends StatelessWidget {
+/// Kenardan kenara afiş kahramanı: başlık, rozetler ve yapım ekibi afişin
+/// üstünde; alt kenar zemine karışır, içerik yuvarlak bir tabaka olarak biner.
+class _ShowHero extends StatelessWidget {
   final ShowDetailData data;
   final ValueNotifier<double> offset;
   final bool ready;
 
-  const _MobileHead(
+  const _ShowHero(
       {required this.data, required this.offset, required this.ready});
 
   @override
   Widget build(final BuildContext context) {
-    final double w = MediaQuery.sizeOf(context).width;
-    final double pw = (w * 0.6).clamp(200.0, 300.0);
-    return Column(
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final double h =
+        (MediaQuery.sizeOf(context).height * 0.7).clamp(500.0, 680.0);
+    final String category = data.show.category.trim();
+    final String age = data.show.ageLimit.trim();
+    final String dur = data.show.duration.trim();
+    final String durText = dur.isEmpty
+        ? ''
+        : (RegExp(r'^\d+$').hasMatch(dur) ? '$dur dk' : dur);
+
+    Widget glass(final IconData icon, final String text) => SkGlass(
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 14, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(text,
+                style: Sk.ui(context,
+                    size: 12.5, color: Colors.white, weight: FontWeight.w800)),
+          ]),
+        );
+
+    return SizedBox(
+      height: h,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ValueListenableBuilder<double>(
+            valueListenable: offset,
+            builder: (final context, final o, child) => ClipRect(
+              child: Transform.translate(
+                offset: Offset(0, o.clamp(0, h) * 0.45),
+                child: child,
+              ),
+            ),
+            child: TiyatrolHero(
+              tag: resolveTiyatrolHeroTag(
+                  context, TiyatrolHeroTags.show(data.show.id)),
+              child: SkImage(url: data.show.imageUrl),
+            ),
+          ),
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.4),
+                    Colors.black.withValues(alpha: 0.9),
+                    cs.surface,
+                  ],
+                  stops: const [0.0, 0.2, 0.5, 0.86, 1.0],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 22,
+            right: 22,
+            bottom: 56,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  if (category.isNotEmpty)
+                    glass(Icons.theater_comedy_rounded, category),
+                  if (durText.isNotEmpty) glass(Icons.timelapse_rounded, durText),
+                  if (age.isNotEmpty) glass(Icons.group_outlined, age),
+                  if (data.isExternal)
+                    glass(Icons.open_in_new_rounded, 'Başka platformda'),
+                ]),
+                const SizedBox(height: 14),
+                Text(
+                  data.show.name,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.display(context,
+                          size: 38, color: Colors.white, height: 1.03)
+                      .copyWith(shadows: [
+                    Shadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 18,
+                        offset: const Offset(0, 4)),
+                  ]),
+                ),
+                if (data.show.teamId.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  ShowTeamCredit(teamId: data.show.teamId),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Yumuşak tonlu bilgi kutuları — süre, yaş sınırı, seans sayısı, oyuncu.
+class _FactTiles extends StatelessWidget {
+  final ShowDetailData data;
+  const _FactTiles({required this.data});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final String dur = data.show.duration.trim();
+    final String age = data.show.ageLimit.trim();
+    final List<(IconData, String, String)> items = [
+      if (dur.isNotEmpty)
+        (
+          Icons.timelapse_rounded,
+          'Süre',
+          RegExp(r'^\d+$').hasMatch(dur) ? '$dur dk' : dur
+        ),
+      if (age.isNotEmpty) (Icons.verified_user_outlined, 'Yaş sınırı', age),
+      (
+        Icons.event_seat_outlined,
+        'Seans',
+        data.isExternal ? 'Harici' : '${data.sessions.length}'
+      ),
+      if (data.cast.isNotEmpty)
+        (Icons.groups_rounded, 'Oyuncu', '${data.cast.length}'),
+    ];
+    return Row(
       children: [
-        ValueListenableBuilder<double>(
-          valueListenable: offset,
-          builder: (final context, final o, child) {
-            final double t = (o / 360).clamp(0.0, 1.0);
-            return Opacity(
-              opacity: 1 - 0.85 * t,
-              child: Transform.scale(scale: 1 - 0.1 * t, child: child),
-            );
-          },
-          child: _poster(context, data, width: pw),
-        ),
-        const SizedBox(height: 24),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: _facts(context, data),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          data.show.name,
-          textAlign: TextAlign.center,
-          style: Sk.display(context, size: 32, height: 1.06),
-        ),
-        const SizedBox(height: 10),
-        if (data.show.teamId.isNotEmpty)
-          ShowTeamCredit(teamId: data.show.teamId),
-        const SizedBox(height: 8),
+        for (int i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                children: [
+                  Icon(items[i].$1, color: cs.primary, size: 22),
+                  const SizedBox(height: 8),
+                  Text(items[i].$3,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Sk.display(context,
+                          size: 18, height: 1.1, weight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(items[i].$2,
+                      style: Sk.ui(context,
+                          size: 11.5,
+                          color: cs.onSurfaceVariant,
+                          weight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

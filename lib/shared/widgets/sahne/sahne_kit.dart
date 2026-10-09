@@ -625,3 +625,51 @@ class SkScrollBehavior extends MaterialScrollBehavior {
         ui.PointerDeviceKind.stylus,
       };
 }
+
+/// Cam yüzey — fotoğrafın üstündeki rozet/ikon/buton zemini (hafif bulanık,
+/// yarı saydam beyaz). Sadece görselin ÜSTÜNDE kullanılır; metin her zaman
+/// beyazdır.
+class SkGlass extends StatelessWidget {
+  final Widget child;
+  final double radius;
+  final EdgeInsetsGeometry padding;
+  final double opacity;
+
+  const SkGlass({
+    super.key,
+    required this.child,
+    this.radius = 22,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    this.opacity = 0.16,
+  });
+
+  @override
+  Widget build(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: opacity),
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+            ),
+            child: child,
+          ),
+        ),
+      );
+}
+
+/// Yumuşak, tonlu kart gölgesi (Material soft).
+List<BoxShadow> skSoftShadow(final BuildContext context,
+    {final double strength = 1}) {
+  final bool dark = Theme.of(context).brightness == Brightness.dark;
+  return [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: (dark ? 0.32 : 0.10) * strength),
+      blurRadius: 26,
+      offset: const Offset(0, 12),
+    ),
+  ];
+}

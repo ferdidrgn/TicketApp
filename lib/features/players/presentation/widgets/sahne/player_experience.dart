@@ -280,31 +280,40 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
                 SliverToBoxAdapter(
-                  child: Stack(
-                    children: [
-                      AmbientBackdrop(url: imageUrl, height: 620),
-                      Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(
-                                gutter, safe.top + 76, gutter, 0),
-                            child: Column(
-                              children: [identity, stats],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _PlayerHero(
+                    playerId: widget.playerId,
+                    name: name,
+                    imageUrl: imageUrl,
+                    quote: player?.quote.trim() ?? '',
+                    onStage: active.isNotEmpty,
+                    ready: ready,
+                    offset: _offset,
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 640),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: gutter),
-                        child: body,
+                  child: Transform.translate(
+                    offset: const Offset(0, -30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(34)),
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 640),
+                          child: Padding(
+                            padding:
+                                EdgeInsets.fromLTRB(gutter, 4, gutter, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                stats,
+                                body,
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -964,6 +973,135 @@ class _AwardTile extends StatelessWidget {
                     ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// Kenardan kenara portre kahramanı: ad, durum ve replik fotoğrafın üstünde.
+class _PlayerHero extends StatelessWidget {
+  final String playerId;
+  final String name;
+  final String imageUrl;
+  final String quote;
+  final bool onStage;
+  final bool ready;
+  final ValueNotifier<double> offset;
+
+  const _PlayerHero({
+    required this.playerId,
+    required this.name,
+    required this.imageUrl,
+    required this.quote,
+    required this.onStage,
+    required this.ready,
+    required this.offset,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final double h =
+        (MediaQuery.sizeOf(context).height * 0.68).clamp(480.0, 640.0);
+    return SizedBox(
+      height: h,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ValueListenableBuilder<double>(
+            valueListenable: offset,
+            builder: (final context, final o, child) => ClipRect(
+              child: Transform.translate(
+                offset: Offset(0, o.clamp(0, h) * 0.45),
+                child: child,
+              ),
+            ),
+            child: TiyatrolHero(
+              tag: resolveTiyatrolHeroTag(
+                  context, TiyatrolHeroTags.player(playerId)),
+              child: SkImage(
+                url: imageUrl,
+                fallbackIcon: Icons.person_rounded,
+              ),
+            ),
+          ),
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.black.withValues(alpha: 0.9),
+                    cs.surface,
+                  ],
+                  stops: const [0.0, 0.2, 0.5, 0.86, 1.0],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 22,
+            right: 22,
+            bottom: 56,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (ready)
+                  SkGlass(
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: onStage ? cs.primary : Colors.white54,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
+                          style: Sk.ui(context,
+                              size: 12.5,
+                              color: Colors.white,
+                              weight: FontWeight.w800)),
+                    ]),
+                  ),
+                const SizedBox(height: 14),
+                Text(
+                  name,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Sk.display(context,
+                          size: 42, color: Colors.white, height: 1.02)
+                      .copyWith(shadows: [
+                    Shadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 18,
+                        offset: const Offset(0, 4)),
+                  ]),
+                ),
+                if (quote.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    '“$quote”',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Sk.display(context,
+                        size: 17,
+                        weight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.88),
+                        height: 1.35),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
