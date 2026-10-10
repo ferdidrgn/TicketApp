@@ -172,6 +172,9 @@ class NavigationHandler {
   static void goToSettings(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/settings'));
 
+  static void goToInstrumentStage(final BuildContext context) =>
+      _safeNavigate(context, _buildPath(context, '/settings/instruments'));
+
   static void goToNotifications(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/notifications'));
 

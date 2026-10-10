@@ -25,6 +25,7 @@ import '../../../features/onboarding/presentation/pages/onboarding_container.dar
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
+import '../../../features/settings/presentation/pages/instrument_stage_page.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
 import '../../../features/users/presentation/pages/profile_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
@@ -264,6 +265,17 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: AppSettingsPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/settings/instruments',
+        name: 'instruments',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const InstrumentStagePage(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

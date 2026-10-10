@@ -27,6 +27,7 @@ import '../../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
 import '../../providers/home_show_filter_provider.dart';
+import 'home_interactive_deck.dart';
 
 /// ANA SAYFA — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
 ///
@@ -64,6 +65,42 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
   String? _genre;
   bool _buying = false;
   final GlobalKey _programmeKey = GlobalKey();
+  final GlobalKey _searchKey = GlobalKey();
+  bool _searchPinned = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScrollForSearch);
+  }
+
+  @override
+  void didUpdateWidget(covariant final HomeExperience oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScrollForSearch);
+      widget.controller.addListener(_onScrollForSearch);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScrollForSearch);
+    super.dispose();
+  }
+
+  void _onScrollForSearch() {
+    final BuildContext? ctx = _searchKey.currentContext;
+    if (ctx == null) return;
+    final RenderObject? ro = ctx.findRenderObject();
+    if (ro is! RenderBox || !ro.hasSize) return;
+    final double top = ro.localToGlobal(Offset.zero).dy;
+    // Arama kendi yerinden yukarı çıkınca üstte sabit belirir;
+    // yerine geri gelince kaybolur.
+    final double pinBelow = MediaQuery.paddingOf(context).top + 8;
+    final bool pin = top < pinBelow - 4;
+    if (pin != _searchPinned) setState(() => _searchPinned = pin);
+  }
 
   void _openShow(final Show show, {final String from = 'home'}) =>
       NavigationHandler.goToShow(
@@ -377,6 +414,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
             ),
             SliverToBoxAdapter(
               child: pad(Padding(
+                key: _searchKey,
                 padding: const EdgeInsets.only(top: 18),
                 child: _SearchPill(
                   onTap: () => NavigationHandler.goToSearch(context),
@@ -401,6 +439,15 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
             else if (loading)
               SliverToBoxAdapter(child: pad(const _HomeSkeleton()))
             else ...[
+              gap(
+                HomeInteractiveDeck(
+                  tonight: rangeCounts[_Range.tonight] ?? 0,
+                  week: rangeCounts[_Range.week] ?? 0,
+                  gutter: gutter,
+                  onScrollToProgramme: _scrollToProgramme,
+                ),
+                22,
+              ),
               if (sessions.isNotEmpty)
                 gap(
                   rail(_RangeChips(
@@ -542,11 +589,52 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
         ),
       );
 
+      final Widget scroller = widget.onRefresh == null
+          ? scroll
+          : RefreshIndicator(onRefresh: widget.onRefresh!, child: scroll);
+
       return ColoredBox(
         color: cs.surface,
-        child: widget.onRefresh == null
-            ? scroll
-            : RefreshIndicator(onRefresh: widget.onRefresh!, child: scroll),
+        child: Stack(
+          children: [
+            scroller,
+            // Aşağı kaydırınca arama üstte sabit; yerine gelince kaybolur.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                ignoring: !_searchPinned,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  offset: _searchPinned ? Offset.zero : const Offset(0, -1.2),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: _searchPinned ? 1 : 0,
+                    child: Material(
+                      elevation: _searchPinned ? 6 : 0,
+                      color: cs.surface.withValues(alpha: 0.94),
+                      child: SafeArea(
+                        bottom: false,
+                        child: pad(Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 8, 0, 10),
+                          child: _SearchPill(
+                            onTap: () =>
+                                NavigationHandler.goToSearch(context),
+                            hints: [
+                              for (final Show s in shows.take(4)) s.name
+                            ],
+                          ),
+                        )),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     });
   }

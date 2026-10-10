@@ -84,6 +84,7 @@ dependencies:
   animations: ^2.0.11
   flutter_svg: ^2.0.10+1
   shared_preferences: ^2.5.5
+  rive: ^0.14.11
 
 dev_dependencies:
   flutter_test:
@@ -109,6 +110,9 @@ flutter:
     - assets/images/tiyatrol_logo.png
     - assets/images/main_theatre.png
     - assets/images/app_icon_master.png
+    - assets/9950-18973-family-of-g.riv
+    - assets/18845-37092-play-piano-with-my-cat.riv
+    - assets/20920-39319-liquid-ui-demo.riv
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
