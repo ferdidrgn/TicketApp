@@ -247,24 +247,45 @@ class _TicketSearchButtonState extends State<TicketSearchButton> {
   bool _focused = false;
 
   @override
-  Widget build(final BuildContext context) => Semantics(
-        button: true,
-        label: widget.semanticLabel,
-        excludeSemantics: true,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: widget.onTap,
-            onFocusChange: (final v) => setState(() => _focused = v),
-            onHover: (final v) => setState(() => _focused = v),
-            mouseCursor: SystemMouseCursors.click,
-            customBorder: const StadiumBorder(),
-            child: TicketSearchShell(
-              focused: _focused,
-              compact: widget.compact,
-              child: const RotatingSearchHint(),
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final double go = widget.compact ? 36 : 40;
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: widget.onTap,
+          onFocusChange: (final v) => setState(() => _focused = v),
+          onHover: (final v) => setState(() => _focused = v),
+          mouseCursor: SystemMouseCursors.click,
+          customBorder: const StadiumBorder(),
+          child: TicketSearchShell(
+            focused: _focused,
+            compact: widget.compact,
+            trailing: Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.xs),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: go,
+                height: go,
+                decoration: BoxDecoration(
+                  color: _focused ? cs.primary : cs.primary.withValues(alpha: 0.92),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: widget.compact ? 18 : 20,
+                  color: cs.onPrimary,
+                ),
+              ),
             ),
+            child: const RotatingSearchHint(),
           ),
         ),
-      );
+      ),
+    );
+  }
 }

@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,10 +12,8 @@ import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../../notifications/presentation/providers/notification_provider.dart';
-import '../../../../players/domain/entities/player.dart';
 import '../../../../players/presentation/providers/player_provider.dart';
 import '../../../../shows/domain/entities/show.dart';
-import '../../../../shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../../stages/presentation/providers/stage_provider.dart';
 import '../../../../teams/domain/entities/team.dart';
@@ -27,16 +22,15 @@ import '../../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
 import '../../providers/home_show_filter_provider.dart';
-import 'home_interactive_deck.dart';
+import '../common/home_showcase.dart';
+import '../common/home_ui.dart';
 
 /// ANA SAYFA — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
 ///
-/// Gerçek bir uygulama düzeni: uygulama çubuğu (selam + bilet/bildirim),
-/// arama, hızlı tarih çipleri, afiş bannerları, sıradaki biletin, tür
-/// halkaları, TAKVİM (gün şeridi + event kartları), koleksiyon şeritleri
-/// (hafta sonu, yeni, uygun fiyatlı, tür seçmeleri), vitrin, oyuncular,
-/// mekânlar, topluluklar. Her kategori yatay şerit (en çok 10), "Tümü" aşağı
-/// açar. Hepsi gerçek veri.
+/// Fotoğraf odaklı keşif: ışıyan arama, hareketli vitrin, haftanın nabzı,
+/// ruh hâli seçici, takvim, koleksiyon şeritleri, günün repliği, oyuncu
+/// hikâyeleri, mekânlar ve topluluklar. Hepsi gerçek Firestore verisi.
+/// Smart-home tarzı toggle panelleri yok.
 class HomeExperience extends ConsumerStatefulWidget {
   final ScrollController controller;
 
@@ -63,7 +57,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
   DateTime? _day; // takvimde seçili gün
   _Range? _range; // hızlı tarih çipi
   String? _genre;
-  bool _buying = false;
   final GlobalKey _programmeKey = GlobalKey();
   final GlobalKey _searchKey = GlobalKey();
   bool _searchPinned = false;
@@ -120,26 +113,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     ref.invalidate(homeUpcomingSessionsProvider);
     ref.invalidate(playersProvider());
     ref.invalidate(teamsProvider(isLimit: true));
-  }
-
-  Future<void> _buy(final HomeFeatured featured) async {
-    if (_buying) return;
-    HapticFeedback.mediumImpact();
-    final Show show = featured.show;
-    if (show.hasExternalTicketing) {
-      setState(() => _buying = true);
-      await openExternalTickets(context, show.externalTicketUrl);
-      if (mounted) setState(() => _buying = false);
-      return;
-    }
-    final HomeSession? session = featured.session;
-    if (session != null) {
-      final String userId = ref.read(currentUserIdProvider) ?? 'guest';
-      NavigationHandler.goToSeatSelection(
-          context, show.id, session.event.id, userId);
-      return;
-    }
-    _openShow(show);
   }
 
   void _openTickets() {
@@ -199,7 +172,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     final sessionsState = ref.watch(homeUpcomingSessionsProvider);
     final stageState = ref.watch(stagesProvider(isLimit: true));
     final campaignState = ref.watch(campaignsProvider);
-    final playerState = ref.watch(playersProvider());
     final teamState = ref.watch(teamsProvider(isLimit: true));
     final profile = ref.watch(userProfileProvider).value;
     final bool loggedIn = ref.watch(isLoggedInProvider);
@@ -214,10 +186,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     final List<Stage> stages = stageState.value ?? const [];
     final List<Campaign> campaigns = campaignState.value ?? const [];
     final List<Team> teams = teamState.value ?? const [];
-    final List<Player> players = (playerState.value ?? const <Player>[])
-        .where((final p) => p.firstName.trim().isNotEmpty)
-        .take(14)
-        .toList();
 
     final bool loading = (showState.isLoading && shows.isEmpty) ||
         (sessionsState.isLoading && sessions.isEmpty && shows.isEmpty);
@@ -283,14 +251,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       for (final Show s in [...activeShows, ...shows])
         if (!slideIds.contains(s.id) && shelfSeen.add(s.id)) s,
     ].take(12).toList();
-
-    Campaign? campaign;
-    for (final Campaign c in campaigns) {
-      if (c.imageUrl.trim().isNotEmpty) {
-        campaign = c;
-        break;
-      }
-    }
 
     // Sıradaki bilet (gerçek).
     DetailedTicket? nextTicket;
@@ -416,9 +376,9 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
               child: pad(Padding(
                 key: _searchKey,
                 padding: const EdgeInsets.only(top: 18),
-                child: _SearchPill(
+                child: HomeSearchField(
                   onTap: () => NavigationHandler.goToSearch(context),
-                  hints: [for (final Show s in shows.take(4)) s.name],
+                  hint: 'Oyun, oyuncu veya sahne ara',
                 ),
               )),
             ),
@@ -439,15 +399,42 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
             else if (loading)
               SliverToBoxAdapter(child: pad(const _HomeSkeleton()))
             else ...[
-              gap(
-                HomeInteractiveDeck(
-                  tonight: rangeCounts[_Range.tonight] ?? 0,
-                  week: rangeCounts[_Range.week] ?? 0,
-                  gutter: gutter,
-                  onScrollToProgramme: _scrollToProgramme,
+              // Hareketli vitrin — kampanya + sahnedeki oyunlar
+              Builder(builder: (final context) {
+                final List<HomeSlide> spotlight = HomeSlide.build(
+                  context,
+                  campaigns: campaigns,
+                  shows: [
+                    for (final HomeFeatured f in slides) f.show,
+                    ...activeShows,
+                    ...shows,
+                  ],
+                  onShow: (final s) => _openShow(s, from: 'home-spotlight'),
+                );
+                if (spotlight.isEmpty) {
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                }
+                return gap(
+                  HomeSpotlightCarousel(
+                    slides: spotlight,
+                    height: wide ? 280 : 220,
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                  ),
+                  22,
+                );
+              }),
+              // Bu haftanın nabzı
+              if (sessions.isNotEmpty)
+                gap(
+                  pad(HomeWeekPulse(
+                    sessions: sessions,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _scrollToProgramme();
+                    },
+                  )),
+                  18,
                 ),
-                22,
-              ),
               if (sessions.isNotEmpty)
                 gap(
                   rail(_RangeChips(
@@ -463,19 +450,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                       if (_range != null) _scrollToProgramme();
                     },
                   )),
-                  16,
-                ),
-              if (slides.isNotEmpty)
-                gap(
-                  _Banners(
-                    slides: slides,
-                    wide: wide,
-                    gutter: gutter,
-                    buying: _buying,
-                    onOpen: (final f) => _openShow(f.show, from: 'home-stage'),
-                    onBuy: _buy,
-                  ),
-                  26,
+                  14,
                 ),
               if (nextTicket != null)
                 gap(
@@ -484,8 +459,28 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     date: nextTicketDate!,
                     onTap: _openTickets,
                   )),
-                  26,
+                  22,
                 ),
+              // Ruh hâline göre keşif (en az 2 farklı tür)
+              if ({
+                for (final Show s in [...activeShows, ...shows])
+                  if (s.category.trim().isNotEmpty) s.category.trim(),
+              }.length >=
+                  2) ...[
+                gap(
+                  pad(const HomeSectionHeader(
+                    title: 'Nasıl bir akşam?',
+                  )),
+                  28,
+                ),
+                gap(
+                  HomeMoodPicker(
+                    shows: [...activeShows, ...shows],
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                  ),
+                  12,
+                ),
+              ],
               if (genres.length > 1)
                 gap(
                   rail(_Genres(
@@ -495,9 +490,10 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     onPick: (final g) {
                       HapticFeedback.selectionClick();
                       setState(() => _genre = _genre == g ? null : g);
+                      _scrollToProgramme();
                     },
                   )),
-                  36,
+                  32,
                 ),
               if (sessions.isNotEmpty)
                 gap(
@@ -526,22 +522,34 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                       }),
                     )),
                   ),
-                  40,
+                  36,
                 ),
               if (weekend.isNotEmpty)
                 gap(
-                  rail(sessionRail('weekend', 'Hafta sonu planı',
-                      'Cumartesi ve pazar perdeleri', Icons.weekend_rounded, weekend)),
+                  rail(sessionRail(
+                      'weekend',
+                      'Hafta sonu planı',
+                      'Cumartesi ve pazar perdeleri',
+                      Icons.weekend_rounded,
+                      weekend)),
                 ),
               if (fresh.isNotEmpty)
                 gap(
-                  rail(showRail('fresh', 'Yeni eklenenler',
-                      'Programa yeni giren oyunlar', Icons.auto_awesome_rounded, fresh)),
+                  rail(showRail(
+                      'fresh',
+                      'Yeni eklenenler',
+                      'Programa yeni giren oyunlar',
+                      Icons.auto_awesome_rounded,
+                      fresh)),
                 ),
               if (cheap.length >= 2)
                 gap(
-                  rail(sessionRail('cheap', 'Uygun fiyatlı seanslar',
-                      'En düşük bilet fiyatından başlayarak', Icons.savings_rounded, cheap)),
+                  rail(sessionRail(
+                      'cheap',
+                      'Uygun fiyatlı seanslar',
+                      'En düşük bilet fiyatından başlayarak',
+                      Icons.savings_rounded,
+                      cheap)),
                 ),
               for (final BrowseCategory g in topGenres)
                 gap(
@@ -566,17 +574,22 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     onAll: () => NavigationHandler.goToDiscover(context),
                   )),
                 ),
-              if (campaign != null)
+              // Günün repliği — nefes alanı
+              gap(pad(const HomeQuoteOfDay()), 36),
+              // Oyuncu hikâyeleri (veri yoksa tamamen gizle)
+              if ((ref.watch(playersProvider()).value ?? const [])
+                  .any((final p) => p.firstName.trim().isNotEmpty)) ...[
                 gap(
-                  pad(_CampaignCard(
-                    campaign: campaign,
-                    wide: wide,
-                    onOpen: () => NavigationHandler.goToCampaigns(context,
-                        index: campaigns.indexOf(campaign!)),
-                  )),
+                  pad(const HomeSectionHeader(title: 'Sahnenin yüzleri')),
+                  28,
                 ),
-              if (players.isNotEmpty)
-                gap(rail(_Faces(players: players, gutter: gutter))),
+                gap(
+                  HomePlayerStories(
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                  ),
+                  12,
+                ),
+              ],
               if (stages.isNotEmpty)
                 gap(rail(_Venues(stages: stages, gutter: gutter, wide: wide))),
               if (teams.isNotEmpty)
@@ -619,12 +632,11 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                         bottom: false,
                         child: pad(Padding(
                           padding: const EdgeInsets.fromLTRB(0, 8, 0, 10),
-                          child: _SearchPill(
+                          child: HomeSearchField(
                             onTap: () =>
                                 NavigationHandler.goToSearch(context),
-                            hints: [
-                              for (final Show s in shows.take(4)) s.name
-                            ],
+                            hint: 'Oyun, oyuncu veya sahne ara',
+                            compact: true,
                           ),
                         )),
                       ),
@@ -867,312 +879,6 @@ class _RangeChips extends StatelessWidget {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// AFİŞ BANNERLARI
-// ═════════════════════════════════════════════════════════════════════════════
-
-class _Banners extends StatefulWidget {
-  final List<HomeFeatured> slides;
-  final bool wide;
-  final double gutter;
-  final bool buying;
-  final ValueChanged<HomeFeatured> onOpen;
-  final ValueChanged<HomeFeatured> onBuy;
-
-  const _Banners({
-    required this.slides,
-    required this.wide,
-    required this.gutter,
-    required this.buying,
-    required this.onOpen,
-    required this.onBuy,
-  });
-
-  @override
-  State<_Banners> createState() => _BannersState();
-}
-
-class _BannersState extends State<_Banners> {
-  late PageController _page;
-  Timer? _auto;
-  int _index = 0;
-  bool _paused = false;
-  late bool _wide;
-
-  double _fraction(final bool wide) => wide ? 0.46 : 0.9;
-
-  @override
-  void initState() {
-    super.initState();
-    _wide = widget.wide;
-    _page = PageController(viewportFraction: _fraction(_wide));
-    _auto = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (!mounted || _paused || widget.slides.length < 2) return;
-      if (Sk.reduceMotion(context) || !_page.hasClients) return;
-      _page.animateToPage((_index + 1) % widget.slides.length,
-          duration: const Duration(milliseconds: 650),
-          curve: Curves.easeInOutCubic);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant final _Banners old) {
-    super.didUpdateWidget(old);
-    if (old.wide != widget.wide) {
-      _page.dispose();
-      _page = PageController(
-          viewportFraction: _fraction(widget.wide), initialPage: _index);
-      _wide = widget.wide;
-    }
-  }
-
-  @override
-  void dispose() {
-    _auto?.cancel();
-    _page.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final double h = _wide ? 300 : 232;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: Sk.maxWidth),
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(widget.gutter, 0, widget.gutter, 14),
-              child: const SkSectionHead(
-                  title: 'Öne çıkanlar',
-                  subtitle: 'Sıradaki seansı olan oyunlar',
-                  icon: Icons.local_fire_department_rounded),
-            ),
-            Listener(
-              onPointerDown: (_) {
-                _paused = true;
-                Future<void>.delayed(
-                    const Duration(seconds: 8), () => _paused = false);
-              },
-              child: SizedBox(
-                height: h,
-                child: PageView.builder(
-                  controller: _page,
-                  padEnds: !_wide,
-                  clipBehavior: Clip.none,
-                  itemCount: widget.slides.length,
-                  onPageChanged: (final i) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _index = i);
-                  },
-                  itemBuilder: (final context, final i) => Padding(
-                    padding: EdgeInsets.only(
-                        left: _wide && i == 0 ? widget.gutter : 6,
-                        right: 6),
-                    child: _BannerCard(
-                      featured: widget.slides[i],
-                      buying: widget.buying,
-                      onOpen: () => widget.onOpen(widget.slides[i]),
-                      onBuy: () => widget.onBuy(widget.slides[i]),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (int i = 0; i < widget.slides.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 260),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: i == _index ? 24 : 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: i == _index
-                          ? cs.primary
-                          : cs.onSurface.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bulanık afiş zemini üstünde küçük afiş + bilgi + "Bilet al".
-class _BannerCard extends StatelessWidget {
-  final HomeFeatured featured;
-  final bool buying;
-  final VoidCallback onOpen;
-  final VoidCallback onBuy;
-
-  const _BannerCard({
-    required this.featured,
-    required this.buying,
-    required this.onOpen,
-    required this.onBuy,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final Show show = featured.show;
-    final HomeSession? s = featured.session;
-    final bool external = show.hasExternalTicketing;
-    final String when = s == null
-        ? (external ? 'Başka platformda' : 'Programda')
-        : '${skDayPhrase(s.date)} · ${skClock(s.date)}';
-    final String venue = (s?.stage?.name ?? '').trim();
-    final String cta =
-        external ? 'Biletini bul' : (s == null ? 'Oyunu gör' : 'Bilet al');
-
-    return PressScale(
-      onTap: onOpen,
-      semanticLabel: show.name,
-      scale: 0.99,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: skSoftShadow(context),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-                child: SkImage(url: show.imageUrl),
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.72),
-                      Colors.black.withValues(alpha: 0.38),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    AspectRatio(
-                      aspectRatio: 2 / 3,
-                      child: TiyatrolHero(
-                        tag: TiyatrolHeroTags.show(show.id, 'home-stage'),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 22,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: SkImage(
-                              url: show.imageUrl, radius: 20),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SkGlass(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                    external
-                                        ? Icons.open_in_new_rounded
-                                        : Icons.schedule_rounded,
-                                    size: 13,
-                                    color: Colors.white),
-                                const SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(when,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Sk.ui(context,
-                                          size: 12,
-                                          color: Colors.white,
-                                          weight: FontWeight.w800)),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            show.name,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: Sk.display(context,
-                                size: 22, color: Colors.white, height: 1.08),
-                          ),
-                          if (venue.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(venue,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Sk.ui(context,
-                                    size: 12.5,
-                                    color: Colors.white70,
-                                    weight: FontWeight.w600)),
-                          ],
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: FilledButton(
-                                  onPressed: buying ? null : onBuy,
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 44),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14),
-                                    shape: const StadiumBorder(),
-                                  ),
-                                  child: Text(cta,
-                                      maxLines: 1,
-                                      style: Sk.ui(context,
-                                          size: 14,
-                                          color: cs.onPrimary,
-                                          weight: FontWeight.w800)),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ShowFavoriteButton(
-                                  showId: show.id, onImage: true),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SIRADAKİ BİLETİN
@@ -1293,104 +999,6 @@ class _HomeSkeleton extends StatelessWidget {
       );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ARAMA ÇUBUĞU
-// ═════════════════════════════════════════════════════════════════════════════
-
-/// Dokununca aramaya giden alan; ipucu gerçek oyun adlarıyla döner.
-class _SearchPill extends StatefulWidget {
-  final VoidCallback onTap;
-  final List<String> hints;
-
-  const _SearchPill({required this.onTap, required this.hints});
-
-  @override
-  State<_SearchPill> createState() => _SearchPillState();
-}
-
-class _SearchPillState extends State<_SearchPill> {
-  Timer? _timer;
-  int _i = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!mounted || widget.hints.isEmpty) return;
-      if (Sk.reduceMotion(context)) return;
-      setState(() => _i = (_i + 1) % widget.hints.length);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final String hint = widget.hints.isEmpty
-        ? 'Oyun, oyuncu veya sahne ara'
-        : widget.hints[_i % widget.hints.length];
-    return PressScale(
-      onTap: widget.onTap,
-      semanticLabel: 'Ara',
-      scale: 0.985,
-      child: Container(
-        height: 58,
-        padding: const EdgeInsets.only(left: 20, right: 8),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: skSoftShadow(context),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                transitionBuilder: (final c, final a) => FadeTransition(
-                  opacity: a,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, 0.4), end: Offset.zero)
-                        .animate(a),
-                    child: c,
-                  ),
-                ),
-                child: Align(
-                  key: ValueKey<String>(hint),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hint,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Sk.ui(context,
-                        size: 15,
-                        color: cs.onSurfaceVariant,
-                        weight: FontWeight.w500),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                  color: cs.primary, shape: BoxShape.circle),
-              child: Icon(Icons.arrow_forward_rounded,
-                  color: cs.onPrimary, size: 20),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TÜR HALKALARI
@@ -1921,75 +1529,6 @@ class _PosterCard extends StatelessWidget {
       );
 }
 
-class _Faces extends StatelessWidget {
-  final List<Player> players;
-  final double gutter;
-
-  const _Faces({required this.players, required this.gutter});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return SkRail<Player>(
-      title: 'Sahnenin yüzleri',
-      subtitle: 'Perdenin önündeki oyuncular',
-      items: players,
-      gutter: gutter,
-      railW: 124,
-      railH: 248,
-      minCell: 124,
-      builder: (final p, final w) {
-        final String name = '${p.firstName} ${p.lastName}'.trim();
-        return SizedBox(
-          width: 124,
-          child: PressScale(
-            onTap: () => NavigationHandler.goToPlayer(
-              context,
-              p.id,
-              name,
-              heroTag: TiyatrolHeroTags.player(p.id, 'home'),
-              imageUrl: p.imageUrl,
-              title: name,
-            ),
-            semanticLabel: name,
-            child: Column(
-              children: [
-                TiyatrolHero(
-                  tag: TiyatrolHeroTags.player(p.id, 'home'),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(62),
-                      boxShadow: skSoftShadow(context, strength: 0.8),
-                    ),
-                    child: SkImage(
-                      url: p.imageUrl,
-                      width: 124,
-                      height: 174,
-                      radius: 62,
-                      fallbackIcon: Icons.person_rounded,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${p.firstName}\n${p.lastName}'.trim(),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Sk.ui(context,
-                      size: 13,
-                      color: cs.onSurface,
-                      weight: FontWeight.w800,
-                      height: 1.2),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 class _Venues extends StatelessWidget {
   final List<Stage> stages;
@@ -2149,37 +1688,6 @@ class _Troupes extends StatelessWidget {
                   style: Sk.ui(context,
                       size: 12, weight: FontWeight.w800, height: 1.2)),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CampaignCard extends StatelessWidget {
-  final Campaign campaign;
-  final bool wide;
-  final VoidCallback onOpen;
-
-  const _CampaignCard(
-      {required this.campaign, required this.wide, required this.onOpen});
-
-  @override
-  Widget build(final BuildContext context) {
-    return PressScale(
-      onTap: onOpen,
-      semanticLabel: 'Kampanya',
-      scale: 0.99,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: skSoftShadow(context),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: AspectRatio(
-            aspectRatio: wide ? 3.2 : 1.7,
-            child: SkImage(url: campaign.imageUrl),
           ),
         ),
       ),

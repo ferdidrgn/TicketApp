@@ -103,8 +103,6 @@ class AppSettingsPage extends ConsumerWidget {
               const SizedBox(height: AppSpacing.huge),
               ..._share(context),
               const SizedBox(height: AppSpacing.huge),
-              ..._instruments(context),
-              const SizedBox(height: AppSpacing.huge),
               _versionFooter(context, ref),
               if (kIsWeb) ...[
                 const SizedBox(height: AppSpacing.xxl),
@@ -196,32 +194,6 @@ class AppSettingsPage extends ConsumerWidget {
     ];
   }
 
-  List<Widget> _instruments(final BuildContext context) => [
-        PreferenceSectionTitle(
-          prefText(context, 'Enstrüman sahnesi', 'Instrument stage'),
-          caption: prefText(
-            context,
-            'Rive animasyonlarla müzik ailesi ve kedi piyanosu çal.',
-            'Play the instrument family and cat piano with Rive.',
-          ),
-        ),
-        PreferenceGroup(
-          children: [
-            PreferenceRow(
-              icon: Icons.music_note_rounded,
-              title: prefText(
-                  context, 'Müzik aleti çal', 'Play instruments'),
-              subtitle: prefText(
-                context,
-                'Family of G + kedi piyanosu — dokun, dinle.',
-                'Family of G + cat piano — tap and listen.',
-              ),
-              onTap: () => NavigationHandler.goToInstrumentStage(context),
-            ),
-          ],
-        ),
-      ];
-
   /// Dinamik versiyon (`appVersionLabelProvider`) + uzun basınca /admin.
   Widget _versionFooter(final BuildContext context, final WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -301,8 +273,6 @@ class AppSettingsPage extends ConsumerWidget {
                                 ..._permissions(context),
                                 const SizedBox(height: AppSpacing.huge),
                                 ..._share(context),
-                                const SizedBox(height: AppSpacing.huge),
-                                ..._instruments(context),
                               ],
                             ),
                           ),
