@@ -8,6 +8,7 @@ import '../../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../../shared/widgets/motion/stage_entrance.dart';
 import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/sketch.dart';
 import '../../../../../shared/widgets/sahne/petal_chart.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
@@ -327,7 +328,20 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.only(top: top),
-              child: StageEntrance.bounce(child: child),
+              child: StageEntrance.bounce(
+                child: top >= 30
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(left: gutter, bottom: 18),
+                            child: SkSquiggle(width: 100, seed: top.toInt()),
+                          ),
+                          child,
+                        ],
+                      )
+                    : child,
+              ),
             ),
           );
 

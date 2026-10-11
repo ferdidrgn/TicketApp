@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../motion/stage_entrance.dart';
+import 'sketch.dart';
 import '../optimized_cached_image.dart';
 
 /// "SAHNE" tasarım kiti — ana sayfa, arama, oyun ve oyuncu sayfalarının
@@ -400,13 +401,13 @@ class SkSectionHead extends StatelessWidget {
                 child: Text(title,
                     style: Sk.display(context, size: 24, height: 1.1)),
               ),
+              const SizedBox(height: 2),
+              const SkPencilLine(width: 84),
               if (subtitle != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(subtitle!,
-                    style: Sk.ui(context,
-                        size: 13,
-                        color: cs.onSurfaceVariant,
-                        weight: FontWeight.w500)),
+                    style: Sketch.hand(context,
+                        size: 19, color: cs.onSurfaceVariant)),
               ],
             ],
           ),
@@ -927,13 +928,13 @@ class _SkRailState<T> extends State<SkRail<T>> {
                                 style:
                                     Sk.display(context, size: 24, height: 1.1)),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 2),
+                          const SkPencilLine(width: 84),
+                          const SizedBox(height: 2),
                           Text(
                             widget.subtitle ?? '${widget.items.length} sonuç',
-                            style: Sk.ui(context,
-                                size: 12.5,
-                                color: cs.onSurfaceVariant,
-                                weight: FontWeight.w600),
+                            style: Sketch.hand(context,
+                                size: 19, color: cs.onSurfaceVariant),
                           ),
                         ],
                       ),

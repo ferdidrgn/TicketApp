@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/sketch.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PERDE SAATİ — 14 günlük segmentli kadran + canlı geri sayım
@@ -419,10 +420,10 @@ class _ShowPosterCalloutsState extends State<ShowPosterCallouts>
                           Icon(it.icon, size: 15, color: Colors.white),
                           const SizedBox(width: 6),
                           Text(it.text,
-                              style: Sk.ui(context,
-                                  size: 13,
+                              style: Sketch.hand(context,
+                                  size: 19,
                                   color: Colors.white,
-                                  weight: FontWeight.w800)),
+                                  weight: FontWeight.w700)),
                         ]),
                       ),
                       Padding(

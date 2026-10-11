@@ -14,6 +14,7 @@ import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/sketch.dart';
 import 'show_showpieces.dart';
 import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
@@ -831,7 +832,14 @@ class _Content extends StatelessWidget {
         index: i,
         child: Padding(
             padding: const EdgeInsets.only(top: AppSpacing.huge),
-            child: child));
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkSquiggle(width: 104, seed: i * 3 + 1),
+                const SizedBox(height: 20),
+                child,
+              ],
+            )));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1025,10 +1033,8 @@ class _Sessions extends StatelessWidget {
       final DateTime d = skDay(s.when!);
       if (!days.contains(d)) days.add(d);
     }
-    final List<ShowSession> shown = data.sessions.where((final s) {
-      if (selectedDay == null) return true;
-      return s.when != null && skDay(s.when!) == selectedDay;
-    }).toList();
+    // Tüm seanslar listelenir; seçili olan vurgulanır (kadran ve liste aynı seçimi paylaşır).
+    final List<ShowSession> shown = List<ShowSession>.of(data.sessions);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1062,38 +1068,8 @@ class _Sessions extends StatelessWidget {
               onTap: () => onSelect(shown[i]),
             ),
           ),
-        ..._laterSessions(context, data, shown),
       ],
     );
-  }
-
-  /// Kadranın kapsamadığı (14 günden ileri) seanslar.
-  List<Widget> _laterSessions(final BuildContext context,
-      final ShowDetailData data, final List<ShowSession> shown) {
-    final DateTime limit = skDay(DateTime.now()).add(const Duration(days: 14));
-    final List<ShowSession> later = [
-      for (final ShowSession x in data.sessions)
-        if (x.when != null &&
-            !x.when!.isBefore(limit) &&
-            !shown.any((final y) => y.event.id == x.event.id))
-          x,
-    ];
-    if (later.isEmpty) return const [];
-    return [
-      const SizedBox(height: AppSpacing.md),
-      Text('Daha ileri tarihler',
-          style: Sk.ui(context,
-              size: 12.5,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              weight: FontWeight.w800)),
-      const SizedBox(height: AppSpacing.sm),
-      for (final ShowSession x in later)
-        _SessionCard(
-          session: x,
-          selected: selected != null && selected!.event.id == x.event.id,
-          onTap: () => onSelect(x),
-        ),
-    ];
   }
 }
 
