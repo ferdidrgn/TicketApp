@@ -14,7 +14,7 @@ import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
-import '../../../../../shared/widgets/sahne/petal_chart.dart';
+import 'show_showpieces.dart';
 import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart'
@@ -314,14 +314,6 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (loaded != null)
-                                  _FactTiles(
-                                    data: data,
-                                    onSessions: _scrollToSessions,
-                                    onCast: data.cast.isEmpty
-                                        ? null
-                                        : _scrollToCast,
-                                  ),
                                 content,
                               ],
                             ),
@@ -556,6 +548,26 @@ class _ShowHero extends StatelessWidget {
               ),
             ),
           ),
+          Positioned.fill(
+            child: ShowPosterCallouts(
+              top: MediaQuery.paddingOf(context).top + 84,
+              items: [
+                if (data.show.duration.trim().isNotEmpty)
+                  ShowCallout(
+                    Icons.timelapse_rounded,
+                    RegExp(r'^\d+$').hasMatch(data.show.duration.trim())
+                        ? '${data.show.duration.trim()} dk'
+                        : data.show.duration.trim(),
+                  ),
+                if (!data.isExternal && data.sessions.isNotEmpty)
+                  ShowCallout(
+                      Icons.event_seat_rounded, '${data.sessions.length} seans'),
+                if (data.show.ageLimit.trim().isNotEmpty)
+                  ShowCallout(Icons.verified_user_outlined,
+                      '${data.show.ageLimit.trim()} yaş'),
+              ],
+            ),
+          ),
           Positioned(
             left: 22,
             right: 22,
@@ -600,104 +612,6 @@ class _ShowHero extends StatelessWidget {
 
 /// Program broşürü metrikleri — sıkışık kutu değil; nefes alan daireler.
 /// Dokununca ilgili bölüme kayar (seans / kadro).
-class _FactTiles extends StatelessWidget {
-  final ShowDetailData data;
-  final VoidCallback? onSessions;
-  final VoidCallback? onCast;
-
-  const _FactTiles({
-    required this.data,
-    this.onSessions,
-    this.onCast,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final ({String value, String unit})? durationMetric =
-        ShowDurationFormat.metric(data.show.duration);
-    final String age = data.show.ageLimit.trim();
-
-    final List<({String value, String unit, bool hot, VoidCallback? onTap})>
-        items = [
-      if (durationMetric != null)
-        (
-          value: durationMetric.value,
-          unit: durationMetric.unit,
-          hot: true,
-          onTap: null,
-        ),
-      if (age.isNotEmpty)
-        (
-          value: age,
-          unit: 'yaş',
-          hot: false,
-          onTap: null,
-        ),
-      (
-        value: data.isExternal ? '—' : '${data.sessions.length}',
-        unit: data.isExternal ? 'harici' : 'seans',
-        hot: !data.isExternal && data.sessions.isNotEmpty,
-        onTap: onSessions,
-      ),
-      if (data.cast.isNotEmpty)
-        (
-          value: '${data.cast.length}',
-          unit: 'oyuncu',
-          hot: false,
-          onTap: onCast,
-        ),
-    ];
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Reveal(
-      index: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Program notu',
-            style: Sk.ui(context,
-                size: 12,
-                color: cs.onSurfaceVariant,
-                weight: FontWeight.w800),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            height: 118,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              physics: const BouncingScrollPhysics(),
-              itemCount: items.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: AppSpacing.lg),
-              itemBuilder: (final context, final i) {
-                final it = items[i];
-                return Reveal(
-                  index: i + 1,
-                  child: PressScale(
-                    onTap: it.onTap,
-                    semanticLabel: '${it.value} ${it.unit}',
-                    scale: 0.94,
-                    child: ListingMetricOrb(
-                      value: it.value,
-                      unit: it.unit,
-                      emphasized: it.hot,
-                      size: 100,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-      ),
-    );
-  }
-}
-
 class _SidePanel extends StatelessWidget {
   final ShowDetailData data;
   final bool ready;
@@ -937,7 +851,6 @@ class _Content extends StatelessWidget {
             ),
           ),
         ),
-        if (data.cast.length >= 2) section(2, _CastFlower(data: data)),
         if (data.cast.isNotEmpty)
           section(
             2,
@@ -1123,79 +1036,25 @@ class _Sessions extends StatelessWidget {
         SkSectionHead(
           title: 'Seanslar',
           subtitle:
-              '${data.sessions.length} seans · birini seç, alttan koltuğa geç',
+              '${data.sessions.length} seans · 14 günlük takvimden birini seç',
         ),
         const SizedBox(height: AppSpacing.md),
-        if (days.length > 1)
-          SizedBox(
-            height: 78,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              itemCount: days.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: AppSpacing.sm + 2),
-              itemBuilder: (final context, final i) {
-                final DateTime d = days[i];
-                final bool sel = d == selectedDay;
-                return Reveal(
-                  index: i,
-                  child: PressScale(
-                    onTap: () => onDay(d),
-                    semanticLabel:
-                        '${kDaysTr[d.weekday - 1]} ${d.day} ${kMonthsTr[d.month - 1]}',
-                    scale: 0.94,
-                    child: AnimatedScale(
-                      scale: sel && !Sk.reduceMotion(context) ? 1.04 : 1,
-                      duration: AppMotion.fast,
-                      curve: AppMotion.standard,
-                      child: AnimatedContainer(
-                      duration: AppMotion.fast,
-                      curve: AppMotion.standard,
-                      width: 64,
-                      decoration: BoxDecoration(
-                        color: sel ? cs.primary : cs.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(AppRadius.md + 4),
-                        border: Border.all(
-                          color: sel
-                              ? Colors.transparent
-                              : cs.outlineVariant.withValues(alpha: 0.45),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(kDaysShortTr[d.weekday - 1],
-                              style: Sk.ui(context,
-                                  size: 11.5,
-                                  color: (sel ? cs.onPrimary : cs.onSurface)
-                                      .withValues(alpha: 0.75),
-                                  weight: FontWeight.w700)),
-                          Text('${d.day}',
-                              style: Sk.display(context,
-                                  size: 24,
-                                  height: 1.1,
-                                  weight: FontWeight.w700,
-                                  color: sel ? cs.onPrimary : cs.onSurface)),
-                          Text(kMonthsShortTr[d.month - 1],
-                              style: Sk.ui(context,
-                                  size: 11,
-                                  color: (sel ? cs.onPrimary : cs.onSurface)
-                                      .withValues(alpha: 0.75),
-                                  weight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                    ),
-                  ),
-                );
-              },
+        if (days.isNotEmpty) ...[
+          Center(
+            child: ShowCountdownGauge(
+              sessions: [
+                for (final ShowSession x in data.sessions)
+                  if (x.when != null) x.when!,
+              ],
+              selectedDay: selectedDay,
+              onDay: onDay,
             ),
           ),
-        if (days.length > 1) const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         for (int i = 0; i < shown.length; i++)
           Reveal(
-            index: i + (days.length > 1 ? days.length : 0),
+            index: i,
             child: _SessionCard(
               session: shown[i],
               selected:
@@ -1203,8 +1062,38 @@ class _Sessions extends StatelessWidget {
               onTap: () => onSelect(shown[i]),
             ),
           ),
+        ..._laterSessions(context, data, shown),
       ],
     );
+  }
+
+  /// Kadranın kapsamadığı (14 günden ileri) seanslar.
+  List<Widget> _laterSessions(final BuildContext context,
+      final ShowDetailData data, final List<ShowSession> shown) {
+    final DateTime limit = skDay(DateTime.now()).add(const Duration(days: 14));
+    final List<ShowSession> later = [
+      for (final ShowSession x in data.sessions)
+        if (x.when != null &&
+            !x.when!.isBefore(limit) &&
+            !shown.any((final y) => y.event.id == x.event.id))
+          x,
+    ];
+    if (later.isEmpty) return const [];
+    return [
+      const SizedBox(height: AppSpacing.md),
+      Text('Daha ileri tarihler',
+          style: Sk.ui(context,
+              size: 12.5,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              weight: FontWeight.w800)),
+      const SizedBox(height: AppSpacing.sm),
+      for (final ShowSession x in later)
+        _SessionCard(
+          session: x,
+          selected: selected != null && selected!.event.id == x.event.id,
+          onTap: () => onSelect(x),
+        ),
+    ];
   }
 }
 
@@ -1575,58 +1464,4 @@ class _Gallery extends StatelessWidget {
           );
         },
       );
-}
-
-
-/// Ekibin çiçeği: ortada oyunun afişi, çevresinde oyuncular. Yaprak
-/// uzunluğu oyuncunun sahne deneyimi (oynadığı oyun sayısı).
-class _CastFlower extends StatelessWidget {
-  final ShowDetailData data;
-  const _CastFlower({required this.data});
-
-  @override
-  Widget build(final BuildContext context) {
-    final List<Player> players = data.cast.take(6).toList();
-    int plays(final Player p) => p.nowShowsId.length + p.oldShowsId.length;
-    final int maxPlays =
-        players.fold<int>(1, (a, p) => plays(p) > a ? plays(p) : a);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SkSectionHead(
-          title: 'Ekibin çiçeği',
-          subtitle: 'Yaprak boyu, oyuncunun sahne deneyimi',
-          icon: Icons.local_florist_rounded,
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: LayoutBuilder(builder: (final context, final box) {
-            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
-            return SkPetalChart(
-              size: size,
-              semanticLabel: 'Ekip çiçeği: ${players.length} oyuncu',
-              center: SkImage(url: data.show.imageUrl),
-              petals: [
-                for (final Player p in players)
-                  SkPetal(
-                    label: '${p.firstName} ${p.lastName}'.trim(),
-                    value: '${plays(p)} oyun',
-                    weight: (plays(p) / maxPlays).clamp(0.3, 1.0),
-                    imageUrl: p.imageUrl,
-                    openLabel: 'Oyuncuyu gör',
-                    onOpen: () => NavigationHandler.goToPlayer(
-                      context,
-                      p.id,
-                      '${p.firstName} ${p.lastName}'.trim(),
-                      imageUrl: p.imageUrl,
-                      title: '${p.firstName} ${p.lastName}'.trim(),
-                    ),
-                  ),
-              ],
-            );
-          }),
-        ),
-      ],
-    );
-  }
 }

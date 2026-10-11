@@ -256,8 +256,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       for (final _Range r in _Range.values) r: count(r),
     };
 
-    final List<HomeSession> weekend =
-        sessions.where((final s) => _inRange(s.date, _Range.weekend)).toList();
     final List<Show> fresh =
         shows.where((final s) => s.isRecentlyAdded).take(12).toList();
     final Set<String> cheapSeen = {};
@@ -268,15 +266,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
         .where((final s) => cheapSeen.add(s.show.id))
         .take(12)
         .toList();
-    final List<BrowseCategory> topGenres =
-        genres.where((final g) => g.count >= 2).take(3).toList();
 
-    final Set<String> slideIds = slides.map((final f) => f.show.id).toSet();
-    final Set<String> shelfSeen = {};
-    final List<Show> shelf = [
-      for (final Show s in [...activeShows, ...shows])
-        if (!slideIds.contains(s.id) && shelfSeen.add(s.id)) s,
-    ].take(12).toList();
 
     DetailedTicket? nextTicket;
     DateTime? nextTicketDate;
@@ -292,10 +282,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
 
     final List<HomeSession> tonight =
         sessions.where((final s) => _inRange(s.date, _Range.tonight)).toList();
-    final HomeFeatured? momentPick = pickHomeFeatured(sessions, [
-      ...activeShows,
-      ...shows,
-    ]);
 
     final Set<String> favIds =
         (profile?.favoriteShows ?? const <String>[]).toSet();
@@ -309,14 +295,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
         if (s.hasExternalTicketing) s,
     ].take(12).toList();
 
-    final Set<String> wallSeen = {
-      ...slideIds,
-      if (momentPick != null) momentPick.show.id,
-    };
-    final List<Show> wallShows = [
-      for (final Show s in [...activeShows, ...shows])
-        if (s.imageUrl.trim().isNotEmpty && wallSeen.add(s.id)) s,
-    ].take(6).toList();
 
     final List<Show> forYou =
         ref.watch(recommendedShowsProvider).value ?? const <Show>[];
@@ -520,32 +498,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                 );
               }),
 
-              // Bu Akşamın Perdeleri
-
-              if (tonight.isNotEmpty)
-                gap(
-                  HomeTonightStrip(
-                    sessions: tonight,
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                    onOpen: (final s) =>
-                        _openShow(s.show, from: 'home-tonight'),
-                  ),
-                  22,
-                ),
-
-              // 4. Haftanın Nabzı
-              if (sessions.isNotEmpty)
-                gap(
-                  pad(HomeWeekPulse(
-                    sessions: sessions,
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      _scrollToProgramme();
-                    },
-                  )),
-                  18,
-                ),
-
               // Sıradaki Bilet
               if (nextTicket != null)
                 gap(
@@ -584,24 +536,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   22,
                 ),
 
-              // Tür çiçeği — katalogdaki türlerin payı; yaprağa dokun, takvim süzülsün
-              if (genres.length >= 2)
-                gap(
-                  pad(_GenreFlower(
-                    genres: genres,
-                    onPick: (final g) {
-                      HapticFeedback.mediumImpact();
-                      setState(() {
-                        _genre = g;
-                        _day = null;
-                        _range = null;
-                      });
-                      _scrollToProgramme();
-                    },
-                  )),
-                  30,
-                ),
-
               // Zevk çiçeği — kullanıcının izlediği türlerin payı (gerçek biletler)
               if (_tasteCounts(tickets).length >= 2)
                 gap(
@@ -611,40 +545,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   )),
                   30,
                 ),
-
-              // 7. Sıradaki Perde — Sinematik Seçim
-              if (momentPick != null)
-                gap(
-                  HomeMomentPick(
-                    featured: momentPick,
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                    height: wide ? 340 : 280,
-                    onOpen: () =>
-                        _openShow(momentPick.show, from: 'home-moment'),
-                  ),
-                  28,
-                ),
-
-              // 8. Ruh Hâline Göre Keşif (Mood Picker)
-              if ({
-                    for (final Show s in [...activeShows, ...shows])
-                      if (s.category.trim().isNotEmpty) s.category.trim(),
-                  }.length >=
-                  2) ...[
-                gap(
-                  pad(const HomeSectionHeader(
-                    title: 'Nasıl bir akşam?',
-                  )),
-                  28,
-                ),
-                gap(
-                  HomeMoodPicker(
-                    shows: [...activeShows, ...shows],
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                  ),
-                  12,
-                ),
-              ],
 
               // 9. Tür Halkaları
               if (genres.length > 1)
@@ -723,15 +623,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                 ),
 
               // 12. Hafta Sonu & Yeni Eklenenler
-              if (weekend.isNotEmpty)
-                gap(
-                  rail(sessionRail(
-                      'weekend',
-                      'Hafta sonu planı',
-                      'Cumartesi ve pazar perdeleri',
-                      Icons.weekend_rounded,
-                      weekend)),
-                ),
               if (fresh.isNotEmpty)
                 gap(
                   rail(showRail(
@@ -751,44 +642,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                       'En düşük bilet fiyatından başlayarak',
                       Icons.savings_rounded,
                       cheap)),
-                ),
-
-              // 14. Popüler Tür Seçmeleri
-              for (final BrowseCategory g in topGenres)
-                gap(
-                  rail(showRail(
-                    'genre-${g.key}',
-                    '${g.label} seçmeleri',
-                    '${g.count} oyun',
-                    Icons.theater_comedy_rounded,
-                    [
-                      for (final Show s in shows)
-                        if (browseCategoryKey(s.category) == g.key) s,
-                    ],
-                  )),
-                ),
-
-              // 15. Vitrin Rafı
-              if (shelf.isNotEmpty)
-                gap(
-                  rail(_PosterShelf(
-                    shows: shelf,
-                    gutter: gutter,
-                    wide: wide,
-                    onOpen: (final s) => _openShow(s, from: 'home-shelf'),
-                    onAll: () => NavigationHandler.goToDiscover(context),
-                  )),
-                ),
-
-              // 16. Afiş Duvarı
-              if (wallShows.length >= 2)
-                gap(
-                  HomePosterWall(
-                    shows: wallShows,
-                    padding: EdgeInsets.symmetric(horizontal: gutter),
-                    onOpen: (final s) => _openShow(s, from: 'home-wall'),
-                  ),
-                  32,
                 ),
 
               // 17. Günün Repliği
@@ -1687,56 +1540,6 @@ Map<String, int> _tasteCounts(final List<DetailedTicket> tickets) {
   return {for (final e in byCat.entries) e.key: e.value.length};
 }
 
-class _GenreFlower extends StatelessWidget {
-  final List<BrowseCategory> genres;
-  final ValueChanged<String> onPick;
-
-  const _GenreFlower({required this.genres, required this.onPick});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final List<BrowseCategory> top = genres.take(6).toList();
-    final int total = genres.fold<int>(0, (a, g) => a + g.count);
-    final int max = top.fold<int>(1, (a, g) => g.count > a ? g.count : a);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SkSectionHead(
-          title: 'Tür çiçeği',
-          subtitle: 'Yaprak boyu türün programdaki payı',
-          icon: Icons.local_florist_rounded,
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: LayoutBuilder(builder: (final context, final box) {
-            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
-            return SkPetalChart(
-              size: size,
-              semanticLabel: 'Tür çiçeği: ${top.length} tür',
-              center: Container(
-                color: cs.primaryContainer,
-                child: Icon(Icons.theater_comedy_rounded,
-                    color: cs.onPrimaryContainer, size: size * 0.11),
-              ),
-              petals: [
-                for (final BrowseCategory g in top)
-                  SkPetal(
-                    label: g.label,
-                    value: '%${(g.count * 100 / total).round()}',
-                    weight: (g.count / max).clamp(0.3, 1.0),
-                    openLabel: 'Takvimde göster',
-                    onOpen: () => onPick(g.key),
-                  ),
-              ],
-            );
-          }),
-        ),
-      ],
-    );
-  }
-}
-
 class _TasteFlower extends StatelessWidget {
   final Map<String, int> counts;
   final String imageUrl;
@@ -2293,38 +2096,6 @@ class _SessionCard extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 // ŞERİTLER
 // ═════════════════════════════════════════════════════════════════════════════
-
-class _PosterShelf extends StatelessWidget {
-  final List<Show> shows;
-  final double gutter;
-  final bool wide;
-  final ValueChanged<Show> onOpen;
-  final VoidCallback onAll;
-
-  const _PosterShelf({
-    required this.shows,
-    required this.gutter,
-    required this.wide,
-    required this.onOpen,
-    required this.onAll,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final double w = wide ? 220 : 164;
-    return SkRail<Show>(
-      title: 'Vitrinde',
-      subtitle: 'Sahnedeki ve yakında gelen oyunlar',
-      items: shows,
-      gutter: gutter,
-      railW: w,
-      railH: w * 1.5,
-      minCell: w,
-      builder: (final s, final cw) =>
-          _PosterCard(show: s, width: cw, onTap: () => onOpen(s)),
-    );
-  }
-}
 
 class _PosterCard extends StatelessWidget {
   final Show show;

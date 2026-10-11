@@ -326,9 +326,14 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
   void initState() {
     super.initState();
     final int start = widget.initialIndex.clamp(0, widget.images.length - 1);
-    ref
-        .read(galleryProvider(widget.images.length).notifier)
-        .setCurrentIndex(start);
+    // Riverpod: widget yaşam döngüsünde (initState/build) provider
+    // DEĞİŞTİRİLEMEZ — kareden sonra güncelle.
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (!mounted) return;
+      ref
+          .read(galleryProvider(widget.images.length).notifier)
+          .setCurrentIndex(start);
+    });
     _pageController = PageController(initialPage: start);
   }
 

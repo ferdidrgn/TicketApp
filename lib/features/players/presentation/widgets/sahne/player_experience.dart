@@ -11,7 +11,6 @@ import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
-import '../../../../../shared/widgets/sahne/petal_chart.dart';
 import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/ticket/ticket_profile.dart'
     show ProfileErrorView, splitShowsByLiveActivity;
@@ -158,25 +157,7 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
               .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
               .length;
 
-      final Widget stats = ready
-          ? Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xxl + 4),
-              child: _Stats(
-                onStage: active.length,
-                past: past.length,
-                awards: awardCount,
-                onStageTap: active.isEmpty
-                    ? null
-                    : () => _scrollToKey(_onStageKey),
-                onPastTap: past.isEmpty
-                    ? null
-                    : () => _scrollToKey(_pastKey),
-                onAwardsTap: awardCount == 0
-                    ? null
-                    : () => _scrollToKey(_awardsKey),
-              ),
-            )
-          : const SizedBox.shrink();
+      const Widget stats = SizedBox.shrink();
 
       final Widget body = ready
           ? _Body(
@@ -608,95 +589,6 @@ class _StatusPillState extends State<_StatusPill>
 }
 
 /// Künye metrikleri — sıkışık kutu değil; dokununca ilgili bölüme kayar.
-class _Stats extends StatelessWidget {
-  final int onStage;
-  final int past;
-  final int awards;
-  final VoidCallback? onStageTap;
-  final VoidCallback? onPastTap;
-  final VoidCallback? onAwardsTap;
-
-  const _Stats({
-    required this.onStage,
-    required this.past,
-    required this.awards,
-    this.onStageTap,
-    this.onPastTap,
-    this.onAwardsTap,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final List<({String value, String unit, bool hot, VoidCallback? onTap})>
-        items = [
-      (
-        value: '$onStage',
-        unit: 'sahnede',
-        hot: onStage > 0,
-        onTap: onStageTap,
-      ),
-      (
-        value: '$past',
-        unit: 'geçmiş',
-        hot: false,
-        onTap: onPastTap,
-      ),
-      (
-        value: '$awards',
-        unit: 'ödül',
-        hot: false,
-        onTap: onAwardsTap,
-      ),
-    ];
-
-    return Reveal(
-      index: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Sahne künyesi',
-            style: Sk.ui(context,
-                size: 12,
-                color: cs.onSurfaceVariant,
-                weight: FontWeight.w800),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            height: 118,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              physics: const BouncingScrollPhysics(),
-              itemCount: items.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: AppSpacing.lg),
-              itemBuilder: (final context, final i) {
-                final it = items[i];
-                return Reveal(
-                  index: i + 1,
-                  child: PressScale(
-                    onTap: it.onTap,
-                    semanticLabel: '${it.value} ${it.unit}',
-                    scale: 0.94,
-                    child: ListingMetricOrb(
-                      value: it.value,
-                      unit: it.unit,
-                      emphasized: it.hot,
-                      size: 100,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _Body extends StatefulWidget {
   final Player player;
   final List<Show> active;
@@ -787,33 +679,10 @@ class _BodyState extends State<_Body> {
             0,
             KeyedSubtree(
               key: widget.onStageKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SkSectionHead(
-                      title: 'Sahnede',
-                      subtitle: '${widget.active.length} oyun'),
-                  const SizedBox(height: AppSpacing.md),
-                  for (int i = 0; i < widget.active.length; i++)
-                    Reveal(
-                      index: i,
-                      child: _ShowRow(
-                          show: widget.active[i],
-                          onTap: widget.onShow,
-                          live: true),
-                    ),
-                ],
+              child: _StageFan(
+                shows: widget.active,
+                onShow: widget.onShow,
               ),
-            ),
-          ),
-        if (widget.active.length + widget.past.length >= 2)
-          section(
-            1,
-            _ShowFlower(
-              player: p,
-              active: widget.active,
-              past: widget.past,
-              onShow: widget.onShow,
             ),
           ),
         if (bio.isNotEmpty)
@@ -1294,59 +1163,200 @@ class _PlayerHero extends StatelessWidget {
 }
 
 
-/// Sahne çiçeği: ortada oyuncunun portresi, çevresinde oynadığı oyunlar.
-/// Sahnedeki oyunların yaprağı uzun, geçmişinki kısa.
-class _ShowFlower extends StatelessWidget {
-  final Player player;
-  final List<Show> active;
-  final List<Show> past;
+/// "Şu an sahnede" afiş yelpazesi: büyük afişler yana kayar, ortadaki öne
+/// çıkar, yanlardakiler eğilip küçülür. Ortadaki afişe dokununca oyun açılır;
+/// yandakine dokununca ortaya gelir. Altında seçili oyunun adı ve türü.
+class _StageFan extends StatefulWidget {
+  final List<Show> shows;
   final ValueChanged<Show> onShow;
 
-  const _ShowFlower({
-    required this.player,
-    required this.active,
-    required this.past,
-    required this.onShow,
-  });
+  const _StageFan({required this.shows, required this.onShow});
+
+  @override
+  State<_StageFan> createState() => _StageFanState();
+}
+
+class _StageFanState extends State<_StageFan> {
+  late final PageController _c = PageController(viewportFraction: 0.62);
+  int _i = 0;
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
-    final List<(Show, bool)> items = [
-      for (final Show s in active) (s, true),
-      for (final Show s in past) (s, false),
-    ].take(6).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SkSectionHead(
-          title: 'Sahnenin çiçeği',
-          subtitle: 'Uzun yaprak: şu an sahnede olan oyun',
-          icon: Icons.local_florist_rounded,
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<Show> shows = widget.shows;
+    final Show cur = shows[_i.clamp(0, shows.length - 1)];
+    return LayoutBuilder(builder: (final context, final box) {
+      final double pageW = box.maxWidth * 0.62;
+      final double cardW = pageW - 16;
+      final double cardH = cardW * 1.5;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SkSectionHead(
+            title: 'Şu an sahnede',
+            subtitle: shows.length > 1
+                ? '${shows.length} oyun · kaydır, ortadakine dokun'
+                : 'Biletleri açık',
+            icon: Icons.theater_comedy_rounded,
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: cardH + 44,
+            child: PageView.builder(
+              controller: _c,
+              clipBehavior: Clip.none,
+              itemCount: shows.length,
+              onPageChanged: (final i) {
+                HapticFeedback.selectionClick();
+                setState(() => _i = i);
+              },
+              itemBuilder: (final context, final i) => AnimatedBuilder(
+                animation: _c,
+                builder: (final context, _) {
+                  double d = (_i - i).toDouble();
+                  if (_c.hasClients && _c.position.haveDimensions) {
+                    d = (_c.page ?? _i.toDouble()) - i;
+                  }
+                  final double ad = d.abs().clamp(0.0, 1.0);
+                  return Transform.translate(
+                    offset: Offset(0, ad * 26 + 8),
+                    child: Transform.rotate(
+                      angle: d * -0.11,
+                      child: Transform.scale(
+                        scale: 1 - 0.13 * ad,
+                        child: Opacity(
+                          opacity: 1 - 0.35 * ad,
+                          child: Center(
+                            child: PressScale(
+                              onTap: () {
+                                if (i == _i) {
+                                  widget.onShow(shows[i]);
+                                } else {
+                                  _c.animateToPage(i,
+                                      duration:
+                                          const Duration(milliseconds: 420),
+                                      curve: Curves.easeOutCubic);
+                                }
+                              },
+                              semanticLabel: shows[i].name,
+                              child: _FanCard(
+                                  show: shows[i], width: cardW, height: cardH),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          if (shows.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (int i = 0; i < shows.length; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 240),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: i == _i ? 22 : 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: i == _i
+                            ? cs.primary
+                            : cs.onSurface.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+          Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              child: Column(
+                key: ValueKey<String>(cur.id),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(cur.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Sk.display(context, size: 22, height: 1.1)),
+                  if (cur.category.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(cur.category.trim(),
+                        style: Sk.ui(context,
+                            size: 13,
+                            color: cs.onSurfaceVariant,
+                            weight: FontWeight.w700)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _FanCard extends StatelessWidget {
+  final Show show;
+  final double width;
+  final double height;
+
+  const _FanCard(
+      {required this.show, required this.width, required this.height});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: skSoftShadow(context),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            TiyatrolHero(
+              tag: TiyatrolHeroTags.show(show.id, 'player'),
+              child: SkImage(url: show.imageUrl),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                  stops: const [0.6, 1.0],
+                ),
+              ),
+            ),
+            const Positioned(
+              left: 12,
+              top: 12,
+              child: SkBadge(label: 'Sahnede', accent: true),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Center(
-          child: LayoutBuilder(builder: (final context, final box) {
-            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
-            return SkPetalChart(
-              size: size,
-              semanticLabel: 'Sahne çiçeği: ${items.length} oyun',
-              center: SkImage(
-                  url: player.imageUrl, fallbackIcon: Icons.person_rounded),
-              petals: [
-                for (final (Show s, bool on) in items)
-                  SkPetal(
-                    label: s.name,
-                    value: on ? 'Sahnede' : 'Geçmiş',
-                    weight: on ? 1.0 : 0.62,
-                    imageUrl: s.imageUrl,
-                    openLabel: 'Oyunu gör',
-                    onOpen: () => onShow(s),
-                  ),
-              ],
-            );
-          }),
-        ),
-      ],
+      ),
     );
   }
 }

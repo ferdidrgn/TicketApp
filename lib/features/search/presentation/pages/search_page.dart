@@ -400,26 +400,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ));
     }
 
-    // ── Popüler aramalar: gerçek oyun adları (yatay) ──
-    if (browsing && data.shows.isNotEmpty) {
-      blocks.add(Padding(
-        padding: const EdgeInsets.only(top: 22),
-        child: _HRail(
-          gutter: gutter,
-          width: width,
-          height: 44,
-          title: 'Şunlara göz at',
-          children: [
-            for (final Show s in data.shows.take(_kRailMax))
-              ActionChip(
-                label: Text(s.name),
-                avatar: const Icon(Icons.north_east_rounded, size: 16),
-                onPressed: () => _apply(s.name),
-              ),
-          ],
-        ),
-      ));
-    }
 
     // ── Türler ──
     if (browsing && categories.length > 1) {
