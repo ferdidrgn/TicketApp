@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/util/date_formatter.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/admin_test_entry.dart';
+import '../../../../../shared/widgets/motion/stage_entrance.dart';
+import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/petal_chart.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
@@ -53,6 +56,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
   DateTime? _day; // takvimde seçili gün
   _Range? _range; // hızlı tarih çipi
   String? _genre;
+  double? _budget; // bütçe kadranı süzgeci (₺)
   final GlobalKey _programmeKey = GlobalKey();
   final GlobalKey _searchKey = GlobalKey();
   bool _searchPinned = false;
@@ -224,15 +228,27 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       }
     }
 
-    // Takvim: gün / hızlı çip + tür süzgeci
+    double? priceOf(final HomeSession s) =>
+        double.tryParse(s.event.price.trim().replaceAll(',', '.'));
+
+    // Takvim: gün / hızlı çip / bütçe + tür süzgeci
     final List<HomeSession> programme = sessions.where((final s) {
       if (_day != null && s.day != _day) return false;
       if (_range != null && !_inRange(s.date, _range!)) return false;
       if (_genre != null && browseCategoryKey(s.show.category) != _genre) {
         return false;
       }
+      if (_budget != null && (priceOf(s) ?? double.infinity) > _budget!) {
+        return false;
+      }
       return true;
     }).toList();
+
+    // Bütçe kadranı için seansların gerçek bilet fiyatları.
+    final List<double> prices = [
+      for (final HomeSession s in sessions)
+        if ((priceOf(s) ?? 0) > 0) priceOf(s)!,
+    ];
 
     int count(final _Range r) =>
         sessions.where((final s) => _inRange(s.date, r)).length;
@@ -244,8 +260,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
         sessions.where((final s) => _inRange(s.date, _Range.weekend)).toList();
     final List<Show> fresh =
         shows.where((final s) => s.isRecentlyAdded).take(12).toList();
-    double? priceOf(final HomeSession s) =>
-        double.tryParse(s.event.price.trim().replaceAll(',', '.'));
     final Set<String> cheapSeen = {};
     final List<HomeSession> cheap = ([
       for (final HomeSession s in sessions)
@@ -333,7 +347,10 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
 
       Widget gap(final Widget child, [final double top = 40]) =>
           SliverToBoxAdapter(
-            child: Padding(padding: EdgeInsets.only(top: top), child: child),
+            child: Padding(
+              padding: EdgeInsets.only(top: top),
+              child: StageEntrance.bounce(child: child),
+            ),
           );
 
       Widget sessionRail(
@@ -540,6 +557,61 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   22,
                 ),
 
+              // Seyirci karnem (gerçek biletlerden) — Smart_home'daki özet kartı
+              if (loggedIn && uid.isNotEmpty)
+                gap(
+                  pad(_StatsCard(tickets: tickets, onTap: _openTickets)),
+                  14,
+                ),
+
+              // Bütçe kadranı — Smart_home'daki daire kaydırıcı
+              if (prices.length >= 2)
+                gap(
+                  pad(_BudgetCard(
+                    key: ValueKey<double?>(_budget),
+                    prices: prices,
+                    applied: _budget,
+                    onApply: (final b) {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _budget = b;
+                        _day = null;
+                        _range = null;
+                      });
+                      if (b != null) _scrollToProgramme();
+                    },
+                  )),
+                  22,
+                ),
+
+              // Tür çiçeği — katalogdaki türlerin payı; yaprağa dokun, takvim süzülsün
+              if (genres.length >= 2)
+                gap(
+                  pad(_GenreFlower(
+                    genres: genres,
+                    onPick: (final g) {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _genre = g;
+                        _day = null;
+                        _range = null;
+                      });
+                      _scrollToProgramme();
+                    },
+                  )),
+                  30,
+                ),
+
+              // Zevk çiçeği — kullanıcının izlediği türlerin payı (gerçek biletler)
+              if (_tasteCounts(tickets).length >= 2)
+                gap(
+                  pad(_TasteFlower(
+                    counts: _tasteCounts(tickets),
+                    imageUrl: profile?.imageUrl ?? '',
+                  )),
+                  30,
+                ),
+
               // 7. Sıradaki Perde — Sinematik Seçim
               if (momentPick != null)
                 gap(
@@ -600,7 +672,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                       sessions: sessions,
                       programme: programme,
                       selectedDay: _day,
-                      hasFilter: _genre != null || _range != null,
+                      hasFilter: _genre != null || _range != null || _budget != null,
                       wide: wide,
                       onDay: (final d) {
                         HapticFeedback.selectionClick();
@@ -621,6 +693,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                         _day = null;
                         _range = null;
                         _genre = null;
+                        _budget = null;
                       }),
                     )),
                   ),
@@ -1145,7 +1218,8 @@ class _RoundBtn extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                     color: cs.surfaceContainerHigh, shape: BoxShape.circle),
-                child: Icon(icon, size: 22, color: cs.onSurface),
+                child: SkSpinIn(
+                    child: Icon(icon, size: 22, color: cs.onSurface)),
               ),
               if (badge > 0)
                 Positioned(
@@ -1323,6 +1397,399 @@ class _NextTicket extends StatelessWidget {
   }
 }
 
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BÜTÇE KADRANI (Smart_home'daki daire kaydırıcının TiyatRol uyarlaması)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Dairenin ucunu sürükle → bütçe değişir, kaç gerçek seansın o fiyata
+/// uyduğu anında güncellenir. "Takvimde göster" takvimi bu bütçeyle süzer.
+class _BudgetCard extends StatefulWidget {
+  final List<double> prices; // seansların gerçek bilet fiyatları
+  final double? applied;
+  final ValueChanged<double?> onApply;
+
+  const _BudgetCard({
+    super.key,
+    required this.prices,
+    required this.applied,
+    required this.onApply,
+  });
+
+  @override
+  State<_BudgetCard> createState() => _BudgetCardState();
+}
+
+class _BudgetCardState extends State<_BudgetCard> {
+  double _v = 0.6;
+
+  double get _max {
+    final double m = widget.prices.fold<double>(0, (a, b) => b > a ? b : a);
+    return ((m / 50).ceil() * 50).clamp(50, 5000).toDouble();
+  }
+
+  double get _budget => ((_v * _max) / 10).round() * 10.0;
+
+  int get _fits => widget.prices.where((final p) => p <= _budget).length;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.applied != null) {
+      _v = (widget.applied! / _max).clamp(0.0, 1.0);
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final int fits = _fits;
+    final bool applied = widget.applied != null;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: skSoftShadow(context, strength: 0.7),
+      ),
+      child: Row(
+        children: [
+          SkDial(
+            size: 156,
+            value: _v,
+            semanticLabel: 'Bütçe',
+            semanticValue: '${_budget.toInt()} lira',
+            onChanged: (final v) => setState(() => _v = v),
+            center: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('₺${_budget.toInt()}',
+                    style: Sk.display(context, size: 30, height: 1.0)),
+                const SizedBox(height: 4),
+                Text('bütçe',
+                    style: Sk.ui(context,
+                        size: 12,
+                        color: cs.onSurfaceVariant,
+                        weight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Bütçene göre bul',
+                    style: Sk.display(context, size: 20, height: 1.1)),
+                const SizedBox(height: 4),
+                Text('Dairenin ucunu sürükle',
+                    style: Sk.ui(context,
+                        size: 12.5,
+                        color: cs.onSurfaceVariant,
+                        weight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (final c, final a) => FadeTransition(
+                    opacity: a,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                              begin: const Offset(0, 0.3), end: Offset.zero)
+                          .animate(a),
+                      child: c,
+                    ),
+                  ),
+                  layoutBuilder: (final current, final previous) => Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [...previous, if (current != null) current],
+                  ),
+                  child: Container(
+                    key: ValueKey<int>(fits),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      fits == 0 ? 'Uygun seans yok' : '$fits seans uygun',
+                      style: Sk.ui(context,
+                          size: 12.5,
+                          color: cs.onPrimaryContainer,
+                          weight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Flexible(
+                      child: FilledButton(
+                        onPressed: fits == 0
+                            ? null
+                            : () => widget.onApply(_budget),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: Text(
+                          applied ? 'Güncelle' : 'Takvimde göster',
+                          maxLines: 1,
+                          style: Sk.ui(context,
+                              size: 13,
+                              color: cs.onPrimary,
+                              weight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                    if (applied) ...[
+                      const SizedBox(width: 6),
+                      IconButton(
+                        tooltip: 'Bütçe süzgecini kaldır',
+                        onPressed: () => widget.onApply(null),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// KARNEM KARTI (Smart_home'daki "electricity" kartı şekli)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Gerçek biletlerden: izlenen farklı oyun sayısı + rütbe. Dokununca biletlere.
+class _StatsCard extends StatelessWidget {
+  final List<DetailedTicket> tickets;
+  final VoidCallback onTap;
+
+  const _StatsCard({required this.tickets, required this.onTap});
+
+  static const List<(int, String)> _ranks = [
+    (0, 'Yeni Seyirci'),
+    (1, 'Seyirci'),
+    (3, 'Müdavim'),
+    (6, 'Tiyatro Kurdu'),
+    (10, 'Sahne Tozu Yutmuş'),
+  ];
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Set<String> seen = {
+      for (final DetailedTicket t in tickets)
+        if (t.isPast && t.show != null) t.show!.id,
+    };
+    final int count = seen.length;
+    int ri = 0;
+    for (int i = 0; i < _ranks.length; i++) {
+      if (count >= _ranks[i].$1) ri = i;
+    }
+    final (int, String)? next = ri + 1 < _ranks.length ? _ranks[ri + 1] : null;
+    final String caption = next == null
+        ? 'Seyirci karnen · ${_ranks[ri].$2}'
+        : '${_ranks[ri].$2} · ${next.$2} için ${next.$1 - count} perde kaldı';
+
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: 'Seyirci karnem: $count perde',
+      scale: 0.985,
+      child: Container(
+        height: 104,
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: skSoftShadow(context, strength: 0.7),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [cs.primary, cs.tertiary],
+                ),
+              ),
+              child: SkSpinIn(
+                child: Icon(Icons.confirmation_number_rounded,
+                    color: cs.onPrimary, size: 28),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: count.toDouble()),
+                    duration: Sk.reduceMotion(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (final context, final v, _) => Text(
+                      '${v.round()} perde',
+                      style: Sk.display(context, size: 24, height: 1.05),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(caption,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Sk.ui(context,
+                          size: 12.5,
+                          color: cs.onSurfaceVariant,
+                          weight: FontWeight.w600,
+                          height: 1.25)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: cs.secondaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(Icons.arrow_forward_rounded,
+                  color: cs.onSecondaryContainer),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Geçmiş biletlerden tür → izlenen farklı oyun sayısı.
+Map<String, int> _tasteCounts(final List<DetailedTicket> tickets) {
+  final Map<String, Set<String>> byCat = {};
+  for (final DetailedTicket t in tickets) {
+    final Show? sh = t.show;
+    if (!t.isPast || sh == null || sh.category.trim().isEmpty) continue;
+    byCat.putIfAbsent(sh.category.trim(), () => <String>{}).add(sh.id);
+  }
+  return {for (final e in byCat.entries) e.key: e.value.length};
+}
+
+class _GenreFlower extends StatelessWidget {
+  final List<BrowseCategory> genres;
+  final ValueChanged<String> onPick;
+
+  const _GenreFlower({required this.genres, required this.onPick});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<BrowseCategory> top = genres.take(6).toList();
+    final int total = genres.fold<int>(0, (a, g) => a + g.count);
+    final int max = top.fold<int>(1, (a, g) => g.count > a ? g.count : a);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SkSectionHead(
+          title: 'Tür çiçeği',
+          subtitle: 'Yaprak boyu türün programdaki payı',
+          icon: Icons.local_florist_rounded,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: LayoutBuilder(builder: (final context, final box) {
+            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
+            return SkPetalChart(
+              size: size,
+              semanticLabel: 'Tür çiçeği: ${top.length} tür',
+              center: Container(
+                color: cs.primaryContainer,
+                child: Icon(Icons.theater_comedy_rounded,
+                    color: cs.onPrimaryContainer, size: size * 0.11),
+              ),
+              petals: [
+                for (final BrowseCategory g in top)
+                  SkPetal(
+                    label: g.label,
+                    value: '%${(g.count * 100 / total).round()}',
+                    weight: (g.count / max).clamp(0.3, 1.0),
+                    openLabel: 'Takvimde göster',
+                    onOpen: () => onPick(g.key),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _TasteFlower extends StatelessWidget {
+  final Map<String, int> counts;
+  final String imageUrl;
+
+  const _TasteFlower({required this.counts, required this.imageUrl});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<MapEntry<String, int>> top = (counts.entries.toList()
+          ..sort((final a, final b) => b.value.compareTo(a.value)))
+        .take(6)
+        .toList();
+    final int total = counts.values.fold<int>(0, (a, b) => a + b);
+    final int max = top.first.value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SkSectionHead(
+          title: 'Zevk çiçeğin',
+          subtitle: 'İzlediğin oyunların tür dağılımı',
+          icon: Icons.local_florist_rounded,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: LayoutBuilder(builder: (final context, final box) {
+            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
+            return SkPetalChart(
+              size: size,
+              hint: 'Yaprağa dokun: o türden kaç oyun izledin',
+              semanticLabel: 'Zevk çiçeğin: ${top.length} tür',
+              center: imageUrl.startsWith('http')
+                  ? SkImage(url: imageUrl, fallbackIcon: Icons.person_rounded)
+                  : Container(
+                      color: cs.primaryContainer,
+                      child: Icon(Icons.person_rounded,
+                          color: cs.onPrimaryContainer, size: size * 0.11)),
+              petals: [
+                for (final MapEntry<String, int> e in top)
+                  SkPetal(
+                    label: e.key,
+                    value: '%${(e.value * 100 / total).round()}',
+                    weight: (e.value / max).clamp(0.3, 1.0),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
 class _HomeSkeleton extends StatelessWidget {
   const _HomeSkeleton();
 
@@ -1332,6 +1799,10 @@ class _HomeSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: TiyatrolRiveLoader(size: 56, caption: 'Perde açılıyor…'),
+            ),
+            SizedBox(height: 18),
             SkBone(height: 56, radius: 28),
             SizedBox(height: 20),
             SkBone(height: 236, radius: 28),

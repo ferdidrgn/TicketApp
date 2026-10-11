@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -121,17 +122,17 @@ class _PunchPainter extends CustomPainter {
 /// üstündeki yüzen öğeler (ör. "başa dön" koçanı) buna göre konumlanır.
 const double kTicketNavBarExtent = _barHeight + _barTop + _barBottom;
 
-const double _barHeight = 70;
+const double _barHeight = 56;
 const double _barTop = AppSpacing.sm;
 const double _barBottom = AppSpacing.md;
-const double _circleSize = 46;
 
-/// Alt gezinme — E_Learning tarzı kayan daire + etiketli sekmeler.
+/// Alt gezinme — yüzen hap + yuvarlak butonlar.
 ///
-/// Seçili ikonun arkasında temanın `primary` renginde kayan bir daire;
-/// ikon `onPrimary`, diğerleri `onSurfaceVariant`. Etiketler her zaman
-/// görünür (eski etiketsiz curved bar reddedilmişti). Renkler temadan;
-/// yükseklik sabittir ([kTicketNavBarExtent]).
+/// Seçili sekme ikon + etiketli dolu bir hap, diğerleri yumuşak tonlu
+/// yuvarlak ikon butonlarıdır. Sekme değişince hap genişleyip daralır
+/// (AnimatedSize), ikon yumuşakça renk değiştirir. Renkler temadan
+/// (`primary` / `surfaceContainerHigh`); yükseklik sabittir
+/// ([kTicketNavBarExtent]). Azaltılmış harekette geçiş anında olur.
 class TicketBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -148,8 +149,7 @@ class TicketBottomNavBar extends StatelessWidget {
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bool reduce = MediaQuery.of(context).disableAnimations;
-    final Duration slide = reduce ? Duration.zero : AppMotion.normal;
-    final int n = destinations.length;
+    final Duration dur = reduce ? Duration.zero : AppMotion.normal;
 
     return ColoredBox(
       color: cs.surface,
@@ -157,52 +157,32 @@ class TicketBottomNavBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.sm, _barTop, AppSpacing.sm, _barBottom),
+              AppSpacing.lg, _barTop, AppSpacing.lg, _barBottom),
           child: Align(
             heightFactor: 1,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: SizedBox(
                 height: _barHeight,
-                child: LayoutBuilder(
-                  builder: (final context, final c) {
-                    final double slot = c.maxWidth / n;
-                    final double circleLeft = slot * currentIndex +
-                        (slot - _circleSize) / 2;
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        AnimatedPositioned(
-                          duration: slide,
-                          curve: Curves.easeOutCubic,
-                          left: circleLeft,
-                          top: 0,
-                          width: _circleSize,
-                          height: _circleSize,
-                          child: _NavOrb(
-                            key: ValueKey(currentIndex),
-                            color: cs.primary,
-                            shadow: cs.shadow,
-                            animate: !reduce,
-                          ),
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (int i = 0; i < n; i++)
-                              Expanded(
-                                child: _BottomNavItem(
-                                  destination: destinations[i],
-                                  active: i == currentIndex,
-                                  duration: slide,
-                                  onTap: () => onTap(i),
-                                ),
-                              ),
-                          ],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (int i = 0; i < destinations.length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.sm),
+                        _NavPill(
+                          destination: destinations[i],
+                          active: i == currentIndex,
+                          duration: dur,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            onTap(i);
+                          },
                         ),
                       ],
-                    );
-                  },
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -213,70 +193,13 @@ class TicketBottomNavBar extends StatelessWidget {
   }
 }
 
-/// Kayan daire: sekmeye oturunca kısa bir “pat” ölçeği (asset yok).
-class _NavOrb extends StatefulWidget {
-  final Color color;
-  final Color shadow;
-  final bool animate;
-
-  const _NavOrb({
-    super.key,
-    required this.color,
-    required this.shadow,
-    required this.animate,
-  });
-
-  @override
-  State<_NavOrb> createState() => _NavOrbState();
-}
-
-class _NavOrbState extends State<_NavOrb>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: AppMotion.fast,
-  );
-  late final Animation<double> _scale = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween(begin: 0.86, end: 1.08), weight: 55),
-    TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0), weight: 45),
-  ]).animate(CurvedAnimation(parent: _c, curve: Curves.easeOutCubic));
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) {
-      _c.forward();
-    } else {
-      _c.value = 1;
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) => ScaleTransition(
-        scale: _scale,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: widget.color,
-            shape: BoxShape.circle,
-            boxShadow: AppShadows.level1(widget.shadow),
-          ),
-        ),
-      );
-}
-
-class _BottomNavItem extends StatelessWidget {
+class _NavPill extends StatelessWidget {
   final TicketNavDestination destination;
   final bool active;
   final Duration duration;
   final VoidCallback onTap;
 
-  const _BottomNavItem({
+  const _NavPill({
     required this.destination,
     required this.active,
     required this.duration,
@@ -286,56 +209,64 @@ class _BottomNavItem extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color iconColor = active ? cs.onPrimary : cs.onSurfaceVariant;
-    final Color labelColor = active ? cs.primary : cs.onSurfaceVariant;
+    final Color bg = active ? cs.primary : cs.surfaceContainerHigh;
+    final Color fg = active ? cs.onPrimary : cs.onSurfaceVariant;
 
     return Semantics(
       button: true,
       selected: active,
       label: destination.label,
       excludeSemantics: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_circleSize / 2),
-        focusColor: cs.primary.withValues(alpha: 0.16),
-        hoverColor: cs.onSurface.withValues(alpha: 0.04),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        child: Column(
-          children: [
-            SizedBox(
-              height: _circleSize,
-              width: double.infinity,
-              child: Center(
-                child: TweenAnimationBuilder<Color?>(
-                  tween: ColorTween(end: iconColor),
-                  duration: duration,
-                  builder: (final context, final color, final _) => Icon(
-                    active ? destination.activeIcon : destination.icon,
-                    size: 24,
-                    color: color,
-                  ),
-                ),
-              ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            height: _barHeight,
+            constraints: const BoxConstraints(minWidth: _barHeight),
+            padding: EdgeInsets.symmetric(horizontal: active ? 20 : 0),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(_barHeight / 2),
+              boxShadow: active ? AppShadows.level1(cs.shadow) : const [],
             ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
+            child: AnimatedSize(
               duration: duration,
-              style: TextStyle(
-                fontSize: 10.5,
-                height: 1.1,
-                fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-                color: labelColor,
-                letterSpacing: 0.1,
-              ),
-              child: Text(
-                destination.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TweenAnimationBuilder<Color?>(
+                    tween: ColorTween(end: fg),
+                    duration: duration,
+                    builder: (final context, final color, _) => Icon(
+                      active ? destination.activeIcon : destination.icon,
+                      size: 24,
+                      color: color,
+                    ),
+                  ),
+                  if (active) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      destination.label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

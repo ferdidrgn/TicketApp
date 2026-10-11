@@ -11,6 +11,8 @@ import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/petal_chart.dart';
+import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/ticket/ticket_profile.dart'
     show ProfileErrorView, splitShowsByLiveActivity;
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
@@ -190,6 +192,8 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
           : const Padding(
               padding: EdgeInsets.only(top: AppSpacing.xxxl),
               child: Column(children: [
+                TiyatrolRiveLoader(size: 52, caption: 'Perde açılıyor…'),
+                SizedBox(height: AppSpacing.lg),
                 SkBone(height: 18, radius: AppRadius.xs),
                 SizedBox(height: AppSpacing.sm + 2),
                 SkBone(height: 18, radius: AppRadius.xs),
@@ -802,6 +806,16 @@ class _BodyState extends State<_Body> {
               ),
             ),
           ),
+        if (widget.active.length + widget.past.length >= 2)
+          section(
+            1,
+            _ShowFlower(
+              player: p,
+              active: widget.active,
+              past: widget.past,
+              onShow: widget.onShow,
+            ),
+          ),
         if (bio.isNotEmpty)
           section(
             1,
@@ -1275,6 +1289,64 @@ class _PlayerHero extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+/// Sahne çiçeği: ortada oyuncunun portresi, çevresinde oynadığı oyunlar.
+/// Sahnedeki oyunların yaprağı uzun, geçmişinki kısa.
+class _ShowFlower extends StatelessWidget {
+  final Player player;
+  final List<Show> active;
+  final List<Show> past;
+  final ValueChanged<Show> onShow;
+
+  const _ShowFlower({
+    required this.player,
+    required this.active,
+    required this.past,
+    required this.onShow,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<(Show, bool)> items = [
+      for (final Show s in active) (s, true),
+      for (final Show s in past) (s, false),
+    ].take(6).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SkSectionHead(
+          title: 'Sahnenin çiçeği',
+          subtitle: 'Uzun yaprak: şu an sahnede olan oyun',
+          icon: Icons.local_florist_rounded,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: LayoutBuilder(builder: (final context, final box) {
+            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
+            return SkPetalChart(
+              size: size,
+              semanticLabel: 'Sahne çiçeği: ${items.length} oyun',
+              center: SkImage(
+                  url: player.imageUrl, fallbackIcon: Icons.person_rounded),
+              petals: [
+                for (final (Show s, bool on) in items)
+                  SkPetal(
+                    label: s.name,
+                    value: on ? 'Sahnede' : 'Geçmiş',
+                    weight: on ? 1.0 : 0.62,
+                    imageUrl: s.imageUrl,
+                    openLabel: 'Oyunu gör',
+                    onOpen: () => onShow(s),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ],
     );
   }
 }

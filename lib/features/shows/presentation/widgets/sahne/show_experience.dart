@@ -12,7 +12,10 @@ import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
+import '../../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../../shared/widgets/sahne/petal_chart.dart';
+import '../../../../../shared/widgets/rive/tiyatrol_rive.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
@@ -888,6 +891,8 @@ class _Content extends StatelessWidget {
         padding: EdgeInsets.only(top: AppSpacing.xxl),
         child: Column(
           children: [
+            TiyatrolRiveLoader(size: 52, caption: 'Perde açılıyor…'),
+            SizedBox(height: AppSpacing.lg),
             SkBone(height: 20, radius: AppRadius.xs),
             SizedBox(height: AppSpacing.sm + 2),
             SkBone(height: 20, radius: AppRadius.xs),
@@ -932,6 +937,7 @@ class _Content extends StatelessWidget {
             ),
           ),
         ),
+        if (data.cast.length >= 2) section(2, _CastFlower(data: data)),
         if (data.cast.isNotEmpty)
           section(
             2,
@@ -1323,56 +1329,38 @@ class _Cast extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final double w = large ? 112 : 88;
-    final double h = large ? 156 : 122;
+    final double fs = large ? 118 : 96;
+    final bool live = players.length <= 14;
     return SkRail<Player>(
       title: title,
-      subtitle: '${players.length} oyuncu',
+      subtitle: '${players.length} oyuncu · dokun, sahnelerini gör',
+      icon: Icons.groups_rounded,
       items: players,
       gutter: 0,
-      railW: w + 8,
-      railH: h + 56,
-      minCell: w + 8,
+      railW: fs + 12,
+      railH: fs + 126,
+      minCell: fs + 12,
+      stagger: 26,
       builder: (final p, final cw) {
         final String name = '${p.firstName} ${p.lastName}'.trim();
         final String tag = TiyatrolHeroTags.player(p.id, 'show');
-        final int i = players.indexOf(p);
-        return Reveal(
-          index: i.clamp(0, 8),
-          child: SizedBox(
-            width: w + 8,
-            child: PressScale(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                NavigationHandler.goToPlayer(context, p.id, name,
-                    heroTag: tag, imageUrl: p.imageUrl, title: name);
-              },
-              semanticLabel: name,
-              child: Column(
-                children: [
-                  TiyatrolHero(
-                    tag: tag,
-                    child: SkImage(
-                        url: p.imageUrl,
-                        width: w,
-                        height: h,
-                        radius: w / 2,
-                        alignment: Alignment.topCenter,
-                        fallbackIcon: Icons.person_rounded),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text('${p.firstName}\n${p.lastName}'.trim(),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Sk.ui(context,
-                          size: large ? 13 : 12,
-                          weight: FontWeight.w700,
-                          height: 1.2)),
-                ],
-              ),
-            ),
-          ),
+        final int plays = p.nowShowsId.length + p.oldShowsId.length;
+        return SkFlowerPortrait(
+          imageUrl: p.imageUrl,
+          size: fs,
+          live: live,
+          semanticLabel: name,
+          topChip: plays > 0 ? '$plays oyun' : null,
+          bottomChip: p.nowShowsId.isNotEmpty ? 'Sahnede' : null,
+          bottomChipAccent: true,
+          heroWrap: (final child) => TiyatrolHero(tag: tag, child: child),
+          title: Text(name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Sk.ui(context,
+                  size: large ? 13 : 12, weight: FontWeight.w800, height: 1.2)),
+          onTap: () => NavigationHandler.goToPlayer(context, p.id, name,
+              heroTag: tag, imageUrl: p.imageUrl, title: name),
         );
       },
     );
@@ -1587,4 +1575,58 @@ class _Gallery extends StatelessWidget {
           );
         },
       );
+}
+
+
+/// Ekibin çiçeği: ortada oyunun afişi, çevresinde oyuncular. Yaprak
+/// uzunluğu oyuncunun sahne deneyimi (oynadığı oyun sayısı).
+class _CastFlower extends StatelessWidget {
+  final ShowDetailData data;
+  const _CastFlower({required this.data});
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<Player> players = data.cast.take(6).toList();
+    int plays(final Player p) => p.nowShowsId.length + p.oldShowsId.length;
+    final int maxPlays =
+        players.fold<int>(1, (a, p) => plays(p) > a ? plays(p) : a);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SkSectionHead(
+          title: 'Ekibin çiçeği',
+          subtitle: 'Yaprak boyu, oyuncunun sahne deneyimi',
+          icon: Icons.local_florist_rounded,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: LayoutBuilder(builder: (final context, final box) {
+            final double size = box.maxWidth < 340 ? box.maxWidth : 340;
+            return SkPetalChart(
+              size: size,
+              semanticLabel: 'Ekip çiçeği: ${players.length} oyuncu',
+              center: SkImage(url: data.show.imageUrl),
+              petals: [
+                for (final Player p in players)
+                  SkPetal(
+                    label: '${p.firstName} ${p.lastName}'.trim(),
+                    value: '${plays(p)} oyun',
+                    weight: (plays(p) / maxPlays).clamp(0.3, 1.0),
+                    imageUrl: p.imageUrl,
+                    openLabel: 'Oyuncuyu gör',
+                    onOpen: () => NavigationHandler.goToPlayer(
+                      context,
+                      p.id,
+                      '${p.firstName} ${p.lastName}'.trim(),
+                      imageUrl: p.imageUrl,
+                      title: '${p.firstName} ${p.lastName}'.trim(),
+                    ),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
 }
