@@ -1,5 +1,8 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../players/domain/entities/player.dart';
+import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../data/repositories/team_repository_provider.dart';
@@ -38,7 +41,9 @@ Future<TeamDetailState> teamDetail(final Ref ref, final String teamId) async {
   // 1. Takımı Çek
   final teams =
       await ref.watch(getTeamByIdUseCaseProvider).call([teamId]).getOrThrow();
-  if (teams.isEmpty) throw Exception('Takım bulunamadı');
+  if (teams.isEmpty) {
+    throw Exception('Takım bulunamadı');
+  }
   final team = teams.first;
 
   // 2. İlişkili Gösterileri (Shows) Çek
@@ -58,4 +63,37 @@ class TeamDetailState {
   final List<Show> shows;
 
   const TeamDetailState({required this.team, required this.shows});
+
+  /// Bağlı oyunların güncel kadrosundan tekil oyuncu kimlikleri.
+  List<String> get ensemblePlayerIds {
+    final Set<String> ids = <String>{};
+    for (final Show show in shows) {
+      for (final String id in show.nowPlayersId) {
+        final String trimmed = id.trim();
+        if (trimmed.isNotEmpty) {
+          ids.add(trimmed);
+        }
+      }
+    }
+    final List<String> sorted = ids.toList()..sort();
+    return sorted;
+  }
 }
+
+/// Topluluk kadrosu — `teamId` String anahtarı (List family kimlik tuzağı yok).
+/// Klasik FutureProvider; yeni @riverpod eklenmez.
+final teamEnsemblePlayersProvider =
+    FutureProvider.autoDispose.family<List<Player>, String>(
+        (final Ref ref, final String teamId) async {
+  final TeamDetailState detail =
+      await ref.watch(teamDetailProvider(teamId).future);
+  final List<String> ids = detail.ensemblePlayerIds;
+  if (ids.isEmpty) {
+    return const <Player>[];
+  }
+  try {
+    return await ref.watch(getPlayerByIdUseCaseProvider).call(ids).getOrThrow();
+  } on Object {
+    return const <Player>[];
+  }
+});

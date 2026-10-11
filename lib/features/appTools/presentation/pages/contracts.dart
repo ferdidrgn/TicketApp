@@ -6,11 +6,11 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/comminucation_actions.dart';
+import 'package:ticketapp/features/settings/presentation/widgets/preference_widgets.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
 import 'package:ticketapp/shared/widgets/footers/footer.dart';
-import 'package:ticketapp/shared/widgets/ticket/ticket_kit.dart';
 import 'package:ticketapp/shared/widgets/ticket/ticket_listing.dart';
-import 'package:ticketapp/shared/widgets/top_header_with_back_button.dart';
 import '../providers/app_tools_provider.dart';
 
 /// Okuma sütununun genişliği (satır ≤ ~75 karakter).
@@ -37,12 +37,11 @@ class ContractsPage extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: BasePageWrapper(
-        title: 'Yasal bilgiler',
-        subtitle: 'Gizlilik politikası ve kullanım şartları.',
-        rightIcon: Icons.gavel_rounded,
         showBackButton: true,
         layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.colors.surface,
+          ambientColor: Colors.transparent,
+          particleColor: Colors.transparent,
           safeAreaTop: true,
         ),
         child: Center(
@@ -50,6 +49,18 @@ class ContractsPage extends ConsumerWidget {
             constraints: const BoxConstraints(maxWidth: _kReadingWidth),
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                  child: PreferencePageHeading(
+                    title: 'Yasal bilgiler',
+                    lede: prefText(
+                      context,
+                      'Gizlilik politikası ve kullanım şartları.',
+                      'Privacy policy and terms of use.',
+                    ),
+                  ),
+                ),
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -150,77 +161,75 @@ class ContractsPage extends ConsumerWidget {
     final AsyncValue<String?> privacyDoc = ref.watch(privacyPolicyProvider);
     final AsyncValue<String?> termsDoc = ref.watch(termsConditionProvider);
     return Scaffold(
-        backgroundColor: context.colors.surface,
-        body: TicketStage(
-          themed: true,
-          spotlight: false,
-          child: DefaultTabController(
-            length: 2,
-            child: Builder(
-              builder: (final context) {
-                final TabController tabs = DefaultTabController.of(context);
-                return ListView(
-                  children: [
-                    Center(
-                      child: ConstrainedBox(
-                        constraints:
-                            const BoxConstraints(maxWidth: _kReadingWidth),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(AppSpacing.xxl,
-                              AppSpacing.huge, AppSpacing.xxl, AppSpacing.section),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const TopHeaderWithBackButton(
-                                title: 'Yasal bilgiler',
-                                subtitle:
-                                    'Gizlilik politikası ve kullanım şartları.',
-                              ),
-                              const SizedBox(height: AppSpacing.xl),
-                              _buildTabBar(context),
-                              const SizedBox(height: AppSpacing.xxxl),
-                              // Seçili belge — tek kayan sütunda, footer
-                              // sayfanın en altında tam genişlikte kalsın.
-                              AnimatedBuilder(
-                                animation: tabs,
-                                builder: (final context, final _) {
-                                  final bool privacy = tabs.index == 0;
-                                  final AsyncValue<String?> doc =
-                                      privacy ? privacyDoc : termsDoc;
-                                  void retry() {
-                                    if (privacy) {
-                                      ref.invalidate(privacyPolicyProvider);
-                                    } else {
-                                      ref.invalidate(termsConditionProvider);
-                                    }
-                                  }
-
-                                  return doc.when(
-                                    data: (final content) => content == null
-                                        ? const _DocumentMissing()
-                                        : SelectionArea(
-                                            child:
-                                                _DocumentText(content: content),
-                                          ),
-                                    loading: () => const _DocumentSkeleton(),
-                                    error: (final err, final _) =>
-                                        _DocumentError(onRetry: retry),
-                                  );
-                                },
-                              ),
-                            ],
+      backgroundColor: context.colors.surface,
+      body: DefaultTabController(
+        length: 2,
+        child: Builder(
+          builder: (final context) {
+            final TabController tabs = DefaultTabController.of(context);
+            return ListView(
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(maxWidth: _kReadingWidth),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl,
+                          AppSpacing.huge, AppSpacing.xxl, AppSpacing.section),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          PreferencePageHeading(
+                            title: 'Yasal bilgiler',
+                            lede: prefText(
+                              context,
+                              'Gizlilik politikası ve kullanım şartları.',
+                              'Privacy policy and terms of use.',
+                            ),
+                            onBack: () =>
+                                NavigationHandler.smartGoBack(context),
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.xl),
+                          _buildTabBar(context),
+                          const SizedBox(height: AppSpacing.xxxl),
+                          AnimatedBuilder(
+                            animation: tabs,
+                            builder: (final context, final _) {
+                              final bool privacy = tabs.index == 0;
+                              final AsyncValue<String?> doc =
+                                  privacy ? privacyDoc : termsDoc;
+                              void retry() {
+                                if (privacy) {
+                                  ref.invalidate(privacyPolicyProvider);
+                                } else {
+                                  ref.invalidate(termsConditionProvider);
+                                }
+                              }
+
+                              return doc.when(
+                                data: (final content) => content == null
+                                    ? const _DocumentMissing()
+                                    : SelectionArea(
+                                        child: _DocumentText(content: content),
+                                      ),
+                                loading: () => const _DocumentSkeleton(),
+                                error: (final err, final _) =>
+                                    _DocumentError(onRetry: retry),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const Footer(),
-                  ],
-                );
-              },
-            ),
-          ),
+                  ),
+                ),
+                const Footer(),
+              ],
+            );
+          },
         ),
-      );
+      ),
+    );
   }
 }
 

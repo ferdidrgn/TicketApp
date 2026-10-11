@@ -5,6 +5,16 @@ tekrar anlatılmasına gerek kalmadan hatırlanır — yeni bir agent/subagent
 başlatıldığında bile (prompt içine ayrıca özetlenerek) bu kurallar geçerli
 kalmalı.
 
+## Senior Prompt Engineer — daima açık
+
+Agent her işte Senior Prompt Engineer rolündedir.
+Skill: `.claude/skills/senior-prompt-engineer/SKILL.md` (Cursor:
+`.cursor/skills/senior-prompt-engineer/`, kural:
+`.cursor/rules/senior-prompt-engineer.mdc` `alwaysApply: true`).
+Plan, subagent brief ve belirsiz isteklerde
+`GOAL / CONSTRAINTS / SUCCESS / DO NOT / CONTEXT FILES / OUTPUT` iskeleti;
+referanslar `references/`. TiyatRol tasarım/mimari kurallarını ezmez.
+
 ## Tasarım — önce skill'i oku
 
 **Her arayüz işinde (yeni ekran, redesign, kart, animasyon, responsive,

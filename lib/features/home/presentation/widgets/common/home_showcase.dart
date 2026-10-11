@@ -1,16 +1,19 @@
-import '../../../../../shared/widgets/stagecraft.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/craft.dart';
-import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/listing.dart';
+import '../../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../../shared/widgets/stagecraft.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../players/domain/entities/player.dart';
@@ -18,6 +21,7 @@ import '../../../../players/presentation/providers/player_provider.dart';
 import '../../../../shows/domain/entities/show.dart';
 import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
+import 'home_ui.dart';
 
 // ═════════════════════════════════════════════════════════════════════════
 // Ana sayfa vitrini — bilet dilinin dışında, ferah ve fotoğraf odaklı
@@ -977,11 +981,8 @@ class FeaturedCinematicCover extends StatelessWidget {
         ? (show.hasExternalTicketing ? 'Başka platformda' : 'Programda')
         : stageSessionLabel(session.date);
     final String stageName = (session?.stage?.name ?? '').trim();
-    final String duration = show.duration.trim().isEmpty
-        ? '—'
-        : show.duration.replaceAll(RegExp(r'[^0-9]'), '').isEmpty
-            ? show.duration
-            : show.duration.replaceAll(RegExp(r'[^0-9]'), '');
+    final ({String value, String unit})? durationMetric =
+        ShowDurationFormat.metric(show.duration);
     final String age = show.ageLimit.trim().isEmpty ? '—' : show.ageLimit.trim();
 
     return Column(
@@ -1028,8 +1029,14 @@ class FeaturedCinematicCover extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         Row(
           children: [
-            ListingMetricOrb(value: duration, unit: 'dk', emphasized: true),
-            const SizedBox(width: AppSpacing.md),
+            if (durationMetric != null) ...[
+              ListingMetricOrb(
+                value: durationMetric.value,
+                unit: durationMetric.unit,
+                emphasized: true,
+              ),
+              const SizedBox(width: AppSpacing.md),
+            ],
             ListingMetricOrb(
               value: session == null
                   ? '—'
@@ -1043,6 +1050,435 @@ class FeaturedCinematicCover extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         ListingCta(label: 'Oyunu incele', onPressed: onOpen),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 8. Keşif kısayolları — toggle değil; tek dokunuşla gerçek sayfalar
+// ─────────────────────────────────────────────────────────────────────────
+
+class HomeExploreShortcuts extends StatelessWidget {
+  final EdgeInsets padding;
+  const HomeExploreShortcuts({
+    super.key,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final items = <(String, String, IconData, VoidCallback)>[
+      (
+        'Keşfet',
+        'Türlere göz at',
+        Icons.explore_rounded,
+        () => NavigationHandler.goToDiscover(context),
+      ),
+      (
+        'Yakınımda',
+        'Haritada seanslar',
+        Icons.near_me_rounded,
+        () => NavigationHandler.goToNearby(context),
+      ),
+      (
+        'Favoriler',
+        'Kayıtlı oyunlar',
+        Icons.favorite_rounded,
+        () => NavigationHandler.goToFavorites(context),
+      ),
+    ];
+    return SizedBox(
+      height: 92,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: padding,
+        itemCount: items.length,
+        separatorBuilder: (final _, final __) =>
+            const SizedBox(width: AppSpacing.md),
+        itemBuilder: (final context, final i) {
+          final (String title, String sub, IconData icon, VoidCallback onTap) =
+              items[i];
+          return PressScale(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            label: title,
+            child: Container(
+              width: 168,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.45)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: cs.onPrimaryContainer, size: 22),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: cs.onSurface,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            )),
+                        Text(sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 9. Bu akşam — gerçek seans kartları (saat + sahne + afiş)
+// ─────────────────────────────────────────────────────────────────────────
+
+class HomeTonightStrip extends StatelessWidget {
+  final List<HomeSession> sessions;
+  final EdgeInsets padding;
+  final ValueChanged<HomeSession> onOpen;
+
+  const HomeTonightStrip({
+    super.key,
+    required this.sessions,
+    required this.onOpen,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    if (sessions.isEmpty) return const SizedBox.shrink();
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: padding,
+          child: Row(
+            children: [
+              const Expanded(child: HomeSectionHeader(title: 'Bu akşam')),
+              Text(
+                '${sessions.length} seans',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 118,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: padding,
+            itemCount: sessions.length,
+            separatorBuilder: (final _, final __) =>
+                const SizedBox(width: AppSpacing.md),
+            itemBuilder: (final context, final i) {
+              final HomeSession s = sessions[i];
+              final String venue = (s.stage?.name ?? '').trim();
+              final String clock =
+                  '${s.date.hour.toString().padLeft(2, '0')}:${s.date.minute.toString().padLeft(2, '0')}';
+              return PressScale(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onOpen(s);
+                },
+                label: '${s.show.name}, $clock',
+                child: Container(
+                  width: 280,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.level1(cs.shadow),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: OptimizedCachedImage(
+                          imageUrl: s.show.imageUrl,
+                          width: 72,
+                          height: 98,
+                          fit: BoxFit.cover,
+                          borderRadius: 0,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(clock,
+                                style: GoogleFonts.playfairDisplay(
+                                  color: cs.primary,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.0,
+                                )),
+                            const SizedBox(height: 4),
+                            Text(s.show.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: cs.onSurface,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.15,
+                                )),
+                            if (venue.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(venue,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: cs.onSurfaceVariant,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  )),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 10. Sıradaki perde — sinematik seçim + paylaş
+// ─────────────────────────────────────────────────────────────────────────
+
+class HomeMomentPick extends StatelessWidget {
+  final HomeFeatured featured;
+  final VoidCallback onOpen;
+  final EdgeInsets padding;
+  final double height;
+
+  const HomeMomentPick({
+    super.key,
+    required this.featured,
+    required this.onOpen,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+    this.height = 300,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Show show = featured.show;
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: HomeSectionHeader(title: 'Sıradaki perde'),
+              ),
+              Semantics(
+                button: true,
+                label: 'Paylaş',
+                child: IconButton(
+                  tooltip: 'Paylaş',
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    TiyatrolDeeplinkService.shareShow(
+                        id: show.id, name: show.name);
+                  },
+                  icon: Icon(Icons.ios_share_rounded, color: cs.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          FeaturedCinematicCover(
+            featured: featured,
+            onOpen: onOpen,
+            heroFrom: 'home-moment',
+            height: height,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 11. Afiş duvarı — 2 sütun fotoğraf ızgarası
+// ─────────────────────────────────────────────────────────────────────────
+
+class HomePosterWall extends StatelessWidget {
+  final List<Show> shows;
+  final EdgeInsets padding;
+  final ValueChanged<Show> onOpen;
+  final int maxItems;
+
+  const HomePosterWall({
+    super.key,
+    required this.shows,
+    required this.onOpen,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+    this.maxItems = 6,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<Show> items = shows.take(maxItems).toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HomeSectionHeader(
+            title: 'Afiş duvarı',
+            actionLabel: 'Keşfet',
+            onAction: () => NavigationHandler.goToDiscover(context),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          LayoutBuilder(builder: (final context, final box) {
+            final double gap = AppSpacing.md;
+            final double cellW = (box.maxWidth - gap) / 2;
+            final double cellH = cellW * 1.55;
+            return Wrap(
+              spacing: gap,
+              runSpacing: AppSpacing.xl,
+              children: [
+                for (final Show s in items)
+                  SizedBox(
+                    width: cellW,
+                    height: cellH + 48,
+                    child: HomePosterCard(
+                      show: s,
+                      heroFrom: 'home-wall',
+                      onTap: () => onOpen(s),
+                    ),
+                  ),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 12. Kapanış daveti — Keşfet'e tek net aksiyon
+// ─────────────────────────────────────────────────────────────────────────
+
+class HomeClosingInvite extends StatelessWidget {
+  final EdgeInsets padding;
+  const HomeClosingInvite({
+    super.key,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: padding,
+      child: Material(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            NavigationHandler.goToDiscover(context);
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 18, 22),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daha fazlasını keşfet',
+                        style: GoogleFonts.playfairDisplay(
+                          color: cs.onPrimaryContainer,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Türlere, afişlere ve tüm programa göz at.',
+                        style: TextStyle(
+                          color: cs.onPrimaryContainer.withValues(alpha: 0.8),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.arrow_forward_rounded,
+                      color: cs.onPrimary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

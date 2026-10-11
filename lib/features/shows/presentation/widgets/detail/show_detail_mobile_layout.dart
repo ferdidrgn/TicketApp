@@ -6,6 +6,7 @@ import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
@@ -67,16 +68,14 @@ class _ShowDetailMobileLayoutState extends State<ShowDetailMobileLayout> {
       builder: (final context, final constraints) {
         final double width = constraints.maxWidth;
         final bool compact = width < 600;
-        final String duration = data.show.duration.trim();
         final String age = data.show.ageLimit.trim();
         final String category = data.show.category.trim();
         final ShowSession? next = data.nextSession;
         final String venue = (next?.stage?.name ??
                 (data.venues.isNotEmpty ? data.venues.first.name : ''))
             .trim();
-        final String durationDigits = duration.replaceAll(RegExp(r'[^0-9]'), '');
-        final String durationValue =
-            durationDigits.isEmpty ? (duration.isEmpty ? '—' : duration) : durationDigits;
+        final ({String value, String unit})? durationMetric =
+            ShowDurationFormat.metric(data.show.duration);
         final String timeValue = next?.when == null
             ? '—'
             : '${next!.when!.hour.toString().padLeft(2, '0')}:${next.when!.minute.toString().padLeft(2, '0')}';
@@ -160,12 +159,14 @@ class _ShowDetailMobileLayoutState extends State<ShowDetailMobileLayout> {
                             const SizedBox(height: AppSpacing.xl),
                             Row(
                               children: [
-                                ListingMetricOrb(
-                                  value: durationValue,
-                                  unit: 'dk',
-                                  emphasized: true,
-                                ),
-                                const SizedBox(width: AppSpacing.md),
+                                if (durationMetric != null) ...[
+                                  ListingMetricOrb(
+                                    value: durationMetric.value,
+                                    unit: durationMetric.unit,
+                                    emphasized: true,
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                ],
                                 ListingMetricOrb(
                                   value: timeValue,
                                   unit: 'saat',

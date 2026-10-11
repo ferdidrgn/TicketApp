@@ -8,6 +8,7 @@ import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../domain/turkey_metro.dart';
 import 'location_provider.dart';
 
 // ==============================================================================
@@ -107,35 +108,45 @@ final upcomingNearbyEventsProvider =
   }
 
   final now = DateTime.now();
-  final upcoming = <(Event, Show, DateTime)>[];
+  final upcoming = <_UpcomingRow>[];
   for (final event in eventsById.values) {
     final showId = resolveShowId(event);
     final show = showId == null ? null : showsById[showId];
-    if (show == null) continue;
+    if (show == null) {
+      continue;
+    }
     final date = DateFormatter.parseDateString(event.date);
-    if (date != null && date.isAfter(now)) upcoming.add((event, show, date));
+    if (date != null && date.isAfter(now)) {
+      upcoming.add(_UpcomingRow(event: event, show: show, dateTime: date));
+    }
   }
-  if (upcoming.isEmpty) return [];
+  if (upcoming.isEmpty) {
+    return [];
+  }
 
   final stageIds = upcoming
-      .map((final e) => e.$1.stageId)
+      .map((final e) => e.event.stageId)
       .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
-  if (stageIds.isEmpty) return [];
+  if (stageIds.isEmpty) {
+    return [];
+  }
 
   final stages = await ref.watch(stagesByIdsProvider(stageIds).future);
   final stagesById = {for (final s in stages) s.id: s};
 
   final entries = <NearbyEventEntry>[];
-  for (final (event, show, date) in upcoming) {
-    final stage = stagesById[event.stageId];
-    if (stage == null) continue;
+  for (final row in upcoming) {
+    final stage = stagesById[row.event.stageId];
+    if (stage == null) {
+      continue;
+    }
     entries.add(NearbyEventEntry(
-      event: event,
-      show: show,
+      event: row.event,
+      show: row.show,
       stage: stage,
-      dateTime: date,
+      dateTime: row.dateTime,
     ));
   }
 
@@ -168,42 +179,62 @@ final upcomingNearbyEventsProvider =
 // binlerce km hesaplanır ve doğal olarak yarıçap dışında kalıp listeden
 // düşer — sahte bir "yakın" varsayımı asla üretilmiyor.
 
-/// "Yakın" sayılan yarıçap — 50 km. Türkiye'deki bir ilin/büyükşehrin
-/// metropol alanını makul biçimde kapsıyor, aynı zamanda komşu şehirdeki
-/// bir sahneyi de (mantıklıysa) dışarıda bırakmıyor.
+/// Geriye dönük varsayılan — UI eski sabitleri için; asıl yarıçap
+/// [NearbyOverview.softRadiusMeters] (şehre göre).
 const double kNearbyRadiusMeters = 50000;
 
+/// Yakındakiler takvim penceresi — yaklaşan seanslar (1 ay).
+const int kNearbyHorizonDays = 30;
+
+class _UpcomingRow {
+  final Event event;
+  final Show show;
+  final DateTime dateTime;
+
+  const _UpcomingRow({
+    required this.event,
+    required this.show,
+    required this.dateTime,
+  });
+}
+
 // ==============================================================================
-// 🗺️ HARİTA ÖZETİ — tüm yaklaşan seanslar, sahne başına mesafe
+// 🗺️ HARİTA ÖZETİ — metropol yarıçapı + sahne pinleri
 // ==============================================================================
 //
-// Sahibinin isteği: "50 km içinde 2 event, 1 tane de dışarıda bir oyun var;
-// bunları haritada göstermemiz gerekiyor." Eskiden harita ve liste YALNIZCA
-// "50 km içinde VE 30 gün içinde" olanları gösteriyordu — dışarıdaki oyun
-// hiç çizilmiyor, tarihi 30 günden uzak seanslar kayboluyordu. Artık:
-//   - Koordinatı olan HER sahne (yaklaşan seansı varsa) haritada,
-//   - her birinin kullanıcıya GERÇEK uzaklığı (Haversine) hesaplanır,
-//   - 50 km içi / dışı ayrımı işaretlenir (harita halkası + liste),
-//   - takvim penceresi yok: yaklaşan her seans sayılır.
-// Koordinatı girilmemiş (0,0) sahne uydurma bir konuma konmaz; sayısı
-// `unlocatedCount` ile dürüstçe bildirilir.
+// Şehir: cihaz lat/lng → en yakın TrMetro (ücretsiz, çevrimdışı). Soft halka
+// "yakın", hard üst sınır haritada gösterilecek pinler. Koordinatsız ama
+// adresinde şehir geçen sahneler (harici tiyatrolar dahil) şehir merkezine
+// yaklaşık pin olarak eklenir (`isApproximate`).
 
-/// Haritadaki tek bir sahne: o sahnedeki yaklaşan seanslar (tarih sırası)
-/// ve kullanıcıya uzaklığı.
+/// Haritadaki tek bir sahne / harici oyun pini.
 class NearbyPin {
   final Stage stage;
   final List<NearbyEventEntry> entries;
   final double distanceMeters;
+  final double softRadiusMeters;
+  /// lat/lng yoktu veya harici URL şehrinden yaklaşık pin.
+  final bool isApproximate;
+  /// Bizde seansı yok; şehir harici bilet URL path'inden (Bubilet vb.).
+  final Show? externalShow;
+  /// URL/adres'ten çözülen şehir adı (ör. "İstanbul").
+  final String? cityLabel;
 
   const NearbyPin({
     required this.stage,
     required this.entries,
     required this.distanceMeters,
+    required this.softRadiusMeters,
+    this.isApproximate = false,
+    this.externalShow,
+    this.cityLabel,
   });
 
-  bool get inside => distanceMeters <= kNearbyRadiusMeters;
+  bool get isExternalOnly => externalShow != null;
+  bool get inside => distanceMeters <= softRadiusMeters;
   double get distanceKm => distanceMeters / 1000;
-  DateTime get nextDate => entries.first.dateTime;
+  DateTime get nextDate =>
+      entries.isNotEmpty ? entries.first.dateTime : DateTime.now();
 }
 
 /// Konum + mesafeye göre sıralı sahne pinleri.
@@ -211,17 +242,27 @@ class NearbyOverview {
   final Position position;
   final List<NearbyPin> pins;
   final int unlocatedCount;
+  final TrMetro metro;
+  final double softRadiusMeters;
+  final double hardRadiusMeters;
 
   const NearbyOverview({
     required this.position,
     required this.pins,
     required this.unlocatedCount,
+    required this.metro,
+    required this.softRadiusMeters,
+    required this.hardRadiusMeters,
   });
+
+  int get softRadiusKm => (softRadiusMeters / 1000).round();
 
   List<NearbyPin> get inside => pins.where((final p) => p.inside).toList();
   List<NearbyPin> get outside => pins.where((final p) => !p.inside).toList();
-  int get insideEventCount =>
-      inside.fold(0, (final n, final p) => n + p.entries.length);
+  int get insideEventCount => inside.fold(
+      0,
+      (final n, final p) =>
+          n + (p.isExternalOnly ? 1 : p.entries.length));
 }
 
 bool _hasCoordinates(final Stage s) =>
@@ -229,41 +270,162 @@ bool _hasCoordinates(final Stage s) =>
     s.locationLat.abs() <= 90 &&
     s.locationLng.abs() <= 180;
 
+/// Koordinatsız sahneyi adres şehrinin merkezine yerleştir (yaklaşık pin).
+Stage _approxStage(final Stage s, final TrMetro city) => Stage(
+      id: s.id,
+      name: s.name,
+      imageUrl: s.imageUrl,
+      capacity: s.capacity,
+      description: s.description,
+      communication: s.communication,
+      address: s.address.isEmpty ? city.name : s.address,
+      locationLat: city.lat,
+      locationLng: city.lng,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      showsId: s.showsId,
+    );
+
+/// Harici-only oyun için sentetik "şehir" sahnesi (URL slug → merkez).
+Stage _externalCityStage(final Show show, final TrMetro city) => Stage(
+      id: 'ext-${show.id}',
+      name: show.name,
+      imageUrl: show.imageUrl,
+      capacity: '',
+      description: '',
+      communication: '',
+      address: '${city.name} · harici bilet',
+      locationLat: city.lat,
+      locationLng: city.lng,
+      createdAt: show.createdAt,
+      updatedAt: show.updatedAt,
+      showsId: [show.id],
+    );
+
 /// 🗺️ Yakındakiler sayfası + haritanın TEK veri kaynağı.
 /// Konum alınamazsa `LocationFailure` olduğu gibi fırlar (UI izin ekranı
 /// gösterir).
+///
+/// Harici biletli oyunlar (bizde Event yok): şehir
+/// `Show.externalTicketUrl` path'inden okunur
+/// (`bubilet.com.tr/istanbul/...`). Tur başka şehre kayınca admin linki
+/// günceller — ayrı şehir alanı yok.
 final nearbyOverviewProvider = FutureProvider<NearbyOverview>((final ref) async {
   final position = await ref.watch(devicePositionProvider.future);
   final entries = await ref.watch(upcomingNearbyEventsProvider.future);
+  final allShows = await ref.watch(activeShowsProvider(false).future);
+
+  final TrMetro metro =
+      TrMetroAreas.resolve(position.latitude, position.longitude);
+  final double softM = metro.softRadiusKm * 1000;
+  final double hardM = metro.hardRadiusKm * 1000;
+
+  // Seanslı oyunlar: önümüzdeki 30 gün. Harici-only (Event yok) ayrıca eklenir.
+  final DateTime horizon =
+      DateTime.now().add(const Duration(days: kNearbyHorizonDays));
+  final List<NearbyEventEntry> inWindow = [
+    for (final e in entries)
+      if (!e.dateTime.isAfter(horizon)) e,
+  ];
 
   final Map<String, List<NearbyEventEntry>> byStage = {};
+  final showIdsWithSessions = <String>{};
   int unlocated = 0;
-  for (final e in entries) {
-    if (!_hasCoordinates(e.stage)) {
-      unlocated++;
-      continue;
-    }
+  for (final e in inWindow) {
     byStage.putIfAbsent(e.stage.id, () => []).add(e);
+    showIdsWithSessions.add(e.show.id);
   }
 
-  final pins = byStage.values.map((final list) {
+  final pins = <NearbyPin>[];
+  for (final list in byStage.values) {
     list.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
-    final stage = list.first.stage;
-    return NearbyPin(
+    final Stage raw = list.first.stage;
+    final bool exact = _hasCoordinates(raw);
+    Stage stage = raw;
+    var approximate = false;
+    String? cityLabel;
+    if (!exact) {
+      // Önce oyunun harici URL şehri (tur güncelliği), yoksa adres.
+      final Show show = list.first.show;
+      final TrMetro? fromUrl = show.hasExternalTicketing
+          ? TrMetroAreas.fromTicketUrl(show.externalTicketUrl)
+          : null;
+      final TrMetro? fromAddr = TrMetroAreas.fromAddress(raw.address);
+      final TrMetro? city = fromUrl ?? fromAddr;
+      if (city == null) {
+        unlocated += list.length;
+        continue;
+      }
+      stage = _approxStage(raw, city);
+      approximate = true;
+      cityLabel = city.name;
+    }
+
+    final double dist = LocationService.distanceInMeters(
+      position.latitude,
+      position.longitude,
+      stage.locationLat,
+      stage.locationLng,
+    );
+    if (dist > hardM) {
+      continue;
+    }
+
+    pins.add(NearbyPin(
       stage: stage,
       entries: list,
-      distanceMeters: LocationService.distanceInMeters(
-        position.latitude,
-        position.longitude,
-        stage.locationLat,
-        stage.locationLng,
-      ),
+      distanceMeters: dist,
+      softRadiusMeters: softM,
+      isApproximate: approximate,
+      cityLabel: cityLabel,
+    ));
+  }
+
+  // Harici-only: Event yok → URL slug şehri.
+  for (final Show show in allShows) {
+    if (!show.hasExternalTicketing) {
+      continue;
+    }
+    if (showIdsWithSessions.contains(show.id)) {
+      continue;
+    }
+    final TrMetro? city =
+        TrMetroAreas.fromTicketUrl(show.externalTicketUrl);
+    if (city == null) {
+      unlocated += 1;
+      continue;
+    }
+    final Stage stage = _externalCityStage(show, city);
+    final double dist = LocationService.distanceInMeters(
+      position.latitude,
+      position.longitude,
+      stage.locationLat,
+      stage.locationLng,
     );
-  }).toList()
-    ..sort((final a, final b) => a.distanceMeters.compareTo(b.distanceMeters));
+    if (dist > hardM) {
+      continue;
+    }
+    pins.add(NearbyPin(
+      stage: stage,
+      entries: const [],
+      distanceMeters: dist,
+      softRadiusMeters: softM,
+      isApproximate: true,
+      externalShow: show,
+      cityLabel: city.name,
+    ));
+  }
+
+  pins.sort((final a, final b) => a.distanceMeters.compareTo(b.distanceMeters));
 
   return NearbyOverview(
-      position: position, pins: pins, unlocatedCount: unlocated);
+    position: position,
+    pins: pins,
+    unlocatedCount: unlocated,
+    metro: metro,
+    softRadiusMeters: softM,
+    hardRadiusMeters: hardM,
+  );
 });
 
 /// 📍 50 km içindeki yaklaşan seanslar (tarih sırası) — özetten türetilir.

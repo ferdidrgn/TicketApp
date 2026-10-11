@@ -6,9 +6,10 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/comminucation_actions.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
-import '../../../../shared/widgets/top_header_with_back_button.dart';
+import '../../../settings/presentation/widgets/preference_widgets.dart';
 
 /// SSS listesi — gerçek arama filtrelemesi bunun üzerinde çalışır. Her
 /// cevap uygulamanın GERÇEK davranışını anlatır (eski "Sanatçı profili:
@@ -96,18 +97,26 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       showFab: false,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
+        ambientColor: Colors.transparent,
+        particleColor: Colors.transparent,
         safeAreaTop: true,
       ),
-      title: 'Yardım ve destek',
-      subtitle: 'Sorularına hızlıca cevap bul.',
-      rightIcon: Icons.support_agent_rounded,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge),
+                AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.huge),
             children: [
+              PreferencePageHeading(
+                title: 'Yardım ve destek',
+                lede: prefText(
+                  context,
+                  'Sorunu yaz, SSS’de bul; yoksa bize yaz.',
+                  'Search the FAQ, or write to us.',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
               _buildSearchBox(context),
               const SizedBox(height: AppSpacing.xxxl),
               ..._buildFaqSection(context),
@@ -123,61 +132,62 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   // --- 🖥️ MASAÜSTÜ / WEB ---
   Widget _buildDesktopPage(final BuildContext context) => Scaffold(
         backgroundColor: context.colors.surface,
-        body: TicketStage(
-          themed: true,
-          spotlight: false,
-          child: ListView(
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1120),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.huge,
-                        AppSpacing.huge, AppSpacing.huge, AppSpacing.section),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const TopHeaderWithBackButton(
-                          title: 'Yardım ve destek',
-                          subtitle: 'Sorularına hızlıca cevap bul.',
+        body: ListView(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.huge,
+                      AppSpacing.huge, AppSpacing.huge, AppSpacing.section),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PreferencePageHeading(
+                        title: 'Yardım ve destek',
+                        lede: prefText(
+                          context,
+                          'Sorunu yaz, SSS’de bul; yoksa bize yaz.',
+                          'Search the FAQ, or write to us.',
                         ),
-                        const SizedBox(height: AppSpacing.xxxl),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 680),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      _buildSearchBox(context),
-                                      const SizedBox(height: AppSpacing.xxxl),
-                                      ..._buildFaqSection(context),
-                                    ],
-                                  ),
+                        onBack: () => NavigationHandler.smartGoBack(context),
+                      ),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 680),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildSearchBox(context),
+                                    const SizedBox(height: AppSpacing.xxxl),
+                                    ..._buildFaqSection(context),
+                                  ],
                                 ),
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.massive),
-                            const SizedBox(
-                              width: 340,
-                              child: _SupportTicket(),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          const SizedBox(width: AppSpacing.massive),
+                          const SizedBox(
+                            width: 340,
+                            child: _SupportTicket(),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const Footer(),
-            ],
-          ),
+            ),
+            const Footer(),
+          ],
         ),
       );
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_radius.dart';
+
 /// Liste kartı → detay kapağı paylaşılmış öğe geçişi.
 ///
 /// Etiketler konum soneki taşır (`show_$id_home` / `show_$id_search`) —
@@ -92,15 +94,21 @@ String resolveTiyatrolHeroTag(
   return fallback;
 }
 
-/// Afiş/portre paylaşılmış öğesi — Material yay yayı, 60fps transform.
+/// Afiş/portre paylaşılmış öğesi — yay yayı + köşe morfı, 60fps transform.
+///
+/// Kaynak ve hedef aynı [tag] olmalı; sayfa geçişi
+/// `heroSharedTransition` (fade) ile birlikte kullanılır.
 class TiyatrolHero extends StatelessWidget {
   final String tag;
   final Widget child;
+  /// Uçuş sırasında kaynak köşe yarıçapı (kart). Hedef genelde 0 / tam bleed.
+  final double flightRadius;
 
   const TiyatrolHero({
     super.key,
     required this.tag,
     required this.child,
+    this.flightRadius = AppRadius.md,
   });
 
   @override
@@ -118,9 +126,43 @@ class TiyatrolHero extends StatelessWidget {
         final toContext,
       ) {
         final Hero toHero = toContext.widget as Hero;
-        return toHero.child;
+        final Hero fromHero = fromContext.widget as Hero;
+        final Widget shuttleChild = direction == HeroFlightDirection.push
+            ? toHero.child
+            : fromHero.child;
+        final Animation<double> curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+          reverseCurve: Curves.easeInOutCubic,
+        );
+        return AnimatedBuilder(
+          animation: curved,
+          builder: (final context, final child) {
+            final double t = direction == HeroFlightDirection.push
+                ? curved.value
+                : 1 - curved.value;
+            final BorderRadius radius = BorderRadius.lerp(
+                  BorderRadius.circular(flightRadius),
+                  BorderRadius.zero,
+                  t.clamp(0.0, 1.0),
+                ) ??
+                BorderRadius.zero;
+            return Material(
+              type: MaterialType.transparency,
+              child: ClipRRect(
+                borderRadius: radius,
+                clipBehavior: Clip.antiAlias,
+                child: child,
+              ),
+            );
+          },
+          child: shuttleChild,
+        );
       },
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
   }
 }

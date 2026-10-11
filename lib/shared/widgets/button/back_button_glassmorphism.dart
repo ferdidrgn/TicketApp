@@ -1,7 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../navigation/widgets/nav_handler.dart';
 
 /// 🎨 Glassmorphism Back Button Widget
@@ -56,15 +58,10 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
 
   @override
   Widget build(final BuildContext context) {
-    final bool isDark = context.isDarkMode;
-
-    // 🎨 Light temada ikon ve borderlar için antrasit/siyah, Dark temada beyaz
-    final Color baseColor =
-        isDark ? AppDarkColors.onSurface : AppLightColors.textPrimary;
-
-    // 🍷 Light temada cam efekti senin kırmızı (primary) tonundan, Dark'ta gri tondan beslensin
-    final Color glassColor =
-        isDark ? AppDarkColors.secondary : AppLightColors.primary;
+    // Tema vurgu rengi — koyu giriş sahnesinde de okunur (siyah ikon kayboluyordu).
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Color accent = widget.iconColor ?? cs.primary;
+    final Color glass = widget.backgroundColor ?? cs.primary;
 
     return Semantics(
       label: 'Geri',
@@ -77,11 +74,11 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
           onTapUp: _handleTapUp,
           onTapCancel: _handleTapCancel,
           onTap: () {
-            // Custom callback varsa onu çalıştır, yoksa NavigationHandler kullan
-            if (widget.onPressed != null)
+            if (widget.onPressed != null) {
               widget.onPressed!();
-            else
+            } else {
               NavigationHandler.smartGoBack(context);
+            }
           },
           child: ScaleTransition(
             scale: _scaleAnimation,
@@ -91,11 +88,12 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(widget.size / 4),
                 border: widget.showBorder
-                    ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
+                    ? Border.all(
+                        color: accent.withValues(alpha: 0.45), width: 1.5)
                     : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -109,17 +107,15 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          (widget.backgroundColor ?? glassColor)
-                              .withOpacity(_isHovered ? 0.25 : 0.15),
-                          (widget.backgroundColor ?? glassColor)
-                              .withOpacity(_isHovered ? 0.15 : 0.05),
+                          glass.withValues(alpha: _isHovered ? 0.28 : 0.18),
+                          glass.withValues(alpha: _isHovered ? 0.16 : 0.08),
                         ],
                       ),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        color: widget.iconColor ?? baseColor,
+                        color: accent,
                         size: widget.size * 0.5,
                       ),
                     ),
@@ -182,15 +178,9 @@ class _GlassmorphismIconButtonState extends State<GlassmorphismIconButton>
 
   @override
   Widget build(final BuildContext context) {
-    final bool isDark = context.isDarkMode;
-
-    // 🎨 Light temada ikon ve borderlar için antrasit/siyah, Dark temada beyaz
-    final Color baseColor =
-        isDark ? AppDarkColors.onSurface : AppLightColors.textPrimary;
-
-    // 🍷 Light temada cam efekti senin kırmızı (primary) tonundan, Dark'ta gri tondan beslensin
-    final Color glassColor =
-        isDark ? AppDarkColors.secondary : AppLightColors.primary;
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Color accent = widget.iconColor ?? cs.primary;
+    final Color glass = widget.backgroundColor ?? cs.primary;
 
     return MouseRegion(
       onEnter: (final _) => setState(() => _isHovered = true),
@@ -208,11 +198,12 @@ class _GlassmorphismIconButtonState extends State<GlassmorphismIconButton>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.size / 4),
               border: widget.showBorder
-                  ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
+                  ? Border.all(
+                      color: accent.withValues(alpha: 0.45), width: 1.5)
                   : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -228,17 +219,15 @@ class _GlassmorphismIconButtonState extends State<GlassmorphismIconButton>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        (widget.backgroundColor ?? glassColor)
-                            .withOpacity(_isHovered ? 0.25 : 0.15),
-                        (widget.backgroundColor ?? glassColor)
-                            .withOpacity(_isHovered ? 0.15 : 0.05),
+                        glass.withValues(alpha: _isHovered ? 0.28 : 0.18),
+                        glass.withValues(alpha: _isHovered ? 0.16 : 0.08),
                       ],
                     ),
                   ),
                   child: Center(
                     child: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: widget.iconColor ?? baseColor,
+                      widget.icon,
+                      color: accent,
                       size: widget.size * 0.5,
                     ),
                   ),

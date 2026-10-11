@@ -101,14 +101,28 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       // Eğer koltuklar yoksa, sahneye göre yükle
       if (existingSeats == null || existingSeats.isEmpty) {
-        final stageSeats = await SeatRemoteDataSourceImpl(firestore: firestore)
-            .getSeatsByStage(data?['stageId']);
+        final String stageId = (data?['stageId'] ?? '').toString();
+        final seatDs = SeatRemoteDataSourceImpl(firestore: firestore);
+        final stageSeats = await seatDs.getSeatsByStage(stageId);
         if (stageSeats == null || stageSeats.isEmpty) return;
+
+        // `closedSeatsId`: balkon vb. — seans açılır açılmaz admin bloğu
+        // (satılmaz / Kapalı).
+        final Set<String> closed =
+            (await seatDs.getClosedSeatsByStage(stageId)).toSet();
 
         final seatStatus = <String, Map<String, dynamic>>{};
         for (final seats in stageSeats.values) {
-          for (final seat in (seats! as List).whereType<String>())
-            seatStatus[seat] = {'status': 'available', 'customerId': null};
+          for (final seat in (seats! as List).whereType<String>()) {
+            if (closed.contains(seat)) {
+              seatStatus[seat] = {
+                'status': 'sold',
+                'customerId': kAdminBlockCustomerId,
+              };
+            } else {
+              seatStatus[seat] = {'status': 'available', 'customerId': null};
+            }
+          }
         }
 
         await _eventCollection.doc(eventId).update({'seats': seatStatus});

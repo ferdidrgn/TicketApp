@@ -207,7 +207,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           child: ShowDetailPage(
               showId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: heroSharedTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 560),
+          reverseTransitionDuration: const Duration(milliseconds: 480),
         ),
       ),
 
@@ -219,7 +220,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           child: PlayerDetailPage(
               playerId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: heroSharedTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 560),
+          reverseTransitionDuration: const Duration(milliseconds: 480),
         ),
       ),
 
@@ -231,7 +233,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           child: StageDetailPage(
               stageId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: heroSharedTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 560),
+          reverseTransitionDuration: const Duration(milliseconds: 480),
         ),
       ),
 
@@ -243,7 +246,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           child: TeamDetailsPage(
               teamId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: heroSharedTransition,
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 560),
+          reverseTransitionDuration: const Duration(milliseconds: 480),
         ),
       ),
 

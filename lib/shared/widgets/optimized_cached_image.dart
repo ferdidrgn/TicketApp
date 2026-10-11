@@ -7,6 +7,7 @@ class OptimizedCachedImage extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
+  final Alignment alignment;
   final double borderRadius;
   final bool isCircular;
   final Widget Function(BuildContext, String, dynamic)? errorBuilder;
@@ -17,6 +18,7 @@ class OptimizedCachedImage extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.borderRadius = 8.0,
     this.isCircular = false,
     this.errorBuilder,
@@ -71,6 +73,7 @@ class OptimizedCachedImage extends StatelessWidget {
             width: width,
             height: height,
             fit: fit,
+            alignment: alignment,
             fadeInCurve: Curves.easeOut,
             fadeInDuration: const Duration(milliseconds: 300),
             fadeOutDuration: const Duration(milliseconds: 300),

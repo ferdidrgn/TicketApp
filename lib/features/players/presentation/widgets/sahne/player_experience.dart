@@ -3,7 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../../core/theme/app_motion.dart';
+import '../../../../../core/theme/app_radius.dart';
+import '../../../../../core/theme/app_shadows.dart';
+import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/ticket/ticket_profile.dart'
     show ProfileErrorView, splitShowsByLiveActivity;
@@ -34,6 +39,8 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
   final ScrollController _scroll = ScrollController();
   final ValueNotifier<double> _offset = ValueNotifier(0);
   final GlobalKey _onStageKey = GlobalKey();
+  final GlobalKey _awardsKey = GlobalKey();
+  final GlobalKey _pastKey = GlobalKey();
 
   @override
   void initState() {
@@ -50,10 +57,23 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
     super.dispose();
   }
 
-  void _openShow(final Show s) => NavigationHandler.goToShow(context, s.id, s.name,
-      heroTag: TiyatrolHeroTags.show(s.id, 'player'),
-      imageUrl: s.imageUrl,
-      title: s.name);
+  void _scrollToKey(final GlobalKey key) {
+    final BuildContext? c = key.currentContext;
+    if (c == null) return;
+    HapticFeedback.selectionClick();
+    Scrollable.ensureVisible(c,
+        duration: Sk.reduceMotion(context) ? Duration.zero : AppMotion.slow,
+        curve: AppMotion.emphasized,
+        alignment: 0.05);
+  }
+
+  void _openShow(final Show s) {
+    HapticFeedback.selectionClick();
+    NavigationHandler.goToShow(context, s.id, s.name,
+        heroTag: TiyatrolHeroTags.show(s.id, 'player'),
+        imageUrl: s.imageUrl,
+        title: s.name);
+  }
 
   void _searchFor(final String name) {
     HapticFeedback.selectionClick();
@@ -129,20 +149,28 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
         offset: _offset,
       );
 
+      final int awardCount = player == null
+          ? 0
+          : player.achievements
+              .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
+              .length;
+
       final Widget stats = ready
           ? Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: AppSpacing.xxl + 4),
               child: _Stats(
-                items: [
-                  ('Sahnede', active.length),
-                  ('Geçmiş oyun', past.length),
-                  (
-                    'Ödül',
-                    player!.achievements
-                        .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
-                        .length
-                  ),
-                ],
+                onStage: active.length,
+                past: past.length,
+                awards: awardCount,
+                onStageTap: active.isEmpty
+                    ? null
+                    : () => _scrollToKey(_onStageKey),
+                onPastTap: past.isEmpty
+                    ? null
+                    : () => _scrollToKey(_pastKey),
+                onAwardsTap: awardCount == 0
+                    ? null
+                    : () => _scrollToKey(_awardsKey),
               ),
             )
           : const SizedBox.shrink();
@@ -153,17 +181,19 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
               active: active,
               past: past,
               onStageKey: _onStageKey,
+              awardsKey: _awardsKey,
+              pastKey: _pastKey,
               onShow: _openShow,
               onCollab: _searchFor,
             )
           : const Padding(
-              padding: EdgeInsets.only(top: 32),
+              padding: EdgeInsets.only(top: AppSpacing.xxxl),
               child: Column(children: [
-                SkBone(height: 18, radius: 8),
-                SizedBox(height: 10),
-                SkBone(height: 18, radius: 8),
-                SizedBox(height: 28),
-                SkBone(height: 110, radius: 22),
+                SkBone(height: 18, radius: AppRadius.xs),
+                SizedBox(height: AppSpacing.sm + 2),
+                SkBone(height: 18, radius: AppRadius.xs),
+                SizedBox(height: AppSpacing.xxl + 4),
+                SkBone(height: 110, radius: AppRadius.lg),
               ]),
             );
 
@@ -175,24 +205,21 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
         if (active.length == 1) {
           _openShow(active.first);
         } else {
-          final BuildContext? c = _onStageKey.currentContext;
-          if (c != null) {
-            Scrollable.ensureVisible(c,
-                duration: const Duration(milliseconds: 550),
-                curve: Curves.easeInOutCubic,
-                alignment: 0.05);
-          }
+          _scrollToKey(_onStageKey);
         }
       }
 
       final Widget topBar = _TopBar(
         name: name,
         offset: _offset,
-        gutter: wide ? gutter : 12,
+        gutter: wide ? gutter : AppSpacing.md,
         onShare: player == null
             ? null
-            : () => TiyatrolDeeplinkService.shareActor(
-                id: player.id, name: name),
+            : () {
+                HapticFeedback.lightImpact();
+                TiyatrolDeeplinkService.shareActor(
+                    id: player.id, name: name);
+              },
       );
 
       if (wide) {
@@ -222,22 +249,8 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
                               identity,
                               stats,
                               if (cta != null) ...[
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: FilledButton(
-                                    onPressed: onCta,
-                                    style: FilledButton.styleFrom(
-                                      minimumSize: const Size(0, 54),
-                                      shape: const StadiumBorder(),
-                                    ),
-                                    child: Text(cta,
-                                        style: Sk.ui(context,
-                                            size: 15,
-                                            color: cs.onPrimary,
-                                            weight: FontWeight.w800)),
-                                  ),
-                                ),
+                                const SizedBox(height: AppSpacing.xxl),
+                                ListingCta(label: cta, onPressed: onCta),
                               ],
                             ],
                           ),
@@ -297,14 +310,14 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
                       decoration: BoxDecoration(
                         color: cs.surface,
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(34)),
+                            top: Radius.circular(AppRadius.xl)),
                       ),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 640),
                           child: Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(gutter, 4, gutter, 0),
+                            padding: EdgeInsets.fromLTRB(
+                                gutter, AppSpacing.xxl + 4, gutter, 0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -328,21 +341,15 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
           topBar,
           if (cta != null)
             Positioned(
-              left: 20,
-              right: 20,
-              bottom: safe.bottom + 14,
-              child: FilledButton(
-                onPressed: onCta,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 54),
-                  shape: const StadiumBorder(),
-                  elevation: 6,
+              left: AppSpacing.xl,
+              right: AppSpacing.xl,
+              bottom: safe.bottom + AppSpacing.md,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadows.level4(cs.shadow),
                 ),
-                child: Text(cta,
-                    style: Sk.ui(context,
-                        size: 15,
-                        color: cs.onPrimary,
-                        weight: FontWeight.w800)),
+                child: ListingCta(label: cta, onPressed: onCta),
               ),
             ),
         ],
@@ -443,25 +450,27 @@ class _Identity extends StatelessWidget {
         left ? CrossAxisAlignment.start : CrossAxisAlignment.center;
     final double pw = left ? 220 : 200;
 
+    // Onaylı oyuncu dili: uzun hap portre (r ≈ genişlik/2), yüz üstte.
+    // Kare gölge kutusu oluşmasın diye gölge + clip aynı radius'ta.
+    final double ph = pw * 1.55;
+    final double pr = pw / 2;
     final Widget portrait = TiyatrolHero(
       tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.player(playerId)),
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(pw / 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.32),
-              blurRadius: 34,
-              offset: const Offset(0, 16),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(pr),
+          boxShadow: skSoftShadow(context, strength: 1.1),
         ),
-        child: SkImage(
-          url: imageUrl,
-          width: pw,
-          height: pw * 1.42,
-          radius: pw / 2,
-          fallbackIcon: Icons.person_rounded,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(pr),
+          child: SkImage(
+            url: imageUrl,
+            width: pw,
+            height: ph,
+            radius: pr,
+            alignment: const Alignment(0, -0.35),
+            fallbackIcon: Icons.person_rounded,
+          ),
         ),
       ),
     );
@@ -530,9 +539,9 @@ class _StatusPill extends StatefulWidget {
 
 class _StatusPillState extends State<_StatusPill>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1300))
-    ..repeat(reverse: true);
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: AppMotion.slow * 2)
+        ..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -545,91 +554,135 @@ class _StatusPillState extends State<_StatusPill>
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool reduce = Sk.reduceMotion(context);
     final Color dot = widget.onStage ? cs.primary : cs.outline;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedBuilder(
-            animation: _c,
-            builder: (final context, _) => Container(
-              width: 9,
-              height: 9,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: dot,
-                boxShadow: widget.onStage && !reduce
-                    ? [
-                        BoxShadow(
-                          color: dot.withValues(alpha: 0.55 * (1 - _c.value)),
-                          blurRadius: 10 * _c.value + 2,
-                          spreadRadius: 4 * _c.value,
-                        ),
-                      ]
-                    : const [],
+    return Semantics(
+      label: widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm - 1),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppRadius.md + 4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _c,
+              builder: (final context, _) => Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dot,
+                  boxShadow: widget.onStage && !reduce
+                      ? [
+                          BoxShadow(
+                            color:
+                                dot.withValues(alpha: 0.55 * (1 - _c.value)),
+                            blurRadius: 10 * _c.value + 2,
+                            spreadRadius: 4 * _c.value,
+                          ),
+                        ]
+                      : AppShadows.level0,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
-              style: Sk.ui(context, size: 12.5, weight: FontWeight.w800)),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            Text(widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
+                style: Sk.ui(context, size: 12.5, weight: FontWeight.w800)),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// Künye metrikleri — sıkışık kutu değil; dokununca ilgili bölüme kayar.
 class _Stats extends StatelessWidget {
-  final List<(String, int)> items;
-  const _Stats({required this.items});
+  final int onStage;
+  final int past;
+  final int awards;
+  final VoidCallback? onStageTap;
+  final VoidCallback? onPastTap;
+  final VoidCallback? onAwardsTap;
+
+  const _Stats({
+    required this.onStage,
+    required this.past,
+    required this.awards,
+    this.onStageTap,
+    this.onPastTap,
+    this.onAwardsTap,
+  });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        for (int i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                children: [
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(
-                        begin: 0, end: items[i].$2.toDouble()),
-                    duration: Sk.reduceMotion(context)
-                        ? Duration.zero
-                        : Duration(milliseconds: 700 + i * 150),
-                    curve: Curves.easeOutCubic,
-                    builder: (final context, final v, _) => Text(
-                      '${v.round()}',
-                      style: Sk.display(context,
-                          size: 28,
-                          height: 1.0,
-                          color: i == 0 ? cs.primary : cs.onSurface),
+    final List<({String value, String unit, bool hot, VoidCallback? onTap})>
+        items = [
+      (
+        value: '$onStage',
+        unit: 'sahnede',
+        hot: onStage > 0,
+        onTap: onStageTap,
+      ),
+      (
+        value: '$past',
+        unit: 'geçmiş',
+        hot: false,
+        onTap: onPastTap,
+      ),
+      (
+        value: '$awards',
+        unit: 'ödül',
+        hot: false,
+        onTap: onAwardsTap,
+      ),
+    ];
+
+    return Reveal(
+      index: 0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sahne künyesi',
+            style: Sk.ui(context,
+                size: 12,
+                color: cs.onSurfaceVariant,
+                weight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            height: 118,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              physics: const BouncingScrollPhysics(),
+              itemCount: items.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppSpacing.lg),
+              itemBuilder: (final context, final i) {
+                final it = items[i];
+                return Reveal(
+                  index: i + 1,
+                  child: PressScale(
+                    onTap: it.onTap,
+                    semanticLabel: '${it.value} ${it.unit}',
+                    scale: 0.94,
+                    child: ListingMetricOrb(
+                      value: it.value,
+                      unit: it.unit,
+                      emphasized: it.hot,
+                      size: 100,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(items[i].$1,
-                      style: Sk.ui(context,
-                          size: 12,
-                          color: cs.onSurfaceVariant,
-                          weight: FontWeight.w700)),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -639,6 +692,8 @@ class _Body extends StatefulWidget {
   final List<Show> active;
   final List<Show> past;
   final GlobalKey onStageKey;
+  final GlobalKey awardsKey;
+  final GlobalKey pastKey;
   final ValueChanged<Show> onShow;
   final ValueChanged<String> onCollab;
 
@@ -647,6 +702,8 @@ class _Body extends StatefulWidget {
     required this.active,
     required this.past,
     required this.onStageKey,
+    required this.awardsKey,
+    required this.pastKey,
     required this.onShow,
     required this.onCollab,
   });
@@ -674,9 +731,43 @@ class _BodyState extends State<_Body> {
 
     Widget section(final int i, final Widget child) => Reveal(
         index: i,
-        child: Padding(padding: const EdgeInsets.only(top: 34), child: child));
+        child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.huge - 6),
+            child: child));
 
     final bool longBio = bio.length > 260;
+    final bool hasAny = widget.active.isNotEmpty ||
+        bio.isNotEmpty ||
+        awards.isNotEmpty ||
+        collabs.isNotEmpty ||
+        widget.past.isNotEmpty;
+
+    if (!hasAny) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xxl),
+        child: SkSoftCard(
+          radius: AppRadius.lg,
+          color: cs.surfaceContainerHigh,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Künye henüz dolu değil',
+                  style: Sk.ui(context, size: 15, weight: FontWeight.w800)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Bu oyuncunun sahnedeki oyunları, biyografisi ve ödülleri eklendiğinde burada görünecek.',
+                style: Sk.ui(context,
+                    size: 13.5,
+                    color: cs.onSurfaceVariant,
+                    weight: FontWeight.w500,
+                    height: 1.45),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -689,9 +780,18 @@ class _BodyState extends State<_Body> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SkSectionHead(title: 'Sahnede'),
-                  const SizedBox(height: 14),
-                  for (final Show s in widget.active) _ShowRow(show: s, onTap: widget.onShow, live: true),
+                  SkSectionHead(
+                      title: 'Sahnede',
+                      subtitle: '${widget.active.length} oyun'),
+                  const SizedBox(height: AppSpacing.md),
+                  for (int i = 0; i < widget.active.length; i++)
+                    Reveal(
+                      index: i,
+                      child: _ShowRow(
+                          show: widget.active[i],
+                          onTap: widget.onShow,
+                          live: true),
+                    ),
                 ],
               ),
             ),
@@ -703,10 +803,10 @@ class _BodyState extends State<_Body> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SkSectionHead(title: 'Hakkında'),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 AnimatedSize(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
+                  duration: AppMotion.fast,
+                  curve: AppMotion.standard,
                   alignment: Alignment.topCenter,
                   child: Text(
                     bio,
@@ -723,10 +823,15 @@ class _BodyState extends State<_Body> {
                 ),
                 if (longBio)
                   PressScale(
-                    onTap: () => setState(() => _bioOpen = !_bioOpen),
-                    semanticLabel: _bioOpen ? 'Daha az göster' : 'Devamını oku',
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _bioOpen = !_bioOpen);
+                    },
+                    semanticLabel:
+                        _bioOpen ? 'Daha az göster' : 'Devamını oku',
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.md),
                       child: Text(_bioOpen ? 'Daha az göster' : 'Devamını oku',
                           style: Sk.ui(context,
                               size: 14,
@@ -740,19 +845,26 @@ class _BodyState extends State<_Body> {
         if (awards.isNotEmpty)
           section(
             2,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkSectionHead(title: 'Ödüller', subtitle: '${awards.length} ödül'),
-                const SizedBox(height: 16),
-                for (int i = 0; i < awards.length; i++)
-                  _AwardTile(
-                    year: (awards[i]['year'] ?? '').trim(),
-                    title: (awards[i]['title'] ?? '').trim(),
-                    detail: (awards[i]['detail'] ?? '').trim(),
-                    last: i == awards.length - 1,
-                  ),
-              ],
+            KeyedSubtree(
+              key: widget.awardsKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkSectionHead(
+                      title: 'Ödüller', subtitle: '${awards.length} ödül'),
+                  const SizedBox(height: AppSpacing.lg),
+                  for (int i = 0; i < awards.length; i++)
+                    Reveal(
+                      index: i.clamp(0, 8),
+                      child: _AwardTile(
+                        year: (awards[i]['year'] ?? '').trim(),
+                        title: (awards[i]['title'] ?? '').trim(),
+                        detail: (awards[i]['detail'] ?? '').trim(),
+                        last: i == awards.length - 1,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         if (collabs.isNotEmpty)
@@ -764,16 +876,44 @@ class _BodyState extends State<_Body> {
                 const SkSectionHead(
                     title: 'Birlikte çalıştıkları',
                     subtitle: 'Dokun, onların oyunlarını ara'),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.md),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   children: [
-                    for (final String c in collabs)
-                      ActionChip(
-                        label: Text(c),
-                        avatar: const Icon(Icons.search_rounded, size: 18),
-                        onPressed: () => widget.onCollab(c),
+                    for (int i = 0; i < collabs.length; i++)
+                      Reveal(
+                        index: i.clamp(0, 8),
+                        child: PressScale(
+                          onTap: () => widget.onCollab(collabs[i]),
+                          semanticLabel: '${collabs[i]} ara',
+                          scale: 0.96,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm + 2),
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHigh,
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(
+                                  color: cs.outlineVariant
+                                      .withValues(alpha: 0.45)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.search_rounded,
+                                    size: 18, color: cs.primary),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(collabs[i],
+                                    style: Sk.ui(context,
+                                        size: 13.5,
+                                        weight: FontWeight.w700)),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -783,60 +923,71 @@ class _BodyState extends State<_Body> {
         if (widget.past.isNotEmpty)
           section(
             4,
-            SkRail<Show>(
-              title: 'Geçmiş oyunlar',
-              subtitle: '${widget.past.length} oyun',
-              items: widget.past,
-              gutter: 0,
-              railW: 138,
-              railH: 207,
-              minCell: 138,
-              builder: (final s, final w) => PressScale(
-                onTap: () => widget.onShow(s),
-                semanticLabel: s.name,
-                child: Container(
-                  width: w,
-                  height: w * 1.5,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: skSoftShadow(context),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        TiyatrolHero(
-                          tag: TiyatrolHeroTags.show(s.id, 'player'),
-                          child: SkImage(url: s.imageUrl),
+            KeyedSubtree(
+              key: widget.pastKey,
+              child: SkRail<Show>(
+                title: 'Geçmiş oyunlar',
+                subtitle: '${widget.past.length} oyun',
+                items: widget.past,
+                gutter: 0,
+                railW: 138,
+                railH: 207,
+                minCell: 138,
+                builder: (final s, final w) {
+                  final int i = widget.past.indexOf(s);
+                  return Reveal(
+                    index: i.clamp(0, 8),
+                    child: PressScale(
+                      onTap: () => widget.onShow(s),
+                      semanticLabel: s.name,
+                      child: Container(
+                        width: w,
+                        height: w * 1.5,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          boxShadow: AppShadows.level2(cs.shadow),
                         ),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.82),
-                              ],
-                              stops: const [0.5, 1.0],
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              TiyatrolHero(
+                                tag: TiyatrolHeroTags.show(s.id, 'player'),
+                                child: SkImage(url: s.imageUrl),
+                              ),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.82),
+                                    ],
+                                    stops: const [0.5, 1.0],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: AppSpacing.md,
+                                right: AppSpacing.md,
+                                bottom: AppSpacing.md,
+                                child: Text(s.name,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Sk.display(context,
+                                        size: 15,
+                                        color: Colors.white,
+                                        height: 1.1)),
+                              ),
+                            ],
                           ),
                         ),
-                        Positioned(
-                          left: 12,
-                          right: 12,
-                          bottom: 12,
-                          child: Text(s.name,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: Sk.display(context,
-                                  size: 15, color: Colors.white, height: 1.1)),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -856,27 +1007,26 @@ class _ShowRow extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: PressScale(
         onTap: () => onTap(show),
-        semanticLabel: show.name,
+        semanticLabel: live ? '${show.name}, bilet var' : show.name,
         scale: 0.985,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(22),
-            border:
-                Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
-          ),
+        child: SkSoftCard(
+          radius: AppRadius.lg,
+          color: cs.surfaceContainerLow,
+          padding: const EdgeInsets.all(AppSpacing.sm + 2),
           child: Row(
             children: [
               TiyatrolHero(
                 tag: TiyatrolHeroTags.show(show.id, 'player'),
                 child: SkImage(
-                    url: show.imageUrl, width: 64, height: 92, radius: 14),
+                    url: show.imageUrl,
+                    width: 64,
+                    height: 92,
+                    radius: AppRadius.sm + 2),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -888,7 +1038,7 @@ class _ShowRow extends StatelessWidget {
                             size: 15, weight: FontWeight.w800, height: 1.2)),
                     if (show.category.trim().isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: AppSpacing.xs),
                         child: Text(show.category.trim(),
                             style: Sk.ui(context,
                                 size: 12.5,
@@ -897,7 +1047,7 @@ class _ShowRow extends StatelessWidget {
                       ),
                     if (live)
                       const Padding(
-                        padding: EdgeInsets.only(top: 8),
+                        padding: EdgeInsets.only(top: AppSpacing.sm),
                         child: SkBadge(label: 'Bilet var', accent: true),
                       ),
                   ],
@@ -935,7 +1085,7 @@ class _AwardTile extends StatelessWidget {
           SizedBox(
             width: 52,
             child: Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text(year.isEmpty ? '—' : year,
                   style: Sk.display(context,
                       size: 17, color: cs.primary, height: 1.1)),
@@ -946,7 +1096,7 @@ class _AwardTile extends StatelessWidget {
               Container(
                 width: 11,
                 height: 11,
-                margin: const EdgeInsets.only(top: 5),
+                margin: const EdgeInsets.only(top: AppSpacing.xs + 1),
                 decoration:
                     BoxDecoration(color: cs.primary, shape: BoxShape.circle),
               ),
@@ -958,10 +1108,10 @@ class _AwardTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: last ? 0 : 20),
+              padding: EdgeInsets.only(bottom: last ? 0 : AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -970,7 +1120,7 @@ class _AwardTile extends StatelessWidget {
                           size: 15, weight: FontWeight.w800, height: 1.25)),
                   if (detail.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 3),
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
                       child: Text(detail,
                           style: Sk.ui(context,
                               size: 13,

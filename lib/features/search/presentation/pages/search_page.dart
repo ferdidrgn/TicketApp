@@ -7,6 +7,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../shared/widgets/ticket/ticket_search.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -245,72 +246,59 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   // ─── arama alanı ─────────────────────────────────────────────────────────
 
+  /// Işıyan kenar + daktilo ipucu (boşken); yazınca gerçek alan.
   Widget _field(final ColorScheme cs) {
     final bool focused = _focus.hasFocus;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      height: 52,
-      padding: const EdgeInsets.only(left: 16, right: 4),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: focused ? cs.primary : Colors.transparent,
-          width: 1.8,
-        ),
-        boxShadow: focused
-            ? [
-                BoxShadow(
-                  color: cs.primary.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                  spreadRadius: 1,
-                ),
-              ]
-            : const [],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search_rounded,
-              color: focused ? cs.primary : cs.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Semantics(
-              textField: true,
-              label: 'Oyun, oyuncu, mekân ya da topluluk ara',
-              child: TextField(
-                controller: _text,
-                focusNode: _focus,
-                autofocus: true,
-                onChanged: _setQuery,
-                onSubmitted: (final v) {
-                  _remember(v);
-                  _focus.unfocus();
-                },
-                textInputAction: TextInputAction.search,
-                style: Sk.ui(context, size: 16, weight: FontWeight.w600),
-                cursorColor: cs.primary,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  hintText: 'Oyun, oyuncu, mekân ara',
-                  hintStyle: Sk.ui(context,
-                      size: 16,
-                      color: cs.onSurfaceVariant,
-                      weight: FontWeight.w500),
-                ),
-              ),
-            ),
-          ),
-          if (_text.text.isNotEmpty)
-            IconButton(
+    return TicketSearchShell(
+      focused: focused,
+      trailing: _text.text.isEmpty
+          ? null
+          : IconButton(
               tooltip: 'Aramayı temizle',
               onPressed: _clear,
               icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant),
             ),
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          if (_text.text.isEmpty && !focused)
+            const IgnorePointer(child: RotatingSearchHint()),
+          Semantics(
+            textField: true,
+            label: 'Oyun, oyuncu, mekân ya da topluluk ara',
+            child: TextField(
+              controller: _text,
+              focusNode: _focus,
+              autofocus: true,
+              onChanged: _setQuery,
+              onSubmitted: (final v) {
+                _remember(v);
+                _focus.unfocus();
+              },
+              textInputAction: TextInputAction.search,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 15.5,
+                fontWeight: FontWeight.w600,
+              ),
+              cursorColor: cs.primary,
+              decoration: InputDecoration(
+                isCollapsed: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                hintText: focused && _text.text.isEmpty
+                    ? 'Oyun, oyuncu, mekân ara'
+                    : null,
+                hintStyle: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

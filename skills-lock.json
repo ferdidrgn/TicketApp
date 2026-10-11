@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "code-reviewer": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/code-reviewer/SKILL.md",
+      "computedHash": "e86db66846b35a0f334e6718ee2e612696dc53348d53d78949bca1be6109c2fa"
+    },
     "extension-to-functions-codebase": {
       "source": "firebase/agent-skills",
       "sourceType": "github",
@@ -72,6 +78,24 @@
       "sourceType": "github",
       "skillPath": "skills/firestore-rules-creation/SKILL.md",
       "computedHash": "a7f0d27cc1b7bb52c5978db8bfa2c28d07b440c99e89277577fcc31fc7995971"
+    },
+    "senior-architect": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/senior-architect/SKILL.md",
+      "computedHash": "03f75291acbd3934c4a1d8aa73b24357d74d848fa587bf5d7dc0a90e7437b5b7"
+    },
+    "senior-prompt-engineer": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/senior-prompt-engineer/SKILL.md",
+      "computedHash": "5dd8f944a2ed935a65b49b96d45cf5607fd810aeee121c66785f8a29cc891a23"
+    },
+    "ui-ux-pro-max": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/ui-ux-pro-max/SKILL.md",
+      "computedHash": "adab776dc60f4f3466185318575abe670981c64b3584368dbb09f985d2ac0965"
     },
     "xcode-project-setup": {
       "source": "firebase/agent-skills",

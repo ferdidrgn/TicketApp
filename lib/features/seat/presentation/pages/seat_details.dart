@@ -217,7 +217,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
               'Bağlantını kontrol edip yeniden dene.',
           onRetry: _retry,
         ),
-        data: (final live) => _buildHall(ev, live, desktop: desktop),
+        data: (final live) => _buildHall(
+              ev,
+              live,
+              desktop: desktop,
+              stageNote: _stageSeatNote(stage),
+            ),
       ),
     );
 
@@ -272,9 +277,29 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     );
   }
 
-  Widget _buildHall(final Event event,
-      final Map<String, Map<String, dynamic>> live,
-      {required final bool desktop}) {
+  /// Sahne `description` içindeki koltuk düzeni notu (ÖNEMLİ …).
+  static String? _stageSeatNote(final Stage? stage) {
+    if (stage == null) {
+      return null;
+    }
+    final String d = stage.description.trim();
+    if (d.isEmpty) {
+      return null;
+    }
+    final int i = d.indexOf('ÖNEMLİ');
+    if (i >= 0) {
+      return d.substring(i).trim();
+    }
+    // Kısa açıklamaları da göster (uzun metinde sadece ÖNEMLİ bloğu).
+    return d.length <= 220 ? d : null;
+  }
+
+  Widget _buildHall(
+    final Event event,
+    final Map<String, Map<String, dynamic>> live, {
+    required final bool desktop,
+    final String? stageNote,
+  }) {
     final rows = groupSeatsByRow(event.seats.keys);
     if (rows.isEmpty) {
       return const _PlanError(
@@ -314,6 +339,16 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (stageNote != null && stageNote.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              desktop ? AppSpacing.lg : AppSpacing.md,
+              0,
+              desktop ? AppSpacing.lg : AppSpacing.md,
+              AppSpacing.sm,
+            ),
+            child: _SeatStageNote(text: stageNote),
+          ),
         Expanded(
           child: SeatHallPlan(
             rows: rows,
@@ -582,6 +617,48 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
           ),
         ),
       );
+}
+
+/// Sahne açıklamasındaki koltuk düzeni uyarısı (tek/çift numara vb.).
+class _SeatStageNote extends StatelessWidget {
+  final String text;
+  const _SeatStageNote({required this.text});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      label: text,
+      child: Material(
+        color: cs.tertiaryContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 18, color: cs.onTertiaryContainer),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: cs.onTertiaryContainer,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────

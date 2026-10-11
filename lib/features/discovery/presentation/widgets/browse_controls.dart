@@ -1,12 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/craft.dart';
 import '../../../../shared/widgets/listing.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/sahne/sahne_kit.dart' show Reveal;
+import '../../../../shared/widgets/ticket/ticket_kit.dart' show AuthWipeReveal;
 import '../../../shows/domain/entities/show.dart';
 
 /// Keşfet / Yakınımdakiler / Arama ekranlarının ortak, temaya bağlı tarama
@@ -41,12 +45,42 @@ class BrowseDragScrollBehavior extends MaterialScrollBehavior {
 // Sayfa başlığı
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Sayfa başlığı — listing Manrope, perde açılışı yok.
-class BrowseHeading extends StatelessWidget {
+/// Sayfa başlığı — Playfair + soldan sağa perde açılışı (onaylı wipe).
+class BrowseHeading extends StatefulWidget {
   final String title;
   final String? lede;
 
   const BrowseHeading({super.key, required this.title, this.lede});
+
+  @override
+  State<BrowseHeading> createState() => _BrowseHeadingState();
+}
+
+class _BrowseHeadingState extends State<BrowseHeading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _reveal =
+      CurvedAnimation(parent: _controller, curve: AppMotion.dramatic);
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.value = 1;
+    } else {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -57,27 +91,35 @@ class BrowseHeading extends StatelessWidget {
       children: [
         Semantics(
           header: true,
-          child: Text(
-            title,
-            style: listingUi(
-              color: cs.onSurface,
-              size: browseFluid(context, 32, 52),
-              weight: FontWeight.w800,
-              height: 1.05,
+          child: AuthWipeReveal(
+            reveal: _reveal,
+            child: Text(
+              widget.title,
+              style: GoogleFonts.playfairDisplay(
+                color: cs.onSurface,
+                fontSize: browseFluid(context, 32, 48),
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
         ),
-        if (lede != null) ...[
+        if (widget.lede != null) ...[
           const SizedBox(height: AppSpacing.sm),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
-            child: Text(
-              lede!,
-              style: listingUi(
-                color: cs.onSurfaceVariant,
-                size: 15,
-                weight: FontWeight.w500,
-                height: 1.5,
+            child: AnimatedSwitcher(
+              duration: AppMotion.fast,
+              child: Text(
+                widget.lede!,
+                key: ValueKey(widget.lede),
+                style: listingUi(
+                  color: cs.onSurfaceVariant,
+                  size: 15,
+                  weight: FontWeight.w500,
+                  height: 1.5,
+                ),
               ),
             ),
           ),
@@ -165,17 +207,70 @@ class BrowseSectionTitle extends StatelessWidget {
 class BrowseOption {
   final String label;
   final int? count;
-  const BrowseOption(this.label, {this.count});
+  final IconData? icon;
+  const BrowseOption(this.label, {this.count, this.icon});
 }
 
-/// Tek seçimli çip grubu. [wrap] true → satır atlayan grup (geniş ekran),
-/// false → fareyle de sürüklenebilen yatay şerit (mobil/tablet).
+/// "Ne zaman?" tarzı süzgeçler için ortak eşleşme — geçmiş günler asla
+/// dahil edilmez (hafta sonu tuzağı: negatif `difference.inDays < 14`).
+enum BrowseWhen { any, tonight, tomorrow, weekend, week }
+
+DateTime browseDay(final DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Yaklaşan Cumartesi–Pazar (bugünden itibaren kalan günler). Geçmiş
+/// Cumartesi/Pazar veya sonraki hafta sonu dahil değil.
+bool browseIsUpcomingWeekend(final DateTime date, {final DateTime? now}) {
+  final DateTime n = now ?? DateTime.now();
+  final DateTime today = browseDay(n);
+  final DateTime day = browseDay(date);
+  if (day.isBefore(today)) {
+    return false;
+  }
+  if (date.weekday != DateTime.saturday && date.weekday != DateTime.sunday) {
+    return false;
+  }
+  final int daysToSunday = (DateTime.sunday - today.weekday + 7) % 7;
+  final DateTime weekendEnd = today.add(Duration(days: daysToSunday));
+  final DateTime weekendStart = weekendEnd.subtract(const Duration(days: 1));
+  return !day.isBefore(today) &&
+      !day.isAfter(weekendEnd) &&
+      !day.isBefore(weekendStart);
+}
+
+bool browseMatchesWhen(
+  final DateTime date,
+  final BrowseWhen when, {
+  final DateTime? now,
+}) {
+  if (when == BrowseWhen.any) {
+    return true;
+  }
+  final DateTime n = now ?? DateTime.now();
+  final DateTime today = browseDay(n);
+  final DateTime day = browseDay(date);
+  switch (when) {
+    case BrowseWhen.any:
+      return true;
+    case BrowseWhen.tonight:
+      return day == today && !date.isBefore(n);
+    case BrowseWhen.tomorrow:
+      return day == today.add(const Duration(days: 1));
+    case BrowseWhen.weekend:
+      return browseIsUpcomingWeekend(date, now: n) && !date.isBefore(n);
+    case BrowseWhen.week:
+      return !date.isBefore(n) && day.difference(today).inDays < 7;
+  }
+}
+
+/// Tek seçimli çip grubu — [ListingChip] + [Reveal]. [wrap] true → satır
+/// atlayan grup; false → fareyle de sürüklenebilen yatay şerit.
 class BrowseChoiceChips extends StatelessWidget {
   final List<BrowseOption> options;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final bool wrap;
   final EdgeInsetsGeometry padding;
+  final bool reveal;
 
   const BrowseChoiceChips({
     super.key,
@@ -184,50 +279,25 @@ class BrowseChoiceChips extends StatelessWidget {
     required this.onSelected,
     this.wrap = false,
     this.padding = EdgeInsets.zero,
+    this.reveal = true,
   });
 
-  Widget _chip(final BuildContext context, final int i) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
+  Widget _chip(final int i) {
     final BrowseOption o = options[i];
-    final bool selected = i == selectedIndex;
-    return ChoiceChip(
-      showCheckmark: false,
-      selected: selected,
-      onSelected: (final _) => onSelected(i),
-      selectedColor: cs.primary,
-      backgroundColor: cs.surfaceContainer,
-      side: BorderSide(color: selected ? cs.primary : cs.outlineVariant),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill)),
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            o.label,
-            style: TextStyle(
-              color: selected ? cs.onPrimary : cs.onSurface,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              fontSize: 13.5,
-            ),
-          ),
-          if (o.count != null) ...[
-            const SizedBox(width: 6),
-            Text(
-              '${o.count}',
-              style: TextStyle(
-                color: selected
-                    ? cs.onPrimary.withOpacity(0.8)
-                    : cs.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ],
-      ),
+    final Widget chip = ListingChip(
+      label: o.label,
+      count: o.count,
+      icon: o.icon,
+      selected: i == selectedIndex,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onSelected(i);
+      },
     );
+    if (!reveal) {
+      return chip;
+    }
+    return Reveal(index: i.clamp(0, 8), child: chip);
   }
 
   @override
@@ -236,26 +306,27 @@ class BrowseChoiceChips extends StatelessWidget {
       return Padding(
         padding: padding,
         child: Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
           children: [
-            for (int i = 0; i < options.length; i++) _chip(context, i),
+            for (int i = 0; i < options.length; i++) _chip(i),
           ],
         ),
       );
     }
     return SizedBox(
-      height: 48,
+      height: 56,
       child: ScrollConfiguration(
         behavior: const BrowseDragScrollBehavior(),
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
           padding: padding,
           itemCount: options.length,
           separatorBuilder: (final _, final __) =>
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.md),
           itemBuilder: (final context, final i) =>
-              Center(child: _chip(context, i)),
+              Center(child: _chip(i)),
         ),
       ),
     );
@@ -333,8 +404,8 @@ class _ModeSegment extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: selected ? null : onTap,
-          focusColor: cs.primary.withOpacity(0.2),
-          hoverColor: cs.onSurface.withOpacity(0.05),
+          focusColor: cs.primary.withValues(alpha: 0.2),
+          hoverColor: cs.onSurface.withValues(alpha: 0.05),
           child: AnimatedContainer(
             duration: AppMotion.fast,
             curve: AppMotion.standard,
@@ -398,15 +469,15 @@ class BrowseSideOption extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: selected
-            ? (tinted ? cs.primary : cs.primary.withOpacity(0.1))
+            ? (tinted ? cs.primary : cs.primary.withValues(alpha: 0.1))
             : (tinted ? tone! : Colors.transparent),
         borderRadius:
             BorderRadius.circular(tinted ? AppRadius.md : AppRadius.xs),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          focusColor: cs.primary.withOpacity(0.18),
-          hoverColor: cs.onSurface.withOpacity(0.05),
+          focusColor: cs.primary.withValues(alpha: 0.18),
+          hoverColor: cs.onSurface.withValues(alpha: 0.05),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: tinted ? 48 : 44),
             child: Padding(
@@ -513,8 +584,8 @@ class BrowseListTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          focusColor: cs.primary.withOpacity(0.16),
-          hoverColor: cs.onSurface.withOpacity(0.04),
+          focusColor: cs.primary.withValues(alpha: 0.16),
+          hoverColor: cs.onSurface.withValues(alpha: 0.04),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Row(
@@ -530,7 +601,7 @@ class BrowseListTile extends StatelessWidget {
                     borderRadius: AppRadius.xs,
                     errorBuilder: (final _, final __, final ___) => DecoratedBox(
                       decoration: BoxDecoration(
-                        color: cs.primary.withOpacity(0.1),
+                        color: cs.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppRadius.xs),
                       ),
                       child: Icon(fallbackIcon, color: cs.primary, size: 24),
@@ -730,7 +801,9 @@ List<BrowseCategory> browseCategoriesOf(final List<Show> shows) {
   final Map<String, List<Show>> byKey = {};
   for (final Show show in shows) {
     final String raw = show.category.trim();
-    if (raw.isEmpty) continue;
+    if (raw.isEmpty) {
+      continue;
+    }
     final String key = browseCategoryKey(raw);
     byKey.putIfAbsent(key, () => []).add(show);
     final Map<String, int> spelling = spellings.putIfAbsent(key, () => {});
@@ -773,31 +846,39 @@ class BrowseCategoryStrip extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    if (categories.length < 2) return const SizedBox.shrink();
+    if (categories.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final List<BrowseCategory> all = [
+      BrowseCategory('', 'Tümü', total, ''),
+      ...categories,
+    ];
     return ScrollConfiguration(
       behavior: const BrowseDragScrollBehavior(),
       child: SizedBox(
-        height: 96,
-        child: ListView(
+        height: 104,
+        child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: padding,
-          children: [
-            _BrowseCategoryCard(
-              label: 'Tümü',
-              count: total,
-              imageUrl: '',
-              selected: selectedKey == null,
-              onTap: () => onPick(null),
-            ),
-            for (final BrowseCategory category in categories)
-              _BrowseCategoryCard(
+          itemCount: all.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(width: AppSpacing.md),
+          itemBuilder: (final context, final i) {
+            final BrowseCategory category = all[i];
+            final bool isAll = category.key.isEmpty;
+            return Reveal(
+              index: i.clamp(0, 8),
+              child: _BrowseCategoryCard(
                 label: category.label,
                 count: category.count,
                 imageUrl: category.imageUrl,
-                selected: selectedKey == category.key,
-                onTap: () => onPick(category.key),
+                selected: isAll
+                    ? selectedKey == null
+                    : selectedKey == category.key,
+                onTap: () => onPick(isAll ? null : category.key),
               ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -823,93 +904,92 @@ class _BrowseCategoryCard extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool hasImage = imageUrl.trim().isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(right: AppSpacing.md),
-      child: Semantics(
-        button: true,
-        selected: selected,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label, $count oyun',
+      excludeSemantics: true,
+      child: PressScale(
         label: '$label, $count oyun',
-        excludeSemantics: true,
+        onTap: onTap,
         child: AnimatedContainer(
           duration: AppMotion.fast,
-          width: 132,
+          width: 136,
+          height: 104,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: selected ? cs.primary : Colors.transparent,
               width: 2.4,
             ),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md - 2),
-            child: Material(
+            borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+            child: ColoredBox(
               color: hasImage ? Colors.black : cs.primaryContainer,
-              child: InkWell(
-                onTap: onTap,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (hasImage)
-                      Opacity(
-                        opacity: selected ? 0.9 : 0.6,
-                        child: OptimizedCachedImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          borderRadius: 0,
-                        ),
-                      ),
-                    if (hasImage)
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x11000000), Color(0xCC000000)],
-                          ),
-                        ),
-                      ),
-                    if (selected)
-                      Positioned(
-                        top: AppSpacing.xs + 2,
-                        right: AppSpacing.xs + 2,
-                        child: Icon(Icons.check_circle_rounded,
-                            size: 20, color: cs.primary),
-                      ),
-                    Positioned(
-                      left: AppSpacing.sm + 2,
-                      right: AppSpacing.sm,
-                      bottom: AppSpacing.sm,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.playfairDisplay(
-                              color: hasImage
-                                  ? Colors.white
-                                  : cs.onPrimaryContainer,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            '$count oyun',
-                            style: TextStyle(
-                              color: hasImage
-                                  ? const Color(0xCCFFFFFF)
-                                  : cs.onPrimaryContainer
-                                      .withValues(alpha: 0.8),
-                              fontSize: 11.5,
-                            ),
-                          ),
-                        ],
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (hasImage)
+                    Opacity(
+                      opacity: selected ? 0.92 : 0.62,
+                      child: OptimizedCachedImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
                       ),
                     ),
-                  ],
-                ),
+                  if (hasImage)
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x11000000), Color(0xCC000000)],
+                        ),
+                      ),
+                    ),
+                  if (selected)
+                    Positioned(
+                      top: AppSpacing.sm,
+                      right: AppSpacing.sm,
+                      child: Icon(Icons.check_circle_rounded,
+                          size: 20, color: cs.primary),
+                    ),
+                  Positioned(
+                    left: AppSpacing.md,
+                    right: AppSpacing.sm,
+                    bottom: AppSpacing.md,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.playfairDisplay(
+                            color: hasImage
+                                ? Colors.white
+                                : cs.onPrimaryContainer,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          '$count oyun',
+                          style: listingUi(
+                            color: hasImage
+                                ? const Color(0xCCFFFFFF)
+                                : cs.onPrimaryContainer.withValues(alpha: 0.8),
+                            size: 12,
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

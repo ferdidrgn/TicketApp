@@ -1,5 +1,7 @@
 import 'package:add_2_calendar/add_2_calendar.dart' as cal;
 
+import 'show_duration.dart';
+
 /// Gerçek, cihaz takvimine ekleme aksiyonu — `TiyatrolCommunicationActions`
 /// (bkz. `comminucation_actions.dart`) ile aynı ruhta: sahte/boş bir onTap
 /// yerine gerçek bir platform eylemi. `add_2_calendar` paketinin kendi
@@ -39,12 +41,8 @@ final class TiyatrolCalendarActions {
   }
 
   static Duration _parseDuration(final String rawDuration) {
-    final match = RegExp(r'(\d+)').firstMatch(rawDuration);
-    if (match == null) return _fallbackDuration;
-    final minutes = int.tryParse(match.group(1)!);
-    if (minutes == null || minutes < 15 || minutes > 480) {
-      return _fallbackDuration;
-    }
+    final int? minutes = ShowDurationFormat.minutes(rawDuration);
+    if (minutes == null) return _fallbackDuration;
     return Duration(minutes: minutes);
   }
 }

@@ -300,6 +300,8 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
                 CustomTextField(
                   controller: _externalTicketUrlController,
                   label: 'Harici Bilet URL\'i',
+                  hintText:
+                      'Şehir URL\'de olmalı: bubilet.com.tr/istanbul/etkinlik/... (tur başka şehre geçince linki güncelle)',
                   isRequired: false,
                   keyboardType: TextInputType.url,
                 ),

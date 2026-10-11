@@ -278,3 +278,113 @@ class _GongPainter extends CustomPainter {
   bool shouldRepaint(covariant final _GongPainter old) =>
       old.lit != lit || old.ring != ring || old.color != color;
 }
+
+/// Dokunuşa cevap: [origin] merkezinden kısa bir kıvılcım halkası.
+/// Asset yok — saf Flutter `CustomPainter`. Azaltılmış harekette no-op.
+void sparkBurst(final BuildContext origin) {
+  if (MediaQuery.maybeOf(origin)?.disableAnimations ?? false) return;
+  final OverlayState? overlay = Overlay.maybeOf(origin, rootOverlay: true);
+  final RenderObject? box = origin.findRenderObject();
+  if (overlay == null || box is! RenderBox || !box.hasSize) return;
+
+  final Offset center = box.localToGlobal(box.size.center(Offset.zero));
+  final Color ink = Theme.of(origin).colorScheme.primary;
+  HapticFeedback.selectionClick();
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (final context) => _SparkBurst(
+      center: center,
+      color: ink,
+      onDone: () => entry.remove(),
+    ),
+  );
+  overlay.insert(entry);
+}
+
+class _SparkBurst extends StatefulWidget {
+  final Offset center;
+  final Color color;
+  final VoidCallback onDone;
+
+  const _SparkBurst({
+    required this.center,
+    required this.color,
+    required this.onDone,
+  });
+
+  @override
+  State<_SparkBurst> createState() => _SparkBurstState();
+}
+
+class _SparkBurstState extends State<_SparkBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+  )..forward().whenComplete(widget.onDone);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (final context, final _) {
+            final double t = Curves.easeOutCubic.transform(_c.value);
+            return CustomPaint(
+              painter: _SparkPainter(
+                center: widget.center,
+                color: widget.color,
+                t: t,
+              ),
+              size: Size.infinite,
+            );
+          },
+        ),
+      );
+}
+
+class _SparkPainter extends CustomPainter {
+  final Offset center;
+  final Color color;
+  final double t;
+
+  const _SparkPainter({
+    required this.center,
+    required this.color,
+    required this.t,
+  });
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final double radius = 12 + t * 36;
+    final double alpha = (1 - t).clamp(0.0, 1.0);
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..color = color.withValues(alpha: alpha * 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2 * (1 - t * 0.5),
+    );
+    for (int i = 0; i < 6; i++) {
+      final double a = (i / 6) * math.pi * 2 + t * 0.8;
+      final Offset tip = center +
+          Offset(math.cos(a), math.sin(a)) * (18 + t * 28);
+      canvas.drawCircle(
+        tip,
+        2.2 * (1 - t),
+        Paint()..color = color.withValues(alpha: alpha * 0.9),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant final _SparkPainter old) =>
+      old.t != t || old.color != color || old.center != center;
+}

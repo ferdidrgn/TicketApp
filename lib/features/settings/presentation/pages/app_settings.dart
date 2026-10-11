@@ -12,11 +12,11 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/app_version_provider.dart';
 import '../widgets/preference_widgets.dart';
-import '../../../../shared/widgets/admin_test_entry.dart';
 
 /// AYARLAR — sade bir "tercihler" sayfası. Sahibinin en sevdiği özellik
 /// (5 tema + özel vurgu rengi) en üstte ve artık her seçenek o temanın
@@ -102,6 +102,10 @@ class AppSettingsPage extends ConsumerWidget {
               ..._permissions(context),
               const SizedBox(height: AppSpacing.huge),
               ..._share(context),
+              const SizedBox(height: AppSpacing.huge),
+              ..._support(context),
+              const SizedBox(height: AppSpacing.huge),
+              ..._motion(context),
               const SizedBox(height: AppSpacing.huge),
               _versionFooter(context, ref),
               if (kIsWeb) ...[
@@ -194,6 +198,80 @@ class AppSettingsPage extends ConsumerWidget {
     ];
   }
 
+  List<Widget> _support(final BuildContext context) => [
+        PreferenceSectionTitle(
+          prefText(context, 'Yardım', 'Help'),
+          caption: prefText(
+            context,
+            'SSS ve bize ulaş.',
+            'FAQ and contact us.',
+          ),
+        ),
+        PreferenceGroup(
+          children: [
+            PreferenceRow(
+              icon: Icons.help_outline_rounded,
+              title: prefText(context, 'Yardım ve destek', 'Help & support'),
+              subtitle: prefText(
+                context,
+                'Sık sorulanlar ve iletişim.',
+                'FAQs and contact.',
+              ),
+              onTap: () => NavigationHandler.goToHelpSupport(context),
+            ),
+            PreferenceRow(
+              icon: Icons.gavel_outlined,
+              title: prefText(context, 'Yasal bilgiler', 'Legal'),
+              subtitle: prefText(
+                context,
+                'Gizlilik ve kullanım şartları.',
+                'Privacy and terms.',
+              ),
+              onTap: () => NavigationHandler.goToContracts(context),
+            ),
+          ],
+        ),
+      ];
+
+  List<Widget> _motion(final BuildContext context) => [
+        PreferenceSectionTitle(
+          prefText(context, 'Hareket', 'Motion'),
+          caption: prefText(
+            context,
+            'Animasyonlar cihazının “hareketi azalt” ayarına uyar.',
+            'Animations respect your device’s Reduce Motion setting.',
+          ),
+        ),
+        PreferenceGroup(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Row(
+                children: [
+                  Icon(Icons.animation_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 28),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      prefText(
+                        context,
+                        'Kart ve yükleme hareketleri hafif tutulur; azaltılmış harekette durur.',
+                        'Card and loading motion stays light; it pauses when Reduce Motion is on.',
+                      ),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ];
+
   /// Dinamik versiyon (`appVersionLabelProvider`) + uzun basınca /admin.
   Widget _versionFooter(final BuildContext context, final WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -273,6 +351,10 @@ class AppSettingsPage extends ConsumerWidget {
                                 ..._permissions(context),
                                 const SizedBox(height: AppSpacing.huge),
                                 ..._share(context),
+                                const SizedBox(height: AppSpacing.huge),
+                                ..._support(context),
+                                const SizedBox(height: AppSpacing.huge),
+                                ..._motion(context),
                               ],
                             ),
                           ),

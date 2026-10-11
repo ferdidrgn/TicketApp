@@ -1,23 +1,28 @@
+import 'package:flutter/services.dart';
+
 // ==============================================================================
-// KOYU HARİTA STİLİ — Google'ın standart, herkese açık "Night Mode" JSON'ı
+// KOYU HARİTA STİLİ — Google Maps JSON (raw asset)
 // ==============================================================================
 //
-// Bu STANDART bir Google Maps stil dizisidir (feature/element/stylers) —
-// Google'ın kendi stil sihirbazının yayınladığı, sayısız resmi örnek ve
-// üçüncü parti kaynakta (snazzy-maps dahil) birebir aynı biçimde tekrarlanan
-// bilinen bir "koyu tema" JSON'ı. Uydurma bir API anahtarı/uç nokta DEĞİL —
-// sadece statik, görsel bir stil verisi. Uygulamanın `WebColors`/
-// `AppLightColors`/`AppDarkColors` renk tokenlarına BİREBİR uymaya
-// çalışmıyor (harita stilleri kendi ayrı renk sistemidir, marka renklerini
-// kopyalamak zorunda değil) — amaç sadece Google'ın parlak/beyaz-yeşil
-// varsayılan stiliyle "Crimson Noir" koyu temanın yan yana göze batmasını
-// önlemek.
+// Kaynak dosya: `assets/maps/dark_map_style.json` (mapstyle.withgoogle.com
+// Night Mode tarzı). Runtime'da [loadDarkMapStyle] ile yüklenir; asset
+// okunamazsa aşağıdaki gömülü yedek kullanılır.
 //
-// Kullanım: `GoogleMap(style: kDarkMapStyle, ...)` — `google_maps_flutter`
-// 2.7+'ta eklenen deklaratif `style` parametresi, `GoogleMapController.
-// setMapStyle()`'ın yerini alıyor ve ilk kare açılışında bile (controller
-// hazır olmadan) doğru stille render ediyor.
-const String kDarkMapStyle = '''
+// Kullanım: `GoogleMap(style: style ?? kDarkMapStyleFallback, ...)`
+
+/// Asset yolu — pubspec'te kayıtlı.
+const String kDarkMapStyleAsset = 'assets/maps/dark_map_style.json';
+
+Future<String> loadDarkMapStyle() async {
+  try {
+    return await rootBundle.loadString(kDarkMapStyleAsset);
+  } catch (_) {
+    return kDarkMapStyleFallback;
+  }
+}
+
+/// Asset yüklenemezse yedek (aynı JSON).
+const String kDarkMapStyleFallback = '''
 [
   {"elementType": "geometry", "stylers": [{"color": "#212121"}]},
   {"elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
@@ -109,3 +114,6 @@ const String kDarkMapStyle = '''
   }
 ]
 ''';
+
+/// @Deprecated('loadDarkMapStyle / kDarkMapStyleFallback kullan')
+const String kDarkMapStyle = kDarkMapStyleFallback;

@@ -45,10 +45,14 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
     final stage = widget.stage;
     _nameController = TextEditingController(text: stage?.name ?? '');
     _addressController = TextEditingController(text: stage?.address ?? '');
-    _latController =
-        TextEditingController(text: stage != null ? '${stage.locationLat}' : '');
-    _lngController =
-        TextEditingController(text: stage != null ? '${stage.locationLng}' : '');
+    _latController = TextEditingController(
+        text: stage != null && stage.locationLat != 0
+            ? '${stage.locationLat}'
+            : '');
+    _lngController = TextEditingController(
+        text: stage != null && stage.locationLng != 0
+            ? '${stage.locationLng}'
+            : '');
     _capacityController = TextEditingController(text: stage?.capacity ?? '');
     _descriptionController =
         TextEditingController(text: stage?.description ?? '');
@@ -88,11 +92,12 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
     }
 
     if (_isEditing) {
+      // Backend: lat / long string (locationLat/locationLng değil).
       final updatedData = <String, dynamic>{
         'name': _nameController.text.trim(),
         'address': _addressController.text.trim(),
-        'locationLat': lat,
-        'locationLng': lng,
+        'lat': lat.toString(),
+        'long': lng.toString(),
         'capacity': _capacityController.text.trim(),
         'description': _descriptionController.text.trim(),
         'communication': _communicationController.text.trim(),
@@ -231,7 +236,7 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
                     Expanded(
                       child: CustomTextField(
                         controller: _lngController,
-                        label: 'Boylam (lng)',
+                        label: 'Boylam (long)',
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true, signed: true),
                       ),

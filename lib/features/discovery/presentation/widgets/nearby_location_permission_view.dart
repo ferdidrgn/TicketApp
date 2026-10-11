@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/listing.dart';
 import '../providers/location_provider.dart';
 
 /// "Yakınımdakiler" için GERÇEK konum izni/servis isteme ekranı.
 ///
 /// Sahte bir "izin verilmiş gibi davran" YOK: konum alınamadığı sürece bu
 /// widget ekranda kalır, hiçbir uydurma etkinlik/mesafe gösterilmez.
-/// `error`'ın somut [LocationFailure] alt tipine göre GERÇEK, doğru
-/// aksiyonu sunar:
-///   - [LocationServiceDisabledFailure] -> cihazın konum servisi ayarını aç
-///   - [LocationPermissionDeniedForeverFailure] -> uygulama ayarlarını aç
-///     (sistem artık uygulama içinden tekrar sormuyor)
-///   - diğerleri (ör. ilk reddetme) -> `Geolocator.requestPermission()`'ı
-///     tekrar tetikleyen gerçek sistem izin diyaloğu
 class NearbyLocationPermissionView extends ConsumerWidget {
   final Object error;
   final Color foregroundColor;
@@ -42,78 +38,107 @@ class NearbyLocationPermissionView extends ConsumerWidget {
     final bool isDeniedForever =
         failure is LocationPermissionDeniedForeverFailure;
     final bool isServiceDisabled = failure is LocationServiceDisabledFailure;
-    // Zaman aşımı (zayıf GPS sinyali) bir izin sorunu DEĞİL — bu yüzden
-    // "Konum İzni Ver" yerine gerçek bir "Tekrar Dene" aksiyonu sunuyoruz;
-    // izin isteme diyaloğunu tekrar tetiklemenin bir anlamı yok, sadece
-    // `devicePositionProvider`'ı yeniden tetiklemek yeterli.
     final bool isTimeout = failure is LocationTimeoutFailure;
 
-    final String actionLabel = isDeniedForever
-        ? 'Uygulama Ayarlarını Aç'
+    final String title = isTimeout
+        ? 'Konum alınamadı'
         : isServiceDisabled
-            ? 'Konum Ayarlarını Aç'
+            ? 'Konum servisi kapalı'
+            : isDeniedForever
+                ? 'Konum izni gerekli'
+                : 'Konumuna ihtiyacımız var';
+
+    final String actionLabel = isDeniedForever
+        ? 'Uygulama ayarlarını aç'
+        : isServiceDisabled
+            ? 'Konum ayarlarını aç'
             : isTimeout
-                ? 'Tekrar Dene'
-                : 'Konum İzni Ver';
+                ? 'Tekrar dene'
+                : 'Konum izni ver';
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
+          horizontal: AppSpacing.lg, vertical: AppSpacing.xxl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-              isTimeout
-                  ? Icons.gps_not_fixed_rounded
-                  : Icons.location_off_rounded,
-              size: 44,
-              color: accentColor),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isTimeout
+                    ? Icons.gps_not_fixed_rounded
+                    : Icons.location_off_rounded,
+                size: 28,
+                color: accentColor,
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            isTimeout ? 'Konumunuz Alınamadı' : 'Konumunuza İhtiyacımız Var',
-            textAlign: TextAlign.center,
-            style: TextStyle(
+            title,
+            style: listingUi(
               color: foregroundColor,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+              size: 22,
+              weight: FontWeight.w800,
+              height: 1.15,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: mutedColor, fontSize: 13.5, height: 1.4),
+            style: listingUi(
+              color: mutedColor,
+              size: 14,
+              weight: FontWeight.w500,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
           Semantics(
             button: true,
             label: actionLabel,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: onAccentColor,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl, vertical: AppSpacing.md),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: onAccentColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                ),
+                onPressed: () async {
+                  await HapticFeedback.mediumImpact();
+                  if (isDeniedForever) {
+                    await LocationService.openAppSettings();
+                  } else if (isServiceDisabled) {
+                    await LocationService.openLocationSettings();
+                  }
+                  ref.invalidate(devicePositionProvider);
+                },
+                icon: Icon(
+                  isTimeout
+                      ? Icons.refresh_rounded
+                      : Icons.my_location_rounded,
+                  size: 20,
+                ),
+                label: Text(
+                  actionLabel,
+                  style: listingUi(
+                    color: onAccentColor,
+                    size: 15,
+                    weight: FontWeight.w800,
+                  ),
                 ),
               ),
-              onPressed: () async {
-                // Sahte bir "izin verildi" varsayımı yok: gerçek sistem
-                // ayarına/diyaloğuna yönlendirip ardından provider'ı
-                // yeniden tetikliyoruz — sonucu GERÇEK, güncel izin/GPS
-                // durumu belirliyor.
-                if (isDeniedForever) {
-                  await LocationService.openAppSettings();
-                } else if (isServiceDisabled) {
-                  await LocationService.openLocationSettings();
-                }
-                ref.invalidate(devicePositionProvider);
-              },
-              icon: Icon(
-                  isTimeout ? Icons.refresh_rounded : Icons.my_location_rounded,
-                  size: 18),
-              label: Text(actionLabel),
             ),
           ),
         ],

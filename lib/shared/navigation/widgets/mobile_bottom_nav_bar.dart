@@ -6,16 +6,10 @@ import 'ticket_nav_bar.dart';
 
 /// 📱 MOBİL ALT GEZİNME
 ///
-/// Eskiden `curved_navigation_bar` kullanılıyordu: etiketsiz beyaz ikonlar,
-/// temanın vurgusuyla boyanmış kalın bir şerit ve seçili sekmede yukarı
-/// fırlayan bir top — hangi sekmede olunduğu ve ikonların ne anlama geldiği
-/// belli değildi. Artık temanın yüzeyinde sade bir çubuk: etiketler hep
-/// görünür, aktif sekme dolu ikon + kalın etiket + çubuğun kenarına açılmış
-/// "zımba çentiği" (bilet dili) ile işaretli (bkz. `TicketBottomNavBar`).
-///
-/// Navigasyon mantığı birebir korunuyor: sabit rota yolları + `context.go`,
-/// aynı sekmeye tekrar dokununca yenileme, dokunsal geri bildirim ve
-/// dışarıdan `goToDiscoverWithCategory`.
+/// E_Learning tarzı kayan daire: seçili sekmenin ikonu temanın `primary`
+/// dairesinde, altında her zaman görünen etiket (Ana Sayfa / Keşfet /
+/// Yakındakiler / Profil). Navigasyon: sabit rota + `context.go`, aynı
+/// sekmeye tekrar dokununca yenileme, haptic, `goToDiscoverWithCategory`.
 class MobileBottomNavBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 

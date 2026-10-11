@@ -4,7 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../../core/theme/app_motion.dart';
+import '../../../../../core/theme/app_radius.dart';
+import '../../../../../core/theme/app_shadows.dart';
+import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart'
@@ -12,9 +18,9 @@ import '../../../../auth/presentation/providers/auth_provider.dart'
 import '../../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
+import '../../../domain/entities/show.dart';
 import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
-import '../../../domain/entities/show.dart';
 import '../detail/show_detail_actions.dart';
 import '../detail/show_detail_data.dart';
 import '../show_team_credit.dart';
@@ -45,6 +51,7 @@ class ShowExperience extends ConsumerStatefulWidget {
 class _ShowExperienceState extends ConsumerState<ShowExperience> {
   final ScrollController _scroll = ScrollController();
   final GlobalKey _sessionsKey = GlobalKey();
+  final GlobalKey _castKey = GlobalKey();
   final ValueNotifier<double> _offset = ValueNotifier(0);
 
   ShowSession? _selected;
@@ -67,14 +74,17 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
     super.dispose();
   }
 
-  void _scrollToSessions() {
-    final BuildContext? c = _sessionsKey.currentContext;
+  void _scrollToSessions() => _scrollToKey(_sessionsKey);
+
+  void _scrollToCast() => _scrollToKey(_castKey);
+
+  void _scrollToKey(final GlobalKey key) {
+    final BuildContext? c = key.currentContext;
     if (c == null) return;
+    HapticFeedback.selectionClick();
     Scrollable.ensureVisible(c,
-        duration: Sk.reduceMotion(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 600),
-        curve: Curves.easeInOutCubic,
+        duration: Sk.reduceMotion(context) ? Duration.zero : AppMotion.slow,
+        curve: AppMotion.emphasized,
         alignment: 0.04);
   }
 
@@ -88,8 +98,7 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
     _scrollHandled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToSessions();
-      Future<void>.delayed(
-          const Duration(milliseconds: 500), _scrollToSessions);
+      Future<void>.delayed(AppMotion.normal, _scrollToSessions);
     });
   }
 
@@ -167,25 +176,27 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
       final Widget content = _Content(
         data: data,
         ready: loaded != null,
-        wide: wide,
-        gutter: gutter,
         sessionsKey: _sessionsKey,
+        castKey: _castKey,
         selected: chosen,
         selectedDay: _day ?? (chosen == null ? null : _dayOf(chosen)),
-        onDay: (final d) => setState(() {
-          _day = d;
-          final first = data.sessions.firstWhere(
-              (final s) => s.when != null && skDay(s.when!) == d,
-              orElse: () => chosen ?? data.sessions.first);
-          _selected = first;
-        }),
+        onDay: (final d) {
+          HapticFeedback.selectionClick();
+          setState(() {
+            _day = d;
+            final first = data.sessions.firstWhere(
+                (final s) => s.when != null && skDay(s.when!) == d,
+                orElse: () => chosen ?? data.sessions.first);
+            _selected = first;
+          });
+        },
         onSelect: (final s) {
           HapticFeedback.selectionClick();
-          setState(() => _selected = s);
+          setState(() {
+            _selected = s;
+            if (s.when != null) _day = skDay(s.when!);
+          });
         },
-        onSeats: _seats,
-        onExternal: () => _external(data.show.externalTicketUrl),
-        opening: _opening,
         similar: similar,
       );
 
@@ -284,18 +295,25 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
                       decoration: BoxDecoration(
                         color: cs.surface,
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(34)),
+                            top: Radius.circular(AppRadius.xl)),
                       ),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 720),
                           child: Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(gutter, 26, gutter, 0),
+                            padding: EdgeInsets.fromLTRB(
+                                gutter, AppSpacing.huge, gutter, 0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (loaded != null) _FactTiles(data: data),
+                                if (loaded != null)
+                                  _FactTiles(
+                                    data: data,
+                                    onSessions: _scrollToSessions,
+                                    onCast: data.cast.isEmpty
+                                        ? null
+                                        : _scrollToCast,
+                                  ),
                                 content,
                               ],
                             ),
@@ -399,23 +417,18 @@ class _TopBar extends StatelessWidget {
 
 Widget _poster(final BuildContext context, final ShowDetailData d,
     {required final double width}) {
+  final ColorScheme cs = Theme.of(context).colorScheme;
   return TiyatrolHero(
     tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.show(d.show.id)),
     child: Container(
       width: width,
       height: width * 1.48,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 36,
-            offset: const Offset(0, 18),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.level5(cs.shadow),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         child: SkImage(url: d.show.imageUrl),
       ),
     ),
@@ -425,14 +438,12 @@ Widget _poster(final BuildContext context, final ShowDetailData d,
 List<Widget> _facts(final BuildContext context, final ShowDetailData d) {
   final String category = d.show.category.trim();
   final String age = d.show.ageLimit.trim();
-  final String dur = d.show.duration.trim();
-  final String durText = dur.isEmpty
-      ? ''
-      : (RegExp(r'^\d+$').hasMatch(dur) ? '$dur dk' : dur);
+  final String? durText = ShowDurationFormat.label(d.show.duration);
   return [
     if (category.isNotEmpty)
       SkBadge(label: category, icon: Icons.theater_comedy_rounded),
-    if (durText.isNotEmpty) SkBadge(label: durText, icon: Icons.timelapse_rounded),
+    if (durText != null)
+      SkBadge(label: durText, icon: Icons.timelapse_rounded),
     if (age.isNotEmpty) SkBadge(label: age, icon: Icons.group_outlined),
     if (d.isExternal)
       const SkBadge(label: 'Başka platformda', icon: Icons.open_in_new_rounded),
@@ -455,11 +466,6 @@ class _ShowHero extends StatelessWidget {
     final double h =
         (MediaQuery.sizeOf(context).height * 0.7).clamp(500.0, 680.0);
     final String category = data.show.category.trim();
-    final String age = data.show.ageLimit.trim();
-    final String dur = data.show.duration.trim();
-    final String durText = dur.isEmpty
-        ? ''
-        : (RegExp(r'^\d+$').hasMatch(dur) ? '$dur dk' : dur);
 
     Widget glass(final IconData icon, final String text) => SkGlass(
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -517,21 +523,20 @@ class _ShowHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Hero'da sadece kimlik rozetleri — süre/yaş aşağıda ferah metrikte.
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   if (category.isNotEmpty)
                     glass(Icons.theater_comedy_rounded, category),
-                  if (durText.isNotEmpty) glass(Icons.timelapse_rounded, durText),
-                  if (age.isNotEmpty) glass(Icons.group_outlined, age),
                   if (data.isExternal)
                     glass(Icons.open_in_new_rounded, 'Başka platformda'),
                 ]),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   data.show.name,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: Sk.display(context,
-                          size: 38, color: Colors.white, height: 1.03)
+                          size: 36, color: Colors.white, height: 1.05)
                       .copyWith(shadows: [
                     Shadow(
                         color: Colors.black.withValues(alpha: 0.5),
@@ -552,64 +557,102 @@ class _ShowHero extends StatelessWidget {
   }
 }
 
-/// Yumuşak tonlu bilgi kutuları — süre, yaş sınırı, seans sayısı, oyuncu.
+/// Program broşürü metrikleri — sıkışık kutu değil; nefes alan daireler.
+/// Dokununca ilgili bölüme kayar (seans / kadro).
 class _FactTiles extends StatelessWidget {
   final ShowDetailData data;
-  const _FactTiles({required this.data});
+  final VoidCallback? onSessions;
+  final VoidCallback? onCast;
+
+  const _FactTiles({
+    required this.data,
+    this.onSessions,
+    this.onCast,
+  });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final String dur = data.show.duration.trim();
+    final ({String value, String unit})? durationMetric =
+        ShowDurationFormat.metric(data.show.duration);
     final String age = data.show.ageLimit.trim();
-    final List<(IconData, String, String)> items = [
-      if (dur.isNotEmpty)
+
+    final List<({String value, String unit, bool hot, VoidCallback? onTap})>
+        items = [
+      if (durationMetric != null)
         (
-          Icons.timelapse_rounded,
-          'Süre',
-          RegExp(r'^\d+$').hasMatch(dur) ? '$dur dk' : dur
+          value: durationMetric.value,
+          unit: durationMetric.unit,
+          hot: true,
+          onTap: null,
         ),
-      if (age.isNotEmpty) (Icons.verified_user_outlined, 'Yaş sınırı', age),
+      if (age.isNotEmpty)
+        (
+          value: age,
+          unit: 'yaş',
+          hot: false,
+          onTap: null,
+        ),
       (
-        Icons.event_seat_outlined,
-        'Seans',
-        data.isExternal ? 'Harici' : '${data.sessions.length}'
+        value: data.isExternal ? '—' : '${data.sessions.length}',
+        unit: data.isExternal ? 'harici' : 'seans',
+        hot: !data.isExternal && data.sessions.isNotEmpty,
+        onTap: onSessions,
       ),
       if (data.cast.isNotEmpty)
-        (Icons.groups_rounded, 'Oyuncu', '${data.cast.length}'),
+        (
+          value: '${data.cast.length}',
+          unit: 'oyuncu',
+          hot: false,
+          onTap: onCast,
+        ),
     ];
-    return Row(
-      children: [
-        for (int i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: [
-                  Icon(items[i].$1, color: cs.primary, size: 22),
-                  const SizedBox(height: 8),
-                  Text(items[i].$3,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Sk.display(context,
-                          size: 18, height: 1.1, weight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Text(items[i].$2,
-                      style: Sk.ui(context,
-                          size: 11.5,
-                          color: cs.onSurfaceVariant,
-                          weight: FontWeight.w700)),
-                ],
-              ),
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Reveal(
+      index: 0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Program notu',
+            style: Sk.ui(context,
+                size: 12,
+                color: cs.onSurfaceVariant,
+                weight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            height: 118,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              physics: const BouncingScrollPhysics(),
+              itemCount: items.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppSpacing.lg),
+              itemBuilder: (final context, final i) {
+                final it = items[i];
+                return Reveal(
+                  index: i + 1,
+                  child: PressScale(
+                    onTap: it.onTap,
+                    semanticLabel: '${it.value} ${it.unit}',
+                    scale: 0.94,
+                    child: ListingMetricOrb(
+                      value: it.value,
+                      unit: it.unit,
+                      emphasized: it.hot,
+                      size: 100,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
         ],
-      ],
+      ),
     );
   }
 }
@@ -716,43 +759,54 @@ class _BuyBar extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 12),
-        FilledButton(
-          onPressed: canBuy && !busy ? onPressed : null,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 52),
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            shape: const StadiumBorder(),
+        const SizedBox(width: AppSpacing.md),
+        Semantics(
+          button: true,
+          label: cta,
+          child: FilledButton(
+            onPressed: canBuy && !busy
+                ? () {
+                    HapticFeedback.mediumImpact();
+                    onPressed!();
+                  }
+                : null,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+              shape: const StadiumBorder(),
+            ),
+            child: busy
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: cs.onPrimary))
+                : Text(cta,
+                    style: Sk.ui(context,
+                        size: 15,
+                        color: cs.onPrimary,
+                        weight: FontWeight.w800)),
           ),
-          child: busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(cta,
-                  style: Sk.ui(context,
-                      size: 15, color: cs.onPrimary, weight: FontWeight.w800)),
         ),
       ],
     );
 
     if (inline) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-        ),
+      return SkSoftCard(
+        radius: AppRadius.lg,
+        color: cs.surfaceContainerHigh,
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: row,
       );
     }
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 12, 16, 12 + bottom),
+      padding: EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.md, AppSpacing.lg, AppSpacing.md + bottom),
       decoration: BoxDecoration(
         color: cs.surface.withValues(alpha: 0.96),
         border: Border(
             top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6))),
+        boxShadow: AppShadows.level2(cs.shadow),
       ),
       child: Center(
         child: ConstrainedBox(
@@ -769,31 +823,23 @@ class _BuyBar extends StatelessWidget {
 class _Content extends StatelessWidget {
   final ShowDetailData data;
   final bool ready;
-  final bool wide;
-  final double gutter;
   final GlobalKey sessionsKey;
+  final GlobalKey castKey;
   final ShowSession? selected;
   final DateTime? selectedDay;
   final ValueChanged<DateTime> onDay;
   final ValueChanged<ShowSession> onSelect;
-  final ValueChanged<ShowSession> onSeats;
-  final VoidCallback onExternal;
-  final bool opening;
   final List<Show> similar;
 
   const _Content({
     required this.data,
     required this.ready,
-    required this.wide,
-    required this.gutter,
     required this.sessionsKey,
+    required this.castKey,
     required this.selected,
     required this.selectedDay,
     required this.onDay,
     required this.onSelect,
-    required this.onSeats,
-    required this.onExternal,
-    required this.opening,
     this.similar = const [],
   });
 
@@ -801,14 +847,14 @@ class _Content extends StatelessWidget {
   Widget build(final BuildContext context) {
     if (!ready) {
       return const Padding(
-        padding: EdgeInsets.only(top: 24),
+        padding: EdgeInsets.only(top: AppSpacing.xxl),
         child: Column(
           children: [
-            SkBone(height: 20, radius: 8),
-            SizedBox(height: 10),
-            SkBone(height: 20, radius: 8),
-            SizedBox(height: 28),
-            SkBone(height: 120, radius: 22),
+            SkBone(height: 20, radius: AppRadius.xs),
+            SizedBox(height: AppSpacing.sm + 2),
+            SkBone(height: 20, radius: AppRadius.xs),
+            SizedBox(height: AppSpacing.xxl + 4),
+            SkBone(height: 120, radius: AppRadius.lg),
           ],
         ),
       );
@@ -825,7 +871,8 @@ class _Content extends StatelessWidget {
     Widget section(final int i, final Widget child) => Reveal(
         index: i,
         child: Padding(
-            padding: const EdgeInsets.only(top: 36), child: child));
+            padding: const EdgeInsets.only(top: AppSpacing.huge),
+            child: child));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,14 +889,18 @@ class _Content extends StatelessWidget {
               selectedDay: selectedDay,
               onDay: onDay,
               onSelect: onSelect,
-              onSeats: onSeats,
-              onExternal: onExternal,
-              opening: opening,
             ),
           ),
         ),
         if (data.cast.isNotEmpty)
-          section(2, _Cast(title: 'Kadro', players: data.cast, large: true)),
+          section(
+            2,
+            KeyedSubtree(
+              key: castKey,
+              child: _Cast(
+                  title: 'Kadro', players: data.cast, large: true),
+            ),
+          ),
         if (data.pastCast.isNotEmpty)
           section(
               3, _Cast(title: 'Önceki kadro', players: data.pastCast, large: false)),
@@ -881,10 +932,10 @@ class _AboutState extends State<_About> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SkSectionHead(title: 'Oyun hakkında'),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         AnimatedSize(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.fast,
+          curve: AppMotion.standard,
           alignment: Alignment.topCenter,
           child: Text(
             widget.text,
@@ -899,10 +950,13 @@ class _AboutState extends State<_About> {
         ),
         if (long)
           PressScale(
-            onTap: () => setState(() => _open = !_open),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _open = !_open);
+            },
             semanticLabel: _open ? 'Daha az göster' : 'Devamını oku',
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               child: Text(_open ? 'Daha az göster' : 'Devamını oku',
                   style: Sk.ui(context,
                       size: 14, color: cs.primary, weight: FontWeight.w800)),
@@ -919,9 +973,6 @@ class _Sessions extends StatelessWidget {
   final DateTime? selectedDay;
   final ValueChanged<DateTime> onDay;
   final ValueChanged<ShowSession> onSelect;
-  final ValueChanged<ShowSession> onSeats;
-  final VoidCallback onExternal;
-  final bool opening;
 
   const _Sessions({
     required this.data,
@@ -929,9 +980,6 @@ class _Sessions extends StatelessWidget {
     required this.selectedDay,
     required this.onDay,
     required this.onSelect,
-    required this.onSeats,
-    required this.onExternal,
-    required this.opening,
   });
 
   @override
@@ -943,28 +991,23 @@ class _Sessions extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SkSectionHead(title: 'Biletler'),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(22),
-            ),
+          const SizedBox(height: AppSpacing.md),
+          // Bilgi paneli — birincil aksiyon alt çubuktaki "Biletini bul".
+          SkSoftCard(
+            radius: AppRadius.lg,
+            color: cs.surfaceContainerHigh,
+            padding: const EdgeInsets.all(AppSpacing.lg + 2),
             child: Row(
               children: [
                 Icon(Icons.open_in_new_rounded, color: cs.primary),
-                const SizedBox(width: 14),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
-                    'Bu oyunun biletleri iş ortağımızın sayfasında satılıyor.',
+                    'Bu oyunun biletleri iş ortağımızın sayfasında satılıyor. Alttaki düğmeyle satın alma sayfasını aç.',
                     style: Sk.ui(context,
                         size: 14, weight: FontWeight.w600, height: 1.4),
                   ),
                 ),
-                TextButton(
-                    onPressed: opening ? null : onExternal,
-                    child: const Text('Aç')),
               ],
             ),
           ),
@@ -977,26 +1020,36 @@ class _Sessions extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SkSectionHead(title: 'Seanslar'),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(22),
-            ),
+          const SizedBox(height: AppSpacing.md),
+          SkSoftCard(
+            radius: AppRadius.lg,
+            color: cs.surfaceContainerHigh,
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.event_available_rounded, color: cs.onSurfaceVariant),
-                const SizedBox(width: 14),
+                Icon(Icons.event_available_rounded,
+                    color: cs.onSurfaceVariant, size: 28),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text(
-                    'Henüz seans açılmadı. Perde açılınca burada görünecek.',
-                    style: Sk.ui(context,
-                        size: 14,
-                        color: cs.onSurfaceVariant,
-                        weight: FontWeight.w600,
-                        height: 1.4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Henüz seans yok',
+                        style: Sk.ui(context,
+                            size: 15, weight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Perde açılınca tarihler burada görünecek. Favoriye ekleyip haber bekleyebilirsin.',
+                        style: Sk.ui(context,
+                            size: 13.5,
+                            color: cs.onSurfaceVariant,
+                            weight: FontWeight.w500,
+                            height: 1.45),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1023,9 +1076,10 @@ class _Sessions extends StatelessWidget {
       children: [
         SkSectionHead(
           title: 'Seanslar',
-          subtitle: '${data.sessions.length} seans · koltuğu bir sonraki adımda seçersin',
+          subtitle:
+              '${data.sessions.length} seans · birini seç, alttan koltuğa geç',
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppSpacing.md),
         if (days.length > 1)
           SizedBox(
             height: 78,
@@ -1033,56 +1087,75 @@ class _Sessions extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               clipBehavior: Clip.none,
               itemCount: days.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppSpacing.sm + 2),
               itemBuilder: (final context, final i) {
                 final DateTime d = days[i];
                 final bool sel = d == selectedDay;
-                return PressScale(
-                  onTap: () => onDay(d),
-                  semanticLabel: '${d.day} ${kMonthsTr[d.month - 1]}',
-                  scale: 0.94,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 64,
-                    decoration: BoxDecoration(
-                      color: sel ? cs.primary : cs.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(20),
+                return Reveal(
+                  index: i,
+                  child: PressScale(
+                    onTap: () => onDay(d),
+                    semanticLabel:
+                        '${kDaysTr[d.weekday - 1]} ${d.day} ${kMonthsTr[d.month - 1]}',
+                    scale: 0.94,
+                    child: AnimatedScale(
+                      scale: sel && !Sk.reduceMotion(context) ? 1.04 : 1,
+                      duration: AppMotion.fast,
+                      curve: AppMotion.standard,
+                      child: AnimatedContainer(
+                      duration: AppMotion.fast,
+                      curve: AppMotion.standard,
+                      width: 64,
+                      decoration: BoxDecoration(
+                        color: sel ? cs.primary : cs.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(AppRadius.md + 4),
+                        border: Border.all(
+                          color: sel
+                              ? Colors.transparent
+                              : cs.outlineVariant.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(kDaysShortTr[d.weekday - 1],
+                              style: Sk.ui(context,
+                                  size: 11.5,
+                                  color: (sel ? cs.onPrimary : cs.onSurface)
+                                      .withValues(alpha: 0.75),
+                                  weight: FontWeight.w700)),
+                          Text('${d.day}',
+                              style: Sk.display(context,
+                                  size: 24,
+                                  height: 1.1,
+                                  weight: FontWeight.w700,
+                                  color: sel ? cs.onPrimary : cs.onSurface)),
+                          Text(kMonthsShortTr[d.month - 1],
+                              style: Sk.ui(context,
+                                  size: 11,
+                                  color: (sel ? cs.onPrimary : cs.onSurface)
+                                      .withValues(alpha: 0.75),
+                                  weight: FontWeight.w700)),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(kDaysShortTr[d.weekday - 1],
-                            style: Sk.ui(context,
-                                size: 11.5,
-                                color: (sel ? cs.onPrimary : cs.onSurface)
-                                    .withValues(alpha: 0.75),
-                                weight: FontWeight.w700)),
-                        Text('${d.day}',
-                            style: Sk.display(context,
-                                size: 24,
-                                height: 1.1,
-                                weight: FontWeight.w700,
-                                color: sel ? cs.onPrimary : cs.onSurface)),
-                        Text(kMonthsShortTr[d.month - 1],
-                            style: Sk.ui(context,
-                                size: 11,
-                                color: (sel ? cs.onPrimary : cs.onSurface)
-                                    .withValues(alpha: 0.75),
-                                weight: FontWeight.w700)),
-                      ],
                     ),
                   ),
                 );
               },
             ),
           ),
-        const SizedBox(height: 14),
-        for (final ShowSession s in shown)
-          _SessionCard(
-            session: s,
-            selected: selected != null && selected!.event.id == s.event.id,
-            onTap: () => onSelect(s),
-            onSeats: () => onSeats(s),
+        if (days.length > 1) const SizedBox(height: AppSpacing.md),
+        for (int i = 0; i < shown.length; i++)
+          Reveal(
+            index: i + (days.length > 1 ? days.length : 0),
+            child: _SessionCard(
+              session: shown[i],
+              selected:
+                  selected != null && selected!.event.id == shown[i].event.id,
+              onTap: () => onSelect(shown[i]),
+            ),
           ),
       ],
     );
@@ -1093,13 +1166,11 @@ class _SessionCard extends StatelessWidget {
   final ShowSession session;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onSeats;
 
   const _SessionCard({
     required this.session,
     required this.selected,
     required this.onTap,
-    required this.onSeats,
   });
 
   @override
@@ -1107,19 +1178,23 @@ class _SessionCard extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final DateTime? when = session.when;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
       child: PressScale(
         onTap: onTap,
-        semanticLabel: session.semanticLabel,
+        semanticLabel: selected
+            ? '${session.semanticLabel}, seçili'
+            : session.semanticLabel,
         scale: 0.985,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.fromLTRB(18, 14, 12, 14),
+          duration: AppMotion.fast,
+          curve: AppMotion.standard,
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg + 2, AppSpacing.md, AppSpacing.md, AppSpacing.md),
           decoration: BoxDecoration(
             color: selected
                 ? cs.primary.withValues(alpha: 0.12)
                 : cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: selected
                   ? cs.primary
@@ -1137,7 +1212,7 @@ class _SessionCard extends StatelessWidget {
                           size: 26, height: 1.0, color: cs.primary)),
                   if (when != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
                       child: Text(
                           '${kDaysTr[when.weekday - 1]}, ${when.day} ${kMonthsTr[when.month - 1]}',
                           style: Sk.ui(context,
@@ -1147,7 +1222,7 @@ class _SessionCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1160,27 +1235,35 @@ class _SessionCard extends StatelessWidget {
                               size: 14, weight: FontWeight.w800, height: 1.2)),
                     if (session.priceLabel != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 3),
+                        padding: const EdgeInsets.only(top: AppSpacing.xs),
                         child: Text(session.priceLabel!,
                             style: Sk.ui(context,
                                 size: 13,
                                 color: cs.onSurfaceVariant,
                                 weight: FontWeight.w700)),
                       ),
+                    if (selected)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.xs),
+                        child: Text('Seçildi · alttan koltuk seç',
+                            style: Sk.ui(context,
+                                size: 12,
+                                color: cs.primary,
+                                weight: FontWeight.w800)),
+                      ),
                   ],
                 ),
               ),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: selected
-                    ? TextButton(
-                        key: const ValueKey<String>('go'),
-                        onPressed: onSeats,
-                        child: const Text('Koltuk seç'),
-                      )
-                    : Icon(Icons.radio_button_unchecked_rounded,
-                        key: const ValueKey<String>('idle'),
-                        color: cs.outline),
+                duration: AppMotion.fast,
+                child: Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  key: ValueKey<bool>(selected),
+                  color: selected ? cs.primary : cs.outline,
+                  size: 28,
+                ),
               ),
             ],
           ),
@@ -1213,33 +1296,41 @@ class _Cast extends StatelessWidget {
       builder: (final p, final cw) {
         final String name = '${p.firstName} ${p.lastName}'.trim();
         final String tag = TiyatrolHeroTags.player(p.id, 'show');
-        return SizedBox(
-          width: w + 8,
-          child: PressScale(
-            onTap: () => NavigationHandler.goToPlayer(context, p.id, name,
-                heroTag: tag, imageUrl: p.imageUrl, title: name),
-            semanticLabel: name,
-            child: Column(
-              children: [
-                TiyatrolHero(
-                  tag: tag,
-                  child: SkImage(
-                      url: p.imageUrl,
-                      width: w,
-                      height: h,
-                      radius: w / 2,
-                      fallbackIcon: Icons.person_rounded),
-                ),
-                const SizedBox(height: 8),
-                Text('${p.firstName}\n${p.lastName}'.trim(),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Sk.ui(context,
-                        size: large ? 13 : 12,
-                        weight: FontWeight.w700,
-                        height: 1.2)),
-              ],
+        final int i = players.indexOf(p);
+        return Reveal(
+          index: i.clamp(0, 8),
+          child: SizedBox(
+            width: w + 8,
+            child: PressScale(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                NavigationHandler.goToPlayer(context, p.id, name,
+                    heroTag: tag, imageUrl: p.imageUrl, title: name);
+              },
+              semanticLabel: name,
+              child: Column(
+                children: [
+                  TiyatrolHero(
+                    tag: tag,
+                    child: SkImage(
+                        url: p.imageUrl,
+                        width: w,
+                        height: h,
+                        radius: w / 2,
+                        alignment: Alignment.topCenter,
+                        fallbackIcon: Icons.person_rounded),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text('${p.firstName}\n${p.lastName}'.trim(),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Sk.ui(context,
+                          size: large ? 13 : 12,
+                          weight: FontWeight.w700,
+                          height: 1.2)),
+                ],
+              ),
             ),
           ),
         );
@@ -1254,65 +1345,77 @@ class _Similar extends StatelessWidget {
   const _Similar({required this.shows});
 
   @override
-  Widget build(final BuildContext context) => SkRail<Show>(
-        title: 'Bunlar da hoşuna gidebilir',
-        subtitle: 'Aynı türden oyunlar',
-        items: shows,
-        gutter: 0,
-        railW: 150,
-        railH: 225,
-        minCell: 150,
-        builder: (final s, final w) => PressScale(
-          onTap: () => NavigationHandler.goToShow(context, s.id, s.name,
-              heroTag: TiyatrolHeroTags.show(s.id, 'similar'),
-              imageUrl: s.imageUrl,
-              title: s.name),
-          semanticLabel: s.name,
-          child: Container(
-            width: w,
-            height: w * 1.5,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: skSoftShadow(context),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  TiyatrolHero(
-                    tag: TiyatrolHeroTags.show(s.id, 'similar'),
-                    child: SkImage(url: s.imageUrl),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.82),
-                        ],
-                        stops: const [0.5, 1.0],
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return SkRail<Show>(
+      title: 'Bunlar da hoşuna gidebilir',
+      subtitle: 'Aynı türden oyunlar',
+      items: shows,
+      gutter: 0,
+      railW: 150,
+      railH: 225,
+      minCell: 150,
+      builder: (final s, final w) {
+        final int i = shows.indexOf(s);
+        return Reveal(
+          index: i.clamp(0, 8),
+          child: PressScale(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              NavigationHandler.goToShow(context, s.id, s.name,
+                  heroTag: TiyatrolHeroTags.show(s.id, 'similar'),
+                  imageUrl: s.imageUrl,
+                  title: s.name);
+            },
+            semanticLabel: s.name,
+            child: Container(
+              width: w,
+              height: w * 1.5,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: AppShadows.level2(cs.shadow),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    TiyatrolHero(
+                      tag: TiyatrolHeroTags.show(s.id, 'similar'),
+                      child: SkImage(url: s.imageUrl),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.82),
+                          ],
+                          stops: const [0.5, 1.0],
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 12,
-                    child: Text(s.name,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: Sk.display(context,
-                            size: 16, color: Colors.white, height: 1.1)),
-                  ),
-                ],
+                    Positioned(
+                      left: AppSpacing.md,
+                      right: AppSpacing.md,
+                      bottom: AppSpacing.md,
+                      child: Text(s.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.display(context,
+                              size: 16, color: Colors.white, height: 1.1)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
+      },
+    );
+  }
 }
 
 class _Venues extends StatelessWidget {
@@ -1320,6 +1423,7 @@ class _Venues extends StatelessWidget {
   const _Venues({required this.venues});
 
   Future<void> _directions(final Stage s) async {
+    HapticFeedback.lightImpact();
     final Uri uri = (s.locationLat != 0 || s.locationLng != 0)
         ? Uri.parse(
             'https://www.google.com/maps/search/?api=1&query=${s.locationLat},${s.locationLng}')
@@ -1335,61 +1439,72 @@ class _Venues extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SkSectionHead(title: venues.length > 1 ? 'Mekânlar' : 'Mekân'),
-        const SizedBox(height: 14),
-        for (final Stage s in venues)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PressScale(
-              onTap: () => NavigationHandler.goToStage(context, s.id, s.name,
-                  imageUrl: s.imageUrl, title: s.name),
-              semanticLabel: s.name,
-              scale: 0.985,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
+        const SizedBox(height: AppSpacing.md),
+        for (int i = 0; i < venues.length; i++)
+          Reveal(
+            index: i,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: PressScale(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  final Stage s = venues[i];
+                  NavigationHandler.goToStage(context, s.id, s.name,
+                      imageUrl: s.imageUrl, title: s.name);
+                },
+                semanticLabel: venues[i].name,
+                scale: 0.985,
+                child: SkSoftCard(
+                  radius: AppRadius.lg,
                   color: cs.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  children: [
-                    SkImage(
-                        url: s.imageUrl,
-                        width: 84,
-                        height: 84,
-                        radius: 16,
-                        fallbackIcon: Icons.location_city_rounded),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(s.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Sk.ui(context,
-                                  size: 15, weight: FontWeight.w800)),
-                          if (s.address.trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 3),
-                              child: Text(s.address.trim(),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Sk.ui(context,
-                                      size: 12.5,
-                                      color: cs.onSurfaceVariant,
-                                      weight: FontWeight.w500)),
-                            ),
-                        ],
+                  padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                  child: Row(
+                    children: [
+                      SkImage(
+                          url: venues[i].imageUrl,
+                          width: 84,
+                          height: 84,
+                          radius: AppRadius.md,
+                          fallbackIcon: Icons.location_city_rounded),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(venues[i].name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Sk.ui(context,
+                                    size: 15, weight: FontWeight.w800)),
+                            if (venues[i].address.trim().isNotEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: AppSpacing.xs),
+                                child: Text(venues[i].address.trim(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Sk.ui(context,
+                                        size: 12.5,
+                                        color: cs.onSurfaceVariant,
+                                        weight: FontWeight.w500)),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Yol tarifi',
-                      onPressed: () => _directions(s),
-                      icon: Icon(Icons.directions_rounded, color: cs.primary),
-                    ),
-                  ],
+                      Semantics(
+                        button: true,
+                        label: '${venues[i].name} yol tarifi',
+                        child: IconButton(
+                          tooltip: 'Yol tarifi',
+                          onPressed: () async {
+                            await _directions(venues[i]);
+                          },
+                          icon: Icon(Icons.directions_rounded,
+                              color: cs.primary),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1404,12 +1519,13 @@ class _Gallery extends StatelessWidget {
   const _Gallery({required this.photos});
 
   void _open(final BuildContext context, final int start) {
+    HapticFeedback.selectionClick();
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Kapat',
       barrierColor: Colors.black.withValues(alpha: 0.92),
-      transitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: AppMotion.fast,
       pageBuilder: (final ctx, _, __) => _Viewer(photos: photos, start: start),
     );
   }
@@ -1423,11 +1539,21 @@ class _Gallery extends StatelessWidget {
         railW: 210,
         railH: 150,
         minCell: 150,
-        builder: (final url, final w) => PressScale(
-          onTap: () => _open(context, photos.indexOf(url)),
-          semanticLabel: 'Fotoğraf',
-          child: SkImage(url: url, width: w, height: 150, radius: 20),
-        ),
+        builder: (final url, final w) {
+          final int i = photos.indexOf(url);
+          return Reveal(
+            index: i.clamp(0, 8),
+            child: PressScale(
+              onTap: () => _open(context, i < 0 ? 0 : i),
+              semanticLabel: 'Galeri fotoğrafı ${i + 1} / ${photos.length}',
+              child: SkImage(
+                  url: url,
+                  width: w,
+                  height: 150,
+                  radius: AppRadius.md + 4),
+            ),
+          );
+        },
       );
 }
 
@@ -1482,7 +1608,7 @@ class _ViewerState extends State<_Viewer> {
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: Text('${_i + 1} / ${widget.photos.length}',
                       style: Sk.ui(context, color: Colors.white70)),
                 ),

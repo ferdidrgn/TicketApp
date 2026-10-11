@@ -139,6 +139,8 @@ class ListingChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
+  /// Optional real count — kept airy so chips never feel cramped.
+  final int? count;
 
   const ListingChip({
     super.key,
@@ -146,44 +148,68 @@ class ListingChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.icon,
+    this.count,
   });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final Color ink = selected ? cs.onPrimaryContainer : cs.onSurface;
+    final Color mute =
+        selected ? cs.onPrimaryContainer.withValues(alpha: 0.78) : cs.onSurfaceVariant;
+    final bool reduce = MediaQuery.disableAnimationsOf(context);
+    // Seçili gölge ListView'da kare kırpılıyordu — dolgu + ince halka.
     return PressScale(
-      label: label,
+      label: count == null ? label : '$label, $count',
       onTap: onTap,
-      child: AnimatedContainer(
+      child: AnimatedScale(
+        scale: selected && !reduce ? 1.03 : 1,
         duration: AppMotion.fast,
         curve: AppMotion.spring,
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: selected ? cs.primaryContainer : cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 18,
-                color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            Text(
-              label,
-              style: listingUi(
-                color: selected ? cs.onPrimaryContainer : cs.onSurface,
-                size: 14,
-                weight: selected ? FontWeight.w800 : FontWeight.w600,
-              ),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.spring,
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: selected ? cs.primaryContainer : cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(
+              color: selected
+                  ? cs.primary.withValues(alpha: 0.45)
+                  : cs.outlineVariant.withValues(alpha: 0.35),
+              width: selected ? 1.5 : 1,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: mute),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              Text(
+                label,
+                style: listingUi(
+                  color: ink,
+                  size: 14,
+                  weight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '$count',
+                  style: listingUi(
+                    color: mute,
+                    size: 13,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -196,9 +222,10 @@ class ListingChipRow extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-        height: 52,
+        height: 56,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
           itemCount: children.length,
           separatorBuilder: (final _, final __) =>
               const SizedBox(width: AppSpacing.sm),
@@ -211,12 +238,14 @@ class ListingMetricOrb extends StatelessWidget {
   final String value;
   final String unit;
   final bool emphasized;
+  final double size;
 
   const ListingMetricOrb({
     super.key,
     required this.value,
     required this.unit,
     this.emphasized = false,
+    this.size = 88,
   });
 
   @override
@@ -225,28 +254,48 @@ class ListingMetricOrb extends StatelessWidget {
     final Color fill = emphasized ? cs.primary : cs.surfaceContainerLow;
     final Color ink = emphasized ? cs.onPrimary : cs.onSurface;
     final Color mute = emphasized
-        ? cs.onPrimary.withValues(alpha: 0.8)
+        ? cs.onPrimary.withValues(alpha: 0.78)
         : cs.onSurfaceVariant;
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: listingUi(color: ink, size: 16, weight: FontWeight.w800),
-          ),
-          Text(
-            unit,
-            maxLines: 1,
-            style: listingUi(color: mute, size: 11, weight: FontWeight.w700),
-          ),
-        ],
+    final double valueSize = size >= 96 ? 22 : (size >= 90 ? 18 : 16);
+    final double unitSize = size >= 96 ? 12 : 11;
+    final bool reduce = MediaQuery.disableAnimationsOf(context);
+    // Kırpılan drop-shadow kare kutu yapıyordu — sadece dolgu + hafif scale.
+    return AnimatedScale(
+      scale: emphasized && !reduce ? 1.05 : 1,
+      duration: AppMotion.fast,
+      curve: AppMotion.spring,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: size * 0.1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: listingUi(
+                  color: ink,
+                  size: valueSize,
+                  weight: FontWeight.w800,
+                  height: 1.05),
+            ),
+            SizedBox(height: size * 0.04),
+            Text(
+              unit,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: listingUi(
+                  color: mute,
+                  size: unitSize,
+                  weight: FontWeight.w700,
+                  height: 1.1),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -326,7 +375,9 @@ class ListingPhotoFrame extends StatelessWidget {
         ),
       ),
     );
-    if (onTap == null) return frame;
+    if (onTap == null) {
+      return frame;
+    }
     return PressScale(onTap: onTap, child: frame);
   }
 }
@@ -488,7 +539,6 @@ class ListingCategoryOrb extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected ? cs.primary : cs.surfaceContainerLow,
                 shape: BoxShape.circle,
-                boxShadow: selected ? AppShadows.level2(cs.shadow) : null,
               ),
               child: Icon(
                 icon,
@@ -597,7 +647,9 @@ class ListingOverlapCard extends StatelessWidget {
         ],
       ),
     );
-    if (onTap == null) return card;
+    if (onTap == null) {
+      return card;
+    }
     return PressScale(onTap: onTap, child: card);
   }
 }
@@ -632,7 +684,9 @@ class ListingWaveCard extends StatelessWidget {
         child: child,
       ),
     );
-    if (onTap == null) return body;
+    if (onTap == null) {
+      return body;
+    }
     return PressScale(onTap: onTap, child: body);
   }
 }
@@ -730,7 +784,7 @@ class ListingSearchField extends StatelessWidget {
               alignment: Alignment.centerLeft,
               children: [
                 if (controller.text.isEmpty && hintOverlay != null)
-                  IgnorePointer(child: hintOverlay!),
+                  IgnorePointer(child: hintOverlay),
                 TextField(
                   controller: controller,
                   autofocus: autofocus,

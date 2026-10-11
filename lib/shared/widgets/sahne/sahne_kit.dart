@@ -238,6 +238,7 @@ class SkImage extends StatelessWidget {
   final double? height;
   final double radius;
   final BoxFit fit;
+  final Alignment alignment;
   final IconData fallbackIcon;
 
   const SkImage({
@@ -247,6 +248,7 @@ class SkImage extends StatelessWidget {
     this.height,
     this.radius = 0,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.fallbackIcon = Icons.theater_comedy_rounded,
   });
 
@@ -268,13 +270,23 @@ class SkImage extends StatelessWidget {
           color: cs.onSurfaceVariant.withValues(alpha: 0.5), size: 32),
     );
     if (!url.trim().startsWith('http')) return fallback;
-    return OptimizedCachedImage(
-      imageUrl: url.trim(),
-      width: width,
-      height: height,
-      fit: fit,
-      borderRadius: radius,
-      errorBuilder: (_, __, ___) => fallback,
+    // OptimizedCachedImage tek radius alır; yüz portrelerinde hizayı
+    // korumak için ClipRRect + Alignment ile sarıyoruz.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: OptimizedCachedImage(
+          imageUrl: url.trim(),
+          width: width,
+          height: height,
+          fit: fit,
+          alignment: alignment,
+          borderRadius: 0,
+          errorBuilder: (_, __, ___) => fallback,
+        ),
+      ),
     );
   }
 }
@@ -674,16 +686,56 @@ class SkGlass extends StatelessWidget {
 }
 
 /// Yumuşak, tonlu kart gölgesi (Material soft).
+/// Kare "kutulu" görünmeyi azaltmak için blur/offset düşük tutulur;
+/// köşe yuvarlağı [SkSoftCard] ile birlikte kullanılmalı.
 List<BoxShadow> skSoftShadow(final BuildContext context,
     {final double strength = 1}) {
   final bool dark = Theme.of(context).brightness == Brightness.dark;
   return [
     BoxShadow(
-      color: Colors.black.withValues(alpha: (dark ? 0.32 : 0.10) * strength),
-      blurRadius: 26,
-      offset: const Offset(0, 12),
+      color: Colors.black.withValues(alpha: (dark ? 0.28 : 0.08) * strength),
+      blurRadius: 16,
+      spreadRadius: -2,
+      offset: const Offset(0, 8),
     ),
   ];
+}
+
+/// Yuvarlak köşeli yüzey + gölge. Gölge ve clip aynı radius'ta olduğu için
+/// kare gölge kutusu oluşmaz.
+class SkSoftCard extends StatelessWidget {
+  final Widget child;
+  final double radius;
+  final Color? color;
+  final EdgeInsetsGeometry? padding;
+  final double shadowStrength;
+
+  const SkSoftCard({
+    super.key,
+    required this.child,
+    this.radius = 24,
+    this.color,
+    this.padding,
+    this.shadowStrength = 1,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color ?? cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: skSoftShadow(context, strength: shadowStrength),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: padding == null
+            ? child
+            : Padding(padding: padding!, child: child),
+      ),
+    );
+  }
 }
 
 
