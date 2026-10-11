@@ -37,6 +37,30 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
       });
 
   @override
+  Future<Either<Failure, Map<String, Stage>>> resolveStagesByIds(
+          final List<String> stageIds) =>
+      execute(() async {
+        if (stageIds.isEmpty) return <String, Stage>{};
+        // getStagesByIds istenen id → model bağını kaybeder (yalnızca unique
+        // doc listesi). Aynı Firestore çağrılarını tekrarlamamak için
+        // datasource’taki mapped yolu kullanıyoruz.
+        final mapped =
+            await remoteDataSource.resolveStagesByIds(stageIds);
+        return {
+          for (final e in mapped.entries) e.key: e.value.toEntity(),
+        };
+      });
+
+  @override
+  Future<Either<Failure, List<Stage>>> getStagesByShowIds(
+          final List<String> showIds) =>
+      execute(() async {
+        if (showIds.isEmpty) return <Stage>[];
+        final models = await remoteDataSource.getStagesByShowIds(showIds);
+        return models.map((final m) => m.toEntity()).toList();
+      });
+
+  @override
   Future<Either<Failure, bool>> addStage(
           final Stage stage, final File? imageFile) =>
       execute(() async {

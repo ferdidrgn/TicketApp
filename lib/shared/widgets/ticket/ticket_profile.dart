@@ -140,6 +140,9 @@ class ProfileTicket extends StatefulWidget {
   /// Liste kartından uçan paylaşılmış fotoğraf etiketi.
   final String? heroTag;
 
+  /// Fotoğrafa dokununca (tam ekran galeri vb.).
+  final VoidCallback? onImageTap;
+
   const ProfileTicket({
     super.key,
     required this.layout,
@@ -149,6 +152,7 @@ class ProfileTicket extends StatefulWidget {
     required this.imageLabel,
     required this.seed,
     this.heroTag,
+    this.onImageTap,
     this.portrait = false,
     this.placeholderIcon = Icons.theater_comedy_outlined,
     this.tagline,
@@ -247,14 +251,27 @@ class _ProfileTicketState extends State<ProfileTicket>
     );
   }
 
-  Widget _photo({final double? width, final double? height}) => _ProfilePhoto(
-        url: widget.imageUrl,
-        label: widget.imageLabel,
-        icon: widget.placeholderIcon,
-        width: width,
-        height: height,
-        heroTag: widget.heroTag,
-      );
+  Widget _photo({final double? width, final double? height}) {
+    final Widget photo = _ProfilePhoto(
+      url: widget.imageUrl,
+      label: widget.imageLabel,
+      icon: widget.placeholderIcon,
+      width: width,
+      height: height,
+      heroTag: widget.heroTag,
+    );
+    if (widget.onImageTap == null) {
+      return photo;
+    }
+    return Semantics(
+      button: true,
+      label: '${widget.imageLabel} — büyüt',
+      child: GestureDetector(
+        onTap: widget.onImageTap,
+        child: photo,
+      ),
+    );
+  }
 
   Widget _body(final BuildContext context) {
     final Widget strip = TicketHeaderStrip(kind: widget.kind);

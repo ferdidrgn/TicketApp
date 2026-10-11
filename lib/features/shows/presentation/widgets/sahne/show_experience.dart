@@ -10,6 +10,7 @@ import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
@@ -286,7 +287,11 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
               slivers: [
                 SliverToBoxAdapter(
                   child: _ShowHero(
-                      data: data, offset: _offset, ready: loaded != null),
+                    data: data,
+                    offset: _offset,
+                    ready: loaded != null,
+                    photos: _showPhotoUrls(data.show),
+                  ),
                 ),
                 SliverToBoxAdapter(
                   child: Transform.translate(
@@ -415,21 +420,44 @@ class _TopBar extends StatelessWidget {
 // KAPAK
 // ═════════════════════════════════════════════════════════════════════════════
 
+/// Afiş + galeri URL’leri (tekrarsız); tam ekran lightbox için.
+List<String> _showPhotoUrls(final Show show) {
+  final List<String> out = <String>[];
+  final String poster = show.imageUrl.trim();
+  if (poster.startsWith('http')) {
+    out.add(poster);
+  }
+  for (final String p in show.photosShowId) {
+    final String u = p.trim();
+    if (u.startsWith('http') && !out.contains(u)) {
+      out.add(u);
+    }
+  }
+  return out;
+}
+
 Widget _poster(final BuildContext context, final ShowDetailData d,
     {required final double width}) {
   final ColorScheme cs = Theme.of(context).colorScheme;
-  return TiyatrolHero(
-    tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.show(d.show.id)),
-    child: Container(
-      width: width,
-      height: width * 1.48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.level5(cs.shadow),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: SkImage(url: d.show.imageUrl),
+  final List<String> photos = _showPhotoUrls(d.show);
+  return PressScale(
+    onTap: photos.isEmpty
+        ? null
+        : () => GalleryViewerDialog.open(context, photos),
+    semanticLabel: '${d.show.name} görselleri',
+    child: TiyatrolHero(
+      tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.show(d.show.id)),
+      child: Container(
+        width: width,
+        height: width * 1.48,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.level5(cs.shadow),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: SkImage(url: d.show.imageUrl),
+        ),
       ),
     ),
   );
@@ -456,9 +484,14 @@ class _ShowHero extends StatelessWidget {
   final ShowDetailData data;
   final ValueNotifier<double> offset;
   final bool ready;
+  final List<String> photos;
 
-  const _ShowHero(
-      {required this.data, required this.offset, required this.ready});
+  const _ShowHero({
+    required this.data,
+    required this.offset,
+    required this.ready,
+    required this.photos,
+  });
 
   @override
   Widget build(final BuildContext context) {
@@ -490,10 +523,15 @@ class _ShowHero extends StatelessWidget {
                 child: child,
               ),
             ),
-            child: TiyatrolHero(
-              tag: resolveTiyatrolHeroTag(
-                  context, TiyatrolHeroTags.show(data.show.id)),
-              child: SkImage(url: data.show.imageUrl),
+            child: GestureDetector(
+              onTap: photos.isEmpty
+                  ? null
+                  : () => GalleryViewerDialog.open(context, photos),
+              child: TiyatrolHero(
+                tag: resolveTiyatrolHeroTag(
+                    context, TiyatrolHeroTags.show(data.show.id)),
+                child: SkImage(url: data.show.imageUrl),
+              ),
             ),
           ),
           IgnorePointer(
@@ -860,12 +898,14 @@ class _Content extends StatelessWidget {
       );
     }
     final List<Widget> gallery = [];
-    final List<String> photos = [
+    final List<String> photos = _showPhotoUrls(data.show);
+    // Galeri rayında afiş hariç ek kareler; lightbox’ta afiş de şeritte.
+    final List<String> railPhotos = [
       for (final String p in data.show.photosShowId)
         if (p.trim().startsWith('http')) p.trim(),
     ];
-    if (photos.isNotEmpty) {
-      gallery.add(_Gallery(photos: photos));
+    if (railPhotos.isNotEmpty) {
+      gallery.add(_Gallery(photos: photos.length > 1 ? photos : railPhotos));
     }
 
     Widget section(final int i, final Widget child) => Reveal(
@@ -1518,18 +1558,6 @@ class _Gallery extends StatelessWidget {
   final List<String> photos;
   const _Gallery({required this.photos});
 
-  void _open(final BuildContext context, final int start) {
-    HapticFeedback.selectionClick();
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Kapat',
-      barrierColor: Colors.black.withValues(alpha: 0.92),
-      transitionDuration: AppMotion.fast,
-      pageBuilder: (final ctx, _, __) => _Viewer(photos: photos, start: start),
-    );
-  }
-
   @override
   Widget build(final BuildContext context) => SkRail<String>(
         title: 'Galeri',
@@ -1544,7 +1572,11 @@ class _Gallery extends StatelessWidget {
           return Reveal(
             index: i.clamp(0, 8),
             child: PressScale(
-              onTap: () => _open(context, i < 0 ? 0 : i),
+              onTap: () => GalleryViewerDialog.open(
+                context,
+                photos,
+                initialIndex: i < 0 ? 0 : i,
+              ),
               semanticLabel: 'Galeri fotoğrafı ${i + 1} / ${photos.length}',
               child: SkImage(
                   url: url,
@@ -1554,67 +1586,5 @@ class _Gallery extends StatelessWidget {
             ),
           );
         },
-      );
-}
-
-class _Viewer extends StatefulWidget {
-  final List<String> photos;
-  final int start;
-  const _Viewer({required this.photos, required this.start});
-
-  @override
-  State<_Viewer> createState() => _ViewerState();
-}
-
-class _ViewerState extends State<_Viewer> {
-  late final PageController _c = PageController(initialPage: widget.start);
-  late int _i = widget.start;
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) => Material(
-        color: Colors.transparent,
-        child: Stack(
-          children: [
-            PageView.builder(
-              controller: _c,
-              itemCount: widget.photos.length,
-              onPageChanged: (final i) => setState(() => _i = i),
-              itemBuilder: (final context, final i) => InteractiveViewer(
-                minScale: 1,
-                maxScale: 4,
-                child: Center(
-                  child: SkImage(
-                      url: widget.photos[i], fit: BoxFit.contain),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  tooltip: 'Kapat',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: Text('${_i + 1} / ${widget.photos.length}',
-                      style: Sk.ui(context, color: Colors.white70)),
-                ),
-              ),
-            ),
-          ],
-        ),
       );
 }

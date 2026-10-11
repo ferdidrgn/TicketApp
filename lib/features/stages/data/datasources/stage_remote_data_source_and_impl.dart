@@ -10,6 +10,14 @@ abstract class StageRemoteDataSource {
 
   Future<List<StageModel>> getStagesByIds(final List<String> stageIds);
 
+  /// İstenen stageId → bulunan model (`documentId` veya alan `_id`).
+  Future<Map<String, StageModel>> resolveStagesByIds(
+      final List<String> stageIds);
+
+  /// `showsId` dizisinde verilen oyunlardan en az birini taşıyan sahneler
+  /// (`array-contains-any`, ≤30’luk parçalar).
+  Future<List<StageModel>> getStagesByShowIds(final List<String> showIds);
+
   /// ➕ Admin panelinden yeni bir sahne (mekân) oluşturur. `imageFile`
   /// verilirse `show_remote_data_source_and_impl.dart`'taki `addShow` ile
   /// AYNI desende (önce döküman, sonra Storage'a yükleyip `imageUrl`'i
@@ -71,35 +79,97 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
     }
   }
 
+  static List<List<String>> _chunksOf(
+      final List<String> ids, final int size) {
+    if (ids.isEmpty) return const [];
+    return [
+      for (var i = 0; i < ids.length; i += size)
+        ids.sublist(i, i + size > ids.length ? ids.length : i + size),
+    ];
+  }
+
   @override
   Future<List<StageModel>> getStagesByIds(final List<String> stageIds) async {
-    if (stageIds.isEmpty) return [];
+    final mapped = await resolveStagesByIds(stageIds);
+    final seen = <String>{};
+    return [
+      for (final s in mapped.values)
+        if (s.id != null && s.id!.isNotEmpty && seen.add(s.id!)) s,
+    ];
+  }
+
+  @override
+  Future<Map<String, StageModel>> resolveStagesByIds(
+      final List<String> stageIds) async {
+    if (stageIds.isEmpty) return {};
 
     try {
-      // 🔥 DÜZELTME: Firestore 'whereIn' sorgusu en fazla 30 eleman alır —
-      // show/event datasource'larındaki aynı düzeltmeyle tutarlı (bkz.
-      // show_remote_data_source_and_impl.dart/event_remote_data_source_
-      // and_impl.dart). Eski kod tüm `stageIds`'i tek seferde `whereIn`'e
-      // gönderiyordu; 30'dan fazla sahne olan bir sorgu (ör. "yakındakiler"
-      // özelliğinin geniş bir yarıçapta çok sayıda sahneyi çözmesi
-      // gerektiğinde) Firestore'un invalid-argument hatası fırlatmasına ve
-      // tüm listenin sessizce boş/hatalı dönmesine yol açabiliyordu.
+      // whereIn ≤ 30. Önce documentId; bulunamayanlar için `_id` alanı.
       const chunkSize = 30;
       final uniqueIds = stageIds.toSet().toList();
-      final chunks = <List<String>>[
-        for (var i = 0; i < uniqueIds.length; i += chunkSize)
-          uniqueIds.sublist(
-              i, i + chunkSize > uniqueIds.length ? uniqueIds.length : i + chunkSize),
-      ];
+      final Map<String, StageModel> byRequestedId = {};
 
-      final snapshots = await Future.wait(chunks.map((final chunk) =>
-          _stageCollection.where(FieldPath.documentId, whereIn: chunk).get()));
+      final byDoc = await Future.wait(_chunksOf(uniqueIds, chunkSize).map(
+          (final chunk) => _stageCollection
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get()));
 
-      return snapshots.expand(_mapToStages).toList();
+      for (final doc in byDoc.expand((final snap) => snap.docs)) {
+        final StageModel s = StageModel.fromFirestore(
+            Map<String, dynamic>.from(doc.data())..['_id'] = doc.id);
+        byRequestedId[doc.id] = s;
+      }
+
+      final missing =
+          uniqueIds.where((final id) => !byRequestedId.containsKey(id)).toList();
+      if (missing.isNotEmpty) {
+        final byField = await Future.wait(_chunksOf(missing, chunkSize).map(
+            (final chunk) =>
+                _stageCollection.where('_id', whereIn: chunk).get()));
+        final missingSet = missing.toSet();
+        for (final doc in byField.expand((final snap) => snap.docs)) {
+          final rawId = doc.data()['_id']?.toString();
+          final StageModel s = StageModel.fromFirestore(
+              Map<String, dynamic>.from(doc.data())..['_id'] = doc.id);
+          if (rawId != null && missingSet.contains(rawId)) {
+            byRequestedId[rawId] = s;
+          }
+        }
+      }
+
+      return byRequestedId;
     } on FirebaseException catch (e) {
-      throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
+      throw Exception('Firestore hatası (resolveStagesByIds): ${e.message}');
     } catch (e) {
       throw Exception('Belirtilen sahneler alınamadı: $e');
+    }
+  }
+
+  @override
+  Future<List<StageModel>> getStagesByShowIds(
+      final List<String> showIds) async {
+    if (showIds.isEmpty) return [];
+
+    try {
+      // array-contains-any ≤ 30.
+      const chunkSize = 30;
+      final uniqueIds = showIds.toSet().toList();
+      final snapshots = await Future.wait(_chunksOf(uniqueIds, chunkSize).map(
+          (final chunk) => _stageCollection
+              .where('showsId', arrayContainsAny: chunk)
+              .get()));
+
+      final Map<String, StageModel> byId = {};
+      for (final StageModel s in snapshots.expand(_mapToStages)) {
+        if (s.id != null && s.id!.isNotEmpty) {
+          byId[s.id!] = s;
+        }
+      }
+      return byId.values.toList();
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getStagesByShowIds): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyunlara göre sahneler alınamadı: $e');
     }
   }
 

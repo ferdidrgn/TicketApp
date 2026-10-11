@@ -11,6 +11,7 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
@@ -104,7 +105,15 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
       actions: const ProfileActionsRow(),
-      ticket: (final layout) => ProfileTicket(
+      ticket: (final layout) {
+        final List<String> stagePhotos = [
+          if (stage.imageUrl.trim().startsWith('http')) stage.imageUrl.trim(),
+          for (final Show s in shows)
+            if (s.imageUrl.trim().startsWith('http') &&
+                s.imageUrl.trim() != stage.imageUrl.trim())
+              s.imageUrl.trim(),
+        ];
+        return ProfileTicket(
         layout: layout,
         kind: 'SAHNE',
         name: stage.name,
@@ -112,6 +121,9 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
             context, TiyatrolHeroTags.stage(stage.id)),
         imageUrl: stage.imageUrl,
         imageLabel: '${stage.name} fotoğrafı',
+        onImageTap: stagePhotos.isEmpty
+            ? null
+            : () => GalleryViewerDialog.open(context, stagePhotos),
         placeholderIcon: Icons.theaters_rounded,
         tagline: stage.address,
         seed: stage.id,
@@ -142,7 +154,8 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
                 leading: const Icon(Icons.event_seat_rounded),
                 onTap: () => profileScrollTo(context, _sessionsKey),
               ),
-      ),
+      );
+      },
       programme: (final compact) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

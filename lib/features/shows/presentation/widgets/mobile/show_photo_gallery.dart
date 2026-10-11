@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/shared/widgets/gallery_section.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/section_header.dart';
 
@@ -11,10 +12,9 @@ class ShowPhotoGallery extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-              child:
-              SectionHeader(title: "OYUNDAN KARELER", fontSize: 20)),
+          const Padding(
+              padding: EdgeInsets.fromLTRB(20, 30, 20, 15),
+              child: SectionHeader(title: 'OYUNDAN KARELER', fontSize: 20)),
           SizedBox(
             height: 180,
             child: ListView.builder(
@@ -23,7 +23,11 @@ class ShowPhotoGallery extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 15),
               itemCount: photos.length,
               itemBuilder: (final context, final index) => GestureDetector(
-                onTap: () => _showFullImage(context, photos[index]),
+                onTap: () => GalleryViewerDialog.open(
+                  context,
+                  photos,
+                  initialIndex: index,
+                ),
                 child: Container(
                   width: 260,
                   margin: const EdgeInsets.only(right: 15),
@@ -48,37 +52,5 @@ class ShowPhotoGallery extends StatelessWidget {
             ),
           ),
         ],
-      );
-
-  void _showFullImage(final BuildContext context, final String imageUrl) =>
-      showDialog(
-        context: context,
-        barrierColor: Colors.black.withOpacity(0.95),
-        builder: (final _) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.zero,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              InteractiveViewer(
-                  child: OptimizedCachedImage(imageUrl: imageUrl)),
-              Positioned(
-                top: 50,
-                right: 20,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       );
 }

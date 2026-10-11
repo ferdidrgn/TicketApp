@@ -6,8 +6,8 @@ import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/data/repositories/stage_repository_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../domain/turkey_metro.dart';
 import 'location_provider.dart';
 
@@ -124,21 +124,72 @@ final upcomingNearbyEventsProvider =
     return [];
   }
 
+  // Hedefli sahne çözümleme (tüm Stage koleksiyonu DEĞİL):
+  // 1) Event.stageId → documentId + `_id` whereIn
+  // 2) Hâlâ sahnesiz show’lar → showsId array-contains-any
   final stageIds = upcoming
       .map((final e) => e.event.stageId)
       .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
-  if (stageIds.isEmpty) {
-    return [];
+
+  final repo = ref.watch(stageRepositoryProvider);
+  final Map<String, Stage> stagesById = {};
+  final List<Stage> stagesByShow = [];
+
+  if (stageIds.isNotEmpty) {
+    final resolved = await repo.resolveStagesByIds(stageIds);
+    resolved.fold((final _) {}, (final map) {
+      stagesById.addAll(map);
+      for (final s in map.values) {
+        stagesById.putIfAbsent(s.id, () => s);
+      }
+    });
   }
 
-  final stages = await ref.watch(stagesByIdsProvider(stageIds).future);
-  final stagesById = {for (final s in stages) s.id: s};
+  final showIdsNeedingStage = upcoming
+      .where((final row) {
+        final String sid = row.event.stageId;
+        return sid.isEmpty || !stagesById.containsKey(sid);
+      })
+      .map((final row) => row.show.id)
+      .toSet()
+      .toList();
+
+  if (showIdsNeedingStage.isNotEmpty) {
+    final byShows = await repo.getStagesByShowIds(showIdsNeedingStage);
+    byShows.fold((final _) {}, (final list) {
+      stagesByShow.addAll(list);
+      for (final s in list) {
+        stagesById.putIfAbsent(s.id, () => s);
+      }
+    });
+  }
+
+  Stage? resolveStage(final _UpcomingRow row) {
+    final String sid = row.event.stageId;
+    if (sid.isNotEmpty) {
+      final Stage? direct = stagesById[sid];
+      if (direct != null) {
+        return direct;
+      }
+    }
+    for (final Stage s in stagesByShow) {
+      if (s.showsId.contains(row.show.id)) {
+        return s;
+      }
+    }
+    for (final Stage s in stagesById.values) {
+      if (s.showsId.contains(row.show.id)) {
+        return s;
+      }
+    }
+    return null;
+  }
 
   final entries = <NearbyEventEntry>[];
   for (final row in upcoming) {
-    final stage = stagesById[row.event.stageId];
+    final Stage? stage = resolveStage(row);
     if (stage == null) {
       continue;
     }
@@ -345,13 +396,14 @@ final nearbyOverviewProvider = FutureProvider<NearbyOverview>((final ref) async 
     var approximate = false;
     String? cityLabel;
     if (!exact) {
-      // Önce oyunun harici URL şehri (tur güncelliği), yoksa adres.
+      // Önce oyunun harici URL şehri (tur güncelliği), yoksa adres / ad.
       final Show show = list.first.show;
       final TrMetro? fromUrl = show.hasExternalTicketing
           ? TrMetroAreas.fromTicketUrl(show.externalTicketUrl)
           : null;
       final TrMetro? fromAddr = TrMetroAreas.fromAddress(raw.address);
-      final TrMetro? city = fromUrl ?? fromAddr;
+      final TrMetro? fromName = TrMetroAreas.fromAddress(raw.name);
+      final TrMetro? city = fromUrl ?? fromAddr ?? fromName;
       if (city == null) {
         unlocated += list.length;
         continue;

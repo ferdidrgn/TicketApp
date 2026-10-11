@@ -197,19 +197,12 @@ class _GalleryItemState extends ConsumerState<_GalleryItem> {
         onEnter: (final _) => setState(() => _hovered = true),
         onExit: (final _) => setState(() => _hovered = false),
         child: GestureDetector(
-          onTap: () {
+          onTap: () async {
             HapticFeedback.lightImpact();
-            ref
-                .read(galleryProvider(widget.allPhotos.length).notifier)
-                .setCurrentIndex(widget.index);
-
-            showDialog(
-              context: context,
-              barrierColor: Colors.black.withOpacity(0.9),
-              builder: (final _) => GalleryViewerDialog(
-                images: widget.allPhotos,
-                isMobile: widget.isMobile,
-              ),
+            await GalleryViewerDialog.open(
+              context,
+              widget.allPhotos,
+              initialIndex: widget.index,
             );
           },
           child: AnimatedContainer(
@@ -275,15 +268,51 @@ class _GalleryItemState extends ConsumerState<_GalleryItem> {
 /// ------------------------------------------------------------
 /// TAM EKRAN GALERİ GÖRÜNTÜLEYİCİ (DIALOG)
 /// ------------------------------------------------------------
+/// Alt şeritte küçük önizlemeler; kaydır / dokun → büyüt.
 class GalleryViewerDialog extends ConsumerStatefulWidget {
   final List<String> images;
   final bool isMobile;
+  final int initialIndex;
 
   const GalleryViewerDialog({
     super.key,
     required this.images,
     required this.isMobile,
+    this.initialIndex = 0,
   });
+
+  /// Oyun / oyuncu / ekip / sahne görselleri için ortak açılış.
+  static Future<void> open(
+    final BuildContext context,
+    final List<String> images, {
+    final int initialIndex = 0,
+  }) async {
+    final List<String> urls = [
+      for (final String u in images)
+        if (u.trim().isNotEmpty) u.trim(),
+    ];
+    if (urls.isEmpty || !context.mounted) return;
+
+    final int start = initialIndex.clamp(0, urls.length - 1);
+    final bool isMobile = context.isMobile;
+
+    final container = ProviderScope.containerOf(context);
+    container.read(galleryProvider(urls.length).notifier).setCurrentIndex(start);
+
+    HapticFeedback.selectionClick();
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Kapat',
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      transitionDuration: AppMotion.fast,
+      pageBuilder: (final ctx, final _, final __) => GalleryViewerDialog(
+        images: urls,
+        isMobile: isMobile,
+        initialIndex: start,
+      ),
+    );
+  }
 
   @override
   ConsumerState<GalleryViewerDialog> createState() =>
@@ -296,9 +325,11 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
   @override
   void initState() {
     super.initState();
-    final currentIndex =
-        ref.read(galleryProvider(widget.images.length)).currentIndex;
-    _pageController = PageController(initialPage: currentIndex);
+    final int start = widget.initialIndex.clamp(0, widget.images.length - 1);
+    ref
+        .read(galleryProvider(widget.images.length).notifier)
+        .setCurrentIndex(start);
+    _pageController = PageController(initialPage: start);
   }
 
   @override
@@ -425,19 +456,22 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
                     ],
                   ),
                 ),
-                // Alt Önizleme (Thumbnails)
-                ThumbnailCarousel(
-                  images: widget.images,
-                  isMobile: widget.isMobile,
-                  onThumbnailTap: (final index) {
-                    _pageController.animateToPage(
-                      index,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
+                // Alt Önizleme — birden fazla görselde küçük şerit
+                if (widget.images.length > 1) ...[
+                  ThumbnailCarousel(
+                    images: widget.images,
+                    isMobile: widget.isMobile,
+                    onThumbnailTap: (final index) {
+                      _pageController.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ] else
+                  const SizedBox(height: 16),
               ],
             ),
           ),

@@ -165,10 +165,18 @@ class _TeamExperienceState extends ConsumerState<TeamExperience> {
       final double gutter = Sk.gutter(w);
       final int photoCount = team?.photosId.length ?? 0;
 
+      final List<String> teamPhotos = [
+        if (imageUrl.trim().startsWith('http')) imageUrl.trim(),
+        for (final String p in team?.photosId ?? const <String>[])
+          if (p.trim().startsWith('http') && p.trim() != imageUrl.trim())
+            p.trim(),
+      ];
+
       final Widget identity = _Identity(
         teamId: widget.teamId,
         name: name,
         imageUrl: imageUrl,
+        photos: teamPhotos,
         onStage: active.isNotEmpty,
         ready: ready,
         left: wide,
@@ -332,6 +340,13 @@ class _TeamExperienceState extends ConsumerState<TeamExperience> {
                     teamId: widget.teamId,
                     name: name,
                     imageUrl: imageUrl,
+                    photos: [
+                      if (imageUrl.trim().startsWith('http')) imageUrl.trim(),
+                      for (final String p in team?.photosId ?? const <String>[])
+                        if (p.trim().startsWith('http') &&
+                            p.trim() != imageUrl.trim())
+                          p.trim(),
+                    ],
                     onStage: active.isNotEmpty,
                     ready: ready,
                     offset: _offset,
@@ -470,6 +485,7 @@ class _Identity extends StatelessWidget {
   final String teamId;
   final String name;
   final String imageUrl;
+  final List<String> photos;
   final bool onStage;
   final bool ready;
   final bool left;
@@ -479,6 +495,7 @@ class _Identity extends StatelessWidget {
     required this.teamId,
     required this.name,
     required this.imageUrl,
+    required this.photos,
     required this.onStage,
     required this.ready,
     required this.left,
@@ -494,22 +511,27 @@ class _Identity extends StatelessWidget {
     const double ph = 300;
     const double pr = 28;
 
-    final Widget poster = TiyatrolHero(
-      tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.team(teamId)),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(pr),
-          boxShadow: skSoftShadow(context, strength: 1.1),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(pr),
-          child: SkImage(
-            url: imageUrl,
-            width: pw,
-            height: ph,
-            radius: pr,
-            alignment: const Alignment(0, -0.2),
-            fallbackIcon: Icons.groups_2_rounded,
+    final Widget poster = GestureDetector(
+      onTap: photos.isEmpty
+          ? null
+          : () => GalleryViewerDialog.open(context, photos),
+      child: TiyatrolHero(
+        tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.team(teamId)),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(pr),
+            boxShadow: skSoftShadow(context, strength: 1.1),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(pr),
+            child: SkImage(
+              url: imageUrl,
+              width: pw,
+              height: ph,
+              radius: pr,
+              alignment: const Alignment(0, -0.2),
+              fallbackIcon: Icons.groups_2_rounded,
+            ),
           ),
         ),
       ),
@@ -1006,7 +1028,14 @@ class _BodyState extends State<_Body> {
                     subtitle: '${widget.team.photosId.length} fotoğraf',
                   ),
                   const SizedBox(height: 14),
-                  GallerySection(photos: widget.team.photosId),
+                  GallerySection(photos: [
+                    if (widget.team.imageUrl.trim().startsWith('http'))
+                      widget.team.imageUrl.trim(),
+                    for (final String p in widget.team.photosId)
+                      if (p.trim().startsWith('http') &&
+                          p.trim() != widget.team.imageUrl.trim())
+                        p.trim(),
+                  ]),
                 ],
               ),
             ),
@@ -1137,6 +1166,7 @@ class _TeamHero extends StatelessWidget {
   final String teamId;
   final String name;
   final String imageUrl;
+  final List<String> photos;
   final bool onStage;
   final bool ready;
   final ValueNotifier<double> offset;
@@ -1145,6 +1175,7 @@ class _TeamHero extends StatelessWidget {
     required this.teamId,
     required this.name,
     required this.imageUrl,
+    required this.photos,
     required this.onStage,
     required this.ready,
     required this.offset,
@@ -1168,12 +1199,17 @@ class _TeamHero extends StatelessWidget {
                 child: child,
               ),
             ),
-            child: TiyatrolHero(
-              tag: resolveTiyatrolHeroTag(
-                  context, TiyatrolHeroTags.team(teamId)),
-              child: SkImage(
-                url: imageUrl,
-                fallbackIcon: Icons.groups_2_rounded,
+            child: GestureDetector(
+              onTap: photos.isEmpty
+                  ? null
+                  : () => GalleryViewerDialog.open(context, photos),
+              child: TiyatrolHero(
+                tag: resolveTiyatrolHeroTag(
+                    context, TiyatrolHeroTags.team(teamId)),
+                child: SkImage(
+                  url: imageUrl,
+                  fallbackIcon: Icons.groups_2_rounded,
+                ),
               ),
             ),
           ),

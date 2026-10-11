@@ -8,6 +8,7 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/ticket/ticket_profile.dart'
@@ -454,22 +455,27 @@ class _Identity extends StatelessWidget {
     // Kare gölge kutusu oluşmasın diye gölge + clip aynı radius'ta.
     final double ph = pw * 1.55;
     final double pr = pw / 2;
-    final Widget portrait = TiyatrolHero(
-      tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.player(playerId)),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(pr),
-          boxShadow: skSoftShadow(context, strength: 1.1),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(pr),
-          child: SkImage(
-            url: imageUrl,
-            width: pw,
-            height: ph,
-            radius: pr,
-            alignment: const Alignment(0, -0.35),
-            fallbackIcon: Icons.person_rounded,
+    final Widget portrait = GestureDetector(
+      onTap: imageUrl.trim().startsWith('http')
+          ? () => GalleryViewerDialog.open(context, [imageUrl.trim()])
+          : null,
+      child: TiyatrolHero(
+        tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.player(playerId)),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(pr),
+            boxShadow: skSoftShadow(context, strength: 1.1),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(pr),
+            child: SkImage(
+              url: imageUrl,
+              width: pw,
+              height: ph,
+              radius: pr,
+              alignment: const Alignment(0, -0.35),
+              fallbackIcon: Icons.person_rounded,
+            ),
           ),
         ),
       ),
@@ -1177,12 +1183,17 @@ class _PlayerHero extends StatelessWidget {
                 child: child,
               ),
             ),
-            child: TiyatrolHero(
-              tag: resolveTiyatrolHeroTag(
-                  context, TiyatrolHeroTags.player(playerId)),
-              child: SkImage(
-                url: imageUrl,
-                fallbackIcon: Icons.person_rounded,
+            child: GestureDetector(
+              onTap: imageUrl.trim().startsWith('http')
+                  ? () => GalleryViewerDialog.open(context, [imageUrl.trim()])
+                  : null,
+              child: TiyatrolHero(
+                tag: resolveTiyatrolHeroTag(
+                    context, TiyatrolHeroTags.player(playerId)),
+                child: SkImage(
+                  url: imageUrl,
+                  fallbackIcon: Icons.person_rounded,
+                ),
               ),
             ),
           ),

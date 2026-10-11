@@ -33,10 +33,15 @@ mixin DateFormatter {
       try {
         return DateFormat('dd.MM.yyyy, HH:mm').parse(raw);
       } catch (_) {
-        final iso = DateTime.tryParse(raw);
-        if (iso != null) return iso;
-        print("DateFormatter: tarih ayrıştırılamadı: $raw");
-        return null;
+        try {
+          // Saat yoksa (ör. "15.10.2026") gün başı say.
+          return DateFormat('dd.MM.yyyy').parse(raw.trim());
+        } catch (_) {
+          final iso = DateTime.tryParse(raw);
+          if (iso != null) return iso;
+          print("DateFormatter: tarih ayrıştırılamadı: $raw");
+          return null;
+        }
       }
     }
   }
