@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,39 +25,63 @@ class BoardingPassCard extends StatefulWidget {
   State<BoardingPassCard> createState() => _BoardingPassCardState();
 }
 
-class _BoardingPassCardState extends State<BoardingPassCard> {
-  Timer? _tick;
+class _BoardingPassCardState extends State<BoardingPassCard>
+    with WidgetsBindingObserver {
+  // Zamanlayıcı YOK: metin çizim anında hesaplanır; uygulama arka plandan
+  // dönünce bir kez tazelenir (pil/performans için).
   DateTime _now = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() => _now = DateTime.now());
+    }
   }
 
   @override
   void dispose() {
-    _tick?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  String _countdown(final Duration left) {
+  /// Günün bölümü: sabah / öğle / öğleden sonra / akşam / gece.
+  String _part(final DateTime d) {
+    final int h = d.hour;
+    if (h >= 5 && h < 11) return 'sabah';
+    if (h >= 11 && h < 14) return 'öğle';
+    if (h >= 14 && h < 18) return 'öğleden sonra';
+    if (h >= 18 && h < 23) return 'akşam';
+    return 'gece';
+  }
+
+  /// "3 gün kaldı", "yarın akşam", "bu akşam", "az kaldı"…
+  String _phrase(final Duration left) {
     if (left.isNegative) return 'Perde açıldı';
-    if (left.inDays >= 1) {
-      return '${left.inDays}g ${(left.inHours % 24).toString().padLeft(2, '0')}sa';
+    final DateTime today = skDay(_now);
+    final int days = skDay(widget.date).difference(today).inDays;
+    if (days <= 0) {
+      if (left.inMinutes < 180) return 'Az kaldı';
+      return 'Bu ${_part(widget.date)}';
     }
-    String two(final int v) => v.toString().padLeft(2, '0');
-    return '${two(left.inHours)}:${two(left.inMinutes % 60)}:${two(left.inSeconds % 60)}';
+    if (days == 1) return 'Yarın ${_part(widget.date)}';
+    if (days < 14) return '$days gün kaldı';
+    if (days < 60) return '${(days / 7).round()} hafta kaldı';
+    return '${(days / 30).round()} ay kaldı';
   }
 
   String _hint(final Duration left) {
     if (left.isNegative) return 'şimdi sahnede';
-    if (left.inHours < 3) return 'az kaldı';
-    if (left.inDays < 1) return 'bugün';
-    if (left.inDays == 1) return 'yarın';
-    return 'perdeye kalan';
+    final int days =
+        skDay(widget.date).difference(skDay(_now)).inDays;
+    if (days <= 0) return 'bugün';
+    if (days == 1) return 'perdeye';
+    return 'perdeye';
   }
 
   void _open() {
@@ -244,11 +266,16 @@ class _BoardingPassCardState extends State<BoardingPassCard> {
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(_countdown(left),
-                                      style: Sk.ui(context,
-                                          size: 13.5,
-                                          color: cs.onPrimaryContainer,
-                                          weight: FontWeight.w900)),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(_phrase(left),
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        style: Sk.ui(context,
+                                            size: 13.5,
+                                            color: cs.onPrimaryContainer,
+                                            weight: FontWeight.w900)),
+                                  ),
                                 ],
                               ),
                             ),
