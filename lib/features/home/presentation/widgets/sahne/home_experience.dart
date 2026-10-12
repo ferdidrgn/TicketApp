@@ -26,6 +26,7 @@ import '../../../../teams/presentation/providers/team_provider.dart';
 import '../../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../../users/presentation/providers/user_provider.dart';
 import '../../providers/home_sessions_provider.dart';
+import 'boarding_pass.dart';
 import '../../providers/home_show_filter_provider.dart';
 import '../common/home_showcase.dart';
 import '../common/home_ui.dart';
@@ -487,6 +488,28 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
             ] else if (loading) ...[
               SliverToBoxAdapter(child: pad(const _HomeSkeleton()))
             ] else ...[
+              // Yaklaşan bilet: biniş kartı düzeninde, canlı geri sayımlı
+              if (nextTicket != null)
+                gap(
+                  pad(BoardingPassCard(
+                      ticket: nextTicket, date: nextTicketDate!)),
+                  18,
+                ),
+
+              // Hızlı eylemler
+              gap(
+                pad(_QuickActions(
+                  onDiscover: () => NavigationHandler.goToDiscover(context),
+                  onNearby: () => NavigationHandler.goToNearby(context),
+                  onTickets: _openTickets,
+                  onFavorites: () => loggedIn
+                      ? NavigationHandler.goToFavorites(context)
+                      : NavigationHandler.goToLogin(context),
+                  onCampaigns: () => NavigationHandler.goToCampaigns(context),
+                )),
+                22,
+              ),
+
               // 1. Hareketli vitrin (Spotlight Carousel)
               Builder(builder: (final context) {
                 final List<HomeSlide> spotlight = HomeSlide.build(
@@ -511,17 +534,6 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   20,
                 );
               }),
-
-              // Sıradaki Bilet
-              if (nextTicket != null)
-                gap(
-                  pad(_NextTicket(
-                    ticket: nextTicket,
-                    date: nextTicketDate!,
-                    onTap: _openTickets,
-                  )),
-                  22,
-                ),
 
               // Seyirci karnem (gerçek biletlerden) — Smart_home'daki özet kartı
               if (loggedIn && uid.isNotEmpty)
@@ -1170,107 +1182,6 @@ class _RangeChips extends StatelessWidget {
 // SIRADAKİ BİLETİN
 // ═════════════════════════════════════════════════════════════════════════════
 
-class _NextTicket extends StatelessWidget {
-  final DetailedTicket ticket;
-  final DateTime date;
-  final VoidCallback onTap;
-
-  const _NextTicket(
-      {required this.ticket, required this.date, required this.onTap});
-
-  String _countdown() {
-    final int days = skDay(date).difference(skDay(DateTime.now())).inDays;
-    if (days <= 0) {
-      final Duration left = date.difference(DateTime.now());
-      return left.inHours >= 1 ? '${left.inHours} saat sonra' : 'Birazdan';
-    }
-    return days == 1 ? 'Yarın' : '$days gün sonra';
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final Show show = ticket.show!;
-    final String venue = (ticket.stage?.name ?? '').trim();
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: 'Sıradaki biletin: ${show.name}',
-      scale: 0.99,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [cs.primaryContainer, cs.tertiaryContainer],
-          ),
-          boxShadow: skSoftShadow(context, strength: 0.7),
-        ),
-        child: Row(
-          children: [
-            SkImage(url: show.imageUrl, width: 62, height: 86, radius: 16),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Sıradaki biletin',
-                      style: Sk.ui(context,
-                          size: 12,
-                          color: cs.onPrimaryContainer.withValues(alpha: 0.75),
-                          weight: FontWeight.w800)),
-                  const SizedBox(height: 3),
-                  Text(show.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Sk.display(context,
-                          size: 18,
-                          color: cs.onPrimaryContainer,
-                          height: 1.12)),
-                  const SizedBox(height: 5),
-                  Text(
-                    [
-                      '${skDayPhrase(date)} · ${skClock(date)}',
-                      if (venue.isNotEmpty) venue,
-                    ].join('  ·  '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Sk.ui(context,
-                        size: 12.5,
-                        color: cs.onPrimaryContainer.withValues(alpha: 0.85),
-                        weight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: cs.surface.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(_countdown(),
-                  style: Sk.ui(context,
-                      size: 12.5,
-                      color: cs.onSurface,
-                      weight: FontWeight.w900)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-// ═════════════════════════════════════════════════════════════════════════════
-// BÜTÇE KADRANI (Smart_home'daki daire kaydırıcının TiyatRol uyarlaması)
-// ═════════════════════════════════════════════════════════════════════════════
-
-/// Dairenin ucunu sürükle → bütçe değişir, kaç gerçek seansın o fiyata
-/// uyduğu anında güncellenir. "Takvimde göster" takvimi bu bütçeyle süzer.
 class _BudgetCard extends StatefulWidget {
   final List<double> prices; // seansların gerçek bilet fiyatları
   final double? applied;
@@ -1603,6 +1514,86 @@ class _TasteFlower extends StatelessWidget {
           }),
         ),
       ],
+    );
+  }
+}
+
+class _QuickActions extends StatelessWidget {
+  final VoidCallback onDiscover;
+  final VoidCallback onNearby;
+  final VoidCallback onTickets;
+  final VoidCallback onFavorites;
+  final VoidCallback onCampaigns;
+
+  const _QuickActions({
+    required this.onDiscover,
+    required this.onNearby,
+    required this.onTickets,
+    required this.onFavorites,
+    required this.onCampaigns,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _QuickBtn(
+              icon: Icons.explore_rounded, label: 'Keşfet', onTap: onDiscover),
+          _QuickBtn(
+              icon: Icons.place_rounded, label: 'Yakınımda', onTap: onNearby),
+          _QuickBtn(
+              icon: Icons.confirmation_number_rounded,
+              label: 'Biletlerim',
+              onTap: onTickets),
+          _QuickBtn(
+              icon: Icons.favorite_rounded,
+              label: 'Favoriler',
+              onTap: onFavorites),
+          _QuickBtn(
+              icon: Icons.local_offer_rounded,
+              label: 'Kampanya',
+              onTap: onCampaigns),
+        ],
+      );
+}
+
+class _QuickBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickBtn(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 62,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: label,
+        scale: 0.92,
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                shape: BoxShape.circle,
+                boxShadow: skSoftShadow(context, strength: 0.35),
+              ),
+              child: Icon(icon, size: 26, color: cs.onPrimaryContainer),
+            ),
+            const SizedBox(height: 8),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Sk.ui(context, size: 12, weight: FontWeight.w700)),
+          ],
+        ),
+      ),
     );
   }
 }

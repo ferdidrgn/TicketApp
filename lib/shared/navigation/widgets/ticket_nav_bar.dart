@@ -122,17 +122,28 @@ class _PunchPainter extends CustomPainter {
 /// üstündeki yüzen öğeler (ör. "başa dön" koçanı) buna göre konumlanır.
 const double kTicketNavBarExtent = _barHeight + _barTop + _barBottom;
 
-const double _barHeight = 56;
-const double _barTop = AppSpacing.sm;
+const double _barHeight = 84;
+const double _barTop = AppSpacing.xs;
 const double _barBottom = AppSpacing.md;
 
-/// Alt gezinme — yüzen hap + yuvarlak butonlar.
+// Düzen sabitleri (plaka koordinatları)
+const double _slabTop = 26;
+const double _slabH = 56;
+const double _item = 52;
+const double _gap = 6;
+const double _padX = 16;
+const double _iconSz = 24;
+const double _iconGap = 6;
+const double _slabPadX = 14;
+const double _notchMargin = 7;
+
+/// Alt gezinme — plaka + seçili sekmenin arkasında ŞEFFAF OYUK.
 ///
-/// Seçili sekme ikon + etiketli dolu bir hap, diğerleri yumuşak tonlu
-/// yuvarlak ikon butonlarıdır. Sekme değişince hap genişleyip daralır
-/// (AnimatedSize), ikon yumuşakça renk değiştirir. Renkler temadan
-/// (`primary` / `surfaceContainerHigh`); yükseklik sabittir
-/// ([kTicketNavBarExtent]). Azaltılmış harekette geçiş anında olur.
+/// Yumuşak tonlu bir plaka üzerinde sekmeler durur; seçili sekme (ikon +
+/// etiketli hap) plakanın üstüne hafifçe yükselir ve arkasında plaka
+/// oyulur (sayfa zemini görünür). Sekme değişince oyuk ve hap birlikte
+/// kayar. Renkler temadan; yükseklik sabittir ([kTicketNavBarExtent]).
+/// Azaltılmış harekette geçiş anında olur.
 class TicketBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -145,11 +156,56 @@ class TicketBottomNavBar extends StatelessWidget {
     this.destinations = kShellDestinations,
   });
 
+  double _labelW(final String s) {
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+          text: s,
+          style:
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return tp.width;
+  }
+
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bool reduce = MediaQuery.of(context).disableAnimations;
     final Duration dur = reduce ? Duration.zero : AppMotion.normal;
+    final int n = destinations.length;
+
+    final List<double> pillW = [
+      for (final d in destinations)
+        _padX * 2 + _iconSz + _iconGap + _labelW(d.label),
+    ];
+    double totalFor(final int a) {
+      double t = _gap * (n - 1);
+      for (int i = 0; i < n; i++) {
+        t += i == a ? pillW[i] : _item;
+      }
+      return t;
+    }
+
+    double maxTotal = 0;
+    for (int a = 0; a < n; a++) {
+      maxTotal = totalFor(a) > maxTotal ? totalFor(a) : maxTotal;
+    }
+    final double slabW = maxTotal + _slabPadX * 2;
+    final double start = (slabW - totalFor(currentIndex)) / 2;
+
+    // Sekme konumları (seçiliye göre)
+    final List<double> xs = [];
+    final List<double> ws = [];
+    double x = start;
+    for (int i = 0; i < n; i++) {
+      final double w = i == currentIndex ? pillW[i] : _item;
+      xs.add(x);
+      ws.add(w);
+      x += w + _gap;
+    }
+    final Rect activeRect =
+        Rect.fromLTWH(xs[currentIndex], 6, ws[currentIndex], _item);
 
     return ColoredBox(
       color: cs.surface,
@@ -166,22 +222,48 @@ class TicketBottomNavBar extends StatelessWidget {
                 height: _barHeight,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (int i = 0; i < destinations.length; i++) ...[
-                        if (i > 0) const SizedBox(width: AppSpacing.sm),
-                        _NavPill(
-                          destination: destinations[i],
-                          active: i == currentIndex,
-                          duration: dur,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            onTap(i);
-                          },
+                  child: SizedBox(
+                    width: slabW,
+                    height: _barHeight,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Plaka + oyuk
+                        Positioned.fill(
+                          child: TweenAnimationBuilder<Rect?>(
+                            tween: RectTween(end: activeRect),
+                            duration: dur,
+                            curve: Curves.easeOutCubic,
+                            builder: (final context, final r, _) =>
+                                CustomPaint(
+                              painter: _SlabPainter(
+                                notch: r ?? activeRect,
+                                color: cs.surfaceContainerHigh,
+                                shadow: cs.shadow,
+                              ),
+                            ),
+                          ),
                         ),
+                        for (int i = 0; i < n; i++)
+                          AnimatedPositioned(
+                            duration: dur,
+                            curve: Curves.easeOutCubic,
+                            left: xs[i],
+                            top: i == currentIndex ? 6 : _slabTop + 2,
+                            width: ws[i],
+                            height: _item,
+                            child: _NavPill(
+                              destination: destinations[i],
+                              active: i == currentIndex,
+                              duration: dur,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                onTap(i);
+                              },
+                            ),
+                          ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -191,6 +273,37 @@ class TicketBottomNavBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SlabPainter extends CustomPainter {
+  final Rect notch;
+  final Color color;
+  final Color shadow;
+
+  const _SlabPainter(
+      {required this.notch, required this.color, required this.shadow});
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final Path slab = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, _slabTop, size.width, _slabH),
+        const Radius.circular(_slabH / 2),
+      ));
+    // Seçili sekmenin etrafı oyulur: şeffaf boşluk.
+    final Path hole = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        notch.inflate(_notchMargin),
+        Radius.circular(notch.height / 2 + _notchMargin),
+      ));
+    final Path cut = Path.combine(PathOperation.difference, slab, hole);
+    canvas.drawShadow(cut, shadow.withValues(alpha: 0.35), 6, true);
+    canvas.drawPath(cut, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant final _SlabPainter old) =>
+      old.notch != notch || old.color != color;
 }
 
 class _NavPill extends StatelessWidget {
@@ -209,7 +322,6 @@ class _NavPill extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color bg = active ? cs.primary : cs.surfaceContainerHigh;
     final Color fg = active ? cs.onPrimary : cs.onSurfaceVariant;
 
     return Semantics(
@@ -225,36 +337,30 @@ class _NavPill extends StatelessWidget {
           child: AnimatedContainer(
             duration: duration,
             curve: Curves.easeOutCubic,
-            height: _barHeight,
-            constraints: const BoxConstraints(minWidth: _barHeight),
-            padding: EdgeInsets.symmetric(horizontal: active ? 20 : 0),
             decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(_barHeight / 2),
+              color: active ? cs.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(_item / 2),
               boxShadow: active ? AppShadows.level1(cs.shadow) : const [],
             ),
-            child: AnimatedSize(
-              duration: duration,
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.centerLeft,
+            child: Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   TweenAnimationBuilder<Color?>(
                     tween: ColorTween(end: fg),
                     duration: duration,
                     builder: (final context, final color, _) => Icon(
                       active ? destination.activeIcon : destination.icon,
-                      size: 24,
+                      size: _iconSz,
                       color: color,
                     ),
                   ),
                   if (active) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: _iconGap),
                     Text(
                       destination.label,
                       maxLines: 1,
+                      softWrap: false,
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.1,
