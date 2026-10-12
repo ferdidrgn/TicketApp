@@ -413,12 +413,35 @@ final nearbyOverviewProvider = FutureProvider<NearbyOverview>((final ref) async 
       cityLabel = city.name;
     }
 
-    final double dist = LocationService.distanceInMeters(
+    double dist = LocationService.distanceInMeters(
       position.latitude,
       position.longitude,
       stage.locationLat,
       stage.locationLng,
     );
+    if (dist > hardM && exact) {
+      // Koordinat ADRESLE ÇELİŞİYOR (ör. adres "Ataşehir/İstanbul" ama
+      // lat/long başka bir ülkede — admin'de yanlış girilmiş). Oyunu
+      // haritadan sessizce düşürmek yerine adresteki şehre göre YAKLAŞIK
+      // pin kullanılır; gerçek koordinat düzeltilince tam konum görünür.
+      final TrMetro? addrCity = TrMetroAreas.fromAddress(raw.address) ??
+          TrMetroAreas.fromAddress(raw.name);
+      if (addrCity != null) {
+        final Stage alt = _approxStage(raw, addrCity);
+        final double d2 = LocationService.distanceInMeters(
+          position.latitude,
+          position.longitude,
+          alt.locationLat,
+          alt.locationLng,
+        );
+        if (d2 <= hardM) {
+          stage = alt;
+          dist = d2;
+          approximate = true;
+          cityLabel = addrCity.name;
+        }
+      }
+    }
     if (dist > hardM) {
       continue;
     }
