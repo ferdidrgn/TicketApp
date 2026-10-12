@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../../core/util/geo_guard.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -316,10 +317,11 @@ class NearbyOverview {
           n + (p.isExternalOnly ? 1 : p.entries.length));
 }
 
+// Türkiye kutusu dışındaki koordinat (ör. admin'de yanlış girilmiş) YOK
+// sayılır: sahne adres şehrine göre yaklaşık pinlenir, haritadan düşmez.
 bool _hasCoordinates(final Stage s) =>
     !(s.locationLat == 0 && s.locationLng == 0) &&
-    s.locationLat.abs() <= 90 &&
-    s.locationLng.abs() <= 180;
+    GeoGuard.inTurkey(s.locationLat, s.locationLng);
 
 /// Koordinatsız sahneyi adres şehrinin merkezine yerleştir (yaklaşık pin).
 Stage _approxStage(final Stage s, final TrMetro city) => Stage(
@@ -462,6 +464,50 @@ final nearbyOverviewProvider = FutureProvider<NearbyOverview>((final ref) async 
       continue;
     }
     if (showIdsWithSessions.contains(show.id)) {
+      continue;
+    }
+    // Yönetici bu oyun için gerçek mekân konumu girdiyse TAM konumda göster.
+    final double? vLat = show.externalLat;
+    final double? vLng = show.externalLng;
+    if (vLat != null && vLng != null && GeoGuard.inTurkey(vLat, vLng)) {
+      final TrMetro? urlCity =
+          TrMetroAreas.fromTicketUrl(show.externalTicketUrl);
+      final String vName = show.externalVenueName.trim();
+      final String vAddr = show.externalVenueAddress.trim();
+      final Stage venue = Stage(
+        id: 'ext-${show.id}',
+        name: vName.isEmpty ? show.name : vName,
+        imageUrl: show.imageUrl,
+        capacity: '',
+        description: '',
+        communication: '',
+        address: vAddr.isEmpty
+            ? '${urlCity?.name ?? 'Harici bilet'} · harici bilet'
+            : vAddr,
+        locationLat: vLat,
+        locationLng: vLng,
+        createdAt: show.createdAt,
+        updatedAt: show.updatedAt,
+        showsId: [show.id],
+      );
+      final double vDist = LocationService.distanceInMeters(
+        position.latitude,
+        position.longitude,
+        vLat,
+        vLng,
+      );
+      if (vDist > hardM) {
+        continue;
+      }
+      pins.add(NearbyPin(
+        stage: venue,
+        entries: const [],
+        distanceMeters: vDist,
+        softRadiusMeters: softM,
+        isApproximate: false,
+        externalShow: show,
+        cityLabel: urlCity?.name,
+      ));
       continue;
     }
     final TrMetro? city =

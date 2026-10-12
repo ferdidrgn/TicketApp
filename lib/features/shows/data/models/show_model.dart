@@ -17,6 +17,10 @@ class ShowModel {
   final List<String>? eventsId;
   final List<String>? photosShowId;
   final String? externalTicketUrl;
+  final String? externalVenueName;
+  final String? externalVenueAddress;
+  final double? externalLat;
+  final double? externalLng;
 
   const ShowModel({
     this.id,
@@ -36,6 +40,10 @@ class ShowModel {
     this.eventsId,
     this.photosShowId,
     this.externalTicketUrl,
+    this.externalVenueName,
+    this.externalVenueAddress,
+    this.externalLat,
+    this.externalLng,
   });
 
   /// 🔥 Firestore'dan güvenli okuma
@@ -70,7 +78,18 @@ class ShowModel {
             ?.map((final e) => e.toString())
             .toList(),
         externalTicketUrl: data['externalTicketUrl'] as String?,
+        externalVenueName: data['externalVenueName'] as String?,
+        externalVenueAddress: data['externalVenueAddress'] as String?,
+        externalLat: _num(data['externalLat']),
+        externalLng: _num(data['externalLng']),
       );
+
+  /// Sayı ya da sayı-metin ("41.02") → double; yoksa null.
+  static double? _num(final dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v.trim().replaceAll(',', '.'));
+    return null;
+  }
 
   /// 🔥 Firestore'a yazma
   Map<String, dynamic> toFirestore() => {
@@ -91,5 +110,9 @@ class ShowModel {
         'oldPlayersId': oldPlayersId,
         'photosShowId': photosShowId,
         'externalTicketUrl': externalTicketUrl,
+        'externalVenueName': externalVenueName,
+        'externalVenueAddress': externalVenueAddress,
+        'externalLat': externalLat,
+        'externalLng': externalLng,
       };
 }
