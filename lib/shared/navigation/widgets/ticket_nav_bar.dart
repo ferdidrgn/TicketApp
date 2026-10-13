@@ -342,7 +342,14 @@ class _NavPill extends StatelessWidget {
               borderRadius: BorderRadius.circular(_item / 2),
               boxShadow: active ? AppShadows.level1(cs.shadow) : const [],
             ),
-            child: Center(
+            // Geçiş sırasında hap genişliği 52'den büyüyerek gelir; Row'un
+            // doğal genişliğini taşırmak yerine OverflowBox + ClipRect ile
+            // kırpılır (RenderFlex overflow olmaz).
+            child: ClipRect(
+              child: OverflowBox(
+                minWidth: 0,
+                maxWidth: double.infinity,
+                child: Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -370,6 +377,8 @@ class _NavPill extends StatelessWidget {
                     ),
                   ],
                 ],
+              ),
+                ),
               ),
             ),
           ),
