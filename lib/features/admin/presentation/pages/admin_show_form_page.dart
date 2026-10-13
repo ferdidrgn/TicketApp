@@ -1,4 +1,4 @@
-import '../widgets/geo_lookup_button.dart';
+import '../widgets/admin_external_sessions_section.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,10 +42,6 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
   late final TextEditingController _ageLimitController;
   late final TextEditingController _eventRuleController;
   late final TextEditingController _externalTicketUrlController;
-  late final TextEditingController _venueNameController;
-  late final TextEditingController _venueAddressController;
-  late final TextEditingController _venueLatController;
-  late final TextEditingController _venueLngController;
 
   String? _selectedTeamId;
   File? _selectedImageFile;
@@ -66,14 +62,6 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
     _eventRuleController = TextEditingController(text: show?.eventRule ?? '');
     _externalTicketUrlController =
         TextEditingController(text: show?.externalTicketUrl ?? '');
-    _venueNameController =
-        TextEditingController(text: show?.externalVenueName ?? '');
-    _venueAddressController =
-        TextEditingController(text: show?.externalVenueAddress ?? '');
-    _venueLatController =
-        TextEditingController(text: show?.externalLat?.toString() ?? '');
-    _venueLngController =
-        TextEditingController(text: show?.externalLng?.toString() ?? '');
     _selectedTeamId = show?.teamId.isNotEmpty == true ? show!.teamId : null;
   }
 
@@ -87,10 +75,6 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
     _ageLimitController.dispose();
     _eventRuleController.dispose();
     _externalTicketUrlController.dispose();
-    _venueNameController.dispose();
-    _venueAddressController.dispose();
-    _venueLatController.dispose();
-    _venueLngController.dispose();
     super.dispose();
   }
 
@@ -106,28 +90,6 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // Harici mekân konumu (isteğe bağlı): ya ikisi de dolu ve geçerli, ya boş.
-    final String latText = _venueLatController.text.trim().replaceAll(',', '.');
-    final String lngText = _venueLngController.text.trim().replaceAll(',', '.');
-    double? venueLat;
-    double? venueLng;
-    if (latText.isNotEmpty || lngText.isNotEmpty) {
-      venueLat = double.tryParse(latText);
-      venueLng = double.tryParse(lngText);
-      if (venueLat == null || venueLng == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Mekân enlem/boylamı geçerli sayı olmalı (ör. 41.0082).'),
-          backgroundColor: Colors.red,
-        ));
-        return;
-      }
-      final bool ok = await validateGeoOrWarn(context,
-          lat: venueLat,
-          lng: venueLng,
-          address: '${_venueAddressController.text} ${_venueNameController.text}');
-      if (!ok) return;
-    }
-
     if (_isEditing) {
       final updatedData = <String, dynamic>{
         'name': _nameController.text.trim(),
@@ -139,10 +101,7 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
         'eventRule': _eventRuleController.text.trim(),
         'teamId': _selectedTeamId ?? '',
         'externalTicketUrl': _externalTicketUrlController.text.trim(),
-        'externalVenueName': _venueNameController.text.trim(),
-        'externalVenueAddress': _venueAddressController.text.trim(),
-        'externalLat': venueLat,
-        'externalLng': venueLng,
+
       };
       await ref.read(showMutationProvider.notifier).updateShowWithImage(
             showId: widget.show!.id,
@@ -168,10 +127,7 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
         oldPlayersId: const [],
         photosShowId: const [],
         externalTicketUrl: _externalTicketUrlController.text.trim(),
-        externalVenueName: _venueNameController.text.trim(),
-        externalVenueAddress: _venueAddressController.text.trim(),
-        externalLat: venueLat,
-        externalLng: venueLng,
+
       );
       await ref.read(showMutationProvider.notifier).addShow(
             show: newShow,
@@ -352,56 +308,6 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
                   isRequired: false,
                   keyboardType: TextInputType.url,
                 ),
-                const AdminSectionTitle(
-                    title: 'Harici Mekân (haritada nerede?)',
-                    icon: Icons.place_rounded),
-                Text(
-                  'Harici biletli oyun Yakındakiler haritasında bu mekânda görünür. '
-                  'Boş bırakırsan sadece bilet linkindeki şehrin merkezi gösterilir.',
-                  style: TextStyle(
-                      fontSize: 12, color: context.colors.onSurfaceVariant),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                CustomTextField(
-                    controller: _venueNameController,
-                    label: 'Mekân adı',
-                    isRequired: false),
-                CustomTextField(
-                    controller: _venueAddressController,
-                    label: 'Mekân adresi (mahalle, ilçe, şehir)',
-                    isRequired: false),
-                GeoLookupButton(
-                  query: () =>
-                      '${_venueNameController.text} ${_venueAddressController.text}',
-                  onPick: (final hit) => setState(() {
-                    _venueLatController.text = hit.lat.toStringAsFixed(6);
-                    _venueLngController.text = hit.lng.toStringAsFixed(6);
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CustomTextField(
-                        controller: _venueLatController,
-                        label: 'Enlem (lat)',
-                        isRequired: false,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true, signed: true),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: CustomTextField(
-                        controller: _venueLngController,
-                        label: 'Boylam (long)',
-                        isRequired: false,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true, signed: true),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.xl),
                 SizedBox(
                   width: double.infinity,
@@ -429,7 +335,13 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
                 ),
                 if (_isEditing) ...[
                   const Divider(height: AppSpacing.section),
-                  AdminEventSection(show: widget.show!),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _externalTicketUrlController,
+                    builder: (final context, final v, final _) =>
+                        v.text.trim().isNotEmpty
+                            ? AdminExternalSessionsSection(show: widget.show!)
+                            : AdminEventSection(show: widget.show!),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.huge),
               ],
