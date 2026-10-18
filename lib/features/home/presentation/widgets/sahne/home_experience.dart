@@ -495,6 +495,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     ...shows,
                   ],
                   onShow: (final s) => _openShow(s, from: 'home-spotlight'),
+                  nextByShow: nextByShow,
                 );
                 if (spotlight.isEmpty) {
                   return const SliverToBoxAdapter(child: SizedBox.shrink());
