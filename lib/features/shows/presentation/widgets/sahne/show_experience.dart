@@ -20,6 +20,7 @@ import '../../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
+import '../../../domain/next_session.dart';
 import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
 import '../detail/show_detail_actions.dart';
@@ -465,11 +466,14 @@ Widget _poster(final BuildContext context, final ShowDetailData d,
 
 List<Widget> _facts(final BuildContext context, final ShowDetailData d) {
   final String category = d.show.category.trim();
+  final String type = d.show.type.trim();
   final String age = d.show.ageLimit.trim();
   final String? durText = ShowDurationFormat.label(d.show.duration);
   return [
     if (category.isNotEmpty)
       SkBadge(label: category, icon: Icons.theater_comedy_rounded),
+    if (type.isNotEmpty && type.toLowerCase() != category.toLowerCase())
+      SkBadge(label: type, icon: Icons.style_rounded),
     if (durText != null)
       SkBadge(label: durText, icon: Icons.timelapse_rounded),
     if (age.isNotEmpty) SkBadge(label: age, icon: Icons.group_outlined),
@@ -499,6 +503,7 @@ class _ShowHero extends StatelessWidget {
     final double h =
         (MediaQuery.sizeOf(context).height * 0.7).clamp(500.0, 680.0);
     final String category = data.show.category.trim();
+    final String type = data.show.type.trim();
 
     Widget glass(final IconData icon, final String text) => SkGlass(
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -565,6 +570,9 @@ class _ShowHero extends StatelessWidget {
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   if (category.isNotEmpty)
                     glass(Icons.theater_comedy_rounded, category),
+                  if (type.isNotEmpty &&
+                      type.toLowerCase() != category.toLowerCase())
+                    glass(Icons.style_rounded, type),
                   if (data.isExternal)
                     glass(Icons.open_in_new_rounded, 'Başka platformda'),
                 ]),
@@ -1119,6 +1127,17 @@ class _Sessions extends StatelessWidget {
           subtitle:
               '${data.sessions.length} seans · birini seç, alttan koltuğa geç',
         ),
+        if (displayEventRule(data.show.eventRule).isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            displayEventRule(data.show.eventRule),
+            style: Sk.ui(context,
+                size: 13.5,
+                color: cs.onSurfaceVariant,
+                weight: FontWeight.w600,
+                height: 1.45),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         if (days.length > 1)
           SizedBox(

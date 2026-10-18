@@ -16,6 +16,7 @@ import '../../../../../shared/widgets/ticket/ticket_profile.dart'
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../../search/presentation/providers/search_query_provider.dart';
 import '../../../../shows/domain/entities/show.dart';
+import '../../../../shows/domain/next_session.dart';
 import '../../../../shows/presentation/providers/show_provider.dart';
 import '../../../../shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../domain/entities/player.dart';
@@ -138,6 +139,19 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
       final double w = box.maxWidth;
       final bool wide = w >= 980;
       final double gutter = Sk.gutter(w);
+      final Map<String, NextSessionHint> nextByShow = {};
+      NextSessionHint? soonest;
+      final eventsByShow = ref.watch(eventsByShowMapProvider(false)).value;
+      if (eventsByShow != null) {
+        for (final Show show in active) {
+          final NextSessionHint? hint = nextSessionHint(eventsByShow[show.id]);
+          if (hint == null) continue;
+          nextByShow[show.id] = hint;
+          if (soonest == null || hint.when.isBefore(soonest.when)) {
+            soonest = hint;
+          }
+        }
+      }
 
       final Widget identity = _Identity(
         playerId: widget.playerId,
@@ -145,6 +159,7 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
         imageUrl: imageUrl,
         quote: player?.quote.trim() ?? '',
         onStage: active.isNotEmpty,
+        next: soonest,
         ready: ready,
         left: wide,
         offset: _offset,
@@ -186,6 +201,7 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
               pastKey: _pastKey,
               onShow: _openShow,
               onCollab: _searchFor,
+              nextByShow: nextByShow,
             )
           : const Padding(
               padding: EdgeInsets.only(top: AppSpacing.xxxl),
@@ -300,6 +316,7 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
                     imageUrl: imageUrl,
                     quote: player?.quote.trim() ?? '',
                     onStage: active.isNotEmpty,
+                    next: soonest,
                     ready: ready,
                     offset: _offset,
                   ),
@@ -429,6 +446,7 @@ class _Identity extends StatelessWidget {
   final String imageUrl;
   final String quote;
   final bool onStage;
+  final NextSessionHint? next;
   final bool ready;
   final bool left;
   final ValueNotifier<double> offset;
@@ -442,6 +460,7 @@ class _Identity extends StatelessWidget {
     required this.ready,
     required this.left,
     required this.offset,
+    this.next,
   });
 
   @override
@@ -496,7 +515,7 @@ class _Identity extends StatelessWidget {
               ),
         const SizedBox(height: 22),
         if (ready)
-          _StatusPill(onStage: onStage),
+          _StatusPill(onStage: onStage, next: next),
         const SizedBox(height: 12),
         Text(
           name,
@@ -537,7 +556,8 @@ class _Identity extends StatelessWidget {
 
 class _StatusPill extends StatefulWidget {
   final bool onStage;
-  const _StatusPill({required this.onStage});
+  final NextSessionHint? next;
+  const _StatusPill({required this.onStage, this.next});
 
   @override
   State<_StatusPill> createState() => _StatusPillState();
@@ -560,8 +580,11 @@ class _StatusPillState extends State<_StatusPill>
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool reduce = Sk.reduceMotion(context);
     final Color dot = widget.onStage ? cs.primary : cs.outline;
+    final String label = widget.next == null
+        ? (widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi')
+        : 'Sıradaki ${skDayPhrase(widget.next!.when)} · ${skClock(widget.next!.when)}';
     return Semantics(
-      label: widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
+      label: label,
       child: Container(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md, vertical: AppSpacing.sm - 1),
@@ -594,7 +617,7 @@ class _StatusPillState extends State<_StatusPill>
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Text(widget.onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
+            Text(label,
                 style: Sk.ui(context, size: 12.5, weight: FontWeight.w800)),
           ],
         ),
@@ -702,6 +725,7 @@ class _Body extends StatefulWidget {
   final GlobalKey pastKey;
   final ValueChanged<Show> onShow;
   final ValueChanged<String> onCollab;
+  final Map<String, NextSessionHint> nextByShow;
 
   const _Body({
     required this.player,
@@ -712,6 +736,7 @@ class _Body extends StatefulWidget {
     required this.pastKey,
     required this.onShow,
     required this.onCollab,
+    this.nextByShow = const {},
   });
 
   @override
@@ -796,7 +821,7 @@ class _BodyState extends State<_Body> {
                       child: _ShowRow(
                           show: widget.active[i],
                           onTap: widget.onShow,
-                          live: true),
+                          next: widget.nextByShow[widget.active[i].id]),
                     ),
                 ],
               ),
@@ -1005,9 +1030,9 @@ class _BodyState extends State<_Body> {
 class _ShowRow extends StatelessWidget {
   final Show show;
   final ValueChanged<Show> onTap;
-  final bool live;
+  final NextSessionHint? next;
 
-  const _ShowRow({required this.show, required this.onTap, this.live = false});
+  const _ShowRow({required this.show, required this.onTap, this.next});
 
   @override
   Widget build(final BuildContext context) {
@@ -1016,7 +1041,9 @@ class _ShowRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: PressScale(
         onTap: () => onTap(show),
-        semanticLabel: live ? '${show.name}, bilet var' : show.name,
+        semanticLabel: next == null
+            ? show.name
+            : '${show.name}, ${skDayPhrase(next!.when)} ${skClock(next!.when)}',
         scale: 0.985,
         child: SkSoftCard(
           radius: AppRadius.lg,
@@ -1051,10 +1078,23 @@ class _ShowRow extends StatelessWidget {
                                 color: cs.onSurfaceVariant,
                                 weight: FontWeight.w500)),
                       ),
-                    if (live)
+                    if (next != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: Text(
+                          next!.price == null
+                              ? '${skDayPhrase(next!.when)} · ${skClock(next!.when)}'
+                              : '${skDayPhrase(next!.when)} · ${skClock(next!.when)} · ${skPrice(next!.price!)}',
+                          style: Sk.ui(context,
+                              size: 12.5,
+                              color: cs.primary,
+                              weight: FontWeight.w800),
+                        ),
+                      )
+                    else if (show.hasExternalTicketing)
                       const Padding(
                         padding: EdgeInsets.only(top: AppSpacing.sm),
-                        child: SkBadge(label: 'Bilet var', accent: true),
+                        child: SkBadge(label: 'Başka platform', accent: true),
                       ),
                   ],
                 ),
@@ -1152,6 +1192,7 @@ class _PlayerHero extends StatelessWidget {
   final String imageUrl;
   final String quote;
   final bool onStage;
+  final NextSessionHint? next;
   final bool ready;
   final ValueNotifier<double> offset;
 
@@ -1163,6 +1204,7 @@ class _PlayerHero extends StatelessWidget {
     required this.onStage,
     required this.ready,
     required this.offset,
+    this.next,
   });
 
   @override
@@ -1236,11 +1278,15 @@ class _PlayerHero extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(onStage ? 'Şu an sahnede' : 'Sahneye ara verdi',
-                          style: Sk.ui(context,
-                              size: 12.5,
-                              color: Colors.white,
-                              weight: FontWeight.w800)),
+                      Text(
+                        next == null
+                            ? (onStage ? 'Şu an sahnede' : 'Sahneye ara verdi')
+                            : 'Sıradaki ${skDayPhrase(next!.when)} · ${skClock(next!.when)}',
+                        style: Sk.ui(context,
+                            size: 12.5,
+                            color: Colors.white,
+                            weight: FontWeight.w800),
+                      ),
                     ]),
                   ),
                 const SizedBox(height: 14),
