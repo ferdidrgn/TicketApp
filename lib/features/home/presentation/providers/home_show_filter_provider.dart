@@ -81,8 +81,9 @@ final homeShowsActiveFirstProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final allowedTeamIds = await ref.watch(homeAllowedTeamIdsProvider.future);
   if (allowedTeamIds.isEmpty) return [];
-  final shows =
-      await ref.watch(showsActiveFirstProvider(isLimit).future);
+  // Bitmiş oyunlar (tüm seansları geçmiş) ana sayfada görünmez; bilet alanlar
+  // onları "Biletlerim → Geçmiş"te görmeye devam eder (Event kayıtları silinmez).
+  final shows = await ref.watch(activeShowsProvider(isLimit).future);
   return _sortHomeShowsByRecency(_filterToHomeTeams(shows, allowedTeamIds));
 });
 
@@ -108,8 +109,9 @@ final homeActiveShowsProvider =
   final homeActive = _filterToHomeTeams(activeShows, allowedTeamIds);
   final homeActiveIds = homeActive.map((final s) => s.id).toSet();
 
-  final allShows = await ref.watch(showsProvider(isLimit: isLimit).future);
-  final externalActive = allShows
+  // `activeShowsProvider` harici linkli oyunları (seansı yok ya da gelecek
+  // seansı olan) zaten içerir; bitmiş harici oyun burada tekrar eklenmez.
+  final externalActive = activeShows
       .where((final s) =>
           s.hasExternalTicketing && !homeActiveIds.contains(s.id))
       .toList();

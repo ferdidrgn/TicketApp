@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../motion/stage_entrance.dart';
+import 'sketch.dart';
 import '../optimized_cached_image.dart';
 
 /// "SAHNE" tasarım kiti — ana sayfa, arama, oyun ve oyuncu sayfalarının
@@ -399,13 +401,13 @@ class SkSectionHead extends StatelessWidget {
                 child: Text(title,
                     style: Sk.display(context, size: 24, height: 1.1)),
               ),
+              const SizedBox(height: 2),
+              const SkPencilLine(width: 84),
               if (subtitle != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(subtitle!,
-                    style: Sk.ui(context,
-                        size: 13,
-                        color: cs.onSurfaceVariant,
-                        weight: FontWeight.w500)),
+                    style: Sketch.hand(context,
+                        size: 19, color: cs.onSurfaceVariant)),
               ],
             ],
           ),
@@ -755,6 +757,12 @@ class SkRail<T> extends StatefulWidget {
   final double gap;
   final int max;
 
+  /// Zigzag: tek sıradaki öğeler bu kadar aşağı kayar (organik dizilim).
+  final double stagger;
+
+  /// Şeridin üstündeki boşluk (bölümler arası aralık).
+  final double topGap;
+
   /// Izgarada bir hücrenin en az genişliği (sütun sayısı buradan çıkar).
   final double minCell;
   final Widget Function(T item, double width) builder;
@@ -775,6 +783,8 @@ class SkRail<T> extends StatefulWidget {
     required this.builder,
     this.gap = 14,
     this.max = 10,
+    this.stagger = 0,
+    this.topGap = 0,
     this.belowHeader,
   });
 
@@ -820,10 +830,13 @@ class _SkRailState<T> extends State<SkRail<T>> {
                   for (int i = 0; i < widget.items.length; i++)
                     SizedBox(
                       width: cell,
-                      child: Reveal(
-                        index: i % cols,
-                        dy: 10,
-                        child: widget.builder(widget.items[i], cell),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                            top: (i % cols).isOdd ? widget.stagger : 0),
+                        child: StageEntrance.scaleFade(
+                          delay: (i % cols) * 0.8,
+                          child: widget.builder(widget.items[i], cell),
+                        ),
                       ),
                     ),
                 ],
@@ -874,7 +887,11 @@ class _SkRailState<T> extends State<SkRail<T>> {
                       ),
                     );
                   }
-                  return widget.builder(railItems[i], widget.railW);
+                  return Padding(
+                    padding: EdgeInsets.only(
+                        top: i.isOdd ? widget.stagger : 0),
+                    child: widget.builder(railItems[i], widget.railW),
+                  );
                 },
               ),
             );
@@ -883,6 +900,7 @@ class _SkRailState<T> extends State<SkRail<T>> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.topGap > 0) SizedBox(height: widget.topGap),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: widget.gutter),
                 child: Row(
@@ -910,13 +928,13 @@ class _SkRailState<T> extends State<SkRail<T>> {
                                 style:
                                     Sk.display(context, size: 24, height: 1.1)),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 2),
+                          const SkPencilLine(width: 84),
+                          const SizedBox(height: 2),
                           Text(
                             widget.subtitle ?? '${widget.items.length} sonuç',
-                            style: Sk.ui(context,
-                                size: 12.5,
-                                color: cs.onSurfaceVariant,
-                                weight: FontWeight.w600),
+                            style: Sketch.hand(context,
+                                size: 19, color: cs.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -975,4 +993,224 @@ class _SkRailState<T> extends State<SkRail<T>> {
       ),
     );
   }
+}
+
+
+// ─── Dönerek beliren giriş (ikonlar için) ───────────────────────────────────
+// Bounce ve scale-fade girişleri `StageEntrance`'tadır (shared/widgets/motion).
+
+class SkSpinIn extends StatefulWidget {
+  final Widget child;
+  final int index;
+  const SkSpinIn({super.key, required this.child, this.index = 0});
+
+  @override
+  State<SkSpinIn> createState() => _SkSpinInState();
+}
+
+class _SkSpinInState extends State<SkSpinIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 800));
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (Sk.reduceMotion(context)) {
+      _c.value = 1;
+      return;
+    }
+    Future<void>.delayed(Duration(milliseconds: 70 * widget.index.clamp(0, 10)),
+        () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        child: widget.child,
+        builder: (final context, final child) {
+          final double t = Curves.easeInOut.transform(_c.value);
+          return Opacity(
+            opacity: t,
+            child: Transform.rotate(
+                angle: (1 - t) * -3.14159 * 1.5, child: child),
+          );
+        },
+      );
+}
+
+// ─── Kadran (daire kaydırıcı) ───────────────────────────────────────────────
+
+/// 240°'lik daire kaydırıcı. Sürükleyince değer değişir, %5'lik adımlarda
+/// hafif titreşim verir; klavye/ekran okuyucu için artır/azalt eylemleri var.
+/// Renkler temadan (primary → tertiary).
+class SkDial extends StatefulWidget {
+  final double value; // 0..1
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
+  final Widget center;
+  final double size;
+  final String semanticLabel;
+  final String semanticValue;
+
+  const SkDial({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.center,
+    required this.semanticLabel,
+    required this.semanticValue,
+    this.onChangeEnd,
+    this.size = 188,
+  });
+
+  @override
+  State<SkDial> createState() => _SkDialState();
+}
+
+class _SkDialState extends State<SkDial> {
+  int _lastStep = -1;
+
+  // Yay: 240°, alt ortada 120° boşluk. Başlangıç 150° (sol-alt), bitiş 390°.
+  static const double _start = 150 * 3.14159265 / 180;
+  static const double _sweep = 240 * 3.14159265 / 180;
+
+  void _update(final Offset local) {
+    final Offset c = Offset(widget.size / 2, widget.size / 2);
+    double a = (local - c).direction; // -pi..pi (0 = sağ)
+    if (a < 0) a += 2 * 3.14159265;
+    double rel = a - _start;
+    if (rel < 0) rel += 2 * 3.14159265;
+    double v;
+    if (rel <= _sweep) {
+      v = rel / _sweep;
+    } else {
+      // Boşluktaki dokunuş: yakın uca yapış.
+      v = (rel - _sweep) < (2 * 3.14159265 - rel) ? 1.0 : 0.0;
+    }
+    final int step = (v * 20).round();
+    if (step != _lastStep) {
+      _lastStep = step;
+      HapticFeedback.selectionClick();
+    }
+    widget.onChanged(v.clamp(0.0, 1.0));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Semantics(
+      slider: true,
+      label: widget.semanticLabel,
+      value: widget.semanticValue,
+      onIncrease: () => widget.onChanged((widget.value + 0.05).clamp(0.0, 1.0)),
+      onDecrease: () => widget.onChanged((widget.value - 0.05).clamp(0.0, 1.0)),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (final d) => _update(d.localPosition),
+        onPanUpdate: (final d) => _update(d.localPosition),
+        onPanEnd: (_) => widget.onChangeEnd?.call(widget.value),
+        onTapDown: (final d) => _update(d.localPosition),
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: widget.value),
+                duration: Sk.reduceMotion(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                builder: (final context, final v, _) => CustomPaint(
+                  size: Size.square(widget.size),
+                  painter: _DialPainter(
+                    value: v,
+                    track: cs.outlineVariant.withValues(alpha: 0.55),
+                    from: cs.primary,
+                    to: cs.tertiary,
+                    knob: cs.onPrimary,
+                  ),
+                ),
+              ),
+              widget.center,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialPainter extends CustomPainter {
+  final double value;
+  final Color track;
+  final Color from;
+  final Color to;
+  final Color knob;
+
+  const _DialPainter({
+    required this.value,
+    required this.track,
+    required this.from,
+    required this.to,
+    required this.knob,
+  });
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    const double start = 150 * 3.14159265 / 180;
+    const double sweep = 240 * 3.14159265 / 180;
+    const double stroke = 14;
+    final Offset c = size.center(Offset.zero);
+    final double r = size.width / 2 - stroke;
+    final Rect rect = Rect.fromCircle(center: c, radius: r);
+
+    final Paint trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = track;
+    canvas.drawArc(rect, start, sweep, false, trackPaint);
+
+    if (value > 0.001) {
+      final Paint prog = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..shader = SweepGradient(
+          startAngle: start,
+          endAngle: start + sweep,
+          colors: [from, to],
+        ).createShader(rect);
+      canvas.drawArc(rect, start, sweep * value, false, prog);
+    }
+
+    // Tutamaç
+    final double a = start + sweep * value;
+    final Offset k = c + Offset.fromDirection(a, r);
+    canvas.drawCircle(
+        k, 13, Paint()..color = Colors.black.withValues(alpha: 0.25));
+    canvas.drawCircle(k, 11, Paint()..color = from);
+    canvas.drawCircle(k, 4.5, Paint()..color = knob);
+  }
+
+  @override
+  bool shouldRepaint(covariant final _DialPainter old) =>
+      old.value != value ||
+      old.track != track ||
+      old.from != from ||
+      old.to != to;
 }

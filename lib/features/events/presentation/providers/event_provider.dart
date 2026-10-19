@@ -6,6 +6,7 @@ import '../../../../core/util/date_formatter.dart';
 import '../../../notifications/domain/entities/app_notification.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../tickets/domain/entities/ticket.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../data/repositories/event_repository_provider.dart';
@@ -140,6 +141,24 @@ Future<void> purchaseAction(
   // anlamlı bir hata fırlatılıyor ki kullanıcı gerçek durumu görsün.
   result.getOrThrow();
 
+  // 2a. Bilet özeti (denormalizasyon): oyun/sahne/seans kaydı ileride
+  // arşivlenip silinse de bilet kendi başına okunabilsin. BEST-EFFORT — özet
+  // alınamazsa satın alma yine tamamlanır (alanlar boş kalır).
+  String snapShow = '', snapImage = '', snapStage = '', snapDate = '';
+  try {
+    final shows = await ref.read(showsByIdsProvider([showId]).future);
+    if (shows.isNotEmpty) {
+      snapShow = shows.first.name;
+      snapImage = shows.first.imageUrl;
+    }
+    final stages = await ref.read(stagesByIdsProvider([stageId]).future);
+    if (stages.isNotEmpty) snapStage = stages.first.name;
+    final event = await ref.read(eventDetailProvider(eventId).future);
+    snapDate = event.date;
+  } catch (e) {
+    debugPrint('Bilet özeti alınamadı (devam ediliyor): $e');
+  }
+
   // 2. Ticket nesnesi oluştur ve kaydet
   final ticket = Ticket(
     id: '',
@@ -153,6 +172,10 @@ Future<void> purchaseAction(
     orderMethod: paymentMethod,
     buySeats: seatIds,
     isPast: false,
+    showName: snapShow,
+    showImageUrl: snapImage,
+    stageName: snapStage,
+    eventDate: snapDate,
   );
 
   await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();

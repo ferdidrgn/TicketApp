@@ -15,6 +15,7 @@ import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
+import 'spectator_badges.dart';
 
 /// SEYİRCİ KARNESİ — profilin oyun katmanı.
 ///
@@ -55,16 +56,29 @@ class SpectatorRecord extends ConsumerWidget {
         );
 
     if (!hasTickets) {
-      return framed(const _RecordCard(seen: [], upcoming: 0));
+      return framed(Column(children: [
+        const _RecordCard(seen: [], upcoming: 0),
+        SpectatorBadges(userId: userId, seenShows: 0, seenStages: 0),
+      ]));
     }
 
     return ref.watch(myTicketsProvider(userId)).when(
           loading: () => framed(const TicketRowSkeleton(height: 220)),
           error: (final err, final stack) => const SizedBox.shrink(),
-          data: (final tickets) => framed(_RecordCard(
-            seen: _seenShows(tickets),
-            upcoming: tickets.upcoming.length,
-          )),
+          data: (final tickets) {
+            final seen = _seenShows(tickets);
+            final stages = <String>{
+              for (final t in tickets.past)
+                if (t.ticket.stageId.isNotEmpty) t.ticket.stageId,
+            };
+            return framed(Column(children: [
+              _RecordCard(seen: seen, upcoming: tickets.upcoming.length),
+              SpectatorBadges(
+                  userId: userId,
+                  seenShows: seen.length,
+                  seenStages: stages.length),
+            ]));
+          },
         );
   }
 
@@ -73,13 +87,15 @@ class SpectatorRecord extends ConsumerWidget {
   static List<_Stamp> _seenShows(final List<DetailedTicket> tickets) {
     final byShow = <String, _Stamp>{};
     for (final t in tickets.past) {
-      final show = t.show;
-      if (show == null || show.name.trim().isEmpty) continue;
-      final DateTime? at = DateFormatter.parseDateString(t.event?.date);
-      final existing = byShow[show.id];
+      // Oyun kaydı arşivlenip silinse de bilet özeti (showName) ile sayılır.
+      final String name = t.showTitle;
+      final String showId = t.ticket.showId;
+      if (name.isEmpty || showId.isEmpty) continue;
+      final DateTime? at = DateFormatter.parseDateString(t.dateText);
+      final existing = byShow[showId];
       if (existing == null ||
           (at != null && (existing.at == null || at.isAfter(existing.at!)))) {
-        byShow[show.id] = _Stamp(show.id, show.name.trim(), at);
+        byShow[showId] = _Stamp(showId, name, at);
       }
     }
     final list = byShow.values.toList()

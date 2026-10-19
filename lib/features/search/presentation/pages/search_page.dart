@@ -1,3 +1,5 @@
+import '../../../reviews/presentation/widgets/review_widgets.dart';
+import '../../../../core/util/recent_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/rive/tiyatrol_rive.dart';
+import '../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_search.dart';
 import '../../../../shared/widgets/tiyatrol_hero.dart';
@@ -391,31 +395,43 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ));
     }
 
-    // ── Popüler aramalar: gerçek oyun adları (yatay) ──
-    if (browsing && data.shows.isNotEmpty) {
-      blocks.add(Padding(
-        padding: const EdgeInsets.only(top: 22),
-        child: _HRail(
+
+    // ── Son baktıkların (cihazda tutulan) ──
+    if (browsing) {
+      final Map<String, Show> byId = {for (final Show x in data.shows) x.id: x};
+      final List<Show> viewed = [
+        for (final String id in ref.watch(recentShowIdsProvider))
+          if (byId[id] != null) byId[id]!,
+      ];
+      if (viewed.isNotEmpty) {
+        blocks.add(SkRail<Show>(
+          key: const ValueKey<String>('sec-recent'),
+          topGap: 30,
+          title: 'Son baktıkların',
+          subtitle: 'Kaldığın yerden devam et',
+          icon: Icons.history_rounded,
+          items: viewed,
           gutter: gutter,
-          width: width,
-          height: 44,
-          title: 'Şunlara göz at',
-          children: [
-            for (final Show s in data.shows.take(_kRailMax))
-              ActionChip(
-                label: Text(s.name),
-                avatar: const Icon(Icons.north_east_rounded, size: 16),
-                onPressed: () => _apply(s.name),
-              ),
-          ],
-        ),
-      ));
+          railW: 158,
+          railH: 158 * 1.5,
+          minCell: 158,
+          gap: 14,
+          builder: (final s, final w) => _ShowCard(
+            show: s,
+            width: w,
+            query: query,
+            next: data.nextByShow[s.id],
+            onTap: () => _openShow(s),
+          ),
+        ));
+      }
     }
 
     // ── Türler ──
     if (browsing && categories.length > 1) {
       blocks.add(SkRail<BrowseCategory>(
         key: const ValueKey<String>('sec-genres'),
+        topGap: 34,
         title: 'Türler',
         subtitle: 'Bir tür seç, oyunlar süzülsün',
         items: categories,
@@ -462,6 +478,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (shows.isNotEmpty) {
       blocks.add(SkRail<Show>(
         key: const ValueKey<String>('sec-shows'),
+        topGap: 34,
         title: browsing ? 'Önerilen oyunlar' : 'Oyunlar',
         subtitle: activeCat == null ? null : 'Tür: ${categories.firstWhere((final c) => c.key == activeCat).label}',
         items: shows,
@@ -484,13 +501,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (data.players.isNotEmpty) {
       blocks.add(SkRail<Player>(
         key: const ValueKey<String>('sec-players'),
+        topGap: 34,
         title: 'Oyuncular',
         items: data.players,
         gutter: gutter,
-        railW: 124,
-        railH: 262,
-        minCell: 124,
+        railW: 140,
+        railH: 276,
+        minCell: 140,
         gap: 14,
+        stagger: 26,
         builder: (final p, final w) => _PlayerCard(
           player: p,
           query: query,
@@ -503,6 +522,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (data.stages.isNotEmpty) {
       blocks.add(SkRail<Stage>(
         key: const ValueKey<String>('sec-stages'),
+        topGap: 34,
         title: 'Mekânlar',
         items: data.stages,
         gutter: gutter,
@@ -523,6 +543,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (data.teams.isNotEmpty) {
       blocks.add(SkRail<Team>(
         key: const ValueKey<String>('sec-teams'),
+        topGap: 34,
         title: 'Topluluklar',
         items: data.teams,
         gutter: gutter,
@@ -705,6 +726,7 @@ class _ShowCard extends StatelessWidget {
               else if (show.isRecentlyAdded)
                 const Positioned(
                     left: 8, top: 8, child: SkBadge(label: 'Yeni', accent: true)),
+              Positioned(right: 8, top: 8, child: RatingChip(showId: show.id)),
               Positioned(
                 left: 12,
                 right: 12,
@@ -767,54 +789,23 @@ class _PlayerCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final String name = '${player.firstName} ${player.lastName}'.trim();
-    return SizedBox(
-      width: 124,
-      child: PressScale(
-        onTap: onTap,
-        semanticLabel: name,
-        child: Column(
-          children: [
-            TiyatrolHero(
-              tag: TiyatrolHeroTags.player(player.id, 'search'),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(62),
-                  boxShadow: skSoftShadow(context, strength: 0.8),
-                ),
-                child: SkImage(
-                  url: player.imageUrl,
-                  width: 124,
-                  height: 174,
-                  radius: 62,
-                  fallbackIcon: Icons.person_rounded,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _highlight(
-              context,
-              name,
-              query,
-              Sk.ui(context, size: 13, weight: FontWeight.w800, height: 1.2),
-            ),
-            if (player.nowShowsId
-                .where((final id) => id.trim().isNotEmpty)
-                .isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '${player.nowShowsId.where((final id) => id.trim().isNotEmpty).length} oyunda',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Sk.ui(context,
-                      size: 11.5,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      weight: FontWeight.w700),
-                ),
-              ),
-          ],
-        ),
+    final int plays = player.nowShowsId.length + player.oldShowsId.length;
+    return SkFlowerPortrait(
+      imageUrl: player.imageUrl,
+      size: 124,
+      semanticLabel: name,
+      topChip: plays > 0 ? '$plays oyun' : null,
+      bottomChip: player.nowShowsId.isNotEmpty ? 'Sahnede' : null,
+      bottomChipAccent: true,
+      heroWrap: (final child) => TiyatrolHero(
+          tag: TiyatrolHeroTags.player(player.id, 'search'), child: child),
+      title: _highlight(
+        context,
+        name,
+        query,
+        Sk.ui(context, size: 13, weight: FontWeight.w800, height: 1.2),
       ),
+      onTap: onTap,
     );
   }
 }
@@ -1043,6 +1034,10 @@ class _Skeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: TiyatrolRiveLoader(size: 52, caption: 'Perde açılıyor…'),
+            ),
+            SizedBox(height: 18),
             SkBone(width: 220, height: 34, radius: 10),
             SizedBox(height: 26),
             SkBone(height: 110, radius: 26),

@@ -1,3 +1,5 @@
+import '../widgets/delete_guard.dart';
+import '../widgets/admin_external_sessions_section.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,6 +102,7 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
         'eventRule': _eventRuleController.text.trim(),
         'teamId': _selectedTeamId ?? '',
         'externalTicketUrl': _externalTicketUrlController.text.trim(),
+
       };
       await ref.read(showMutationProvider.notifier).updateShowWithImage(
             showId: widget.show!.id,
@@ -125,6 +128,7 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
         oldPlayersId: const [],
         photosShowId: const [],
         externalTicketUrl: _externalTicketUrlController.text.trim(),
+
       );
       await ref.read(showMutationProvider.notifier).addShow(
             show: newShow,
@@ -160,6 +164,8 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
   Future<void> _confirmDelete() async {
     final show = widget.show;
     if (show == null) return;
+    if (await blockDeleteIfTickets(context, showId: show.id, label: show.name)) return;
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (final _) => CustomActionDialog(
@@ -332,7 +338,13 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
                 ),
                 if (_isEditing) ...[
                   const Divider(height: AppSpacing.section),
-                  AdminEventSection(show: widget.show!),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _externalTicketUrlController,
+                    builder: (final context, final v, final _) =>
+                        v.text.trim().isNotEmpty
+                            ? AdminExternalSessionsSection(show: widget.show!)
+                            : AdminEventSection(show: widget.show!),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.huge),
               ],

@@ -1,3 +1,5 @@
+import '../widgets/delete_guard.dart';
+import '../widgets/geo_lookup_button.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,6 +92,12 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
       ));
       return;
     }
+    // Yanlış (ör. Türkiye dışı) koordinat kaydedilmesin.
+    final bool geoOk = await validateGeoOrWarn(context,
+        lat: lat,
+        lng: lng,
+        address: '${_addressController.text} ${_nameController.text}');
+    if (!geoOk) return;
 
     if (_isEditing) {
       // Backend: lat / long string (locationLat/locationLng değil).
@@ -156,6 +164,8 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
   Future<void> _confirmDelete() async {
     final stage = widget.stage;
     if (stage == null) return;
+    if (await blockDeleteIfTickets(context, stageId: stage.id, label: stage.name)) return;
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (final _) => CustomActionDialog(
@@ -222,6 +232,15 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
                 CustomTextField(controller: _nameController, label: 'Sahne Adı'),
                 CustomTextField(
                     controller: _addressController, label: 'Adres'),
+                GeoLookupButton(
+                  query: () =>
+                      '${_nameController.text} ${_addressController.text}',
+                  onPick: (final hit) => setState(() {
+                    _latController.text = hit.lat.toStringAsFixed(6);
+                    _lngController.text = hit.lng.toStringAsFixed(6);
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(

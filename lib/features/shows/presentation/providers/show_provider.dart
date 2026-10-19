@@ -198,10 +198,26 @@ Future<Map<String, List<Event>>> _mergedEventsByShow(
 /// YAZILMAZ.
 Future<Map<String, DateTime>> _nearestFutureEventDatesByShow(
     final Ref ref, final List<Show> shows) async {
+  final lifecycle = await _showLifecycle(ref, shows);
+  return lifecycle.nearest;
+}
+
+/// Bir oyunun yaşam döngüsü — TEK hesap, iki çıktı:
+/// - `nearest`: en yakın GELECEK seans tarihi (varsa).
+/// - `hasAnyEvent`: oyunun (geçmiş dahil) HERHANGİ bir seans kaydı var mı.
+///
+/// Etkinlikler ASLA silinmez (biletler `eventId`'ye bağlı); bir oyunun
+/// "bitti" olması tamamen tarihten türetilir: seansları var ama hepsi
+/// geçmişte → bitti. Hiç seansı yok → henüz programlanmamış (harici linkli
+/// oyun için bu "bilet linkiyle vitrinde" demektir).
+Future<({Map<String, DateTime> nearest, Set<String> hasAnyEvent})>
+    _showLifecycle(final Ref ref, final List<Show> shows) async {
   final merged = await _mergedEventsByShow(ref, shows);
   final now = DateTime.now();
   final nearestByShow = <String, DateTime>{};
+  final hasAny = <String>{};
   merged.forEach((final showId, final events) {
+    if (events.isNotEmpty) hasAny.add(showId);
     DateTime? nearest;
     for (final event in events) {
       final date = DateFormatter.parseDateString(event.date);
@@ -210,7 +226,7 @@ Future<Map<String, DateTime>> _nearestFutureEventDatesByShow(
     }
     if (nearest != null) nearestByShow[showId] = nearest;
   });
-  return nearestByShow;
+  return (nearest: nearestByShow, hasAnyEvent: hasAny);
 }
 
 /// Gerçek eklenme tarihine (`Show.createdAt`) göre azalan (en yeni eklenen
@@ -259,8 +275,8 @@ final activeShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  return _splitActiveShows(shows, nearestByShow).active;
+  final life = await _showLifecycle(ref, shows);
+  return _splitActiveShows(shows, life.nearest, life.hasAnyEvent).active;
 });
 
 /// "Aktif" tanımı TEK yerde: takviminde gelecek bir GERÇEK etkinliği olan
@@ -270,14 +286,17 @@ final activeShowsProvider =
 /// gerçek etkinliği olanlar (en yakın tarih önce), sonra yalnızca harici
 /// linki olanlar (en yeni eklenen önce).
 ({List<Show> active, List<Show> inactive}) _splitActiveShows(
-    final List<Show> shows, final Map<String, DateTime> nearestByShow) {
+    final List<Show> shows, final Map<String, DateTime> nearestByShow,
+    [final Set<String> hasAnyEvent = const {}]) {
   final withEvents = <Show>[];
   final externalOnly = <Show>[];
   final inactive = <Show>[];
   for (final show in shows) {
     if (nearestByShow.containsKey(show.id)) {
       withEvents.add(show);
-    } else if (show.hasExternalTicketing) {
+    } else if (show.hasExternalTicketing && !hasAnyEvent.contains(show.id)) {
+      // Harici linkli ve henüz hiç seansı girilmemiş: vitrinde kalır. Seansı
+      // girilmiş ama hepsi geçmişse bitmiş sayılır (aşağıdaki inactive).
       externalOnly.add(show);
     } else {
       inactive.add(show);
@@ -299,8 +318,8 @@ final pastShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  return _splitActiveShows(shows, nearestByShow).inactive;
+  final life = await _showLifecycle(ref, shows);
+  return _splitActiveShows(shows, life.nearest, life.hasAnyEvent).inactive;
 });
 
 /// 🟢➡️🔴 TÜM OYUNLAR, AKTİF ÖNCE — genel oyun listeleme/keşfet
@@ -317,8 +336,8 @@ final showsActiveFirstProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final split = _splitActiveShows(shows, nearestByShow);
+  final life = await _showLifecycle(ref, shows);
+  final split = _splitActiveShows(shows, life.nearest, life.hasAnyEvent);
   return [...split.active, ...split.inactive];
 });
 

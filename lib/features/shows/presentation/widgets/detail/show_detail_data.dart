@@ -21,13 +21,22 @@ class ShowDetailData {
   final List<Player> pastCast;
   final List<Stage> venues;
 
+  /// Tarihi geçmiş seans sayısı. Seans kayıtları ASLA silinmez (biletler
+  /// `eventId`'ye bağlıdır); bu sayı, "hiç seans girilmemiş" ile "bütün
+  /// seanslar bitti" durumlarını ayırt etmek içindir.
+  final int pastSessionCount;
+
   const ShowDetailData({
     required this.show,
     required this.sessions,
     required this.cast,
     required this.pastCast,
     required this.venues,
+    this.pastSessionCount = 0,
   });
+
+  /// Oyunun seansları var ama hepsi geçmişte kaldı.
+  bool get hasEnded => sessions.isEmpty && pastSessionCount > 0;
 
   /// Hero uçuşu için — ağ gelmeden afiş + ad.
   factory ShowDetailData.preview({
@@ -68,9 +77,13 @@ class ShowDetailData {
     };
 
     final sessions = <ShowSession>[];
+    int pastCount = 0;
     for (final event in state.events) {
       final DateTime? when = DateFormatter.parseDateString(event.date.trim());
-      if (when != null && when.isBefore(reference)) continue;
+      if (when != null && when.isBefore(reference)) {
+        pastCount++;
+        continue;
+      }
       final double? price =
           double.tryParse(event.price.trim().replaceAll(',', '.'));
       sessions.add(ShowSession(
@@ -114,6 +127,7 @@ class ShowDetailData {
       cast: cast,
       pastCast: pastCast,
       venues: venues,
+      pastSessionCount: pastCount,
     );
   }
 

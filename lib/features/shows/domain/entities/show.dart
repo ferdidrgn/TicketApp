@@ -31,6 +31,16 @@ class Show extends Equatable {
   /// var olan veriden türetilen tek kaynak).
   final String externalTicketUrl;
 
+  /// Harici biletli oyunun OYNADIĞI mekân (yönetici girer; adresten konum
+  /// bulma ücretsiz OpenStreetMap ile). Doluysa Yakındakiler haritasında şehir
+  /// merkezi yerine bu gerçek konumda görünür.
+  final String externalVenueName;
+  final String externalVenueAddress;
+  final double? externalLat;
+  final double? externalLng;
+
+  bool get hasExternalVenueGeo => externalLat != null && externalLng != null;
+
   bool get hasExternalTicketing => externalTicketUrl.trim().isNotEmpty;
 
   /// Son 21 gün içinde eklenmiş mi — "YENİ" rozeti için TEK doğruluk
@@ -60,6 +70,10 @@ class Show extends Equatable {
     required this.oldPlayersId,
     required this.photosShowId,
     this.externalTicketUrl = '',
+    this.externalVenueName = '',
+    this.externalVenueAddress = '',
+    this.externalLat,
+    this.externalLng,
   });
 
   @override
@@ -81,5 +95,9 @@ class Show extends Equatable {
         oldPlayersId,
         photosShowId,
         externalTicketUrl,
+              externalVenueName,
+        externalVenueAddress,
+        externalLat,
+        externalLng,
       ];
 }

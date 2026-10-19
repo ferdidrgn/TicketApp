@@ -15,6 +15,10 @@ extension TicketModelMapper on TicketModel {
         orderPrice: orderPrice ?? '0',
         buySeats: buySeats?.whereType<String>().toList() ?? [],
         isPast: isPast ?? false,
+        showName: showName ?? '',
+        showImageUrl: showImageUrl ?? '',
+        stageName: stageName ?? '',
+        eventDate: eventDate ?? '',
       );
 }
 
@@ -32,5 +36,9 @@ extension TicketEntityMapper on Ticket {
         orderPrice: orderPrice,
         buySeats: buySeats,
         isPast: isPast,
+        showName: showName,
+        showImageUrl: showImageUrl,
+        stageName: stageName,
+        eventDate: eventDate,
       );
 }

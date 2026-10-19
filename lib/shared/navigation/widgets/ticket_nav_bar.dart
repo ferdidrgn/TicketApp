@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -121,17 +122,28 @@ class _PunchPainter extends CustomPainter {
 /// üstündeki yüzen öğeler (ör. "başa dön" koçanı) buna göre konumlanır.
 const double kTicketNavBarExtent = _barHeight + _barTop + _barBottom;
 
-const double _barHeight = 70;
-const double _barTop = AppSpacing.sm;
+const double _barHeight = 84;
+const double _barTop = AppSpacing.xs;
 const double _barBottom = AppSpacing.md;
-const double _circleSize = 46;
 
-/// Alt gezinme — E_Learning tarzı kayan daire + etiketli sekmeler.
+// Düzen sabitleri (plaka koordinatları)
+const double _slabTop = 26;
+const double _slabH = 56;
+const double _item = 52;
+const double _gap = 6;
+const double _padX = 16;
+const double _iconSz = 24;
+const double _iconGap = 6;
+const double _slabPadX = 14;
+const double _notchMargin = 7;
+
+/// Alt gezinme — plaka + seçili sekmenin arkasında ŞEFFAF OYUK.
 ///
-/// Seçili ikonun arkasında temanın `primary` renginde kayan bir daire;
-/// ikon `onPrimary`, diğerleri `onSurfaceVariant`. Etiketler her zaman
-/// görünür (eski etiketsiz curved bar reddedilmişti). Renkler temadan;
-/// yükseklik sabittir ([kTicketNavBarExtent]).
+/// Yumuşak tonlu bir plaka üzerinde sekmeler durur; seçili sekme (ikon +
+/// etiketli hap) plakanın üstüne hafifçe yükselir ve arkasında plaka
+/// oyulur (sayfa zemini görünür). Sekme değişince oyuk ve hap birlikte
+/// kayar. Renkler temadan; yükseklik sabittir ([kTicketNavBarExtent]).
+/// Azaltılmış harekette geçiş anında olur.
 class TicketBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -144,12 +156,56 @@ class TicketBottomNavBar extends StatelessWidget {
     this.destinations = kShellDestinations,
   });
 
+  double _labelW(final String s) {
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+          text: s,
+          style:
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return tp.width;
+  }
+
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bool reduce = MediaQuery.of(context).disableAnimations;
-    final Duration slide = reduce ? Duration.zero : AppMotion.normal;
+    final Duration dur = reduce ? Duration.zero : AppMotion.normal;
     final int n = destinations.length;
+
+    final List<double> pillW = [
+      for (final d in destinations)
+        _padX * 2 + _iconSz + _iconGap + _labelW(d.label),
+    ];
+    double totalFor(final int a) {
+      double t = _gap * (n - 1);
+      for (int i = 0; i < n; i++) {
+        t += i == a ? pillW[i] : _item;
+      }
+      return t;
+    }
+
+    double maxTotal = 0;
+    for (int a = 0; a < n; a++) {
+      maxTotal = totalFor(a) > maxTotal ? totalFor(a) : maxTotal;
+    }
+    final double slabW = maxTotal + _slabPadX * 2;
+    final double start = (slabW - totalFor(currentIndex)) / 2;
+
+    // Sekme konumları (seçiliye göre)
+    final List<double> xs = [];
+    final List<double> ws = [];
+    double x = start;
+    for (int i = 0; i < n; i++) {
+      final double w = i == currentIndex ? pillW[i] : _item;
+      xs.add(x);
+      ws.add(w);
+      x += w + _gap;
+    }
+    final Rect activeRect =
+        Rect.fromLTWH(xs[currentIndex], 6, ws[currentIndex], _item);
 
     return ColoredBox(
       color: cs.surface,
@@ -157,52 +213,58 @@ class TicketBottomNavBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.sm, _barTop, AppSpacing.sm, _barBottom),
+              AppSpacing.lg, _barTop, AppSpacing.lg, _barBottom),
           child: Align(
             heightFactor: 1,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: SizedBox(
                 height: _barHeight,
-                child: LayoutBuilder(
-                  builder: (final context, final c) {
-                    final double slot = c.maxWidth / n;
-                    final double circleLeft = slot * currentIndex +
-                        (slot - _circleSize) / 2;
-                    return Stack(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: SizedBox(
+                    width: slabW,
+                    height: _barHeight,
+                    child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        AnimatedPositioned(
-                          duration: slide,
-                          curve: Curves.easeOutCubic,
-                          left: circleLeft,
-                          top: 0,
-                          width: _circleSize,
-                          height: _circleSize,
-                          child: _NavOrb(
-                            key: ValueKey(currentIndex),
-                            color: cs.primary,
-                            shadow: cs.shadow,
-                            animate: !reduce,
+                        // Plaka + oyuk
+                        Positioned.fill(
+                          child: TweenAnimationBuilder<Rect?>(
+                            tween: RectTween(end: activeRect),
+                            duration: dur,
+                            curve: Curves.easeOutCubic,
+                            builder: (final context, final r, _) =>
+                                CustomPaint(
+                              painter: _SlabPainter(
+                                notch: r ?? activeRect,
+                                color: cs.surfaceContainerHigh,
+                                shadow: cs.shadow,
+                              ),
+                            ),
                           ),
                         ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (int i = 0; i < n; i++)
-                              Expanded(
-                                child: _BottomNavItem(
-                                  destination: destinations[i],
-                                  active: i == currentIndex,
-                                  duration: slide,
-                                  onTap: () => onTap(i),
-                                ),
-                              ),
-                          ],
-                        ),
+                        for (int i = 0; i < n; i++)
+                          AnimatedPositioned(
+                            duration: dur,
+                            curve: Curves.easeOutCubic,
+                            left: xs[i],
+                            top: i == currentIndex ? 6 : _slabTop + 2,
+                            width: ws[i],
+                            height: _item,
+                            child: _NavPill(
+                              destination: destinations[i],
+                              active: i == currentIndex,
+                              duration: dur,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                onTap(i);
+                              },
+                            ),
+                          ),
                       ],
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -213,70 +275,44 @@ class TicketBottomNavBar extends StatelessWidget {
   }
 }
 
-/// Kayan daire: sekmeye oturunca kısa bir “pat” ölçeği (asset yok).
-class _NavOrb extends StatefulWidget {
+class _SlabPainter extends CustomPainter {
+  final Rect notch;
   final Color color;
   final Color shadow;
-  final bool animate;
 
-  const _NavOrb({
-    super.key,
-    required this.color,
-    required this.shadow,
-    required this.animate,
-  });
+  const _SlabPainter(
+      {required this.notch, required this.color, required this.shadow});
 
   @override
-  State<_NavOrb> createState() => _NavOrbState();
-}
-
-class _NavOrbState extends State<_NavOrb>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: AppMotion.fast,
-  );
-  late final Animation<double> _scale = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween(begin: 0.86, end: 1.08), weight: 55),
-    TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0), weight: 45),
-  ]).animate(CurvedAnimation(parent: _c, curve: Curves.easeOutCubic));
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) {
-      _c.forward();
-    } else {
-      _c.value = 1;
-    }
+  void paint(final Canvas canvas, final Size size) {
+    final Path slab = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, _slabTop, size.width, _slabH),
+        const Radius.circular(_slabH / 2),
+      ));
+    // Seçili sekmenin etrafı oyulur: şeffaf boşluk.
+    final Path hole = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        notch.inflate(_notchMargin),
+        Radius.circular(notch.height / 2 + _notchMargin),
+      ));
+    final Path cut = Path.combine(PathOperation.difference, slab, hole);
+    canvas.drawShadow(cut, shadow.withValues(alpha: 0.35), 6, true);
+    canvas.drawPath(cut, Paint()..color = color);
   }
 
   @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) => ScaleTransition(
-        scale: _scale,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: widget.color,
-            shape: BoxShape.circle,
-            boxShadow: AppShadows.level1(widget.shadow),
-          ),
-        ),
-      );
+  bool shouldRepaint(covariant final _SlabPainter old) =>
+      old.notch != notch || old.color != color;
 }
 
-class _BottomNavItem extends StatelessWidget {
+class _NavPill extends StatelessWidget {
   final TicketNavDestination destination;
   final bool active;
   final Duration duration;
   final VoidCallback onTap;
 
-  const _BottomNavItem({
+  const _NavPill({
     required this.destination,
     required this.active,
     required this.duration,
@@ -286,56 +322,66 @@ class _BottomNavItem extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color iconColor = active ? cs.onPrimary : cs.onSurfaceVariant;
-    final Color labelColor = active ? cs.primary : cs.onSurfaceVariant;
+    final Color fg = active ? cs.onPrimary : cs.onSurfaceVariant;
 
     return Semantics(
       button: true,
       selected: active,
       label: destination.label,
       excludeSemantics: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_circleSize / 2),
-        focusColor: cs.primary.withValues(alpha: 0.16),
-        hoverColor: cs.onSurface.withValues(alpha: 0.04),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        child: Column(
-          children: [
-            SizedBox(
-              height: _circleSize,
-              width: double.infinity,
-              child: Center(
-                child: TweenAnimationBuilder<Color?>(
-                  tween: ColorTween(end: iconColor),
-                  duration: duration,
-                  builder: (final context, final color, final _) => Icon(
-                    active ? destination.activeIcon : destination.icon,
-                    size: 24,
-                    color: color,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: active ? cs.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(_item / 2),
+              boxShadow: active ? AppShadows.level1(cs.shadow) : const [],
+            ),
+            // Geçiş sırasında hap genişliği 52'den büyüyerek gelir; Row'un
+            // doğal genişliğini taşırmak yerine OverflowBox + ClipRect ile
+            // kırpılır (RenderFlex overflow olmaz).
+            child: ClipRect(
+              child: OverflowBox(
+                minWidth: 0,
+                maxWidth: double.infinity,
+                child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TweenAnimationBuilder<Color?>(
+                    tween: ColorTween(end: fg),
+                    duration: duration,
+                    builder: (final context, final color, _) => Icon(
+                      active ? destination.activeIcon : destination.icon,
+                      size: _iconSz,
+                      color: color,
+                    ),
                   ),
+                  if (active) ...[
+                    const SizedBox(width: _iconGap),
+                    Text(
+                      destination.label,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
                 ),
               ),
             ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: duration,
-              style: TextStyle(
-                fontSize: 10.5,
-                height: 1.1,
-                fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-                color: labelColor,
-                letterSpacing: 0.1,
-              ),
-              child: Text(
-                destination.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

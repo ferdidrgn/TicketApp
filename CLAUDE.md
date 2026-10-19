@@ -79,6 +79,13 @@ Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
   (dizi) ve `Event.showId` (alan). `Event.showId` doluysa TEK doğruluk
   kaynağı odur; dizi sadece o alan boşsa yedek. Bu, "yanlış oyun
   gösteriliyor" tarzı bug'ların en sık kök nedeni — önce buraya bak.
+- **Oyun yaşam döngüsü (13.10.2026):** `Event` ve `Show` kayıtları tarih
+  geçince SİLİNMEZ — biletler `eventId/showId/stageId` ile bağlı, "Biletlerim
+  → Geçmiş" bunlardan okur. "Bitti" durumu tarihten türetilir
+  (`_showLifecycle` / `activeShowsProvider`): gelecek seansı olan = aktif;
+  seansları var ama hepsi geçmiş = bitti (ana sayfa + Keşfet'ten düşer, Keşfet
+  "Geçmiş" modunda ve aramada durur); harici linkli + hiç seansı yok =
+  vitrinde. Admin'de bileti olan oyun/sahne silinemez (`delete_guard.dart`).
 - Flutter SDK sandbox'ta hazır gelmiyor ama KURULABİLİYOR (30.09.2026'da
   yapıldı): storage.googleapis.com'dan stable linux tarball'ı scratchpad'e
   indir → `flutter pub get` → `flutter analyze` (derleme hatası 0 olmalı)
