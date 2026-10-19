@@ -164,15 +164,17 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
           : player.achievements
               .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
               .length;
+      // Sayılar (sahnede/geçmiş/ödül) zaten "Sahne künyesi"nde — çiplerde
+      // tekrar edilmez; burada künyede olmayan bilgi var.
+      final int collabCount = player == null
+          ? 0
+          : player.collaborations.where((final c) => c.trim().isNotEmpty).length;
       final List<LiveChip> liveChips = [
         if (active.length + past.length > 0)
           LiveChip(Icons.theater_comedy_rounded,
-              '${active.length + past.length} oyun'),
-        if (awardCount > 0)
-          LiveChip(Icons.emoji_events_rounded, '$awardCount ödül'),
-        // Durum ("Şu an sahnede") zaten ad altındaki hapta — tekrar edilmez.
-        if (past.isNotEmpty)
-          LiveChip(Icons.history_rounded, '${past.length} geçmiş oyun'),
+              '${active.length + past.length} oyunda'),
+        if (collabCount > 0)
+          LiveChip(Icons.groups_rounded, '$collabCount toplulukla'),
       ];
 
       final Widget identity = _Identity(
@@ -679,8 +681,6 @@ class _BodyState extends State<_Body> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SkSquiggle(width: 104, seed: i * 3 + 2),
-                const SizedBox(height: 20),
                 child,
               ],
             )));
