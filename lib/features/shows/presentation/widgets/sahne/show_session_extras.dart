@@ -223,12 +223,17 @@ class _ExternalRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (when != null)
-                SkBadge(label: sessionWhenPhrase(when)),
             ],
           ),
-          SessionActions(
-              session: session, showName: showName, duration: duration),
+          Row(
+            children: [
+              Expanded(
+                child: SessionActions(
+                    session: session, showName: showName, duration: duration),
+              ),
+              if (when != null) SkBadge(label: sessionWhenPhrase(when)),
+            ],
+          ),
         ],
       ),
     );
