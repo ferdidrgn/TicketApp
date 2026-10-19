@@ -1024,13 +1024,15 @@ class _Sessions extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Henüz seans yok',
+                        data.hasEnded ? 'Perde indi' : 'Henüz seans yok',
                         style: Sk.ui(context,
                             size: 15, weight: FontWeight.w800),
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Perde açılınca tarihler burada görünecek. Favoriye ekleyip haber bekleyebilirsin.',
+                        data.hasEnded
+                            ? 'Bu oyunun bütün seansları geçti. Yeni tarihler açılırsa burada görünecek; favoriye ekleyip haber bekleyebilirsin.'
+                            : 'Perde açılınca tarihler burada görünecek. Favoriye ekleyip haber bekleyebilirsin.',
                         style: Sk.ui(context,
                             size: 13.5,
                             color: cs.onSurfaceVariant,

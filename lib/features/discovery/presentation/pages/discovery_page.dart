@@ -167,7 +167,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   Widget build(final BuildContext context) {
     final AsyncValue<List<Show>> showsState = _showPast
         ? ref.watch(pastShowsProvider(false))
-        : ref.watch(showsActiveFirstProvider(false));
+        : ref.watch(activeShowsProvider(false));
     final AsyncValue<List<Show>> activeState =
         ref.watch(activeShowsProvider(false));
 

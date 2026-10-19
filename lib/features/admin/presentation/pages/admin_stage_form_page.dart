@@ -1,3 +1,4 @@
+import '../widgets/delete_guard.dart';
 import '../widgets/geo_lookup_button.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -163,6 +164,8 @@ class _AdminStageFormPageState extends ConsumerState<AdminStageFormPage> {
   Future<void> _confirmDelete() async {
     final stage = widget.stage;
     if (stage == null) return;
+    if (await blockDeleteIfTickets(context, stageId: stage.id, label: stage.name)) return;
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (final _) => CustomActionDialog(

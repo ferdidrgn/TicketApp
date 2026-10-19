@@ -1,3 +1,4 @@
+import '../widgets/delete_guard.dart';
 import '../widgets/admin_external_sessions_section.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -163,6 +164,8 @@ class _AdminShowFormPageState extends ConsumerState<AdminShowFormPage> {
   Future<void> _confirmDelete() async {
     final show = widget.show;
     if (show == null) return;
+    if (await blockDeleteIfTickets(context, showId: show.id, label: show.name)) return;
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (final _) => CustomActionDialog(
