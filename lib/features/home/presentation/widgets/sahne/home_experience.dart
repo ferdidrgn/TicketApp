@@ -1,3 +1,6 @@
+import '../../../../reviews/data/review_repository.dart';
+import '../../../../reviews/presentation/providers/review_providers.dart';
+import '../../../../reviews/presentation/widgets/review_widgets.dart';
 import '../../../../../core/util/recent_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -312,6 +315,25 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       for (final String id in recentIds)
         if (showById[id] != null) showById[id]!,
     ];
+
+    final Map<String, ReviewStat> ratingStats =
+        ref.watch(reviewStatsProvider).value ?? const {};
+    final List<Show> topRated = ([
+      for (final Show s in [...activeShows, ...shows])
+        if ((ratingStats[s.id]?.count ?? 0) >= 1 &&
+            (ratingStats[s.id]?.average ?? 0) >= 3.5)
+          s,
+    ]..sort((final a, final b) {
+        final ReviewStat x = ratingStats[a.id]!;
+        final ReviewStat y = ratingStats[b.id]!;
+        final int c = y.average.compareTo(x.average);
+        return c != 0 ? c : y.count.compareTo(x.count);
+      }))
+        .fold<List<Show>>(<Show>[], (final acc, final s) {
+      if (!acc.any((final x) => x.id == s.id))
+        acc.add(s);
+      return acc;
+    }).take(12).toList();
 
     final List<Show> forYou =
         ref.watch(recommendedShowsProvider).value ?? const <Show>[];
@@ -665,6 +687,16 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     'Favorilerin ve biletlerine yakın oyunlar',
                     Icons.auto_awesome_rounded,
                     forYou.take(12).toList(),
+                  )),
+                ),
+              if (topRated.isNotEmpty)
+                gap(
+                  rail(showRail(
+                    'toprated',
+                    'En çok beğenilenler',
+                    'Seyircilerin puanladığı oyunlar',
+                    Icons.star_rounded,
+                    topRated,
                   )),
                 ),
               if (favoriteShows.isNotEmpty)
@@ -2197,6 +2229,7 @@ class _PosterCard extends StatelessWidget {
                     top: 10,
                     child: SkBadge(label: 'Yeni', accent: true),
                   ),
+                Positioned(right: 10, top: 10, child: RatingChip(showId: show.id)),
                 Positioned(
                   left: 14,
                   right: 14,

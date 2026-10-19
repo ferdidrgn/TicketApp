@@ -15,6 +15,7 @@ import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
+import 'spectator_badges.dart';
 
 /// SEYİRCİ KARNESİ — profilin oyun katmanı.
 ///
@@ -55,16 +56,29 @@ class SpectatorRecord extends ConsumerWidget {
         );
 
     if (!hasTickets) {
-      return framed(const _RecordCard(seen: [], upcoming: 0));
+      return framed(Column(children: [
+        const _RecordCard(seen: [], upcoming: 0),
+        SpectatorBadges(userId: userId, seenShows: 0, seenStages: 0),
+      ]));
     }
 
     return ref.watch(myTicketsProvider(userId)).when(
           loading: () => framed(const TicketRowSkeleton(height: 220)),
           error: (final err, final stack) => const SizedBox.shrink(),
-          data: (final tickets) => framed(_RecordCard(
-            seen: _seenShows(tickets),
-            upcoming: tickets.upcoming.length,
-          )),
+          data: (final tickets) {
+            final seen = _seenShows(tickets);
+            final stages = <String>{
+              for (final t in tickets.past)
+                if (t.ticket.stageId.isNotEmpty) t.ticket.stageId,
+            };
+            return framed(Column(children: [
+              _RecordCard(seen: seen, upcoming: tickets.upcoming.length),
+              SpectatorBadges(
+                  userId: userId,
+                  seenShows: seen.length,
+                  seenStages: stages.length),
+            ]));
+          },
         );
   }
 

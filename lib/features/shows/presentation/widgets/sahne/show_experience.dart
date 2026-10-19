@@ -1,3 +1,4 @@
+import '../../../../reviews/presentation/widgets/review_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -891,6 +892,10 @@ class _Content extends StatelessWidget {
         if (data.pastCast.isNotEmpty)
           section(
               3, _Cast(title: 'Önceki kadro', players: data.pastCast, large: false)),
+        section(
+            4,
+            ReviewsSection(
+                showId: data.show.id, showName: data.show.name)),
         if (data.venues.isNotEmpty)
           section(4, _Venues(venues: data.venues)),
         for (final Widget g in gallery) section(5, g),

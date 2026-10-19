@@ -1,3 +1,4 @@
+import '../../../reviews/presentation/widgets/review_widgets.dart';
 import '../../../../core/util/recent_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -725,6 +726,7 @@ class _ShowCard extends StatelessWidget {
               else if (show.isRecentlyAdded)
                 const Positioned(
                     left: 8, top: 8, child: SkBadge(label: 'Yeni', accent: true)),
+              Positioned(right: 8, top: 8, child: RatingChip(showId: show.id)),
               Positioned(
                 left: 12,
                 right: 12,
