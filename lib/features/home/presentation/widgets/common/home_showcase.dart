@@ -12,6 +12,7 @@ import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/craft.dart';
 import '../../../../../shared/widgets/listing.dart';
+import '../../../../../shared/widgets/sahne/sahne_kit.dart' hide PressScale;
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../../shared/widgets/stagecraft.dart';
 import '../../../../../shared/widgets/tiyatrol_hero.dart';
@@ -58,6 +59,7 @@ class HomeSlide {
     required final List<Campaign> campaigns,
     required final List<Show> shows,
     required final void Function(Show) onShow,
+    final Map<String, HomeSession> nextByShow = const {},
     final int max = 6,
   }) {
     final slides = <HomeSlide>[];
@@ -78,13 +80,20 @@ class HomeSlide {
           s.photosShowId.isNotEmpty ? s.photosShowId.first : s.imageUrl;
       if (img.trim().isEmpty) continue;
       final String kind = s.category.trim();
+      final HomeSession? next = nextByShow[s.id];
+      final String when = next == null
+          ? ''
+          : [
+              '${skDayPhrase(next.date)} · ${skClock(next.date)}',
+              if (next.priceLabel != null) next.priceLabel!,
+            ].join(' · ');
       slides.add(HomeSlide(
         imageUrl: img,
         kicker: s.hasExternalTicketing ? 'BAŞKA PLATFORMDA' : 'SAHNEDE',
         title: s.name,
         subtitle: [
+          if (when.isNotEmpty) when,
           if (kind.isNotEmpty) kind,
-          if (s.duration.trim().isNotEmpty) s.duration.trim(),
         ].join('  ·  '),
         action: 'Oyunu incele',
         onTap: () => onShow(s),
@@ -261,7 +270,10 @@ class _SlideCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: '${slide.kicker.toLowerCase()}: ${slide.title}',
+      label: [
+        '${slide.kicker.toLowerCase()}: ${slide.title}',
+        if ((slide.subtitle ?? '').trim().isNotEmpty) slide.subtitle!.trim(),
+      ].join(', '),
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(

@@ -276,6 +276,11 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
       }
     }
 
+    final Map<String, HomeSession> nextByShow = {};
+    for (final HomeSession session in sessions) {
+      nextByShow.putIfAbsent(session.show.id, () => session);
+    }
+
     final List<HomeSession> tonight =
         sessions.where((final s) => _inRange(s.date, _Range.tonight)).toList();
     final HomeFeatured? momentPick = pickHomeFeatured(sessions, [
@@ -386,6 +391,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
           builder: (final s, final cw) => _PosterCard(
             show: s,
             width: cw,
+            next: nextByShow[s.id],
             heroFrom: 'home-$key',
             onTap: () => _openShow(s, from: 'home-$key'),
           ),
@@ -489,6 +495,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                     ...shows,
                   ],
                   onShow: (final s) => _openShow(s, from: 'home-spotlight'),
+                  nextByShow: nextByShow,
                 );
                 if (spotlight.isEmpty) {
                   return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -1859,19 +1866,23 @@ class _PosterCard extends StatelessWidget {
   final Show show;
   final double width;
   final VoidCallback onTap;
+  final HomeSession? next;
   final String heroFrom;
 
   const _PosterCard({
     required this.show,
     required this.width,
     required this.onTap,
+    this.next,
     this.heroFrom = 'home-shelf',
   });
 
   @override
   Widget build(final BuildContext context) => PressScale(
         onTap: onTap,
-        semanticLabel: show.name,
+        semanticLabel: next == null
+            ? show.name
+            : '${show.name}, ${skDayPhrase(next!.date)} ${skClock(next!.date)}',
         child: Container(
           width: width,
           height: width * 1.5,
@@ -1934,10 +1945,25 @@ class _PosterCard extends StatelessWidget {
                                 weight: FontWeight.w700)),
                       const SizedBox(height: 3),
                       Text(show.name,
-                          maxLines: 3,
+                          maxLines: next == null ? 3 : 2,
                           overflow: TextOverflow.ellipsis,
                           style: Sk.display(context,
                               size: 18, color: Colors.white, height: 1.1)),
+                      if (next != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            next!.priceLabel == null
+                                ? '${skDayPhrase(next!.date)} · ${skClock(next!.date)}'
+                                : '${skDayPhrase(next!.date)} · ${skClock(next!.date)} · ${next!.priceLabel}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Sk.ui(context,
+                                size: 11.5,
+                                color: Colors.white,
+                                weight: FontWeight.w800),
+                          ),
+                        ),
                     ],
                   ),
                 ),
