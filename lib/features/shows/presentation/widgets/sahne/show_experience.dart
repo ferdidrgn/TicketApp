@@ -1059,6 +1059,7 @@ class _Sessions extends StatelessWidget {
               ],
             ),
           ),
+          ExternalSessionList(data: data),
         ],
       );
     }
@@ -1139,6 +1140,7 @@ class _Sessions extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.md),
+        SessionInsight(data: data, onPick: onSelect),
         if (days.length > 1)
           SizedBox(
             height: 78,
@@ -1211,6 +1213,8 @@ class _Sessions extends StatelessWidget {
             index: i + (days.length > 1 ? days.length : 0),
             child: _SessionCard(
               session: shown[i],
+              showName: data.show.name,
+              duration: data.show.duration,
               selected:
                   selected != null && selected!.event.id == shown[i].event.id,
               onTap: () => onSelect(shown[i]),
@@ -1223,11 +1227,15 @@ class _Sessions extends StatelessWidget {
 
 class _SessionCard extends StatelessWidget {
   final ShowSession session;
+  final String showName;
+  final String duration;
   final bool selected;
   final VoidCallback onTap;
 
   const _SessionCard({
     required this.session,
+    required this.showName,
+    required this.duration,
     required this.selected,
     required this.onTap,
   });
@@ -1310,6 +1318,11 @@ class _SessionCard extends StatelessWidget {
                                 color: cs.primary,
                                 weight: FontWeight.w800)),
                       ),
+                    if (selected)
+                      SessionActions(
+                          session: session,
+                          showName: showName,
+                          duration: duration),
                   ],
                 ),
               ),
