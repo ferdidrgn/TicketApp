@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +25,7 @@ import '../../../../shows/presentation/providers/show_provider.dart';
 import '../../../../shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../domain/entities/player.dart';
 import 'player_costars.dart';
+import 'player_live_stage.dart';
 import '../../providers/player_provider.dart';
 
 /// OYUNCU SAYFASI — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
@@ -156,6 +159,22 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
         }
       }
 
+      final int awardCount = player == null
+          ? 0
+          : player.achievements
+              .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
+              .length;
+      final List<LiveChip> liveChips = [
+        if (active.length + past.length > 0)
+          LiveChip(Icons.theater_comedy_rounded,
+              '${active.length + past.length} oyun'),
+        if (awardCount > 0)
+          LiveChip(Icons.emoji_events_rounded, '$awardCount ödül'),
+        // Durum ("Şu an sahnede") zaten ad altındaki hapta — tekrar edilmez.
+        if (past.isNotEmpty)
+          LiveChip(Icons.history_rounded, '${past.length} geçmiş oyun'),
+      ];
+
       final Widget identity = _Identity(
         playerId: widget.playerId,
         name: name,
@@ -166,13 +185,8 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
         ready: ready,
         left: wide,
         offset: _offset,
+        chips: liveChips,
       );
-
-      final int awardCount = player == null
-          ? 0
-          : player.achievements
-              .where((final a) => (a['title'] ?? '').trim().isNotEmpty)
-              .length;
 
       final Widget stats = ready
           ? Padding(
@@ -320,6 +334,7 @@ class _PlayerExperienceState extends ConsumerState<PlayerExperience> {
                     next: soonest,
                     ready: ready,
                     offset: _offset,
+                    chips: liveChips,
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -451,6 +466,7 @@ class _Identity extends StatelessWidget {
   final bool ready;
   final bool left;
   final ValueNotifier<double> offset;
+  final List<LiveChip> chips;
 
   const _Identity({
     required this.playerId,
@@ -462,6 +478,7 @@ class _Identity extends StatelessWidget {
     required this.left,
     required this.offset,
     this.next,
+    this.chips = const [],
   });
 
   @override
@@ -469,35 +486,18 @@ class _Identity extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final CrossAxisAlignment align =
         left ? CrossAxisAlignment.start : CrossAxisAlignment.center;
-    final double pw = left ? 220 : 200;
 
-    // Onaylı oyuncu dili: uzun hap portre (r ≈ genişlik/2), yüz üstte.
-    // Kare gölge kutusu oluşmasın diye gölge + clip aynı radius'ta.
-    final double ph = pw * 1.55;
-    final double pr = pw / 2;
-    final Widget portrait = GestureDetector(
+    // Canlı portre sahnesi: yapraklı portre + kalem halkaları + süzülen çipler.
+    final Widget portrait = LivePortraitStage(
+      imageUrl: imageUrl,
+      size: left ? 240 : 210,
+      chips: chips,
       onTap: imageUrl.trim().startsWith('http')
           ? () => GalleryViewerDialog.open(context, [imageUrl.trim()])
           : null,
-      child: TiyatrolHero(
+      heroWrap: (final child) => TiyatrolHero(
         tag: resolveTiyatrolHeroTag(context, TiyatrolHeroTags.player(playerId)),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(pr),
-            boxShadow: skSoftShadow(context, strength: 1.1),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(pr),
-            child: SkImage(
-              url: imageUrl,
-              width: pw,
-              height: ph,
-              radius: pr,
-              alignment: const Alignment(0, -0.35),
-              fallbackIcon: Icons.person_rounded,
-            ),
-          ),
-        ),
+        child: child,
       ),
     );
 
@@ -1073,6 +1073,7 @@ class _PlayerHero extends StatelessWidget {
   final NextSessionHint? next;
   final bool ready;
   final ValueNotifier<double> offset;
+  final List<LiveChip> chips;
 
   const _PlayerHero({
     required this.playerId,
@@ -1083,40 +1084,44 @@ class _PlayerHero extends StatelessWidget {
     required this.ready,
     required this.offset,
     this.next,
+    this.chips = const [],
   });
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final double h =
-        (MediaQuery.sizeOf(context).height * 0.68).clamp(480.0, 640.0);
+    final Size screen = MediaQuery.sizeOf(context);
+    final double h = (screen.height * 0.78).clamp(560.0, 700.0);
+    final double s = (screen.width * 0.62).clamp(190.0, 270.0);
+    final bool hasPhoto = imageUrl.trim().startsWith('http');
+
     return SizedBox(
       height: h,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ValueListenableBuilder<double>(
-            valueListenable: offset,
-            builder: (final context, final o, child) => ClipRect(
-              child: Transform.translate(
-                offset: Offset(0, o.clamp(0, h) * 0.45),
-                child: child,
-              ),
-            ),
-            child: GestureDetector(
-              onTap: imageUrl.trim().startsWith('http')
-                  ? () => GalleryViewerDialog.open(context, [imageUrl.trim()])
-                  : null,
-              child: TiyatrolHero(
-                tag: resolveTiyatrolHeroTag(
-                    context, TiyatrolHeroTags.player(playerId)),
-                child: SkImage(
-                  url: imageUrl,
-                  fallbackIcon: Icons.person_rounded,
+          // Zemin: fotoğrafın bulanık hâli (afişten türeyen ortam)
+          if (hasPhoto)
+            ValueListenableBuilder<double>(
+              valueListenable: offset,
+              builder: (final context, final o, child) => ClipRect(
+                child: Transform.translate(
+                  offset: Offset(0, o.clamp(0, h) * 0.3),
+                  child: child,
                 ),
               ),
-            ),
-          ),
+              child: RepaintBoundary(
+                child: Transform.scale(
+                  scale: 1.5,
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 34, sigmaY: 34),
+                    child: SkImage(url: imageUrl),
+                  ),
+                ),
+              ),
+            )
+          else
+            ColoredBox(color: cs.primaryContainer),
           IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -1124,26 +1129,51 @@ class _PlayerHero extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.5),
-                    Colors.transparent,
-                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.black.withValues(alpha: 0.2),
                     Colors.black.withValues(alpha: 0.55),
-                    Colors.black.withValues(alpha: 0.92),
                     cs.surface,
                   ],
-                  stops: const [0.0, 0.2, 0.42, 0.7, 0.9, 1.0],
+                  stops: const [0.0, 0.35, 0.78, 1.0],
                 ),
               ),
             ),
           ),
+          // Canlı portre sahnesi
+          Positioned(
+            left: 0,
+            right: 0,
+            top: MediaQuery.paddingOf(context).top + 44,
+            child: Center(
+              child: LivePortraitStage(
+                imageUrl: imageUrl,
+                size: s,
+                chips: chips,
+                offset: offset,
+                onTap: hasPhoto
+                    ? () => GalleryViewerDialog.open(context, [imageUrl.trim()])
+                    : null,
+                heroWrap: (final child) => TiyatrolHero(
+                  tag: resolveTiyatrolHeroTag(
+                      context, TiyatrolHeroTags.player(playerId)),
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+          // Ad + durum
           Positioned(
             left: 22,
             right: 22,
-            bottom: 56,
+            bottom: 52,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _NameReveal(name: name),
+                const SizedBox(height: 10),
+                SkSquiggle(width: 120, seed: name.length),
+                const SizedBox(height: 14),
                 if (ready)
                   SkGlass(
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1167,37 +1197,83 @@ class _PlayerHero extends StatelessWidget {
                       ),
                     ]),
                   ),
-                const SizedBox(height: 14),
-                Text(
-                  name,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: Sk.display(context,
-                          size: 42, color: Colors.white, height: 1.02)
-                      .copyWith(shadows: [
-                    Shadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 18,
-                        offset: const Offset(0, 4)),
-                  ]),
-                ),
-                if (quote.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    '“$quote”',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: Sk.display(context,
-                        size: 17,
-                        weight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.88),
-                        height: 1.35),
-                  ),
-                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Ad: kelime kelime, aşağıdan süzülerek ve belirerek açılır (bir kez).
+class _NameReveal extends StatefulWidget {
+  final String name;
+  const _NameReveal({required this.name});
+
+  @override
+  State<_NameReveal> createState() => _NameRevealState();
+}
+
+class _NameRevealState extends State<_NameReveal>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100));
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (Sk.reduceMotion(context)) {
+        _c.value = 1;
+      } else {
+        _c.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<String> words =
+        widget.name.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (final context, _) => Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 12,
+        children: [
+          for (int i = 0; i < words.length; i++)
+            _word(context, words[i], i),
+        ],
+      ),
+    );
+  }
+
+  Widget _word(final BuildContext context, final String w, final int i) {
+    final double start = (i * 0.22).clamp(0.0, 0.7);
+    final double v = Curves.easeOutCubic
+        .transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
+    return Opacity(
+      opacity: v,
+      child: Transform.translate(
+        offset: Offset(0, (1 - v) * 26),
+        child: Text(
+          w,
+          style: Sk.display(context, size: 40, color: Colors.white, height: 1.05)
+              .copyWith(shadows: [
+            Shadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 18,
+                offset: const Offset(0, 4)),
+          ]),
+        ),
       ),
     );
   }
