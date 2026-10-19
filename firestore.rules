@@ -140,7 +140,12 @@ service cloud.firestore {
       // kapalı. `isPast` gibi otomasyonla değişmesi gereken alanlar
       // ileride bir Cloud Function/Admin SDK job'ı ile (rules'u atlayarak)
       // güncellenmelidir, client'a asla açılmamalı.
-      allow update: if false;
+      // İSTİSNA (13.10.2026): admin, "Arşiv" aracıyla eski biletlere SADECE
+      // özet alanlarını (oyun adı/afiş/sahne adı/tarih) yazabilir — fiyat,
+      // koltuk, sahip gibi hiçbir kritik alan değişemez.
+      allow update: if isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['showName', 'showImageUrl', 'stageName', 'eventDate']);
       allow delete: if false;
     }
 

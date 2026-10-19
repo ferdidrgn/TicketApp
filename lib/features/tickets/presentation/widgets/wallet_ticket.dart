@@ -52,7 +52,7 @@ class TicketSchedule {
       this.at, this.day, this.month, this.weekday, this.date, this.time);
 
   factory TicketSchedule.of(final DetailedTicket t) {
-    final String raw = t.event?.date ?? '';
+    final String raw = t.dateText;
     final DateTime? d = DateFormatter.parseDateString(raw);
     if (d == null) {
       return const TicketSchedule._(null, '—', '', '', '—', '—');
@@ -70,7 +70,7 @@ class TicketSchedule {
 }
 
 String ticketShowName(final DetailedTicket t) {
-  final name = t.show?.name.trim() ?? '';
+  final name = t.showTitle;
   return name.isEmpty ? 'Oyun' : name;
 }
 
@@ -139,7 +139,7 @@ class _WalletTicketState extends State<WalletTicket> {
       past ? 'Geçmiş bilet' : 'Yaklaşan bilet',
       ticketShowName(t),
       if (s.at != null) '${s.day} ${s.month} ${s.weekday}, saat ${s.time}',
-      if ((t.stage?.name ?? '').trim().isNotEmpty) t.stage!.name.trim(),
+      if (t.stageTitle.isNotEmpty) t.stageTitle,
       if (t.ticket.buySeats.isNotEmpty)
         'koltuk ${t.ticket.buySeats.join(', ')}',
     ].join(', ');
@@ -266,7 +266,7 @@ class _Body extends StatelessWidget {
   Widget build(final BuildContext context) {
     final bool past = ticket.isPast;
     final String image = ticket.show?.imageUrl.trim() ?? '';
-    final String stage = ticket.stage?.name.trim() ?? '';
+    final String stage = ticket.stageTitle;
     final double posterW = large ? 88 : 64;
     final double posterH = large ? 120 : 88;
 

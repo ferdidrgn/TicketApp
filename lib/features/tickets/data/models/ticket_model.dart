@@ -8,6 +8,7 @@ class TicketModel {
   final String? orderPrice, orderMethod;
   final List<String>? buySeats;
   final bool? isPast;
+  final String? showName, showImageUrl, stageName, eventDate;
 
   const TicketModel({
     this.id,
@@ -21,6 +22,10 @@ class TicketModel {
     this.orderPrice,
     this.buySeats,
     this.isPast,
+    this.showName,
+    this.showImageUrl,
+    this.stageName,
+    this.eventDate,
   });
 
   /// 🔥 Firestore'dan güvenli okuma
@@ -42,6 +47,10 @@ class TicketModel {
         buySeats:
             (data['buySeats'] as List?)?.map((e) => e.toString()).toList(),
         isPast: data['isPast'] as bool?,
+        showName: data['showName'] as String?,
+        showImageUrl: data['showImageUrl'] as String?,
+        stageName: data['stageName'] as String?,
+        eventDate: data['eventDate'] as String?,
       );
 
   Map<String, dynamic> toFirestore() => {
@@ -56,5 +65,9 @@ class TicketModel {
         'orderPrice': orderPrice,
         'buySeats': buySeats,
         'isPast': isPast,
+        'showName': showName ?? '',
+        'showImageUrl': showImageUrl ?? '',
+        'stageName': stageName ?? '',
+        'eventDate': eventDate ?? '',
       };
 }

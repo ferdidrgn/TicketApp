@@ -73,13 +73,15 @@ class SpectatorRecord extends ConsumerWidget {
   static List<_Stamp> _seenShows(final List<DetailedTicket> tickets) {
     final byShow = <String, _Stamp>{};
     for (final t in tickets.past) {
-      final show = t.show;
-      if (show == null || show.name.trim().isEmpty) continue;
-      final DateTime? at = DateFormatter.parseDateString(t.event?.date);
-      final existing = byShow[show.id];
+      // Oyun kaydı arşivlenip silinse de bilet özeti (showName) ile sayılır.
+      final String name = t.showTitle;
+      final String showId = t.ticket.showId;
+      if (name.isEmpty || showId.isEmpty) continue;
+      final DateTime? at = DateFormatter.parseDateString(t.dateText);
+      final existing = byShow[showId];
       if (existing == null ||
           (at != null && (existing.at == null || at.isAfter(existing.at!)))) {
-        byShow[show.id] = _Stamp(show.id, show.name.trim(), at);
+        byShow[showId] = _Stamp(showId, name, at);
       }
     }
     final list = byShow.values.toList()

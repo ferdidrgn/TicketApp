@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/admin_guard.dart';
+import '../widgets/admin_archive_tab.dart';
 import '../widgets/admin_players_tab.dart';
 import '../widgets/admin_shows_tab.dart';
 import '../widgets/admin_stages_tab.dart';
@@ -23,7 +24,7 @@ class AdminHomePage extends StatelessWidget {
   Widget build(final BuildContext context) => AdminGuard(
         allowDebugBypass: true,
         child: DefaultTabController(
-          length: 5,
+          length: 6,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Sahne Arkası — Yönetim'),
@@ -37,6 +38,7 @@ class AdminHomePage extends StatelessWidget {
                   Tab(
                       icon: Icon(Icons.confirmation_number_rounded),
                       text: 'Biletler'),
+                  Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Arşiv'),
                 ],
               ),
             ),
@@ -48,6 +50,7 @@ class AdminHomePage extends StatelessWidget {
                 AdminTeamsTab(),
                 AdminPlayersTab(),
                 AdminTicketsTab(),
+                AdminArchiveTab(),
               ],
             ),
           ),

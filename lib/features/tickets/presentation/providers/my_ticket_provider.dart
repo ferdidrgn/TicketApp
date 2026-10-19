@@ -33,6 +33,24 @@ class DetailedTicket {
     this.stage,
     required this.isPast,
   });
+
+  /// Canlı kayıt (oyun/sahne/seans) varsa o; silinip arşivlendiyse biletin
+  /// satın alma anındaki özeti. İkisi de yoksa boş.
+  String get showTitle => (show?.name ?? '').trim().isNotEmpty
+      ? show!.name.trim()
+      : ticket.showName.trim();
+  String get stageTitle => (stage?.name ?? '').trim().isNotEmpty
+      ? stage!.name.trim()
+      : ticket.stageName.trim();
+  String get dateText => (event?.date ?? '').trim().isNotEmpty
+      ? event!.date.trim()
+      : ticket.eventDate.trim();
+  String get posterUrl => (show?.imageUrl ?? '').trim().isNotEmpty
+      ? show!.imageUrl.trim()
+      : ticket.showImageUrl.trim();
+
+  /// Bilet arşivlenmiş mi: bağlı oyun/seans kaydı artık yok.
+  bool get isArchived => show == null || event == null;
 }
 
 /// ==============================================================================
@@ -123,8 +141,11 @@ Future<List<DetailedTicket>> myTickets(
 
     // Geçmiş etkinlik kontrolü
     bool isPast = false;
-    if (event?.date != null) {
-      final eventDate = DateFormatter.parseDateString(event!.date);
+    final String dateRaw = (event?.date ?? '').trim().isNotEmpty
+        ? event!.date
+        : ticket.eventDate;
+    if (dateRaw.trim().isNotEmpty) {
+      final eventDate = DateFormatter.parseDateString(dateRaw);
       if (eventDate != null) isPast = eventDate.isBefore(now);
     }
 
