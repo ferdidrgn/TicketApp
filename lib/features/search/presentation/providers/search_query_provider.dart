@@ -1,7 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../events/domain/entities/event.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/domain/entities/show.dart';
+import '../../../shows/domain/next_session.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
@@ -16,6 +18,7 @@ class SearchResultState {
   final List<Player> players;
   final List<Stage> stages;
   final List<Team> teams;
+  final Map<String, NextSessionHint> nextByShow;
   final bool isLoading;
 
   const SearchResultState({
@@ -23,8 +26,75 @@ class SearchResultState {
     required this.players,
     required this.stages,
     required this.teams,
+    this.nextByShow = const {},
     this.isLoading = false,
   });
+}
+
+/// Kısa sorgular yalnızca ada bakar. İki karakterden itibaren tür, adres,
+/// biyografi ve açıklama da eşleşir; ad eşleşmesi her zaman önde kalır.
+List<Show> filterShowsForQuery(final List<Show> shows, final String query) {
+  if (query.isEmpty) return shows;
+  final List<Show> byName = [];
+  final List<Show> byDetail = [];
+  for (final Show show in shows) {
+    if (show.name.toLowerCase().contains(query)) {
+      byName.add(show);
+    } else if (query.length >= 2 &&
+        '${show.category} ${show.type} ${show.description}'
+            .toLowerCase()
+            .contains(query)) {
+      byDetail.add(show);
+    }
+  }
+  return [...byName, ...byDetail];
+}
+
+List<Player> filterPlayersForQuery(
+    final List<Player> players, final String query) {
+  if (query.isEmpty) return players;
+  final List<Player> byName = [];
+  final List<Player> byDetail = [];
+  for (final Player player in players) {
+    final String name = '${player.firstName} ${player.lastName}'.toLowerCase();
+    if (name.contains(query)) {
+      byName.add(player);
+    } else if (query.length >= 2 &&
+        '${player.bio} ${player.quote}'.toLowerCase().contains(query)) {
+      byDetail.add(player);
+    }
+  }
+  return [...byName, ...byDetail];
+}
+
+List<Stage> filterStagesForQuery(final List<Stage> stages, final String query) {
+  if (query.isEmpty) return stages;
+  final List<Stage> byName = [];
+  final List<Stage> byDetail = [];
+  for (final Stage stage in stages) {
+    if (stage.name.toLowerCase().contains(query)) {
+      byName.add(stage);
+    } else if (query.length >= 2 &&
+        '${stage.address} ${stage.description}'.toLowerCase().contains(query)) {
+      byDetail.add(stage);
+    }
+  }
+  return [...byName, ...byDetail];
+}
+
+List<Team> filterTeamsForQuery(final List<Team> teams, final String query) {
+  if (query.isEmpty) return teams;
+  final List<Team> byName = [];
+  final List<Team> byDetail = [];
+  for (final Team team in teams) {
+    if (team.name.toLowerCase().contains(query)) {
+      byName.add(team);
+    } else if (query.length >= 2 &&
+        team.description.toLowerCase().contains(query)) {
+      byDetail.add(team);
+    }
+  }
+  return [...byName, ...byDetail];
 }
 
 @riverpod
@@ -84,29 +154,32 @@ Future<SearchResultState> searchResult(final Ref ref) async {
   final allStages = results[2] as List<Stage>;
   final allTeams = results[3] as List<Team>;
 
-  // 2. ADIM: Gerçek Filtreleme Mantığı (Arama kutusu doluysa)
-  List<T> applyFilter<T>(
-      final List<T> items, final String Function(T) searchField) {
-    if (query.isEmpty) return items;
-    return items
-        .where((final item) => searchField(item).toLowerCase().contains(query))
-        .toList();
+  Map<String, List<Event>> eventsByShow = const {};
+  try {
+    eventsByShow = await ref.watch(eventsByShowMapProvider(false).future);
+  } catch (_) {
+    eventsByShow = const {};
   }
+  final Map<String, NextSessionHint> nextByShow = {};
+  eventsByShow.forEach((final String id, final List<Event> events) {
+    final NextSessionHint? hint = nextSessionHint(events);
+    if (hint != null) nextByShow[id] = hint;
+  });
 
-  // 3. ADIM: Sonuçları Paketle
   return SearchResultState(
     isLoading: false,
     shows: (filterIndex == 0 || filterIndex == 1)
-        ? applyFilter(allShows, (final s) => s.name)
+        ? filterShowsForQuery(allShows, query)
         : [],
     players: (filterIndex == 0 || filterIndex == 2)
-        ? applyFilter(allPlayers, (final p) => "${p.firstName} ${p.lastName}")
+        ? filterPlayersForQuery(allPlayers, query)
         : [],
     stages: (filterIndex == 0 || filterIndex == 3)
-        ? applyFilter(allStages, (final s) => s.name)
+        ? filterStagesForQuery(allStages, query)
         : [],
     teams: (filterIndex == 0 || filterIndex == 4)
-        ? applyFilter(allTeams, (final t) => t.name)
+        ? filterTeamsForQuery(allTeams, query)
         : [],
+    nextByShow: nextByShow,
   );
 }
