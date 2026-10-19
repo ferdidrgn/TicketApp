@@ -812,21 +812,13 @@ class _BodyState extends State<_Body> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SkSectionHead(
-                    title: 'Sahne arkadaşları',
-                    subtitle: 'dokun, onların oyunlarını ara'),
+                SkSectionHead(
+                    title: 'Çalıştığı topluluklar',
+                    subtitle: '${collabs.length} topluluk'),
                 const SizedBox(height: AppSpacing.lg),
-                Wrap(
-                  spacing: 22,
-                  runSpacing: 14,
-                  children: [
-                    for (int i = 0; i < collabs.length; i++)
-                      _DoodleChip(
-                        label: collabs[i],
-                        index: i,
-                        onTap: () => widget.onCollab(collabs[i]),
-                      ),
-                  ],
+                _CollabList(
+                  names: collabs,
+                  onTap: widget.onCollab,
                 ),
               ],
             ),
@@ -1693,39 +1685,70 @@ class _DropCap extends StatelessWidget {
 }
 
 /// El yazısıyla, hafif eğik, altı kalemle çizili isim — dokununca arama.
-class _DoodleChip extends StatelessWidget {
-  final String label;
-  final int index;
-  final VoidCallback onTap;
+/// Çalıştığı topluluklar: tek yumuşak kart, satır satır; ilk 4 satır açık,
+/// fazlası "+N topluluk daha" ile açılır. Dokununca topluluğun oyunları aranır.
+class _CollabList extends StatefulWidget {
+  final List<String> names;
+  final ValueChanged<String> onTap;
+  const _CollabList({required this.names, required this.onTap});
 
-  const _DoodleChip(
-      {required this.label, required this.index, required this.onTap});
+  @override
+  State<_CollabList> createState() => _CollabListState();
+}
 
-  static const List<double> _angles = [-0.035, 0.025, -0.015, 0.04];
+class _CollabListState extends State<_CollabList> {
+  bool _all = false;
 
   @override
   Widget build(final BuildContext context) {
-    return Transform.rotate(
-      angle: _angles[index % _angles.length],
-      child: PressScale(
-        onTap: onTap,
-        semanticLabel: '$label ara',
-        scale: 0.95,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: Sketch.hand(context,
-                      size: 25, weight: FontWeight.w700, height: 1.0)),
-              SkPencilLine(
-                width: (label.length * 10.5 + 6).clamp(40.0, 190.0),
-                seed: index * 5 + 2,
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final List<String> shown =
+        _all ? widget.names : widget.names.take(4).toList();
+    final int more = widget.names.length - shown.length;
+    return SkSoftCard(
+      radius: AppRadius.lg,
+      color: cs.surfaceContainerLow,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Column(
+        children: [
+          for (int i = 0; i < shown.length; i++) ...[
+            PressScale(
+              onTap: () => widget.onTap(shown[i]),
+              semanticLabel: '${shown[i]} oyunlarını ara',
+              scale: 0.99,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.md + 2),
+                child: Row(
+                  children: [
+                    Icon(Icons.groups_rounded, size: 20, color: cs.primary),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(shown[i],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 14.5, weight: FontWeight.w700, height: 1.25)),
+                    ),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 20, color: cs.onSurfaceVariant),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+            if (i < shown.length - 1)
+              Divider(
+                  height: 1,
+                  indent: AppSpacing.lg,
+                  endIndent: AppSpacing.lg,
+                  color: cs.outlineVariant.withValues(alpha: 0.4)),
+          ],
+          if (more > 0 || _all)
+            TextButton(
+              onPressed: () => setState(() => _all = !_all),
+              child: Text(_all ? 'Daha az göster' : '+$more topluluk daha'),
+            ),
+        ],
       ),
     );
   }
