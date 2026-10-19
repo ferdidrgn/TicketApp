@@ -25,6 +25,7 @@ import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
 import '../detail/show_detail_actions.dart';
 import '../detail/show_detail_data.dart';
+import 'show_session_extras.dart';
 import '../show_team_credit.dart';
 
 /// OYUN DETAYI — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
