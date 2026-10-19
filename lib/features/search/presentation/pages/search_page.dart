@@ -14,6 +14,7 @@ import '../../../../shared/widgets/tiyatrol_hero.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../shows/domain/entities/show.dart';
+import '../../../shows/domain/next_session.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../providers/search_query_provider.dart';
@@ -32,8 +33,6 @@ const List<String> _kFacets = ['Tümü', 'Oyunlar', 'Oyuncular', 'Mekânlar', 'T
 const String _kRecentSearches = 'tiyatrol.recent_searches';
 const int _kRailMax = 10;
 
-enum _Sec { genres, shows, players, stages, teams }
-
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -47,7 +46,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final ScrollController _scroll = ScrollController();
   String? _category;
   List<String> _recents = const [];
-  final Set<_Sec> _open = {};
 
   @override
   void initState() {
@@ -102,11 +100,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _text.clear();
     _setQuery('');
     _focus.requestFocus();
-  }
-
-  void _toggle(final _Sec s) {
-    HapticFeedback.selectionClick();
-    setState(() => _open.contains(s) ? _open.remove(s) : _open.add(s));
   }
 
   void _openShow(final Show s) {
@@ -465,6 +458,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           show: s,
           width: w,
           query: query,
+          next: data.nextByShow[s.id],
           onTap: () => _openShow(s),
         ),
       ));
@@ -640,6 +634,7 @@ class _ShowCard extends StatelessWidget {
   final Show show;
   final double width;
   final String query;
+  final NextSessionHint? next;
   final VoidCallback onTap;
 
   const _ShowCard({
@@ -647,13 +642,16 @@ class _ShowCard extends StatelessWidget {
     required this.width,
     required this.query,
     required this.onTap,
+    this.next,
   });
 
   @override
   Widget build(final BuildContext context) {
     return PressScale(
       onTap: onTap,
-      semanticLabel: show.name,
+      semanticLabel: next == null
+          ? show.name
+          : '${show.name}, ${skDayPhrase(next!.when)} ${skClock(next!.when)}',
       child: Container(
         width: width,
         height: width * 1.5,
@@ -718,8 +716,23 @@ class _ShowCard extends StatelessWidget {
                       query,
                       Sk.display(context,
                           size: 16, color: Colors.white, height: 1.1),
-                      maxLines: 3,
+                      maxLines: next == null ? 3 : 2,
                     ),
+                    if (next != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          next!.price == null
+                              ? '${skDayPhrase(next!.when)} · ${skClock(next!.when)}'
+                              : '${skDayPhrase(next!.when)} · ${skClock(next!.when)} · ${skPrice(next!.price!)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 11,
+                              color: Colors.white,
+                              weight: FontWeight.w800),
+                        ),
+                      ),
                   ],
                 ),
               ),

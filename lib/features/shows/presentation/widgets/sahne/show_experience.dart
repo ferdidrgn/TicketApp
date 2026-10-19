@@ -24,10 +24,12 @@ import '../../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
+import '../../../domain/next_session.dart';
 import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
 import '../detail/show_detail_actions.dart';
 import '../detail/show_detail_data.dart';
+import 'show_session_extras.dart';
 import '../show_team_credit.dart';
 
 /// OYUN DETAYI — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
@@ -461,11 +463,14 @@ Widget _poster(final BuildContext context, final ShowDetailData d,
 
 List<Widget> _facts(final BuildContext context, final ShowDetailData d) {
   final String category = d.show.category.trim();
+  final String type = d.show.type.trim();
   final String age = d.show.ageLimit.trim();
   final String? durText = ShowDurationFormat.label(d.show.duration);
   return [
     if (category.isNotEmpty)
       SkBadge(label: category, icon: Icons.theater_comedy_rounded),
+    if (type.isNotEmpty && type.toLowerCase() != category.toLowerCase())
+      SkBadge(label: type, icon: Icons.style_rounded),
     if (durText != null)
       SkBadge(label: durText, icon: Icons.timelapse_rounded),
     if (age.isNotEmpty) SkBadge(label: age, icon: Icons.group_outlined),
@@ -495,6 +500,7 @@ class _ShowHero extends StatelessWidget {
     final double h =
         (MediaQuery.sizeOf(context).height * 0.7).clamp(500.0, 680.0);
     final String category = data.show.category.trim();
+    final String type = data.show.type.trim();
 
     Widget glass(final IconData icon, final String text) => SkGlass(
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -581,6 +587,9 @@ class _ShowHero extends StatelessWidget {
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   if (category.isNotEmpty)
                     glass(Icons.theater_comedy_rounded, category),
+                  if (type.isNotEmpty &&
+                      type.toLowerCase() != category.toLowerCase())
+                    glass(Icons.style_rounded, type),
                   if (data.isExternal)
                     glass(Icons.open_in_new_rounded, 'Başka platformda'),
                 ]),
@@ -978,6 +987,7 @@ class _Sessions extends StatelessWidget {
               ],
             ),
           ),
+          ExternalSessionList(data: data),
         ],
       );
     }
@@ -1044,7 +1054,19 @@ class _Sessions extends StatelessWidget {
           subtitle:
               '${data.sessions.length} seans · 14 günlük takvimden birini seç',
         ),
+        if (displayEventRule(data.show.eventRule).isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            displayEventRule(data.show.eventRule),
+            style: Sk.ui(context,
+                size: 13.5,
+                color: cs.onSurfaceVariant,
+                weight: FontWeight.w600,
+                height: 1.45),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
+        SessionInsight(data: data, onPick: onSelect),
         if (days.isNotEmpty) ...[
           Center(
             child: ShowCountdownGauge(
@@ -1063,6 +1085,8 @@ class _Sessions extends StatelessWidget {
             index: i,
             child: _SessionCard(
               session: shown[i],
+              showName: data.show.name,
+              duration: data.show.duration,
               selected:
                   selected != null && selected!.event.id == shown[i].event.id,
               onTap: () => onSelect(shown[i]),
@@ -1075,11 +1099,15 @@ class _Sessions extends StatelessWidget {
 
 class _SessionCard extends StatelessWidget {
   final ShowSession session;
+  final String showName;
+  final String duration;
   final bool selected;
   final VoidCallback onTap;
 
   const _SessionCard({
     required this.session,
+    required this.showName,
+    required this.duration,
     required this.selected,
     required this.onTap,
   });
@@ -1162,6 +1190,11 @@ class _SessionCard extends StatelessWidget {
                                 color: cs.primary,
                                 weight: FontWeight.w800)),
                       ),
+                    if (selected)
+                      SessionActions(
+                          session: session,
+                          showName: showName,
+                          duration: duration),
                   ],
                 ),
               ),
