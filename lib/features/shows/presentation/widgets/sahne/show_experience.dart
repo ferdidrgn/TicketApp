@@ -8,6 +8,7 @@ import '../../../../../core/theme/app_motion.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../core/util/recent_history.dart';
 import '../../../../../core/util/show_duration.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
@@ -65,6 +66,7 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
   DateTime? _day;
   bool _opening = false;
   bool _scrollHandled = false;
+  bool _recorded = false;
 
   @override
   void initState() {
@@ -159,6 +161,15 @@ class _ShowExperienceState extends ConsumerState<ShowExperience> {
       );
     }
     if (loaded != null) _maybeScrollFromLink();
+    if (loaded != null && !_recorded) {
+      _recorded = true;
+      // Provider, build içinde değiştirilmez: kare sonrası "son bakılan"a yaz.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(recentShowIdsProvider.notifier).add(widget.showId);
+        }
+      });
+    }
 
     final String cat = data.show.category.trim().toLowerCase();
     final List<Show> similar = [

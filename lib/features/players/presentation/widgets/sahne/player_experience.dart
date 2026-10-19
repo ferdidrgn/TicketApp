@@ -22,6 +22,7 @@ import '../../../../shows/domain/next_session.dart';
 import '../../../../shows/presentation/providers/show_provider.dart';
 import '../../../../shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../domain/entities/player.dart';
+import 'player_costars.dart';
 import '../../providers/player_provider.dart';
 
 /// OYUNCU SAYFASI — "Sahne". Telefon, tablet ve web için tek duyarlı yüzey.
@@ -772,6 +773,12 @@ class _BodyState extends State<_Body> {
                 onShow: widget.onShow,
               ),
             ),
+          ),
+        if (widget.active.isNotEmpty || widget.past.isNotEmpty)
+          section(
+            4,
+            PlayerCoStars(
+                player: p, shows: [...widget.active, ...widget.past]),
           ),
         if (awards.isNotEmpty)
           section(

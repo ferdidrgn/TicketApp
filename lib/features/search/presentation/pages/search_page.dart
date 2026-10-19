@@ -1,3 +1,4 @@
+import '../../../../core/util/recent_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -393,6 +394,37 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ));
     }
 
+
+    // ── Son baktıkların (cihazda tutulan) ──
+    if (browsing) {
+      final Map<String, Show> byId = {for (final Show x in data.shows) x.id: x};
+      final List<Show> viewed = [
+        for (final String id in ref.watch(recentShowIdsProvider))
+          if (byId[id] != null) byId[id]!,
+      ];
+      if (viewed.isNotEmpty) {
+        blocks.add(SkRail<Show>(
+          key: const ValueKey<String>('sec-recent'),
+          topGap: 30,
+          title: 'Son baktıkların',
+          subtitle: 'Kaldığın yerden devam et',
+          icon: Icons.history_rounded,
+          items: viewed,
+          gutter: gutter,
+          railW: 158,
+          railH: 158 * 1.5,
+          minCell: 158,
+          gap: 14,
+          builder: (final s, final w) => _ShowCard(
+            show: s,
+            width: w,
+            query: query,
+            next: data.nextByShow[s.id],
+            onTap: () => _openShow(s),
+          ),
+        ));
+      }
+    }
 
     // ── Türler ──
     if (browsing && categories.length > 1) {

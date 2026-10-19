@@ -1,3 +1,4 @@
+import '../../../../../core/util/recent_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -303,6 +304,15 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
     ].take(12).toList();
 
 
+    final List<String> recentIds = ref.watch(recentShowIdsProvider);
+    final Map<String, Show> showById = {
+      for (final Show s in [...shows, ...activeShows]) s.id: s,
+    };
+    final List<Show> recentShows = [
+      for (final String id in recentIds)
+        if (showById[id] != null) showById[id]!,
+    ];
+
     final List<Show> forYou =
         ref.watch(recommendedShowsProvider).value ?? const <Show>[];
 
@@ -541,6 +551,19 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                   20,
                 );
               }),
+
+              // Kaldığın yerden: son bakılan oyunlar (cihazda tutulur)
+              if (recentShows.isNotEmpty)
+                gap(
+                  rail(showRail(
+                    'recent',
+                    'Kaldığın yerden',
+                    'Son baktığın oyunlar',
+                    Icons.history_rounded,
+                    recentShows,
+                  )),
+                  26,
+                ),
 
               // Seyirci karnem (gerçek biletlerden) — Smart_home'daki özet kartı
               if (loggedIn && uid.isNotEmpty)
