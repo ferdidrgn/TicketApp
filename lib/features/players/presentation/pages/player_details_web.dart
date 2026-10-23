@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/navigation/widgets/web_site_header.dart';
-import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart'
@@ -75,7 +75,7 @@ class _PlayerDetailPageWebState extends ConsumerState<PlayerDetailPageWeb> {
             const WebSiteHeader(),
             body,
             const SizedBox(height: 72),
-            const Footer(),
+            const WebMegaFooter(),
           ],
         ),
       ),

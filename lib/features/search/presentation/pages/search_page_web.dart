@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/navigation/widgets/web_site_header.dart';
-import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
@@ -172,7 +172,7 @@ class _SearchPageWebState extends ConsumerState<SearchPageWeb> {
               );
             }),
             const SizedBox(height: 72),
-            const Footer(),
+            const WebMegaFooter(),
           ],
         ),
       ),

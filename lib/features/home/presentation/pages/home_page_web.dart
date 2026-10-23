@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -21,6 +21,7 @@ import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
+import '../widgets/web/web_home_extras.dart';
 
 /// ANA SAYFA — WEB. Gerçek bir bilet sitesinin vitrini (mağaza düzeni):
 ///
@@ -199,6 +200,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               height: desktop ? 460 : 320)),
                   top: 24,
                 ),
+                section(WebPromoTiles(wide: desktop), top: 28),
                 // 2) YUVARLAK TÜR KAROLARI
                 if (categories.length > 1)
                   section(_CategoryCircles(categories: categories), top: 36),
@@ -221,7 +223,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 if (fresh.isNotEmpty)
                   rail('Yeni eklenenler', fresh),
                 // tür vitrini
-                if (spotCat != null && spotShows.isNotEmpty)
+                if (spotCat != null && spotShows.isNotEmpty && categories.length > 1)
                   section(
                     _GenreSpotlight(
                       categories: categories,
@@ -253,6 +255,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     top: 60,
                   ),
+                // NASIL ÇALIŞIR + SAYILAR
+                section(WebHowItWorks(wide: desktop), top: 80),
+                section(
+                  WebStatsBand(
+                    shows: shows.length,
+                    stages: stages.length,
+                    teams: teams.length,
+                    players: players.length,
+                    wide: desktop,
+                  ),
+                  top: 56,
+                ),
                 // 4) MEKÂNLAR + TOPLULUKLAR
                 if (stages.isNotEmpty || teams.isNotEmpty)
                   section(
@@ -284,12 +298,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 if (players.any((final p) => p.imageUrl.startsWith('http')))
                   section(_PlayerRow(players: players), top: 72),
+                // REHBER + SSS
+                section(WebGuide(wide: desktop), top: 80),
+                section(const WebFaq(), top: 80),
                 // 5) YARDIM
                 section(const _HelpBlock(), top: 80),
-                // 6) ÖZELLİK ŞERİDİ
-                section(_Benefits(wide: desktop), top: 56),
                 const SizedBox(height: 72),
-                const Footer(),
+                const WebMegaFooter(),
               ],
             ),
           ),

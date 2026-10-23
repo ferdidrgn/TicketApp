@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/util/recent_history.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/navigation/widgets/web_site_header.dart';
-import '../../../../shared/widgets/footers/footer.dart';
+import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
@@ -120,7 +120,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const WebSiteHeader(),
             body,
             const SizedBox(height: 72),
-            const Footer(),
+            const WebMegaFooter(),
           ],
         ),
       ),
