@@ -387,8 +387,8 @@ class _PlayerDetailPageWebState extends ConsumerState<PlayerDetailPageWeb> {
                   ref.read(searchFilterProvider.notifier).setFilter(0);
                   NavigationHandler.goToSearch(context);
                 },
-                child: Container(
-                  width: 330,
+                child: LayoutBuilder(builder: (final context, final box) => Container(
+                  width: box.maxWidth < 330 ? box.maxWidth : 330,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLow,
@@ -412,7 +412,7 @@ class _PlayerDetailPageWebState extends ConsumerState<PlayerDetailPageWeb> {
                     Icon(Icons.chevron_right_rounded,
                         color: cs.onSurfaceVariant),
                   ]),
-                ),
+                )),
               ),
             ),
         ]);

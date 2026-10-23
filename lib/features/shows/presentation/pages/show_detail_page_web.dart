@@ -160,6 +160,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       final double gutter = w >= 1200 ? 48 : (w >= 768 ? 32 : 18);
 
       final Widget gallery = _GalleryBlock(
+        narrow: !desktop,
         photos: photos,
         index: _photo.clamp(0, photos.isEmpty ? 0 : photos.length - 1),
         onPick: (final i) => setState(() => _photo = i),
@@ -305,16 +306,105 @@ class _GalleryBlock extends StatelessWidget {
   final int index;
   final ValueChanged<int> onPick;
   final VoidCallback onOpen;
+  final bool narrow;
   const _GalleryBlock(
       {required this.photos,
       required this.index,
       required this.onPick,
-      required this.onOpen});
+      required this.onOpen,
+      this.narrow = false});
 
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final String main = photos.isEmpty ? '' : photos[index];
+
+    Widget thumb(final int i, final double w) => Padding(
+          padding: EdgeInsets.only(
+              right: narrow ? 10 : 0, bottom: narrow ? 0 : 12),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => onPick(i),
+              child: Container(
+                width: w,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: i == index
+                          ? cs.primary
+                          : cs.outlineVariant.withValues(alpha: 0.5),
+                      width: i == index ? 2.5 : 1),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(9),
+                  child: AspectRatio(
+                    aspectRatio: 3 / 4,
+                    child: SkImage(
+                        url: photos[i], alignment: Alignment.topCenter),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    final Widget mainImage = MouseRegion(
+      cursor: SystemMouseCursors.zoomIn,
+      child: GestureDetector(
+        onTap: onOpen,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  offset: const Offset(0, 14)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: Stack(fit: StackFit.expand, children: [
+                SkImage(url: main, alignment: Alignment.topCenter),
+                Positioned(
+                  right: 14,
+                  bottom: 14,
+                  child: Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle),
+                    child: const Icon(Icons.zoom_out_map_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (narrow) {
+      return Column(children: [
+        mainImage,
+        if (photos.length > 1) ...[
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 84,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: photos.length,
+              itemBuilder: (_, final i) => thumb(i, 63),
+            ),
+          ),
+        ],
+      ]);
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -322,77 +412,11 @@ class _GalleryBlock extends StatelessWidget {
           SizedBox(
             width: 84,
             child: Column(children: [
-              for (int i = 0; i < photos.length && i < 6; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () => onPick(i),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: i == index
-                                  ? cs.primary
-                                  : cs.outlineVariant.withValues(alpha: 0.5),
-                              width: i == index ? 2.5 : 1),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(9),
-                          child: AspectRatio(
-                            aspectRatio: 3 / 4,
-                            child: SkImage(
-                                url: photos[i], alignment: Alignment.topCenter),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              for (int i = 0; i < photos.length && i < 6; i++) thumb(i, 84),
             ]),
           ),
         if (photos.length > 1) const SizedBox(width: 16),
-        Expanded(
-          child: MouseRegion(
-            cursor: SystemMouseCursors.zoomIn,
-            child: GestureDetector(
-              onTap: onOpen,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        offset: const Offset(0, 14)),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: Stack(fit: StackFit.expand, children: [
-                      SkImage(url: main, alignment: Alignment.topCenter),
-                      Positioned(
-                        right: 14,
-                        bottom: 14,
-                        child: Container(
-                          padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              shape: BoxShape.circle),
-                          child: const Icon(Icons.zoom_out_map_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: mainImage),
       ],
     );
   }
@@ -741,7 +765,9 @@ class _Tabs extends StatelessWidget {
         border:
             Border(bottom: BorderSide(color: cs.outlineVariant, width: 1)),
       ),
-      child: Row(children: [
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
         for (final (int, String) t in tabs)
           MouseRegion(
             cursor: SystemMouseCursors.click,
@@ -750,7 +776,7 @@ class _Tabs extends StatelessWidget {
               onTap: () => onTab(t.$1),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -759,6 +785,7 @@ class _Tabs extends StatelessWidget {
                   ),
                 ),
                 child: Text(t.$2,
+                    maxLines: 1,
                     style: Sk.ui(context,
                         size: 15.5,
                         color: index == t.$1 ? cs.primary : cs.onSurface,
@@ -767,6 +794,7 @@ class _Tabs extends StatelessWidget {
             ),
           ),
       ]),
+      ),
     );
   }
 }
@@ -799,7 +827,47 @@ class _SessionsTable extends StatelessWidget {
             for (int i = 0; i < data.sessions.length; i++) ...[
               Padding(
                 padding: const EdgeInsets.all(18),
-                child: Row(children: [
+                child: MediaQuery.sizeOf(context).width < 760
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                              child: Text(
+                                  data.sessions[i].when == null
+                                      ? data.sessions[i].shortLabel
+                                      : '${data.sessions[i].when!.day} ${kMonthsTr[data.sessions[i].when!.month - 1]} ${kDaysTr[data.sessions[i].when!.weekday - 1]}',
+                                  style: Sk.ui(context,
+                                      size: 15, weight: FontWeight.w800)),
+                            ),
+                            Text(
+                                data.sessions[i].when == null
+                                    ? ''
+                                    : skClock(data.sessions[i].when!),
+                                style: Sk.display(context,
+                                    size: 22, height: 1, color: cs.primary)),
+                          ]),
+                          const SizedBox(height: 6),
+                          Row(children: [
+                            Expanded(
+                              child: Text(data.sessions[i].venueName,
+                                  style: Sk.ui(context,
+                                      size: 14, weight: FontWeight.w600)),
+                            ),
+                            if (data.sessions[i].priceLabel != null)
+                              Text(data.sessions[i].priceLabel!,
+                                  style: Sk.ui(context,
+                                      size: 15,
+                                      color: cs.primary,
+                                      weight: FontWeight.w800)),
+                          ]),
+                          SessionActions(
+                              session: data.sessions[i],
+                              showName: data.show.name,
+                              duration: data.show.duration),
+                        ],
+                      )
+                    : Row(children: [
                   SizedBox(
                     width: 150,
                     child: Text(
@@ -864,8 +932,8 @@ class _VenueCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Container(
-      width: 420,
+    return LayoutBuilder(builder: (final context, final box) => Container(
+      width: box.maxWidth < 420 ? box.maxWidth : 420,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
@@ -909,7 +977,7 @@ class _VenueCard extends StatelessWidget {
               ]),
         ),
       ]),
-    );
+    ));
   }
 }
 

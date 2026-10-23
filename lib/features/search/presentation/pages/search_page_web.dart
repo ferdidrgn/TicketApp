@@ -631,8 +631,8 @@ class _RowLink extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 330,
+        child: LayoutBuilder(builder: (final context, final box) => Container(
+          width: box.maxWidth < 330 ? box.maxWidth : 330,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: cs.surfaceContainerLow,
@@ -663,7 +663,7 @@ class _RowLink extends StatelessWidget {
                   ]),
             ),
           ]),
-        ),
+        )),
       ),
     );
   }

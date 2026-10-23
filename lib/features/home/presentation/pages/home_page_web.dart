@@ -695,70 +695,92 @@ class _SlideView extends StatelessWidget {
       onTap: slide.onTap,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            SkImage(url: slide.imageUrl, alignment: Alignment.topCenter),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.85),
-                    Colors.black.withValues(alpha: 0.45),
-                    Colors.black.withValues(alpha: 0.0),
-                  ],
-                  stops: const [0.0, 0.5, 0.85],
+        child: LayoutBuilder(builder: (final context, final box) {
+          final bool narrow = box.maxWidth < 640;
+          final double titleSize = narrow ? 28 : 46;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              SkImage(url: slide.imageUrl, alignment: Alignment.topCenter),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: narrow
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.05),
+                            Colors.black.withValues(alpha: 0.85),
+                          ],
+                          stops: const [0.25, 1.0],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.85),
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.black.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.0, 0.5, 0.85],
+                        ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(48, 32, 48, 56),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 540),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (slide.kicker.isNotEmpty)
-                        SkBadge(label: slide.kicker, onImage: true),
-                      const SizedBox(height: 14),
-                      Text(slide.title,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: Sk.display(context,
-                              size: 46, color: Colors.white, height: 1.05)),
-                      if (slide.line.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(slide.line,
-                            style: Sk.ui(context,
-                                size: 15.5,
-                                color: Colors.white.withValues(alpha: 0.9),
-                                weight: FontWeight.w700)),
+              Padding(
+                padding: narrow
+                    ? const EdgeInsets.fromLTRB(20, 16, 20, 40)
+                    : const EdgeInsets.fromLTRB(48, 32, 48, 56),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 540),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (slide.kicker.isNotEmpty && !narrow)
+                          SkBadge(label: slide.kicker, onImage: true),
+                        if (slide.kicker.isNotEmpty && !narrow)
+                          const SizedBox(height: 14),
+                        Text(slide.title,
+                            maxLines: narrow ? 2 : 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: Sk.display(context,
+                                size: titleSize,
+                                color: Colors.white,
+                                height: 1.08)),
+                        if (slide.line.isNotEmpty) ...[
+                          SizedBox(height: narrow ? 6 : 12),
+                          Text(slide.line,
+                              maxLines: narrow ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Sk.ui(context,
+                                  size: narrow ? 13 : 15.5,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  weight: FontWeight.w700)),
+                        ],
+                        SizedBox(height: narrow ? 12 : 22),
+                        FilledButton(
+                          onPressed: slide.onTap,
+                          style: FilledButton.styleFrom(
+                              minimumSize: Size(0, narrow ? 42 : 50),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: narrow ? 20 : 28),
+                              shape: const StadiumBorder()),
+                          child: Text(slide.cta,
+                              style: Sk.ui(context,
+                                  size: narrow ? 14 : 15.5,
+                                  color: cs.onPrimary,
+                                  weight: FontWeight.w800)),
+                        ),
                       ],
-                      const SizedBox(height: 22),
-                      FilledButton(
-                        onPressed: slide.onTap,
-                        style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 50),
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
-                            shape: const StadiumBorder()),
-                        child: Text(slide.cta,
-                            style: Sk.ui(context,
-                                size: 15.5,
-                                color: cs.onPrimary,
-                                weight: FontWeight.w800)),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        }),
       ),
     );
   }

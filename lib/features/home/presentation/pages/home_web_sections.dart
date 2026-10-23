@@ -198,9 +198,9 @@ class _DaySessionCard extends StatelessWidget {
     return _Hoverable(
       label: '${session.show.name}, ${skClock(session.date)}',
       onTap: onOpen,
-      builder: (final hover) => AnimatedContainer(
+      builder: (final hover) => LayoutBuilder(builder: (final context, final box) => AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        width: 380,
+        width: box.maxWidth < 380 ? box.maxWidth : 380,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: hover ? cs.primary.withValues(alpha: 0.08) : cs.surfaceContainerLow,
@@ -248,7 +248,7 @@ class _DaySessionCard extends StatelessWidget {
           ),
           Icon(Icons.arrow_forward_rounded, color: cs.primary),
         ]),
-      ),
+      )),
     );
   }
 }
