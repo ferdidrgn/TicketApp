@@ -6,7 +6,13 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../../core/util/calendar_description.dart';
 import '../../../../../core/util/calendar_picker.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart'
+    show currentUserIdProvider;
+import '../../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../detail/show_detail_data.dart';
@@ -90,14 +96,42 @@ class SessionActions extends StatelessWidget {
           action(Icons.event_available_rounded, 'Takvime ekle',
               (final ctx) => showAddToCalendarMenu(
                     ctx,
-                    CalendarEventData.forShow(
-                      showName: showName,
-                      start: session.when!,
-                      duration: duration,
-                      location: [session.venueName, session.stage?.address ?? '']
-                          .where((final p) => p.trim().isNotEmpty)
-                          .join(', '),
-                    ),
+                    () {
+                      // Kullanıcının bu seans için bileti varsa takvim
+                      // kaydına koltuk ve bilet bağlantısı da yazılır.
+                      final container = ProviderScope.containerOf(ctx);
+                      final String uid =
+                          container.read(currentUserIdProvider) ?? '';
+                      DetailedTicket? mine;
+                      if (uid.isNotEmpty) {
+                        final list = container
+                                .read(myTicketsProvider(uid))
+                                .value ??
+                            const <DetailedTicket>[];
+                        for (final DetailedTicket t in list) {
+                          if (t.ticket.eventId == session.event.id) {
+                            mine = t;
+                            break;
+                          }
+                        }
+                      }
+                      return CalendarEventData.forShow(
+                        showName: showName,
+                        start: session.when!,
+                        duration: duration,
+                        location: [session.venueName, session.stage?.address ?? '']
+                            .where((final p) => p.trim().isNotEmpty)
+                            .join(', '),
+                        description: calendarDescription(
+                          showId: session.event.showId,
+                          showName: showName,
+                          eventId: session.event.id,
+                          venue: session.venueName,
+                          seats: mine?.ticket.buySeats ?? const [],
+                          ticketId: mine?.ticket.id ?? '',
+                        ),
+                      );
+                    }(),
                     native: !kIsWeb,
                   )),
         if (stage != null)

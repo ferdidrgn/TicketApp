@@ -454,55 +454,36 @@ class _ArticleCardState extends State<_ArticleCard> {
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final _Article a = widget.article;
+    // Kart/ikon kabı yok: başlık, giriş cümlesi ve bağlantı — düz metin sütunu.
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: () => _open(context),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          transform: Matrix4.translationValues(0, _hover ? -4 : 0, 0),
-          padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: _hover
-                    ? cs.primary
-                    : cs.outlineVariant.withValues(alpha: 0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                    color: cs.primaryContainer, shape: BoxShape.circle),
-                child: Icon(a.icon, color: cs.onPrimaryContainer),
-              ),
-              const SizedBox(height: 16),
-              Text(a.title,
-                  style: Sk.ui(context,
-                      size: 18, weight: FontWeight.w800, height: 1.25)),
-              const SizedBox(height: 8),
-              Text(a.lead,
-                  style: Sk.ui(context,
-                      size: 14,
-                      color: cs.onSurfaceVariant,
-                      weight: FontWeight.w500,
-                      height: 1.5)),
-              const SizedBox(height: 16),
-              Row(children: [
-                Text('${a.body.length} madde · Oku',
-                    style: Sk.ui(context,
-                        size: 13.5, color: cs.primary, weight: FontWeight.w800)),
-                const SizedBox(width: 6),
-                Icon(Icons.arrow_forward_rounded, size: 17, color: cs.primary),
-              ]),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(a.title,
+                style: Sk.display(context,
+                    size: 24,
+                    height: 1.15,
+                    color: _hover ? cs.primary : cs.onSurface)),
+            const SizedBox(height: 10),
+            Text(a.lead,
+                style: Sk.ui(context,
+                    size: 15,
+                    color: cs.onSurfaceVariant,
+                    weight: FontWeight.w500,
+                    height: 1.55)),
+            const SizedBox(height: 12),
+            Text('${a.body.length} madde — oku',
+                style: Sk.ui(context,
+                    size: 14,
+                    color: cs.primary,
+                    weight: FontWeight.w800,
+                    height: 1.2)),
+          ],
         ),
       ),
     );

@@ -18,33 +18,11 @@ class _Reveal extends StatefulWidget {
 }
 
 class _RevealState extends State<_Reveal> {
-  final Key _key = UniqueKey();
-  bool _shown = false;
-
+  // Skill kuralı (Impeccable "no section fade"): her bölüme aynı belirme
+  // animasyonu uygulanmaz. Hareket yalnızca kullanıcı eyleminin sonucudur
+  // (hover, seçim, geçiş). Sınıf, çağıranlar değişmeden kalsın diye durur.
   @override
-  Widget build(final BuildContext context) {
-    final bool reduce = Sk.reduceMotion(context);
-    if (reduce) return widget.child;
-    return VisibilityDetector(
-      key: _key,
-      onVisibilityChanged: (final info) {
-        if (!_shown && info.visibleFraction > 0.08 && mounted) {
-          setState(() => _shown = true);
-        }
-      },
-      child: AnimatedOpacity(
-        opacity: _shown ? 1 : 0,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeOutCubic,
-        child: AnimatedSlide(
-          offset: _shown ? Offset.zero : const Offset(0, 0.06),
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.easeOutCubic,
-          child: widget.child,
-        ),
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => widget.child;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -379,8 +357,10 @@ class _WeekSpotlight extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SkBadge(label: 'Haftanın oyunu', accent: true),
-        const SizedBox(height: 16),
+        Text('Haftanın oyunu',
+            style: Sk.ui(context,
+                size: 15, color: cs.primary, weight: FontWeight.w800)),
+        const SizedBox(height: 8),
         Text(show.name, style: Sk.display(context, size: 44, height: 1.06)),
         const SizedBox(height: 14),
         Wrap(spacing: 18, runSpacing: 8, children: [
@@ -531,16 +511,22 @@ class _BudgetRailState extends State<_BudgetRail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [
-          Text('Bütçene göre',
-              style: Sk.display(context, size: 30, height: 1.1)),
-          const SizedBox(width: 24),
-          Wrap(spacing: 10, children: [
-            tab('250 ₺ altı', 250),
-            tab('500 ₺ altı', 500),
-            tab('Tümü', null),
-          ]),
-        ]),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 24,
+          runSpacing: 12,
+          children: [
+            Text('Bütçene göre',
+                style: Sk.display(context,
+                    size: MediaQuery.sizeOf(context).width < 640 ? 24 : 30,
+                    height: 1.1)),
+            Wrap(spacing: 10, runSpacing: 10, children: [
+              tab('250 ₺ altı', 250),
+              tab('500 ₺ altı', 500),
+              tab('Tümü', null),
+            ]),
+          ],
+        ),
         const SizedBox(height: 22),
         if (list.isEmpty)
           Text('Bu bütçede seans yok.',

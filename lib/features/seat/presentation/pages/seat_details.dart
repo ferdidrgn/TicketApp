@@ -12,7 +12,9 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../../core/util/platform_checker.dart';
 import '../../../../core/util/responsive_utils.dart';
+import '../../../../shared/navigation/widgets/web_site_header.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/ticket/seat_plan.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
@@ -268,7 +270,16 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            SafeArea(child: body),
+            // Web (≥768): siteyle aynı kalıp — site başlığı + ekmek kırıntısı ve
+            // adım göstergesi, altında koltuk planı ve koçan.
+            if (PlatformChecker.isWeb && (desktop || tablet))
+              Column(children: [
+                const WebSiteHeader(),
+                _CheckoutSteps(show: show, step: 1),
+                Expanded(child: body),
+              ])
+            else
+              SafeArea(child: body),
             // 🎉 SATIN ALMA BAŞARILI KUTLAMASI
             _buildConfetti(),
           ],
@@ -1701,4 +1712,107 @@ class _PaperDialog extends StatelessWidget {
           ),
         ),
       );
+}
+
+
+/// Web bilet alma kalıbı: ekmek kırıntısı + 3 adım (Seans → Koltuk → Ödeme).
+class _CheckoutSteps extends StatelessWidget {
+  final Show? show;
+  final int step; // 0 Seans, 1 Koltuk, 2 Ödeme
+  const _CheckoutSteps({required this.show, required this.step});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    Widget crumb(final String t, final VoidCallback? tap) => MouseRegion(
+          cursor:
+              tap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: tap,
+            child: Text(t,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: tap == null ? cs.onSurfaceVariant : cs.primary)),
+          ),
+        );
+    final Widget sep = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child:
+          Icon(Icons.chevron_right_rounded, size: 16, color: cs.onSurfaceVariant),
+    );
+    Widget dot(final int i, final String label) {
+      final bool done = i < step;
+      final bool now = i == step;
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: done || now ? cs.primary : cs.surfaceContainerHigh,
+          ),
+          child: done
+              ? Icon(Icons.check_rounded, size: 16, color: cs.onPrimary)
+              : Text('${i + 1}',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: now ? cs.onPrimary : cs.onSurfaceVariant)),
+        ),
+        const SizedBox(width: 8),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: now ? FontWeight.w800 : FontWeight.w600,
+                color: now ? cs.onSurface : cs.onSurfaceVariant)),
+      ]);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(children: [
+        crumb('Ana Sayfa', () => NavigationHandler.goToHome(context)),
+        sep,
+        if (show != null)
+          Flexible(
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => NavigationHandler.goToShow(
+                    context, show!.id, show!.name,
+                    imageUrl: show!.imageUrl, title: show!.name),
+                child: Text(show!.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: cs.primary)),
+              ),
+            ),
+          ),
+        if (show != null) sep,
+        crumb('Koltuk seç', null),
+        const Spacer(),
+        dot(0, 'Seans'),
+        Container(
+            width: 28,
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: cs.outlineVariant),
+        dot(1, 'Koltuk'),
+        Container(
+            width: 28,
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: cs.outlineVariant),
+        dot(2, 'Ödeme'),
+      ]),
+    );
+  }
 }

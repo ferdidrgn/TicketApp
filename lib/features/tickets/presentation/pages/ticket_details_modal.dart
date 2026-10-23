@@ -7,6 +7,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../../../../core/util/calendar_description.dart';
 import '../../../../core/util/calendar_picker.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -433,9 +434,14 @@ class _TicketLinks extends StatelessWidget {
                 start: eventDate!,
                 duration: show.duration,
                 location: stage?.address ?? '',
-                description: stage != null && stage.name.isNotEmpty
-                    ? '${stage.name} — TiyatRol bileti'
-                    : 'TiyatRol bileti',
+                description: calendarDescription(
+                  showId: ticket.ticket.showId,
+                  showName: show.name,
+                  eventId: ticket.ticket.eventId,
+                  venue: stage?.name ?? '',
+                  seats: ticket.ticket.buySeats,
+                  ticketId: ticket.ticket.id,
+                ),
               ),
               native: !kIsWeb,
             ),

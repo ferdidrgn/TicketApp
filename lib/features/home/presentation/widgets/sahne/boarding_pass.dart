@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../../../../../core/util/calendar_description.dart';
 import '../../../../../core/util/calendar_picker.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/sahne/sketch.dart';
@@ -120,6 +121,14 @@ class _BoardingPassCardState extends State<BoardingPassCard>
           widget.ticket.stage?.name ?? '',
           widget.ticket.stage?.address ?? '',
         ].where((x) => x.trim().isNotEmpty).join(', '),
+        description: calendarDescription(
+          showId: widget.ticket.ticket.showId,
+          showName: widget.ticket.showTitle,
+          eventId: widget.ticket.ticket.eventId,
+          venue: widget.ticket.stageTitle,
+          seats: widget.ticket.ticket.buySeats,
+          ticketId: widget.ticket.ticket.id,
+        ),
       ),
       native: !kIsWeb,
     );

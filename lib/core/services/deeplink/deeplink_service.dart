@@ -20,6 +20,14 @@ final class TiyatrolDeeplinkService {
     return "$_baseUrl/$folder/$slug-$id";
   }
 
+  /// Oyun sayfasının herkese açık bağlantısı (slug-id).
+  static String showUrl(final String id, final String name) =>
+      _createUrl("show", name, id);
+
+  /// Biletin herkese açık bağlantısı.
+  static String ticketUrl(final String ticketId) =>
+      "$_baseUrl/my-tickets/$ticketId";
+
   /// 🎭 Gösteri Paylaşımı
   static Future<void> shareShow(
       {required final String id, required final String name}) async {

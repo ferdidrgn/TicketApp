@@ -46,6 +46,13 @@ Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
 `AppShadows.levelN(tint)` — ham
 `EdgeInsets`/`BorderRadius.circular(N)`/`BoxShadow`/`Duration` yerine bunlar.
 
+## Tasarım skill'leri (kurulu, kullanıcı düzeyinde)
+
+Emil Kowalski (animasyon), Taste (şablon hissine karşı), Impeccable (denetim/cila — yalnızca belgeler) skill'leri
+kuruludur; kullanım: `docs/TASARIM-SKILLERI.md`. Çakışmada bu dosya ve `tiyatrol-design` önce gelir. Web (kIsWeb)
+ve mobil AYRI tasarımdır: web = mağaza/bilet sitesi düzeni (`home_page_web.dart`, `show_detail_page_web.dart`,
+`search_page_web.dart`, `player_details_web.dart`, `web_site_header.dart`), mobil = "Sahne" deneyimi.
+
 ## Yerleşik desenler
 
 - **Bilet dili (onaylı imza):** `lib/shared/widgets/ticket/` — `ticket_kit.dart`

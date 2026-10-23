@@ -241,7 +241,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                               height: desktop ? 460 : 320)),
                   top: 24,
                 ),
-                section(WebPromoTiles(wide: desktop), top: 28),
                 if (sessions.isNotEmpty)
                   section(_Reveal(child: _DateStrip(sessions: sessions, onOpen: _openShow)),
                       top: 56),
@@ -329,19 +328,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                               width: inner,
                               onOpen: _openShow)),
                       top: 64),
-                // NASIL ÇALIŞIR + SAYILAR
-                section(WebHowItWorks(wide: desktop), top: 80),
-                section(
-                  _Reveal(
-                    child: _CountStats(items: [
-                      (shows.length, 'Oyun', Icons.theater_comedy_rounded),
-                      (stages.length, 'Sahne', Icons.location_city_rounded),
-                      (teams.length, 'Topluluk', Icons.groups_rounded),
-                      (players.length, 'Oyuncu', Icons.person_rounded),
-                    ]),
-                  ),
-                  top: 56,
-                ),
                 // 4) MEKÂNLAR + TOPLULUKLAR
                 if (stages.isNotEmpty || teams.isNotEmpty)
                   section(
@@ -455,28 +441,38 @@ class _Title extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool narrow = MediaQuery.sizeOf(context).width < 640;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(title, style: Sk.display(context, size: 30, height: 1.1)),
-        if (subtitle != null) ...[
-          const SizedBox(width: 14),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(subtitle!,
-                style: Sk.ui(context,
-                    size: 14,
-                    color: cs.onSurfaceVariant,
-                    weight: FontWeight.w600)),
+        Expanded(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 14,
+            children: [
+              Text(title,
+                  style: Sk.display(context,
+                      size: narrow ? 24 : 30, height: 1.1)),
+              if (subtitle != null && !narrow)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(subtitle!,
+                      style: Sk.ui(context,
+                          size: 14,
+                          color: cs.onSurfaceVariant,
+                          weight: FontWeight.w600)),
+                ),
+            ],
           ),
-        ],
-        const Spacer(),
+        ),
         if (action != null)
           TextButton(
             onPressed: onAction,
             child: Text(action!,
                 style: Sk.ui(context,
-                    size: 14, color: cs.primary, weight: FontWeight.w800)),
+                    size: narrow ? 13 : 14,
+                    color: cs.primary,
+                    weight: FontWeight.w800)),
           ),
       ],
     );
@@ -738,10 +734,6 @@ class _SlideView extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (slide.kicker.isNotEmpty && !narrow)
-                          SkBadge(label: slide.kicker, onImage: true),
-                        if (slide.kicker.isNotEmpty && !narrow)
-                          const SizedBox(height: 14),
                         Text(slide.title,
                             maxLines: narrow ? 2 : 3,
                             overflow: TextOverflow.ellipsis,
@@ -988,19 +980,9 @@ class _ShowCard extends StatelessWidget {
       builder: (final hover) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            transform: Matrix4.translationValues(0, hover ? -6 : 0, 0),
+          DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: hover ? 0.4 : 0.2),
-                  blurRadius: hover ? 24 : 12,
-                  offset: Offset(0, hover ? 12 : 6),
-                ),
-              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
