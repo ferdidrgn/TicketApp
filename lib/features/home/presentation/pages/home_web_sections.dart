@@ -46,9 +46,13 @@ class _DateStripState extends State<_DateStrip> {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final DateTime today = DateTime.now();
     final DateTime start = DateTime(today.year, today.month, today.day);
-    final List<DateTime> days = [
-      for (int i = 0; i < 45; i++) start.add(Duration(days: i)),
-    ];
+    // Yalnızca seansı olan günler (boş günlerle şerit doldurulmaz).
+    final List<DateTime> days = ({
+      for (final HomeSession x in widget.sessions)
+        if (!x.day.isBefore(start)) x.day,
+    }.toList()
+      ..sort((a, b) => a.compareTo(b)));
+    if (days.isEmpty) return const SizedBox.shrink();
     int countOn(final DateTime d) => widget.sessions
         .where((final s) => s.day == d)
         .length;
@@ -66,7 +70,7 @@ class _DateStripState extends State<_DateStrip> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Title(title: 'Tarih seç', subtitle: 'önümüzdeki 45 gün, seansı olan günler çerçeveli'),
+        const _Title(title: 'Tarih seç', subtitle: 'perde açılan günler, birini seç'),
         const SizedBox(height: 20),
         SizedBox(
           height: 96,
@@ -92,15 +96,15 @@ class _DateStripState extends State<_DateStrip> {
                             : cs.surfaceContainerHigh),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: n > 0 && !sel
-                            ? cs.primary.withValues(alpha: 0.6)
-                            : Colors.transparent,
-                        width: 1.5),
+                        color: sel
+                            ? Colors.transparent
+                            : cs.primary.withValues(alpha: 0.45),
+                        width: 1.4),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(i == 0 ? 'Bugün' : kDaysShortTr[d.weekday - 1],
+                      Text(d == start ? 'Bugün' : kDaysShortTr[d.weekday - 1],
                           style: Sk.ui(context,
                               size: 12,
                               color: (sel ? cs.onPrimary : cs.onSurface)
@@ -112,11 +116,10 @@ class _DateStripState extends State<_DateStrip> {
                               height: 1.1,
                               color: sel ? cs.onPrimary : cs.onSurface)),
                       Text(
-                          n == 0 ? '—' : '$n seans',
+                          kMonthsShortTr[d.month - 1],
                           style: Sk.ui(context,
                               size: 11.5,
-                              color: (sel ? cs.onPrimary : cs.primary)
-                                  .withValues(alpha: n == 0 ? 0.4 : 1),
+                              color: (sel ? cs.onPrimary : cs.primary),
                               weight: FontWeight.w800)),
                     ],
                   ),
@@ -501,7 +504,7 @@ class _BudgetRailState extends State<_BudgetRail> {
     final Widget dial = HomeBudgetCard(
       key: ValueKey<double?>(_max),
       prices: prices,
-      applied: _max,
+      applied: _max ?? prices.fold<double>(0, (a, b) => b > a ? b : a),
       onApply: (final b) => setState(() => _max = b),
     );
     final Widget rail = list.isEmpty

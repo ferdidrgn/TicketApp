@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,8 @@ import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../shared/widgets/sahne/sketch.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
 import '../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
@@ -22,15 +26,14 @@ import '../providers/show_detail_provider.dart';
 import '../providers/show_provider.dart';
 import '../widgets/detail/show_detail_actions.dart';
 import '../widgets/detail/show_detail_data.dart';
+import '../widgets/detail/sticky_aside.dart';
 import '../widgets/sahne/show_session_extras.dart';
 
-/// OYUN DETAYI — WEB. Bir bilet sitesinin ürün sayfası:
-///
-/// Üstte ekmek kırıntısı; solda galeri (büyük afiş + küçük resimler, tıklayınca
-/// tam ekran); sağda yapışkan bilgi kutusu (tür, ad, puan, künye, seans
-/// seçici, "Bilet al"). Altta sekmeler (Hikâye · Seanslar ve mekân · Kadro ·
-/// Yorumlar) ve "Benzer oyunlar" rafı. Mobil uygulamanın "Sahne" oyun
-/// sayfasından AYRIDIR. Kendi `Scaffold`'unu kurar.
+/// OYUN DETAYI — WEB. "Program ve bilet": tiyatro programı (sağda kayan
+/// hikâye, kadro, seanslar, galeri, yorumlar) + solda yapışkan fildişi
+/// OYUN BİLETİ. Seçilen seans bilete anında yansır; "Koltuk seç" damgası
+/// birincil aksiyondur. Kaydırınca üstte ince bir çubuk (ad + bölümler +
+/// aksiyon) belirir. Mobil uygulamanın "Sahne" sayfasından AYRIDIR.
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
   const ShowDetailPage({super.key, required this.showId});
@@ -39,13 +42,62 @@ class ShowDetailPage extends ConsumerStatefulWidget {
   ConsumerState<ShowDetailPage> createState() => _ShowDetailPageState();
 }
 
-class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
-  int _photo = 0;
-  int _tab = 0;
+class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _scroll = ScrollController();
+  final GlobalKey _rowKey = GlobalKey();
+  final List<GlobalKey> _sectionKeys = List.generate(5, (_) => GlobalKey());
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+
   ShowSession? _selected;
   DateTime? _day;
+  int _active = 0;
+  bool _showBar = false;
   bool _recorded = false;
   bool _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scroll.removeListener(_onScroll);
+    _scroll.dispose();
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final bool show = _scroll.hasClients && _scroll.offset > 520;
+    int active = 0;
+    for (int i = 0; i < _sectionKeys.length; i++) {
+      final BuildContext? c = _sectionKeys[i].currentContext;
+      if (c == null) continue;
+      final RenderObject? ro = c.findRenderObject();
+      if (ro is! RenderBox || !ro.attached) continue;
+      if (ro.localToGlobal(Offset.zero).dy <= 260) active = i;
+    }
+    if (show != _showBar || active != _active) {
+      setState(() {
+        _showBar = show;
+        _active = active;
+      });
+    }
+  }
+
+  void _goTo(final int i) {
+    final BuildContext? c = _sectionKeys[i].currentContext;
+    if (c == null) return;
+    HapticFeedback.selectionClick();
+    Scrollable.ensureVisible(c,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.04);
+  }
 
   List<String> _photos(final Show s) {
     final List<String> out = [];
@@ -81,9 +133,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     Widget body;
     if (async.hasError && state == null) {
-      body = Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48),
+      body = Padding(
+        padding: const EdgeInsets.all(64),
+        child: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.theater_comedy_rounded, size: 48),
             const SizedBox(height: 14),
@@ -97,12 +149,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         ),
       );
     } else if (state == null) {
-      body = const Center(
-          heightFactor: 8, child: CircularProgressIndicator());
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 160),
+        child: Center(child: CircularProgressIndicator()),
+      );
     } else {
       final ShowDetailData d = ShowDetailData.from(state);
       if (!_recorded) {
         _recorded = true;
+        _entrance.forward();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             ref.read(recentShowIdsProvider.notifier).add(widget.showId);
@@ -112,19 +167,44 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       body = _content(context, d);
     }
 
+    final String? name = state?.show.name;
     return Scaffold(
       backgroundColor: cs.surface,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const WebSiteHeader(),
-            body,
-            const SizedBox(height: 72),
-            const WebMegaFooter(),
-          ],
+      body: Stack(children: [
+        if (state != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AmbientBackdrop(
+                url: state.show.imageUrl, height: 980, blur: 60, opacity: 0.42),
+          ),
+        SingleChildScrollView(
+          controller: _scroll,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const WebSiteHeader(),
+              body,
+              const SizedBox(height: 96),
+              const WebMegaFooter(),
+            ],
+          ),
         ),
-      ),
+        if (state != null && name != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _StickyBar(
+              visible: _showBar,
+              title: name,
+              active: _active,
+              onTab: _goTo,
+              action: _barAction(state),
+            ),
+          ),
+      ]),
       floatingActionButton: state == null
           ? null
           : ShowChatBubbleButton(
@@ -132,140 +212,647 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  Widget _content(final BuildContext context, final ShowDetailData d) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final Show show = d.show;
-    final List<String> photos = _photos(show);
-    final List<DateTime> days = [];
-    for (final ShowSession s in d.sessions) {
-      if (s.when == null) continue;
-      final DateTime x = skDay(s.when!);
-      if (!days.contains(x)) days.add(x);
-    }
-    final DateTime? activeDay = _day != null && days.contains(_day)
-        ? _day
-        : (days.isEmpty ? null : days.first);
-    final List<ShowSession> daySessions = [
-      for (final ShowSession s in d.sessions)
-        if (activeDay == null || (s.when != null && skDay(s.when!) == activeDay))
-          s,
-    ];
-    final ShowSession? chosen = _selected != null &&
-            d.sessions.any((final s) => s.event.id == _selected!.event.id)
-        ? _selected
-        : (daySessions.isEmpty ? null : daySessions.first);
+  Widget _barAction(final ShowDetailState state) {
+    final ShowDetailData d = ShowDetailData.from(state);
+    final ShowSession? chosen = _chosen(d);
+    final bool canBuy = d.isExternal || chosen != null;
+    return FilledButton(
+      onPressed: canBuy && !_opening ? () => _buy(d, chosen) : null,
+      style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 44), shape: const StadiumBorder()),
+      child: Text(d.isExternal ? 'Biletini bul' : 'Koltuk seç'),
+    );
+  }
 
+  ShowSession? _chosen(final ShowDetailData d) {
+    if (_selected != null &&
+        d.sessions.any((final s) => s.event.id == _selected!.event.id)) {
+      return _selected;
+    }
+    if (_day != null) {
+      for (final ShowSession s in d.sessions) {
+        if (s.when != null && skDay(s.when!) == _day) return s;
+      }
+    }
+    return d.nextSession;
+  }
+
+  Widget _content(final BuildContext context, final ShowDetailData d) {
+    final ShowSession? chosen = _chosen(d);
     return LayoutBuilder(builder: (final context, final box) {
       final double w = box.maxWidth;
-      final bool desktop = w >= 1024;
-      final double gutter = w >= 1200 ? 48 : (w >= 768 ? 32 : 18);
+      final bool desktop = w >= 1100;
+      final double gutter = w >= 1200 ? 56 : (w >= 768 ? 36 : 18);
 
-      final Widget gallery = _GalleryBlock(
-        narrow: !desktop,
-        photos: photos,
-        index: _photo.clamp(0, photos.isEmpty ? 0 : photos.length - 1),
-        onPick: (final i) => setState(() => _photo = i),
-        onOpen: () => photos.isEmpty
-            ? null
-            : GalleryViewerDialog.open(context, photos),
-      );
-
-      final Widget info = _InfoPanel(
+      final Widget ticket = _TicketCard(
         data: d,
-        days: days,
-        activeDay: activeDay,
-        daySessions: daySessions,
         chosen: chosen,
         busy: _opening,
-        onDay: (final x) => setState(() {
-          _day = x;
-          _selected = null;
+        entrance: _entrance,
+        onSession: (final s) => setState(() {
+          _selected = s;
+          if (s.when != null) _day = skDay(s.when!);
         }),
-        onSession: (final s) => setState(() => _selected = s),
         onBuy: () => _buy(d, chosen),
-        onReviews: () => setState(() => _tab = 3),
+      );
+
+      final Widget program = _Program(
+        data: d,
+        chosen: chosen,
+        sectionKeys: _sectionKeys,
+        entrance: _entrance,
+        photos: _photos(d.show),
+        onSession: (final s) => setState(() {
+          _selected = s;
+          if (s.when != null) _day = skDay(s.when!);
+        }),
+        onGoReviews: () => _goTo(4),
       );
 
       return Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1360),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(gutter, 22, gutter, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Breadcrumb(show: show),
-                const SizedBox(height: 22),
-                desktop
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 6, child: gallery),
-                          const SizedBox(width: 48),
-                          Expanded(flex: 6, child: info),
-                        ],
-                      )
-                    : Column(children: [
-                        gallery,
-                        const SizedBox(height: 28),
-                        info,
-                      ]),
-                const SizedBox(height: 56),
-                _Tabs(
-                  index: _tab,
-                  reviewsLabel: 'Yorumlar',
-                  onTab: (final i) => setState(() => _tab = i),
-                  hasCast: d.cast.isNotEmpty || d.pastCast.isNotEmpty,
-                ),
-                const SizedBox(height: 28),
-                _tabBody(context, d, desktop),
-                const SizedBox(height: 56),
-                _SimilarRail(show: show),
-              ],
-            ),
+            padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 0),
+            child: desktop
+                ? Row(
+                    key: _rowKey,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 440,
+                        child: StickyAside(
+                          controller: _scroll,
+                          rowKey: _rowKey,
+                          contentTop: 150,
+                          gap: 88,
+                          child: ticket,
+                        ),
+                      ),
+                      const SizedBox(width: 72),
+                      Expanded(child: program),
+                    ],
+                  )
+                : Column(children: [
+                    Center(
+                      child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 480),
+                          child: ticket),
+                    ),
+                    const SizedBox(height: 40),
+                    program,
+                  ]),
           ),
         ),
       );
     });
   }
+}
 
-  Widget _tabBody(
-      final BuildContext context, final ShowDetailData d, final bool desktop) {
+// ═════════════════════════════════════════════════════════════════════════════
+// YAPIŞKAN ÜST ÇUBUK
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _StickyBar extends StatelessWidget {
+  final bool visible;
+  final String title;
+  final int active;
+  final ValueChanged<int> onTab;
+  final Widget action;
+  const _StickyBar(
+      {required this.visible,
+      required this.title,
+      required this.active,
+      required this.onTab,
+      required this.action});
+
+  static const List<String> _labels = [
+    'Hikâye',
+    'Kadro',
+    'Seanslar',
+    'Galeri',
+    'Yorumlar',
+  ];
+
+  @override
+  Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    switch (_tab) {
-      case 0:
-        return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: SelectableText(
-            d.description.isEmpty
-                ? 'Bu oyun için henüz bir açıklama eklenmemiş.'
-                : d.description,
-            style: Sk.ui(context,
-                size: 16,
-                weight: FontWeight.w500,
-                height: 1.75,
-                color: cs.onSurface.withValues(alpha: 0.9)),
+    final bool wide = MediaQuery.sizeOf(context).width >= 900;
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedSlide(
+        offset: visible ? Offset.zero : const Offset(0, -1),
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        child: Material(
+          color: cs.surface.withValues(alpha: 0.96),
+          elevation: 6,
+          shadowColor: Colors.black.withValues(alpha: 0.4),
+          child: SizedBox(
+            height: 64,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1360),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: wide ? 56 : 18),
+                  child: Row(children: [
+                    Expanded(
+                      flex: wide ? 3 : 1,
+                      child: Text(title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.display(context, size: 22, height: 1.1)),
+                    ),
+                    if (wide)
+                      for (int i = 0; i < _labels.length; i++)
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => onTab(i),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 180),
+                                style: Sk.ui(context,
+                                    size: 14.5,
+                                    color: active == i
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                    weight: FontWeight.w800),
+                                child: Text(_labels[i]),
+                              ),
+                            ),
+                          ),
+                        ),
+                    const SizedBox(width: 12),
+                    action,
+                  ]),
+                ),
+              ),
+            ),
           ),
-        );
-      case 1:
-        return _SessionsTable(data: d);
-      case 2:
-        return _CastGrid(players: [...d.cast, ...d.pastCast], current: d.cast);
-      default:
-        return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: ReviewsSection(
-              showId: d.show.id, showName: d.show.name),
-        );
-    }
+        ),
+      ),
+    );
   }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// OYUN BİLETİ (solda, yapışkan)
+// ═════════════════════════════════════════════════════════════════════════════
 
-class _Breadcrumb extends StatelessWidget {
+class _TicketCard extends StatelessWidget {
+  final ShowDetailData data;
+  final ShowSession? chosen;
+  final bool busy;
+  final AnimationController entrance;
+  final ValueChanged<ShowSession> onSession;
+  final VoidCallback onBuy;
+
+  const _TicketCard({
+    required this.data,
+    required this.chosen,
+    required this.busy,
+    required this.entrance,
+    required this.onSession,
+    required this.onBuy,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final Show show = data.show;
+    final bool external = data.isExternal;
+    final DateTime? when = chosen?.when;
+    final String venue = (chosen?.venueName ?? '').trim();
+    final String dateText = when == null
+        ? (chosen?.shortLabel ?? '—')
+        : '${when.day} ${kMonthsTr[when.month - 1]}';
+    final String timeText = when == null ? '—' : skClock(when);
+    final double? price = chosen?.price ?? data.lowestPrice;
+    final bool canBuy = external || chosen != null;
+    final bool reduce = Sk.reduceMotion(context);
+
+    final Widget paper = TicketPiece(
+      perforated: TicketEdge.bottom,
+      notch: 16,
+      corner: 22,
+      shadows: [
+        BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 44,
+            offset: const Offset(0, 22)),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TicketHeaderStrip(kind: data.kindLabel),
+            const SizedBox(height: 16),
+            _TiltPoster(url: show.imageUrl),
+            const SizedBox(height: 18),
+            Text(show.name,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TicketInk.headline(26)),
+            const SizedBox(height: 14),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              transitionBuilder: (final child, final anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                          begin: const Offset(0, 0.25), end: Offset.zero)
+                      .animate(anim),
+                  child: child,
+                ),
+              ),
+              child: Row(
+                key: ValueKey<String>('${chosen?.event.id}-$dateText-$timeText'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                      flex: 5,
+                      child: TicketField(label: 'TARİH', value: dateText)),
+                  Expanded(
+                      flex: 3,
+                      child: TicketField(label: 'SAAT', value: timeText)),
+                  Expanded(
+                      flex: 6,
+                      child: TicketField(
+                          label: 'SAHNE', value: venue.isEmpty ? '—' : venue)),
+                ],
+              ),
+            ),
+            if (!external && data.sessions.length > 1) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: data.sessions.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (final context, final i) {
+                    final ShowSession s = data.sessions[i];
+                    final bool sel = s.event.id == chosen?.event.id;
+                    final DateTime? w = s.when;
+                    return MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => onSession(s),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? TicketInk.accentOf(context)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                                color: TicketInk.accentOf(context)
+                                    .withValues(alpha: sel ? 1 : 0.5)),
+                          ),
+                          child: Text(
+                              w == null
+                                  ? s.shortLabel
+                                  : '${w.day} ${kMonthsShortTr[w.month - 1]} ${skClock(w)}',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: sel
+                                      ? TicketInk.onAccentOf(context)
+                                      : TicketInk.ink)),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            const SizedBox(height: 2, child: TicketPerforation()),
+            const SizedBox(height: 16),
+            Row(children: [
+              if (price != null)
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('BİLET FİYATI', style: TicketInk.label()),
+                        const SizedBox(height: 2),
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: price),
+                          duration: reduce
+                              ? Duration.zero
+                              : const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                          builder: (_, final v, __) => Text(skPrice(v),
+                              style: TicketInk.headline(32)),
+                        ),
+                      ]),
+                ),
+              Expanded(
+                flex: price == null ? 1 : 2,
+                child: TicketStampButton(
+                  label: external ? 'Biletini bul' : 'Koltuk seç',
+                  leading: Icon(
+                      external
+                          ? Icons.open_in_new_rounded
+                          : Icons.event_seat_rounded,
+                      size: 18),
+                  loading: busy,
+                  onTap: canBuy ? onBuy : null,
+                ),
+              ),
+            ]),
+            const SizedBox(height: 16),
+            TicketBarcode(seed: show.id, height: 36),
+          ],
+        ),
+      ),
+    );
+
+    // Giriş: bilet aşağıdan süzülür ve hafifçe döner (bir kez).
+    return AnimatedBuilder(
+      animation: entrance,
+      builder: (final context, final child) {
+        final double t = reduce
+            ? 1
+            : Curves.easeOutCubic
+                .transform((entrance.value / 0.7).clamp(0.0, 1.0));
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 40),
+            child: Transform.rotate(angle: (1 - t) * -0.02, child: child),
+          ),
+        );
+      },
+      child: paper,
+    );
+  }
+}
+
+/// Afiş: fare üzerinde hafifçe 3B eğilir, boşta çok yavaş yakınlaşır.
+class _TiltPoster extends StatefulWidget {
+  final String url;
+  const _TiltPoster({required this.url});
+
+  @override
+  State<_TiltPoster> createState() => _TiltPosterState();
+}
+
+class _TiltPosterState extends State<_TiltPoster>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _drift =
+      AnimationController(vsync: this, duration: const Duration(seconds: 18));
+  Offset _tilt = Offset.zero;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (Sk.reduceMotion(context)) {
+      _drift.stop();
+    } else if (!_drift.isAnimating) {
+      _drift.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _drift.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        onHover: (final e) {
+          final Size? b = context.size;
+          if (b == null) return;
+          setState(() => _tilt = Offset(
+                ((e.localPosition.dx / b.width) * 2 - 1).clamp(-1.0, 1.0),
+                ((e.localPosition.dy / b.height) * 2 - 1).clamp(-1.0, 1.0),
+              ));
+        },
+        onExit: (_) => setState(() => _tilt = Offset.zero),
+        child: TweenAnimationBuilder<Offset>(
+          tween: Tween(begin: Offset.zero, end: _tilt),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          builder: (final context, final t, final child) => Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateX(-t.dy * 0.07)
+              ..rotateY(t.dx * 0.09),
+            child: child,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: AnimatedBuilder(
+                animation: _drift,
+                builder: (_, final child) => Transform.scale(
+                    scale: 1.0 + 0.045 * _drift.value, child: child),
+                child: SkImage(url: widget.url, alignment: Alignment.topCenter),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PROGRAM (sağda)
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _Program extends ConsumerWidget {
+  final ShowDetailData data;
+  final ShowSession? chosen;
+  final List<GlobalKey> sectionKeys;
+  final AnimationController entrance;
+  final List<String> photos;
+  final ValueChanged<ShowSession> onSession;
+  final VoidCallback onGoReviews;
+
+  const _Program({
+    required this.data,
+    required this.chosen,
+    required this.sectionKeys,
+    required this.entrance,
+    required this.photos,
+    required this.onSession,
+    required this.onGoReviews,
+  });
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Show show = data.show;
+    final ReviewStat? stat = ref.watch(reviewStatsProvider).value?[show.id];
+    final String desc = data.description;
+    final List<Player> cast = [...data.cast, ...data.pastCast];
+
+    Widget gap(final double h) => SizedBox(height: h);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Crumbs(show: show),
+        gap(26),
+        // Başlık: kelime kelime açılır
+        _WordTitle(text: show.name, entrance: entrance),
+        gap(14),
+        SkSquiggle(width: 150, seed: show.name.length),
+        gap(14),
+        Text(
+            [
+              if (show.category.trim().isNotEmpty) show.category.trim(),
+              if (show.type.trim().isNotEmpty &&
+                  show.type.trim().toLowerCase() !=
+                      show.category.trim().toLowerCase())
+                show.type.trim(),
+            ].join(' · '),
+            style: Sketch.hand(context, size: 30, color: cs.primary)),
+        gap(22),
+        Wrap(spacing: 30, runSpacing: 12, children: [
+          if (show.duration.trim().isNotEmpty)
+            _Fact(Icons.schedule_rounded, 'Süre', show.duration.trim()),
+          if (show.ageLimit.trim().isNotEmpty)
+            _Fact(Icons.shield_outlined, 'Yaş sınırı', show.ageLimit.trim()),
+          if (data.lowestPrice != null)
+            _Fact(Icons.sell_outlined, 'Bilet', "${skPrice(data.lowestPrice!)}'den"),
+          if (stat != null && stat.count > 0)
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onGoReviews,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  StarRow(rating: stat.average, size: 20),
+                  const SizedBox(width: 8),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: stat.average),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, final v, __) => Text(
+                        '${v.toStringAsFixed(1)} · ${stat.count} yorum',
+                        style: Sk.ui(context,
+                            size: 14.5,
+                            color: cs.primary,
+                            weight: FontWeight.w800)),
+                  ),
+                ]),
+              ),
+            ),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            ShowFavoriteButton(showId: show.id),
+            ShowShareButton(show: show),
+          ]),
+        ]),
+
+        // 1) HİKÂYE
+        gap(72),
+        KeyedSubtree(
+          key: sectionKeys[0],
+          child: _Section(
+            title: 'Hikâye',
+            subtitle: 'perde açılmadan önce',
+            child: _Story(
+                text: desc.isEmpty
+                    ? 'Bu oyun için henüz bir açıklama eklenmemiş.'
+                    : desc),
+          ),
+        ),
+
+        // 2) KADRO
+        if (cast.isNotEmpty) ...[
+          gap(72),
+          KeyedSubtree(
+            key: sectionKeys[1],
+            child: _Section(
+              title: 'Kadro',
+              subtitle: '${cast.length} oyuncu, dokun ve tanı',
+              child: _CastRow(players: cast, current: data.cast),
+            ),
+          ),
+        ] else
+          KeyedSubtree(key: sectionKeys[1], child: const SizedBox.shrink()),
+
+        // 3) SEANSLAR VE MEKÂN
+        gap(72),
+        KeyedSubtree(
+          key: sectionKeys[2],
+          child: _Section(
+            title: 'Seanslar ve mekân',
+            subtitle: data.sessions.isEmpty
+                ? (data.hasEnded ? 'perde indi' : 'tarihler yakında')
+                : '${data.sessions.length} seans',
+            child: _Sessions(
+                data: data, chosen: chosen, onSession: onSession),
+          ),
+        ),
+
+        // 4) GALERİ
+        if (photos.length > 1) ...[
+          gap(72),
+          KeyedSubtree(
+            key: sectionKeys[3],
+            child: _Section(
+              title: 'Galeri',
+              subtitle: 'sahneden kareler',
+              child: _Gallery(photos: photos),
+            ),
+          ),
+        ] else
+          KeyedSubtree(key: sectionKeys[3], child: const SizedBox.shrink()),
+
+        // 5) YORUMLAR
+        gap(72),
+        KeyedSubtree(
+          key: sectionKeys[4],
+          child: _Section(
+            title: 'Yorumlar',
+            subtitle: 'izleyenler ne dedi',
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 820),
+              child: ReviewsSection(showId: show.id, showName: show.name),
+            ),
+          ),
+        ),
+
+        gap(72),
+        _SimilarRail(show: show),
+      ],
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget child;
+  const _Section({required this.title, this.subtitle, required this.child});
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SkSectionHead(title: title, subtitle: subtitle),
+          const SizedBox(height: 26),
+          child,
+        ],
+      );
+}
+
+class _Crumbs extends StatelessWidget {
   final Show show;
-  const _Breadcrumb({required this.show});
+  const _Crumbs({required this.show});
 
   @override
   Widget build(final BuildContext context) {
@@ -293,516 +880,185 @@ class _Breadcrumb extends StatelessWidget {
             () => NavigationHandler.goToDiscoverWithCategory(
                 context, show.category)),
       ],
-      sep,
-      Flexible(
-        child: Text(show.name,
-            maxLines: 1, overflow: TextOverflow.ellipsis, style: s(false)),
-      ),
     ]);
   }
 }
 
-class _GalleryBlock extends StatelessWidget {
-  final List<String> photos;
-  final int index;
-  final ValueChanged<int> onPick;
-  final VoidCallback onOpen;
-  final bool narrow;
-  const _GalleryBlock(
-      {required this.photos,
-      required this.index,
-      required this.onPick,
-      required this.onOpen,
-      this.narrow = false});
+/// Oyun adı: kelime kelime aşağıdan açılır (giriş animasyonuna bağlı).
+class _WordTitle extends StatelessWidget {
+  final String text;
+  final AnimationController entrance;
+  const _WordTitle({required this.text, required this.entrance});
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final String main = photos.isEmpty ? '' : photos[index];
-
-    Widget thumb(final int i, final double w) => Padding(
-          padding: EdgeInsets.only(
-              right: narrow ? 10 : 0, bottom: narrow ? 0 : 12),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: () => onPick(i),
-              child: Container(
-                width: w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: i == index
-                          ? cs.primary
-                          : cs.outlineVariant.withValues(alpha: 0.5),
-                      width: i == index ? 2.5 : 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(9),
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: SkImage(
-                        url: photos[i], alignment: Alignment.topCenter),
+    final List<String> words =
+        text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final bool reduce = Sk.reduceMotion(context);
+    return AnimatedBuilder(
+      animation: entrance,
+      builder: (final context, _) => Wrap(
+        spacing: 16,
+        runSpacing: 0,
+        children: [
+          for (int i = 0; i < words.length; i++)
+            () {
+              final double start = (0.15 + i * 0.09).clamp(0.0, 0.7);
+              final double v = reduce
+                  ? 1
+                  : Curves.easeOutCubic.transform(
+                      ((entrance.value - start) / (1 - start)).clamp(0.0, 1.0));
+              return ClipRect(
+                child: Opacity(
+                  opacity: v,
+                  child: Transform.translate(
+                    offset: Offset(0, (1 - v) * 40),
+                    child: Text(words[i],
+                        style: Sk.display(context, size: 68, height: 1.04)),
                   ),
                 ),
-              ),
-            ),
-          ),
-        );
-
-    final Widget mainImage = MouseRegion(
-      cursor: SystemMouseCursors.zoomIn,
-      child: GestureDetector(
-        onTap: onOpen,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 30,
-                  offset: const Offset(0, 14)),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: AspectRatio(
-              aspectRatio: 3 / 4,
-              child: Stack(fit: StackFit.expand, children: [
-                SkImage(url: main, alignment: Alignment.topCenter),
-                Positioned(
-                  right: 14,
-                  bottom: 14,
-                  child: Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.zoom_out_map_rounded,
-                        color: Colors.white, size: 20),
-                  ),
-                ),
-              ]),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (narrow) {
-      return Column(children: [
-        mainImage,
-        if (photos.length > 1) ...[
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 84,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: photos.length,
-              itemBuilder: (_, final i) => thumb(i, 63),
-            ),
-          ),
+              );
+            }(),
         ],
-      ]);
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (photos.length > 1)
-          SizedBox(
-            width: 84,
-            child: Column(children: [
-              for (int i = 0; i < photos.length && i < 6; i++) thumb(i, 84),
-            ]),
-          ),
-        if (photos.length > 1) const SizedBox(width: 16),
-        Expanded(child: mainImage),
-      ],
+      ),
     );
   }
 }
 
-class _InfoPanel extends ConsumerWidget {
-  final ShowDetailData data;
-  final List<DateTime> days;
-  final DateTime? activeDay;
-  final List<ShowSession> daySessions;
-  final ShowSession? chosen;
-  final bool busy;
-  final ValueChanged<DateTime> onDay;
-  final ValueChanged<ShowSession> onSession;
-  final VoidCallback onBuy;
-  final VoidCallback onReviews;
-
-  const _InfoPanel({
-    required this.data,
-    required this.days,
-    required this.activeDay,
-    required this.daySessions,
-    required this.chosen,
-    required this.busy,
-    required this.onDay,
-    required this.onSession,
-    required this.onBuy,
-    required this.onReviews,
-  });
+class _Fact extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _Fact(this.icon, this.label, this.value);
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final Show show = data.show;
-    final ReviewStat? stat = ref.watch(reviewStatsProvider).value?[show.id];
-    final bool external = data.isExternal;
-    final String cta = external
-        ? 'Biletini bul'
-        : (chosen == null ? 'Seans seçin' : 'Koltuk seç');
-    final bool canBuy = external || chosen != null;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 22, color: cs.primary),
+      const SizedBox(width: 9),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: Sk.ui(context,
+                size: 11.5, color: cs.onSurfaceVariant, weight: FontWeight.w700)),
+        Text(value, style: Sk.ui(context, size: 15, weight: FontWeight.w800)),
+      ]),
+    ]);
+  }
+}
 
-    Widget fact(final IconData icon, final String label, final String value) =>
-        Padding(
-          padding: const EdgeInsets.only(right: 28, bottom: 10),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 20, color: cs.primary),
-            const SizedBox(width: 8),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label,
-                  style: Sk.ui(context,
-                      size: 11.5,
-                      color: cs.onSurfaceVariant,
-                      weight: FontWeight.w700)),
-              Text(value,
-                  style: Sk.ui(context, size: 14.5, weight: FontWeight.w800)),
-            ]),
-          ]),
-        );
+/// Hikâye: büyük baş harf + okuma sütunu.
+class _Story extends StatefulWidget {
+  final String text;
+  const _Story({required this.text});
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [
-          if (show.category.trim().isNotEmpty)
-            SkBadge(label: show.category.trim()),
-          if (external) ...[
-            const SizedBox(width: 8),
-            const SkBadge(
-                label: 'Başka platformda',
-                icon: Icons.open_in_new_rounded),
-          ],
-          const Spacer(),
-          ShowFavoriteButton(showId: show.id),
-          ShowShareButton(show: show),
-        ]),
-        const SizedBox(height: 12),
-        Text(show.name,
-            style: Sk.display(context, size: 44, height: 1.08)),
-        const SizedBox(height: 14),
-        if (stat != null && stat.count > 0)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: onReviews,
-              child: Row(children: [
-                StarRow(rating: stat.average, size: 20),
-                const SizedBox(width: 10),
-                Text('${stat.average.toStringAsFixed(1)} · ${stat.count} yorum',
-                    style: Sk.ui(context,
-                        size: 14,
-                        color: cs.primary,
-                        weight: FontWeight.w800)),
-              ]),
-            ),
-          ),
-        const SizedBox(height: 20),
-        Wrap(children: [
-          if (show.duration.trim().isNotEmpty)
-            fact(Icons.schedule_rounded, 'Süre', show.duration.trim()),
-          if (show.ageLimit.trim().isNotEmpty)
-            fact(Icons.shield_outlined, 'Yaş sınırı', show.ageLimit.trim()),
-          if (show.type.trim().isNotEmpty)
-            fact(Icons.category_outlined, 'Tür', show.type.trim()),
-        ]),
-        Divider(color: cs.outlineVariant.withValues(alpha: 0.5), height: 32),
+  @override
+  State<_Story> createState() => _StoryState();
+}
 
-        // Seans seçici
-        if (!external) ...[
-          Text(data.sessions.isEmpty
-                  ? (data.hasEnded ? 'Perde indi' : 'Henüz seans yok')
-                  : 'Seans seçin',
-              style: Sk.ui(context, size: 16, weight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          if (data.sessions.isEmpty)
-            Text(
-                data.hasEnded
-                    ? 'Bu oyunun bütün seansları geçti.'
-                    : 'Perde açılınca tarihler burada görünecek.',
-                style: Sk.ui(context,
-                    size: 14,
-                    color: cs.onSurfaceVariant,
-                    weight: FontWeight.w500))
-          else ...[
-            SizedBox(
-              height: 78,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: days.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (final context, final i) {
-                  final DateTime x = days[i];
-                  final bool sel = x == activeDay;
-                  return MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () => onDay(x),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 66,
-                        decoration: BoxDecoration(
-                          color: sel ? cs.primary : cs.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(kDaysShortTr[x.weekday - 1],
-                                style: Sk.ui(context,
-                                    size: 11.5,
-                                    color: (sel ? cs.onPrimary : cs.onSurface)
-                                        .withValues(alpha: 0.8),
-                                    weight: FontWeight.w700)),
-                            Text('${x.day}',
-                                style: Sk.display(context,
-                                    size: 24,
-                                    height: 1.1,
-                                    color: sel ? cs.onPrimary : cs.onSurface)),
-                            Text(kMonthsShortTr[x.month - 1],
-                                style: Sk.ui(context,
-                                    size: 11.5,
-                                    color: (sel ? cs.onPrimary : cs.onSurface)
-                                        .withValues(alpha: 0.8),
-                                    weight: FontWeight.w700)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 14),
-            for (final ShowSession s in daySessions)
-              _SessionPick(
-                session: s,
-                selected: chosen?.event.id == s.event.id,
-                onTap: () => onSession(s),
-              ),
-          ],
-          const SizedBox(height: 8),
-        ],
-        if (external)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: cs.outlineVariant.withValues(alpha: 0.5)),
-            ),
-            child: Row(children: [
-              Icon(Icons.open_in_new_rounded, color: cs.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                    'Bu oyunun biletleri iş ortağımızın sayfasında satılıyor.',
-                    style: Sk.ui(context,
-                        size: 14, weight: FontWeight.w600, height: 1.4)),
-              ),
-            ]),
-          ),
-        const SizedBox(height: 20),
-        Row(children: [
-          if (data.lowestPrice != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 22),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Bilet fiyatı',
-                        style: Sk.ui(context,
-                            size: 12,
-                            color: cs.onSurfaceVariant,
-                            weight: FontWeight.w700)),
-                    Text("${skPrice(chosen?.price ?? data.lowestPrice!)}"
-                        "${chosen?.price == null ? "'den" : ''}",
+class _StoryState extends State<_Story> {
+  bool _open = false;
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final String t = widget.text.trim();
+    final bool letter = t.isNotEmpty && RegExp(r'^[A-Za-zÇĞİÖŞÜçğıöşü]').hasMatch(t);
+    final String first = letter ? t.substring(0, 1) : '';
+    final String rest = letter ? t.substring(1) : t;
+    final bool long = t.length > 520;
+    final TextStyle body = Sk.ui(context,
+        size: 17,
+        weight: FontWeight.w500,
+        height: 1.8,
+        color: cs.onSurface.withValues(alpha: 0.9));
+    final Widget text = SelectableText(
+      rest,
+      maxLines: _open || !long ? null : 9,
+      style: body,
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 780),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: letter
+              ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12, top: 2),
+                    child: Text(first,
                         style: Sk.display(context,
-                            size: 30, height: 1.1, color: cs.primary)),
-                  ]),
-            ),
-          Expanded(
-            child: FilledButton(
-              onPressed: canBuy && !busy ? onBuy : null,
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 58),
-                  shape: const StadiumBorder()),
-              child: busy
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: cs.onPrimary))
-                  : Text(cta,
-                      style: Sk.ui(context,
-                          size: 17,
-                          color: cs.onPrimary,
-                          weight: FontWeight.w800)),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 22),
-        Wrap(spacing: 22, runSpacing: 8, children: [
-          for (final (IconData, String) b in const [
-            (Icons.event_seat_rounded, 'Koltuğunu kendin seç'),
-            (Icons.phone_iphone_rounded, 'Dijital bilet'),
-            (Icons.event_available_rounded, 'Takvime ekle'),
-          ])
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(b.$1, size: 17, color: cs.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Text(b.$2,
-                  style: Sk.ui(context,
-                      size: 13,
-                      color: cs.onSurfaceVariant,
-                      weight: FontWeight.w600)),
-            ]),
-        ]),
-      ],
-    );
-  }
-}
-
-class _SessionPick extends StatelessWidget {
-  final ShowSession session;
-  final bool selected;
-  final VoidCallback onTap;
-  const _SessionPick(
-      {required this.session, required this.selected, required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final DateTime? when = session.when;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: selected
-                  ? cs.primary.withValues(alpha: 0.12)
-                  : cs.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: selected
-                      ? cs.primary
-                      : cs.outlineVariant.withValues(alpha: 0.5),
-                  width: selected ? 1.8 : 1),
-            ),
-            child: Row(children: [
-              Icon(
-                  selected
-                      ? Icons.radio_button_checked_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: selected ? cs.primary : cs.outline),
-              const SizedBox(width: 14),
-              Text(when == null ? session.shortLabel : skClock(when),
-                  style: Sk.display(context,
-                      size: 24, height: 1.0, color: cs.primary)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(session.venueName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Sk.ui(context,
-                        size: 14.5, weight: FontWeight.w700, height: 1.25)),
-              ),
-              if (session.priceLabel != null)
-                Text(session.priceLabel!,
-                    style: Sk.ui(context,
-                        size: 15, color: cs.primary, weight: FontWeight.w800)),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Tabs extends StatelessWidget {
-  final int index;
-  final String reviewsLabel;
-  final ValueChanged<int> onTab;
-  final bool hasCast;
-  const _Tabs(
-      {required this.index,
-      required this.reviewsLabel,
-      required this.onTab,
-      required this.hasCast});
-
-  @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final List<(int, String)> tabs = [
-      (0, 'Hikâye'),
-      (1, 'Seanslar ve mekân'),
-      if (hasCast) (2, 'Kadro'),
-      (3, reviewsLabel),
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        border:
-            Border(bottom: BorderSide(color: cs.outlineVariant, width: 1)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-        for (final (int, String) t in tabs)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onTab(t.$1),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                        color: index == t.$1 ? cs.primary : Colors.transparent,
-                        width: 3),
+                            size: 92, height: 0.86, color: cs.primary)),
                   ),
-                ),
-                child: Text(t.$2,
-                    maxLines: 1,
-                    style: Sk.ui(context,
-                        size: 15.5,
-                        color: index == t.$1 ? cs.primary : cs.onSurface,
-                        weight: FontWeight.w800)),
-              ),
-            ),
+                  Expanded(child: text),
+                ])
+              : text,
+        ),
+        if (long)
+          TextButton(
+            onPressed: () => setState(() => _open = !_open),
+            child: Text(_open ? 'Daha az göster' : 'Devamını oku'),
           ),
       ]),
+    );
+  }
+}
+
+class _CastRow extends StatelessWidget {
+  final List<Player> players;
+  final List<Player> current;
+  const _CastRow({required this.players, required this.current});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 240,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: players.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 30),
+        itemBuilder: (final context, final i) {
+          final Player p = players[i];
+          final bool now = current.any((final c) => c.id == p.id);
+          final String name = '${p.firstName} ${p.lastName}'.trim();
+          return SizedBox(
+            width: 160,
+            child: Center(
+              child: SkFlowerPortrait(
+                imageUrl: p.imageUrl,
+                size: 142,
+                semanticLabel: name,
+                bottomChip: now ? 'Kadroda' : 'Önceki kadro',
+                bottomChipAccent: now,
+                onTap: () => NavigationHandler.goToPlayer(context, p.id, name,
+                    imageUrl: p.imageUrl, title: name),
+                title: Text(name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: Sk.ui(context,
+                        size: 15,
+                        weight: FontWeight.w800,
+                        height: 1.2,
+                        color: cs.onSurface)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class _SessionsTable extends StatelessWidget {
+class _Sessions extends StatelessWidget {
   final ShowDetailData data;
-  const _SessionsTable({required this.data});
+  final ShowSession? chosen;
+  final ValueChanged<ShowSession> onSession;
+  const _Sessions(
+      {required this.data, required this.chosen, required this.onSession});
 
   @override
   Widget build(final BuildContext context) {
@@ -810,118 +1066,154 @@ class _SessionsTable extends StatelessWidget {
     if (data.sessions.isEmpty) {
       return Text(
           data.hasEnded
-              ? 'Bu oyunun bütün seansları geçti.'
-              : 'Henüz seans eklenmemiş.',
-          style: Sk.ui(context, size: 15, color: cs.onSurfaceVariant));
+              ? 'Bu oyunun bütün seansları geçti. Yeni tarihler açılınca burada görünür.'
+              : 'Henüz seans eklenmemiş. Favoriye ekleyip haber bekleyebilirsin.',
+          style: Sk.ui(context,
+              size: 15.5, color: cs.onSurfaceVariant, weight: FontWeight.w500));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(18),
-            border:
-                Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        for (final ShowSession s in data.sessions)
+          _SessionTile(
+            session: s,
+            selected: chosen?.event.id == s.event.id,
+            external: data.isExternal,
+            showName: data.show.name,
+            duration: data.show.duration,
+            onTap: () => onSession(s),
           ),
-          child: Column(children: [
-            for (int i = 0; i < data.sessions.length; i++) ...[
-              Padding(
-                padding: const EdgeInsets.all(18),
-                child: MediaQuery.sizeOf(context).width < 760
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Expanded(
-                              child: Text(
-                                  data.sessions[i].when == null
-                                      ? data.sessions[i].shortLabel
-                                      : '${data.sessions[i].when!.day} ${kMonthsTr[data.sessions[i].when!.month - 1]} ${kDaysTr[data.sessions[i].when!.weekday - 1]}',
-                                  style: Sk.ui(context,
-                                      size: 15, weight: FontWeight.w800)),
-                            ),
-                            Text(
-                                data.sessions[i].when == null
-                                    ? ''
-                                    : skClock(data.sessions[i].when!),
-                                style: Sk.display(context,
-                                    size: 22, height: 1, color: cs.primary)),
-                          ]),
-                          const SizedBox(height: 6),
-                          Row(children: [
-                            Expanded(
-                              child: Text(data.sessions[i].venueName,
-                                  style: Sk.ui(context,
-                                      size: 14, weight: FontWeight.w600)),
-                            ),
-                            if (data.sessions[i].priceLabel != null)
-                              Text(data.sessions[i].priceLabel!,
-                                  style: Sk.ui(context,
-                                      size: 15,
-                                      color: cs.primary,
-                                      weight: FontWeight.w800)),
-                          ]),
-                          SessionActions(
-                              session: data.sessions[i],
-                              showName: data.show.name,
-                              duration: data.show.duration),
-                        ],
-                      )
-                    : Row(children: [
-                  SizedBox(
-                    width: 150,
-                    child: Text(
-                        data.sessions[i].when == null
-                            ? data.sessions[i].shortLabel
-                            : '${data.sessions[i].when!.day} ${kMonthsTr[data.sessions[i].when!.month - 1]} ${kDaysTr[data.sessions[i].when!.weekday - 1]}',
-                        style: Sk.ui(context,
-                            size: 15, weight: FontWeight.w800)),
-                  ),
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                        data.sessions[i].when == null
-                            ? ''
-                            : skClock(data.sessions[i].when!),
-                        style: Sk.display(context,
-                            size: 22, height: 1, color: cs.primary)),
-                  ),
-                  Expanded(
-                    child: Text(data.sessions[i].venueName,
-                        style: Sk.ui(context,
-                            size: 14.5, weight: FontWeight.w600)),
-                  ),
-                  if (data.sessions[i].priceLabel != null)
-                    Text(data.sessions[i].priceLabel!,
-                        style: Sk.ui(context,
-                            size: 15,
-                            color: cs.primary,
-                            weight: FontWeight.w800)),
-                  const SizedBox(width: 12),
-                  SessionActions(
-                      session: data.sessions[i],
-                      showName: data.show.name,
-                      duration: data.show.duration),
-                ]),
-              ),
-              if (i < data.sessions.length - 1)
-                Divider(
-                    height: 1,
-                    color: cs.outlineVariant.withValues(alpha: 0.35)),
-            ],
-          ]),
-        ),
         if (data.venues.isNotEmpty) ...[
-          const SizedBox(height: 36),
-          Text('Mekân', style: Sk.display(context, size: 26, height: 1.1)),
-          const SizedBox(height: 16),
-          Wrap(spacing: 20, runSpacing: 20, children: [
-            for (final Stage v in data.venues)
-              _VenueCard(stage: v),
+          const SizedBox(height: 40),
+          Wrap(spacing: 22, runSpacing: 22, children: [
+            for (final Stage v in data.venues) _VenueCard(stage: v),
           ]),
         ],
       ],
+    );
+  }
+}
+
+class _SessionTile extends StatefulWidget {
+  final ShowSession session;
+  final bool selected;
+  final bool external;
+  final String showName;
+  final String duration;
+  final VoidCallback onTap;
+  const _SessionTile({
+    required this.session,
+    required this.selected,
+    required this.external,
+    required this.showName,
+    required this.duration,
+    required this.onTap,
+  });
+
+  @override
+  State<_SessionTile> createState() => _SessionTileState();
+}
+
+class _SessionTileState extends State<_SessionTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final ShowSession s = widget.session;
+    final DateTime? w = s.when;
+    final bool sel = widget.selected;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
+            decoration: BoxDecoration(
+              color: sel
+                  ? cs.primary.withValues(alpha: 0.12)
+                  : (_hover ? cs.surfaceContainerHigh : cs.surfaceContainerLow),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                  color: sel
+                      ? cs.primary
+                      : cs.outlineVariant.withValues(alpha: 0.5),
+                  width: sel ? 1.8 : 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  SizedBox(
+                    width: 74,
+                    child: Column(children: [
+                      Text(w == null ? '' : '${w.day}',
+                          style: Sk.display(context,
+                              size: 40, height: 1.0, color: cs.primary)),
+                      Text(
+                          w == null
+                              ? s.shortLabel
+                              : '${kMonthsTr[w.month - 1]}',
+                          style: Sk.ui(context,
+                              size: 13,
+                              color: cs.onSurfaceVariant,
+                              weight: FontWeight.w700)),
+                    ]),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              w == null
+                                  ? ''
+                                  : '${kDaysTr[w.weekday - 1]} · ${skClock(w)}',
+                              style: Sk.ui(context,
+                                  size: 17, weight: FontWeight.w800)),
+                          const SizedBox(height: 3),
+                          Text(s.venueName,
+                              style: Sk.ui(context,
+                                  size: 14.5,
+                                  color: cs.onSurfaceVariant,
+                                  weight: FontWeight.w600)),
+                          if (w != null)
+                            Text(sessionWhenPhrase(w),
+                                style: Sketch.hand(context,
+                                    size: 21, color: cs.primary)),
+                        ]),
+                  ),
+                  if (s.priceLabel != null && !widget.external)
+                    Text(s.priceLabel!,
+                        style: Sk.display(context,
+                            size: 26, height: 1.0, color: cs.onSurface)),
+                  const SizedBox(width: 14),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 160),
+                    child: Icon(
+                        sel
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        key: ValueKey<bool>(sel),
+                        color: sel ? cs.primary : cs.outline,
+                        size: 28),
+                  ),
+                ]),
+                SessionActions(
+                    session: s,
+                    showName: widget.showName,
+                    duration: widget.duration),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -933,93 +1225,131 @@ class _VenueCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return LayoutBuilder(builder: (final context, final box) => Container(
-      width: box.maxWidth < 420 ? box.maxWidth : 420,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Row(children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            width: 92,
-            height: 92,
-            child: SkImage(
-                url: stage.imageUrl, fallbackIcon: Icons.location_city_rounded),
+    return LayoutBuilder(
+      builder: (final context, final box) => Container(
+        width: box.maxWidth < 440 ? box.maxWidth : 440,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: 100,
+              height: 100,
+              child: SkImage(
+                  url: stage.imageUrl,
+                  fallbackIcon: Icons.location_city_rounded),
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(stage.name,
-                    style: Sk.ui(context, size: 16, weight: FontWeight.w800)),
-                if (stage.address.trim().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(stage.address.trim(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Sk.ui(context,
-                            size: 13,
-                            color: cs.onSurfaceVariant,
-                            weight: FontWeight.w500)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(stage.name,
+                      style: Sk.display(context, size: 22, height: 1.1)),
+                  if (stage.address.trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(stage.address.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 13,
+                              color: cs.onSurfaceVariant,
+                              weight: FontWeight.w500)),
+                    ),
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: () => openStageDirections(stage),
+                    icon: const Icon(Icons.directions_rounded, size: 18),
+                    label: const Text('Yol tarifi'),
                   ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => openStageDirections(stage),
-                  icon: const Icon(Icons.directions_rounded, size: 18),
-                  label: const Text('Yol tarifi'),
-                ),
-              ]),
-        ),
-      ]),
-    ));
+                ]),
+          ),
+        ]),
+      ),
+    );
   }
 }
 
-class _CastGrid extends StatelessWidget {
-  final List<Player> players;
-  final List<Player> current;
-  const _CastGrid({required this.players, required this.current});
+/// Galeri: farklı oranlı kareler (yüksek/alçak dönüşümlü), hover'da yakınlaşır.
+class _Gallery extends StatelessWidget {
+  final List<String> photos;
+  const _Gallery({required this.photos});
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return Wrap(spacing: 28, runSpacing: 34, children: [
-      for (final Player p in players)
-        SizedBox(
-          width: 150,
-          child: Center(
-            child: SkFlowerPortrait(
-              imageUrl: p.imageUrl,
-              size: 126,
-              semanticLabel: '${p.firstName} ${p.lastName}'.trim(),
-              bottomChip: current.any((final c) => c.id == p.id)
-                  ? 'Kadroda'
-                  : 'Önceki kadro',
-              bottomChipAccent: current.any((final c) => c.id == p.id),
-              onTap: () => NavigationHandler.goToPlayer(
-                  context, p.id, '${p.firstName} ${p.lastName}'.trim(),
-                  imageUrl: p.imageUrl,
-                  title: '${p.firstName} ${p.lastName}'.trim()),
-              title: Text('${p.firstName} ${p.lastName}'.trim(),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: Sk.ui(context,
-                      size: 14.5,
-                      weight: FontWeight.w800,
-                      height: 1.2,
-                      color: cs.onSurface)),
+    return LayoutBuilder(builder: (final context, final box) {
+      final int cols = box.maxWidth >= 760 ? 3 : 2;
+      const double gap = 16;
+      final double cw = (box.maxWidth - gap * (cols - 1)) / cols;
+      final List<List<int>> columns = List.generate(cols, (_) => []);
+      for (int i = 0; i < photos.length && i < 9; i++) {
+        columns[i % cols].add(i);
+      }
+      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (int c = 0; c < cols; c++) ...[
+          SizedBox(
+            width: cw,
+            child: Column(children: [
+              for (final int i in columns[c])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: gap),
+                  child: _GalleryTile(
+                    url: photos[i],
+                    ratio: (i + c) % 3 == 0 ? 3 / 4 : 4 / 3,
+                    onTap: () => GalleryViewerDialog.open(context, photos),
+                  ),
+                ),
+            ]),
+          ),
+          if (c < cols - 1) const SizedBox(width: gap),
+        ],
+      ]);
+    });
+  }
+}
+
+class _GalleryTile extends StatefulWidget {
+  final String url;
+  final double ratio;
+  final VoidCallback onTap;
+  const _GalleryTile(
+      {required this.url, required this.ratio, required this.onTap});
+
+  @override
+  State<_GalleryTile> createState() => _GalleryTileState();
+}
+
+class _GalleryTileState extends State<_GalleryTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.zoomIn,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: AspectRatio(
+              aspectRatio: widget.ratio,
+              child: AnimatedScale(
+                scale: _hover ? 1.06 : 1,
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                child: SkImage(url: widget.url),
+              ),
             ),
           ),
         ),
-    ]);
-  }
+      );
 }
 
 class _SimilarRail extends ConsumerWidget {
@@ -1039,30 +1369,34 @@ class _SimilarRail extends ConsumerWidget {
           x,
     ].take(8).toList();
     if (list.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Benzer oyunlar', style: Sk.display(context, size: 30, height: 1.1)),
-        const SizedBox(height: 22),
-        SizedBox(
-          height: 420,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 24),
-            itemBuilder: (final context, final i) => MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => NavigationHandler.goToShow(
-                    context, list[i].id, list[i].name,
-                    imageUrl: list[i].imageUrl, title: list[i].name),
-                child: SizedBox(
-                  width: 230,
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
+    return _Section(
+      title: 'Benzer oyunlar',
+      subtitle: 'bunları da sevebilirsin',
+      child: SizedBox(
+        height: 400,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          itemCount: list.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 24),
+          itemBuilder: (final context, final i) => MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => NavigationHandler.goToShow(
+                  context, list[i].id, list[i].name,
+                  imageUrl: list[i].imageUrl, title: list[i].name),
+              child: SizedBox(
+                width: 220,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(26),
+                          boxShadow: skSoftShadow(context, strength: 0.8),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(26),
                           child: AspectRatio(
                             aspectRatio: 2 / 3,
                             child: SkImage(
@@ -1070,22 +1404,22 @@ class _SimilarRail extends ConsumerWidget {
                                 alignment: Alignment.topCenter),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text(list[i].name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Sk.ui(context,
-                                size: 15.5,
-                                weight: FontWeight.w800,
-                                height: 1.25,
-                                color: cs.onSurface)),
-                      ]),
-                ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(list[i].name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 15.5,
+                              weight: FontWeight.w800,
+                              height: 1.25,
+                              color: cs.onSurface)),
+                    ]),
               ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
