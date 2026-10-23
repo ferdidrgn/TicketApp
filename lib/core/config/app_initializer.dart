@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:go_router/go_router.dart';
 import '../ads/ads_manager.dart';
 import '../services/app_check_service.dart';
 import '../services/remote_config_service.dart';
@@ -19,6 +20,10 @@ abstract final class AppInitializer {
     // 1. Web URL Stratejisi
     if (PlatformChecker.isWeb) {
       usePathUrlStrategy();
+      // `context.push` ile açılan detay sayfalarında (oyun, oyuncu, sahne…)
+      // tarayıcı adresi de /show/slug-id olarak güncellensin: paylaşılabilir,
+      // yenilenebilir, geri/ileri çalışan gerçek bağlantılar.
+      GoRouter.optionURLReflectsImperativeAPIs = true;
     }
 
     // 2. Yerel Veri ve Servis Başlatma
