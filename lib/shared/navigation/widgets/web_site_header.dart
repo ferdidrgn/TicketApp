@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/util/comminucation_actions.dart';
@@ -24,11 +25,13 @@ import 'ticket_nav_bar.dart';
 /// Yalnız geniş ekranda (≥768) kullanılır; mobil uygulama/dar ekran kendi
 /// başlığını ve alt çubuğunu korur.
 class WebSiteHeader extends ConsumerStatefulWidget {
+  /// Aktif sekme (-1: hiçbiri — kabuk dışı detay sayfaları).
   final int currentIndex;
-  final ValueChanged<int> onTab;
 
-  const WebSiteHeader(
-      {super.key, required this.currentIndex, required this.onTab});
+  /// Verilmezse sekmeler doğrudan rotalara gider (kabuk dışı sayfalar için).
+  final ValueChanged<int>? onTab;
+
+  const WebSiteHeader({super.key, this.currentIndex = -1, this.onTab});
 
   @override
   ConsumerState<WebSiteHeader> createState() => _WebSiteHeaderState();
@@ -41,6 +44,16 @@ class _WebSiteHeaderState extends ConsumerState<WebSiteHeader> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  static const List<String> _tabRoutes = ['/app', '/discover', '/nearby', '/profile'];
+
+  void _tab(final int i) {
+    if (widget.onTab != null) {
+      widget.onTab!(i);
+    } else {
+      context.go(_tabRoutes[i]);
+    }
   }
 
   void _submit(final String v) {
@@ -147,7 +160,7 @@ class _WebSiteHeaderState extends ConsumerState<WebSiteHeader> {
         _IconAction(
           icon: Icons.person_outline_rounded,
           label: loggedIn ? 'Hesabım' : 'Giriş yap',
-          onTap: () => widget.onTab(3),
+          onTap: () => _tab(3),
         ),
         _IconAction(
           icon: Icons.favorite_border_rounded,
@@ -182,7 +195,7 @@ class _WebSiteHeaderState extends ConsumerState<WebSiteHeader> {
           _NavLink(
             label: kShellDestinations[i].label,
             active: widget.currentIndex == i,
-            onTap: () => widget.onTab(i),
+            onTap: () => _tab(i),
           ),
         if (cats.isNotEmpty)
           Container(

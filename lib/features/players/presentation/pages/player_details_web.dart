@@ -1,491 +1,489 @@
-import 'package:flutter/foundation.dart';
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_spacing.dart';
-import 'package:ticketapp/core/util/global_scroll_mixin.dart';
-import 'package:ticketapp/core/util/responsive_utils.dart';
+
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/navigation/widgets/web_site_header.dart';
 import '../../../../shared/widgets/footers/footer.dart';
-import '../../../../shared/widgets/listing.dart';
-import '../../../../shared/widgets/ticket/ticket_profile.dart';
-import '../../../../shared/widgets/tiyatrol_hero.dart';
+import '../../../../shared/widgets/gallery_section.dart';
+import '../../../../shared/widgets/sahne/sahne_kit.dart';
+import '../../../../shared/widgets/ticket/ticket_profile.dart'
+    show splitShowsByLiveActivity;
+import '../../../search/presentation/providers/search_query_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
-import '../../../shows/presentation/widgets/detail/show_detail_skeleton.dart';
-import '../../../shows/presentation/widgets/detail/show_programme.dart';
-import '../../../search/presentation/providers/search_query_provider.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_provider.dart';
-import '../widgets/player_discovery_widgets.dart';
+import '../widgets/sahne/player_costars.dart';
 
-/// OYUNCU SAYFASI — soyunma odası / program.
+/// OYUNCU SAYFASI — WEB. Bir kişi/profil sayfası:
+/// kapakta bulanık fotoğraf + büyük yuvarlak portre + ad, sıradaki durum ve
+/// künye sayıları; altında sekmeler (Hakkında · Oyunları · Ödüller ·
+/// Topluluklar). Mobil uygulamanın "canlı portre" sayfasından AYRIDIR.
 class PlayerDetailPageWeb extends ConsumerStatefulWidget {
   final String playerId;
-
   const PlayerDetailPageWeb({super.key, required this.playerId});
 
   @override
-  ConsumerState<PlayerDetailPageWeb> createState() => _PlayerDetailPageWebState();
+  ConsumerState<PlayerDetailPageWeb> createState() =>
+      _PlayerDetailPageWebState();
 }
 
-class _PlayerDetailPageWebState extends ConsumerState<PlayerDetailPageWeb>
-    with GlobalScrollMixin {
-  final GlobalKey _onStageKey = GlobalKey();
+class _PlayerDetailPageWebState extends ConsumerState<PlayerDetailPageWeb> {
+  int _tab = 0;
 
   @override
   Widget build(final BuildContext context) {
-    final playerAsync = ref.watch(playerDetailProvider(widget.playerId));
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final async = ref.watch(playerDetailProvider(widget.playerId));
+    final PlayerDetailState? state = async.value;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (final didPop, final _) {
-        if (!didPop) NavigationHandler.smartGoBack(context);
-      },
-      child: Scaffold(
-        backgroundColor: context.colors.surface,
-        body: playerAsync.when(
-          loading: () => _PreviewPlayer(
-            playerId: widget.playerId,
-            fullName: TiyatrolHeroFlight.field(context, 'title') ?? '',
-            imageUrl: TiyatrolHeroFlight.field(context, 'imageUrl') ?? '',
-          ),
-          error: (final err, final _) => ProfileErrorView(
-            error: err,
-            notFoundTitle: 'Bu oyuncu bulunamadı',
-            failedTitle: 'Oyuncu bilgileri yüklenemedi',
-            onRetry: () =>
-                ref.invalidate(playerDetailProvider(widget.playerId)),
-          ),
-          data: (final state) => _buildPage(context, state),
+    Widget body;
+    if (async.hasError && state == null) {
+      body = Padding(
+        padding: const EdgeInsets.all(64),
+        child: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.person_off_rounded, size: 48),
+            const SizedBox(height: 14),
+            const Text('Oyuncu yüklenemedi'),
+            const SizedBox(height: 14),
+            OutlinedButton(
+                onPressed: () =>
+                    ref.invalidate(playerDetailProvider(widget.playerId)),
+                child: const Text('Tekrar dene')),
+          ]),
+        ),
+      );
+    } else if (state == null) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 120),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else {
+      body = _content(context, state);
+    }
+
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const WebSiteHeader(),
+            body,
+            const SizedBox(height: 72),
+            const Footer(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPage(final BuildContext context, final PlayerDetailState state) {
-    final Player player = state.player;
-    final String fullName = '${player.firstName} ${player.lastName}'.trim();
-    final EdgeInsets safe = MediaQuery.paddingOf(context);
-    final bool compact =
-        MediaQuery.sizeOf(context).width < ResponsiveUtils.tabletBreakpoint;
-
+  Widget _content(final BuildContext context, final PlayerDetailState state) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Player p = state.player;
+    final String name = '${p.firstName} ${p.lastName}'.trim();
     final split = splitShowsByLiveActivity(
       claimedActive: state.activeShows,
       past: state.pastShows,
       liveActive: ref.watch(activeShowsProvider(false)).value,
     );
+    final List<Show> active = split.active;
+    final List<Show> past = split.past;
+    final List<Map<String, String>> awards = [
+      for (final a in p.achievements)
+        if ((a['title'] ?? '').trim().isNotEmpty) a,
+    ]..sort((a, b) => (b['year'] ?? '').compareTo(a['year'] ?? ''));
+    final List<String> collabs = [
+      for (final c in p.collaborations)
+        if (c.trim().isNotEmpty) c.trim(),
+    ];
+    final String bio = p.bio.replaceAll('\\n', '\n').trim();
+    final bool hasPhoto = p.imageUrl.startsWith('http');
 
-    final String onStageLabel = switch (split.active.length) {
-      0 => 'Sahnede oyunu yok',
-      1 => split.active.first.name,
-      _ => '${split.active.length} oyunda',
-    };
+    final List<(int, String)> tabs = [
+      (0, 'Hakkında'),
+      if (active.isNotEmpty || past.isNotEmpty)
+        (1, 'Oyunları (${active.length + past.length})'),
+      if (awards.isNotEmpty) (2, 'Ödüller (${awards.length})'),
+      if (collabs.isNotEmpty) (3, 'Topluluklar (${collabs.length})'),
+    ];
+    final int tab = tabs.any((t) => t.$1 == _tab) ? _tab : 0;
 
-    return Stack(
-      children: [
-        CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  safe.top + 64,
-                  AppSpacing.xl,
-                  AppSpacing.section,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PlayerIdentityCard(
-                          playerId: player.id,
-                          fullName: fullName,
-                          imageUrl: player.imageUrl,
-                          quote: player.quote,
-                          onStageLabel: onStageLabel,
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Row(
-                          children: [
-                            ListingMetricOrb(
-                              value: '${split.active.length}',
-                              unit: 'sahnede',
-                              emphasized: true,
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            ListingMetricOrb(
-                              value: '${split.past.length}',
-                              unit: 'geçmiş',
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            ListingMetricOrb(
-                              value:
-                                  '${player.achievements.where((final a) => (a['title'] ?? '').trim().isNotEmpty).length}',
-                              unit: 'ödül',
-                            ),
-                          ],
-                        ),
-                        if (split.active.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.xl),
-                          ListingLabel('Program'),
-                          ListingChipRow(
-                            children: [
-                              for (final Show show in split.active.take(8))
-                                ListingChip(
-                                  label: show.name,
-                                  selected: false,
-                                  onTap: () => NavigationHandler.goToShow(
-                                      context, show.id, show.name),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+    return LayoutBuilder(builder: (final context, final box) {
+      final double w = box.maxWidth;
+      final double gutter = w >= 1200 ? 48 : (w >= 768 ? 32 : 18);
+      final bool wide = w >= 900;
+
+      Widget stat(final String v, final String l) => Padding(
+            padding: const EdgeInsets.only(right: 34),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(v, style: Sk.display(context, size: 34, height: 1.0)),
+              const SizedBox(height: 2),
+              Text(l,
+                  style: Sk.ui(context,
+                      size: 13,
+                      color: cs.onSurfaceVariant,
+                      weight: FontWeight.w700)),
+            ]),
+          );
+
+      final Widget portrait = GestureDetector(
+        onTap: hasPhoto
+            ? () => GalleryViewerDialog.open(context, [p.imageUrl.trim()])
+            : null,
+        child: MouseRegion(
+          cursor: hasPhoto ? SystemMouseCursors.zoomIn : MouseCursor.defer,
+          child: Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: cs.primary, width: 3),
+            ),
+            child: ClipOval(
+              child: SizedBox(
+                width: wide ? 230 : 160,
+                height: wide ? 230 : 160,
+                child: SkImage(
+                    url: p.imageUrl,
+                    alignment: const Alignment(0, -0.35),
+                    fallbackIcon: Icons.person_rounded),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.massive),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: _Programme(
-                      player: player,
-                      activeShows: split.active,
-                      pastShows: split.past,
-                      compact: compact,
-                      onStageKey: _onStageKey,
-                      onCollaboratorTap: (final name) {
-                        HapticFeedback.selectionClick();
-                        ref.read(searchQueryProvider.notifier).update(name);
-                        ref.read(searchFilterProvider.notifier).setFilter(0);
-                        NavigationHandler.goToSearch(context);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (kIsWeb) const SliverToBoxAdapter(child: Footer()),
-            SliverToBoxAdapter(
-              child:
-                  SizedBox(height: 80 + MediaQuery.paddingOf(context).bottom),
-            ),
+          ),
+        ),
+      );
+
+      final Widget identity = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [
+            SkBadge(
+                label: active.isNotEmpty ? 'Şu an sahnede' : 'Sahneye ara verdi',
+                accent: active.isNotEmpty),
+          ]),
+          const SizedBox(height: 14),
+          Text(name, style: Sk.display(context, size: 52, height: 1.05)),
+          if (p.quote.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('“${p.quote.trim()}”',
+                style: Sk.ui(context,
+                    size: 17,
+                    color: cs.onSurface.withValues(alpha: 0.85),
+                    weight: FontWeight.w500,
+                    height: 1.45)),
           ],
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                AppSpacing.md, safe.top + AppSpacing.sm, AppSpacing.md, 0),
-            child: ProfileActionsRow(
-              shareLabel: 'Oyuncu profilini paylaş',
-              onShare: () => TiyatrolDeeplinkService.shareActor(
-                  id: player.id, name: fullName),
+          const SizedBox(height: 24),
+          Row(children: [
+            stat('${active.length}', 'sahnede'),
+            stat('${past.length}', 'geçmiş oyun'),
+            stat('${awards.length}', 'ödül'),
+            const Spacer(),
+            OutlinedButton.icon(
+              onPressed: () => TiyatrolDeeplinkService.shareActor(
+                  id: p.id, name: name),
+              icon: const Icon(Icons.ios_share_rounded, size: 18),
+              label: const Text('Paylaş'),
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
+                  shape: const StadiumBorder()),
             ),
-          ),
-        ),
-        if (_actionLabel(split.active) != null)
-          Positioned(
-            left: AppSpacing.lg,
-            right: AppSpacing.lg,
-            bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
-            child: ListingCta(
-              label: _actionLabel(split.active)!,
-              onPressed: _actionTap(context, split.active),
-            ),
-          ),
-      ],
-    );
-  }
+          ]),
+        ],
+      );
 
-  String? _actionLabel(final List<Show> active) {
-    if (active.isEmpty) return null;
-    return active.length == 1 ? 'Oyuna git' : 'Oyunlarını gör';
-  }
-
-  VoidCallback? _actionTap(
-      final BuildContext context, final List<Show> active) {
-    if (active.isEmpty) return null;
-    if (active.length == 1) {
-      final Show show = active.first;
-      return () => NavigationHandler.goToShow(context, show.id, show.name);
-    }
-    return () => profileScrollTo(context, _onStageKey);
-  }
-}
-
-class _PreviewPlayer extends StatelessWidget {
-  final String playerId;
-  final String fullName;
-  final String imageUrl;
-
-  const _PreviewPlayer({
-    required this.playerId,
-    required this.fullName,
-    required this.imageUrl,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final EdgeInsets safe = MediaQuery.paddingOf(context);
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            safe.top + 64,
-            AppSpacing.xl,
-            AppSpacing.section,
-          ),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: PlayerIdentityCard(
-                  playerId: playerId,
-                  fullName: fullName,
-                  imageUrl: imageUrl,
-                  onStageLabel: '',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Kapak
+          Stack(children: [
+            if (hasPhoto)
+              Positioned.fill(
+                child: ClipRect(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                    child: Transform.scale(
+                        scale: 1.4, child: SkImage(url: p.imageUrl)),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.section),
-            const ShowProgrammeSkeleton(),
-          ],
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                AppSpacing.md, safe.top + AppSpacing.sm, AppSpacing.md, 0),
-            child: const ProfileActionsRow(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Programme extends StatelessWidget {
-  final Player player;
-  final List<Show> activeShows;
-  final List<Show> pastShows;
-  final bool compact;
-  final GlobalKey onStageKey;
-  final void Function(String name) onCollaboratorTap;
-
-  const _Programme({
-    required this.player,
-    required this.activeShows,
-    required this.pastShows,
-    required this.compact,
-    required this.onStageKey,
-    required this.onCollaboratorTap,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final double gap = compact ? AppSpacing.huge : AppSpacing.section;
-    final String bio = player.bio.trim();
-    final achievements = player.achievements
-        .where((final a) =>
-            (a['title'] ?? '').trim().isNotEmpty ||
-            (a['year'] ?? '').trim().isNotEmpty)
-        .toList();
-    final collaborations = player.collaborations
-        .map((final c) => c.trim())
-        .where((final c) => c.isNotEmpty)
-        .toList();
-    final bool nothingLinked = activeShows.isEmpty && pastShows.isEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        KeyedSubtree(
-          key: onStageKey,
-          child: ProgrammeSection(
-            act: 'I. perde',
-            title: 'Sahnede',
-            meta: activeShows.length > 1 ? '${activeShows.length} oyun' : null,
-            child: activeShows.isNotEmpty
-                ? PlayerShowPosters(shows: activeShows, compact: compact)
-                : ProfileQuietNote(
-                    icon: Icons.event_busy_rounded,
-                    text: nothingLinked
-                        ? 'Şu an sahnede bir oyunu yok.'
-                        : 'Şu an sahnede bir oyunu yok. Rol aldığı oyunlar '
-                            'aşağıda.',
-                    action: nothingLinked
-                        ? ProfileTextAction(
-                            label: 'Sahnedeki oyunlara göz at',
-                            onTap: () =>
-                                NavigationHandler.goToDiscover(context),
-                          )
-                        : null,
-                  ),
-          ),
-        ),
-        if (bio.isNotEmpty) ...[
-          SizedBox(height: gap),
-          ProgrammeSection(
-            act: 'II. perde',
-            title: 'Hakkında',
-            child: ShowStoryBlock(text: bio, collapsible: compact),
-          ),
-        ],
-        if (pastShows.isNotEmpty) ...[
-          SizedBox(height: gap),
-          ProgrammeSection(
-            title: 'Geçmiş oyunlar',
-            meta: '${pastShows.length} oyun',
-            child: PlayerShowPosters(
-                shows: pastShows, compact: compact, dimmed: true),
-          ),
-        ],
-        if (achievements.isNotEmpty) ...[
-          SizedBox(height: gap),
-          ProgrammeSection(
-            title: 'Ödüller ve başarılar',
-            child: _AchievementList(items: achievements),
-          ),
-        ],
-        if (collaborations.isNotEmpty) ...[
-          SizedBox(height: gap),
-          ProgrammeSection(
-            title: 'Birlikte çalıştıkları',
-            child: _CreditList(
-              names: collaborations,
-              onNameTap: onCollaboratorTap,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _AchievementList extends StatelessWidget {
-  final List<Map<String, String>> items;
-  const _AchievementList({required this.items});
-
-  @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (int i = 0; i < items.length; i++) ...[
-          if (i > 0)
-            Divider(
-                height: 1, color: colors.outlineVariant.withValues(alpha: 0.5)),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 64,
-                  child: Text(
-                    (items[i]['year'] ?? '').trim(),
-                    style: listingUi(
-                      color: colors.primary,
-                      size: 18,
-                      weight: FontWeight.w700,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        (items[i]['title'] ?? '').trim(),
-                        style: context.textTheme.titleMedium?.copyWith(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w700,
-                          height: 1.35,
-                        ),
-                      ),
-                      if ((items[i]['detail'] ?? '').trim().isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          items[i]['detail']!.trim(),
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurfaceVariant,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      cs.surface.withValues(alpha: 0.55),
+                      cs.surface.withValues(alpha: 0.75),
+                      cs.surface,
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _CreditList extends StatelessWidget {
-  final List<String> names;
-  final void Function(String name) onNameTap;
-
-  const _CreditList({required this.names, required this.onNameTap});
-
-  @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: [
-        for (final name in names)
-          Semantics(
-            button: true,
-            label: '$name, ara',
-            excludeSemantics: true,
-            child: Material(
-              color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              child: InkWell(
-                onTap: () => onNameTap(name),
-                borderRadius: BorderRadius.circular(AppRadius.md),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1360),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                  child: Text(
-                    name,
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurface,
-                      fontWeight: FontWeight.w600,
+                  padding: EdgeInsets.fromLTRB(gutter, 40, gutter, 40),
+                  child: wide
+                      ? Row(children: [
+                          portrait,
+                          const SizedBox(width: 56),
+                          Expanded(child: identity),
+                        ])
+                      : Column(children: [
+                          portrait,
+                          const SizedBox(height: 24),
+                          identity,
+                        ]),
+                ),
+              ),
+            ),
+          ]),
+          // Sekmeler
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1360),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(color: cs.outlineVariant)),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          for (final (int, String) t in tabs)
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => setState(() => _tab = t.$1),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 26, vertical: 16),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                          color: tab == t.$1
+                                              ? cs.primary
+                                              : Colors.transparent,
+                                          width: 3),
+                                    ),
+                                  ),
+                                  child: Text(t.$2,
+                                      style: Sk.ui(context,
+                                          size: 15.5,
+                                          color: tab == t.$1
+                                              ? cs.primary
+                                              : cs.onSurface,
+                                          weight: FontWeight.w800)),
+                                ),
+                              ),
+                            ),
+                        ]),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 32),
+                    _tabBody(context, tab, p, bio, active, past, awards, collabs, w),
+                  ],
                 ),
               ),
             ),
           ),
-      ],
-    );
+        ],
+      );
+    });
+  }
+
+  Widget _tabBody(
+    final BuildContext context,
+    final int tab,
+    final Player p,
+    final String bio,
+    final List<Show> active,
+    final List<Show> past,
+    final List<Map<String, String>> awards,
+    final List<String> collabs,
+    final double w,
+  ) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    switch (tab) {
+      case 1:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (active.isNotEmpty) ...[
+              Text('Sahnede', style: Sk.display(context, size: 26, height: 1.1)),
+              const SizedBox(height: 18),
+              _ShowGrid(shows: active, width: w),
+            ],
+            if (past.isNotEmpty) ...[
+              const SizedBox(height: 44),
+              Text('Geçmiş oyunlar',
+                  style: Sk.display(context, size: 26, height: 1.1)),
+              const SizedBox(height: 18),
+              _ShowGrid(shows: past, width: w),
+            ],
+          ],
+        );
+      case 2:
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: Column(children: [
+            for (final Map<String, String> a in awards)
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border:
+                      Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Row(children: [
+                  Icon(Icons.emoji_events_rounded, color: cs.primary, size: 30),
+                  const SizedBox(width: 18),
+                  Text((a['year'] ?? '').trim(),
+                      style: Sk.display(context, size: 26, color: cs.primary)),
+                  const SizedBox(width: 22),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text((a['title'] ?? '').trim(),
+                              style: Sk.ui(context,
+                                  size: 16, weight: FontWeight.w800)),
+                          if ((a['detail'] ?? '').trim().isNotEmpty)
+                            Text((a['detail'] ?? '').trim(),
+                                style: Sk.ui(context,
+                                    size: 14,
+                                    color: cs.onSurfaceVariant,
+                                    weight: FontWeight.w500)),
+                        ]),
+                  ),
+                ]),
+              ),
+          ]),
+        );
+      case 3:
+        return Wrap(spacing: 14, runSpacing: 14, children: [
+          for (final String c in collabs)
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () {
+                  ref.read(searchQueryProvider.notifier).update(c);
+                  ref.read(searchFilterProvider.notifier).setFilter(0);
+                  NavigationHandler.goToSearch(context);
+                },
+                child: Container(
+                  width: 330,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: cs.outlineVariant.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(children: [
+                    CircleAvatar(
+                        backgroundColor: cs.primaryContainer,
+                        child: Icon(Icons.groups_rounded,
+                            color: cs.onPrimaryContainer)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(c,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Sk.ui(context,
+                              size: 15, weight: FontWeight.w800)),
+                    ),
+                    Icon(Icons.chevron_right_rounded,
+                        color: cs.onSurfaceVariant),
+                  ]),
+                ),
+              ),
+            ),
+        ]);
+      default:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 820),
+              child: SelectableText(
+                bio.isEmpty ? 'Bu oyuncu için henüz bir biyografi eklenmemiş.' : bio,
+                style: Sk.ui(context,
+                    size: 16,
+                    weight: FontWeight.w500,
+                    height: 1.75,
+                    color: cs.onSurface.withValues(alpha: 0.9)),
+              ),
+            ),
+            const SizedBox(height: 48),
+            PlayerCoStars(player: p, shows: [...active, ...past]),
+          ],
+        );
+    }
+  }
+}
+
+class _ShowGrid extends StatelessWidget {
+  final List<Show> shows;
+  final double width;
+  const _ShowGrid({required this.shows, required this.width});
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final double inner = (width > 1360 ? 1360 : width) - 96;
+    final int cols = (inner / 220).floor().clamp(2, 6);
+    const double gap = 24;
+    final double cw = (inner - gap * (cols - 1)) / cols;
+    return Wrap(spacing: gap, runSpacing: 30, children: [
+      for (final Show s in shows)
+        SizedBox(
+          width: cw,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => NavigationHandler.goToShow(context, s.id, s.name,
+                  imageUrl: s.imageUrl, title: s.name),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: 2 / 3,
+                        child: SkImage(
+                            url: s.imageUrl, alignment: Alignment.topCenter),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(s.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Sk.ui(context,
+                            size: 15,
+                            weight: FontWeight.w800,
+                            height: 1.25,
+                            color: cs.onSurface)),
+                  ]),
+            ),
+          ),
+        ),
+    ]);
   }
 }
