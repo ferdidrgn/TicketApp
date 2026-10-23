@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../features/notifications/presentation/providers/notification_provider.dart';
 import 'ticket_nav_bar.dart';
+import 'web_site_header.dart';
 
 /// 💻 WEB GEZİNME KABUĞU
 ///
@@ -76,6 +77,13 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
 
   Widget _buildTopBar(final BuildContext context, {required final bool narrow}) {
     final cs = context.colors;
+    // Geniş ekran: gerçek web sitesi başlığı (üst şerit + arama + tür menüsü).
+    if (!narrow) {
+      return WebSiteHeader(
+        currentIndex: widget.navigationShell.currentIndex,
+        onTab: _onItemTapped,
+      );
+    }
     final bool desktop = context.isDesktop;
 
     return Material(
