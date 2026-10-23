@@ -4,7 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
-import '../../../../../core/util/calendar_actions.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../../../../core/util/calendar_picker.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../detail/show_detail_data.dart';
@@ -40,22 +42,6 @@ Future<void> openStageDirections(final Stage s) async {
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
-/// Seansı cihaz takvimine ekler.
-Future<void> addSessionToCalendar(
-    final ShowSession s, final String showName, final String duration) async {
-  final DateTime? when = s.when;
-  if (when == null) return;
-  HapticFeedback.selectionClick();
-  await TiyatrolCalendarActions.addShowEventToCalendar(
-    showName: showName,
-    eventStart: when,
-    location: [s.venueName, s.stage?.address ?? '']
-        .where((final p) => p.trim().isNotEmpty)
-        .join(', '),
-    showDuration: duration,
-  );
-}
-
 /// Küçük, sakin iki eylem: Takvime ekle · Yol tarifi.
 class SessionActions extends StatelessWidget {
   final ShowSession session;
@@ -73,9 +59,10 @@ class SessionActions extends StatelessWidget {
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     Widget action(final IconData icon, final String label,
-            final VoidCallback onTap) =>
-        PressScale(
-          onTap: onTap,
+            final void Function(BuildContext) onTap) =>
+        Builder(
+          builder: (final ctx) => PressScale(
+          onTap: () => onTap(ctx),
           semanticLabel: label,
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -93,6 +80,7 @@ class SessionActions extends StatelessWidget {
               ],
             ),
           ),
+          ),
         );
     final Stage? stage = session.stage;
     return Wrap(
@@ -100,10 +88,21 @@ class SessionActions extends StatelessWidget {
       children: [
         if (session.when != null)
           action(Icons.event_available_rounded, 'Takvime ekle',
-              () => addSessionToCalendar(session, showName, duration)),
+              (final ctx) => showAddToCalendarMenu(
+                    ctx,
+                    CalendarEventData.forShow(
+                      showName: showName,
+                      start: session.when!,
+                      duration: duration,
+                      location: [session.venueName, session.stage?.address ?? '']
+                          .where((final p) => p.trim().isNotEmpty)
+                          .join(', '),
+                    ),
+                    native: !kIsWeb,
+                  )),
         if (stage != null)
           action(Icons.directions_rounded, 'Yol tarifi',
-              () => openStageDirections(stage)),
+              (final _) => openStageDirections(stage)),
       ],
     );
   }

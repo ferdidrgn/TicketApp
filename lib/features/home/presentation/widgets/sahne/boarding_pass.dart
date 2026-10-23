@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../../core/util/calendar_actions.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../../../../core/util/calendar_picker.dart';
 import '../../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../../shared/widgets/sahne/sketch.dart';
 import '../../../../stages/domain/entities/stage.dart';
@@ -108,22 +110,19 @@ class _BoardingPassCardState extends State<BoardingPassCard>
   }
 
   Future<void> _calendar() async {
-    HapticFeedback.selectionClick();
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    try {
-      await TiyatrolCalendarActions.addShowEventToCalendar(
+    await showAddToCalendarMenu(
+      context,
+      CalendarEventData.forShow(
         showName: widget.ticket.show?.name ?? 'Tiyatro',
-        eventStart: widget.date,
+        start: widget.date,
+        duration: widget.ticket.show?.duration ?? '',
         location: [
           widget.ticket.stage?.name ?? '',
           widget.ticket.stage?.address ?? '',
         ].where((x) => x.trim().isNotEmpty).join(', '),
-        showDuration: widget.ticket.show?.duration ?? '',
-      );
-    } catch (_) {
-      messenger?.showSnackBar(const SnackBar(
-          content: Text('Takvime eklenemedi. Takvim iznini kontrol edip tekrar dene.')));
-    }
+      ),
+      native: !kIsWeb,
+    );
   }
 
   @override

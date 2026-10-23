@@ -5,7 +5,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/util/calendar_actions.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../../../core/util/calendar_picker.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -424,14 +426,18 @@ class _TicketLinks extends StatelessWidget {
           TicketTextLink(
             label: 'Takvime ekle',
             emphasize: true,
-            onTap: () => TiyatrolCalendarActions.addShowEventToCalendar(
-              showName: show!.name,
-              eventStart: eventDate!,
-              location: stage?.address ?? '',
-              showDuration: show.duration,
-              description: stage != null && stage.name.isNotEmpty
-                  ? '${stage.name} — TiyatRol bileti'
-                  : 'TiyatRol bileti',
+            onTap: () => showAddToCalendarMenu(
+              context,
+              CalendarEventData.forShow(
+                showName: show!.name,
+                start: eventDate!,
+                duration: show.duration,
+                location: stage?.address ?? '',
+                description: stage != null && stage.name.isNotEmpty
+                    ? '${stage.name} — TiyatRol bileti'
+                    : 'TiyatRol bileti',
+              ),
+              native: !kIsWeb,
             ),
           ),
       ],

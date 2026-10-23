@@ -3,6 +3,7 @@ import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -13,6 +14,8 @@ import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../discovery/presentation/widgets/browse_controls.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
+import '../../../reviews/data/review_repository.dart';
+import '../../../reviews/presentation/providers/review_providers.dart';
 import '../../../reviews/presentation/widgets/review_widgets.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../stages/domain/entities/stage.dart';
@@ -22,6 +25,8 @@ import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/home_sessions_provider.dart';
 import '../providers/home_show_filter_provider.dart';
 import '../widgets/web/web_home_extras.dart';
+
+part 'home_web_sections.dart';
 
 /// ANA SAYFA — WEB. Gerçek bir bilet sitesinin vitrini (mağaza düzeni):
 ///
@@ -104,6 +109,42 @@ class _HomePageState extends ConsumerState<HomePage> {
     ]..sort((final a, final b) => _priceOf(a).compareTo(_priceOf(b))))
         .take(14)
         .toList();
+    // Top 10: yorum puanı + yorum sayısı + yaklaşan seans sırasıyla
+    final Map<String, ReviewStat> stats =
+        ref.watch(reviewStatsProvider).value ?? const {};
+    final List<Show> ranked = ([...shows]
+          ..sort((final a, final b) {
+            final ReviewStat? x = stats[a.id];
+            final ReviewStat? y = stats[b.id];
+            final int c = (y?.average ?? 0).compareTo(x?.average ?? 0);
+            if (c != 0) return c;
+            final int d = (y?.count ?? 0).compareTo(x?.count ?? 0);
+            if (d != 0) return d;
+            final DateTime? na = nextByShow[a.id]?.date;
+            final DateTime? nb = nextByShow[b.id]?.date;
+            if (na == null && nb == null) return 0;
+            if (na == null) return 1;
+            if (nb == null) return -1;
+            return na.compareTo(nb);
+          }))
+        .toList();
+    final Show? weekShow = ranked
+        .where((final s) => nextByShow.containsKey(s.id))
+        .firstOrNull;
+    // Son çağrı: tüm seansları önümüzdeki 14 gün içinde biten oyunlar
+    final Map<String, List<HomeSession>> byShow = {};
+    for (final HomeSession x in sessions) {
+      byShow.putIfAbsent(x.show.id, () => []).add(x);
+    }
+    final List<(Show, HomeSession, int)> closing = [];
+    for (final Show sh in shows) {
+      final List<HomeSession>? l = byShow[sh.id];
+      if (l == null || l.isEmpty) continue;
+      l.sort((a, b) => a.date.compareTo(b.date));
+      final int left = l.last.date.difference(DateTime.now()).inDays + 1;
+      if (left <= 14) closing.add((sh, l.first, left < 1 ? 1 : left));
+    }
+
     final String? spot = _spotKey ??
         (categories.isEmpty ? null : categories.first.key);
     final BrowseCategory? spotCat = spot == null
@@ -201,11 +242,53 @@ class _HomePageState extends ConsumerState<HomePage> {
                   top: 24,
                 ),
                 section(WebPromoTiles(wide: desktop), top: 28),
+                if (sessions.isNotEmpty)
+                  section(_Reveal(child: _DateStrip(sessions: sessions, onOpen: _openShow)),
+                      top: 56),
                 // 2) YUVARLAK TÜR KAROLARI
                 if (categories.length > 1)
                   section(_CategoryCircles(categories: categories), top: 36),
                 // 3) RAFLAR
-                if (popular.isNotEmpty) rail('Popüler oyunlar', popular),
+                if (popular.isNotEmpty)
+                  section(_Reveal(
+                      child: _ProductRail(
+                    title: 'Popüler oyunlar',
+                    width: inner,
+                    action: 'Tümünü gör',
+                    onAction: () => NavigationHandler.goToDiscover(context),
+                    children: [
+                      for (final Show s in popular)
+                        _ShowCard(
+                            show: s,
+                            next: nextByShow[s.id],
+                            onOpen: () => _openShow(s)),
+                    ],
+                  )), top: 52),
+                if (ranked.length >= 3)
+                  section(
+                      _Reveal(
+                          child: _TopTen(
+                              shows: ranked,
+                              nextByShow: nextByShow,
+                              onOpen: _openShow)),
+                      top: 64),
+                if (weekShow != null)
+                  section(
+                      _Reveal(
+                          child: _WeekSpotlight(
+                        show: weekShow,
+                        sessions: byShow[weekShow.id] ?? const [],
+                        wide: desktop,
+                        onOpen: () => _openShow(weekShow),
+                      )),
+                      top: 64),
+                if (closing.isNotEmpty)
+                  section(
+                      _Reveal(
+                          child: _ClosingRail(
+                              items: closing.take(12).toList(),
+                              onOpen: _openShow)),
+                      top: 64),
                 if (sessions.isNotEmpty)
                   section(
                     KeyedSubtree(
@@ -238,32 +321,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     top: 60,
                   ),
-                if (cheap.length >= 2)
+                if (cheap.isNotEmpty)
                   section(
-                    _ProductRail(
-                      title: 'Uygun fiyatlı seanslar',
-                      width: inner,
-                      action: 'Tümünü gör',
-                      onAction: () => NavigationHandler.goToDiscover(context),
-                      children: [
-                        for (final HomeSession s in cheap)
-                          _ShowCard(
-                              show: s.show,
-                              next: s,
-                              onOpen: () => _openShow(s.show)),
-                      ],
-                    ),
-                    top: 60,
-                  ),
+                      _Reveal(
+                          child: _BudgetRail(
+                              sessions: sessions,
+                              width: inner,
+                              onOpen: _openShow)),
+                      top: 64),
                 // NASIL ÇALIŞIR + SAYILAR
                 section(WebHowItWorks(wide: desktop), top: 80),
                 section(
-                  WebStatsBand(
-                    shows: shows.length,
-                    stages: stages.length,
-                    teams: teams.length,
-                    players: players.length,
-                    wide: desktop,
+                  _Reveal(
+                    child: _CountStats(items: [
+                      (shows.length, 'Oyun', Icons.theater_comedy_rounded),
+                      (stages.length, 'Sahne', Icons.location_city_rounded),
+                      (teams.length, 'Topluluk', Icons.groups_rounded),
+                      (players.length, 'Oyuncu', Icons.person_rounded),
+                    ]),
                   ),
                   top: 56,
                 ),
@@ -300,7 +375,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   section(_PlayerRow(players: players), top: 72),
                 // REHBER + SSS
                 section(WebGuide(wide: desktop), top: 80),
-                section(const WebFaq(), top: 80),
                 // 5) YARDIM
                 section(const _HelpBlock(), top: 80),
                 const SizedBox(height: 72),
