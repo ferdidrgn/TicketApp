@@ -62,6 +62,185 @@ class _WebSiteHeaderState extends ConsumerState<WebSiteHeader> {
     NavigationHandler.goToSearch(context);
   }
 
+
+  Widget _compactHeader(
+    final BuildContext context,
+    final ColorScheme cs, {
+    required final bool loggedIn,
+    required final String uid,
+    required final List<BrowseCategory> cats,
+    required final int upcoming,
+  }) {
+    return Material(
+      color: cs.surface,
+      child: SafeArea(
+        bottom: false,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(
+            height: 60,
+            child: Row(children: [
+              IconButton(
+                tooltip: 'Menü',
+                onPressed: () => _openMenu(context,
+                    loggedIn: loggedIn, uid: uid, cats: cats),
+                icon: const Icon(Icons.menu_rounded, size: 28),
+              ),
+              _Brand(
+                  onTap: () => NavigationHandler.goToApp(context), small: true),
+              const Spacer(),
+              IconButton(
+                tooltip: loggedIn ? 'Hesabım' : 'Giriş yap',
+                onPressed: () => _tab(3),
+                icon: const Icon(Icons.person_outline_rounded, size: 26),
+              ),
+              IconButton(
+                tooltip: 'Biletlerim',
+                onPressed: () => loggedIn
+                    ? NavigationHandler.goToMyTickets(context, uid)
+                    : NavigationHandler.goToLogin(context),
+                icon: Badge(
+                  isLabelVisible: upcoming > 0,
+                  label: Text(upcoming > 9 ? '9+' : '$upcoming'),
+                  child:
+                      const Icon(Icons.confirmation_number_outlined, size: 26),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+            child: TextField(
+              controller: _search,
+              onSubmitted: _submit,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Oyun, oyuncu, sahne ara',
+                isDense: true,
+                filled: true,
+                fillColor: cs.surfaceContainerHigh,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                suffixIcon: IconButton(
+                  tooltip: 'Ara',
+                  onPressed: () => _submit(_search.text),
+                  icon: Icon(Icons.search_rounded, color: cs.primary),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            height: 46,
+            decoration: BoxDecoration(
+              border: Border(
+                  top: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.5)),
+                  bottom: BorderSide(color: cs.outlineVariant)),
+            ),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              children: [
+                for (int i = 0; i < 3; i++)
+                  _NavLink(
+                    label: kShellDestinations[i].label,
+                    active: widget.currentIndex == i,
+                    onTap: () => _tab(i),
+                  ),
+                for (final BrowseCategory c in cats.take(6))
+                  _NavLink(
+                    label: c.label,
+                    active: false,
+                    onTap: () => NavigationHandler.goToDiscoverWithCategory(
+                        context, c.label),
+                  ),
+                _NavLink(
+                  label: 'Kampanyalar',
+                  icon: Icons.local_offer_rounded,
+                  accent: true,
+                  active: false,
+                  onTap: () => NavigationHandler.goToCampaigns(context),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _openMenu(
+    final BuildContext context, {
+    required final bool loggedIn,
+    required final String uid,
+    required final List<BrowseCategory> cats,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (final ctx) {
+        void go(final VoidCallback f) {
+          Navigator.of(ctx).pop();
+          f();
+        }
+
+        Widget item(final IconData icon, final String label,
+                final VoidCallback f) =>
+            ListTile(
+              leading: Icon(icon),
+              title: Text(label,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              onTap: () => go(f),
+            );
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            item(Icons.home_outlined, 'Ana Sayfa', () => _tab(0)),
+            item(Icons.explore_outlined, 'Keşfet', () => _tab(1)),
+            item(Icons.place_outlined, 'Yakındakiler', () => _tab(2)),
+            if (cats.isNotEmpty) const Divider(),
+            for (final BrowseCategory c in cats.take(8))
+              item(
+                  Icons.theater_comedy_outlined,
+                  c.label,
+                  () => NavigationHandler.goToDiscoverWithCategory(
+                      context, c.label)),
+            const Divider(),
+            item(Icons.local_offer_outlined, 'Kampanyalar',
+                () => NavigationHandler.goToCampaigns(context)),
+            item(
+                Icons.favorite_border_rounded,
+                'Favorilerim',
+                () => loggedIn
+                    ? NavigationHandler.goToFavorites(context)
+                    : NavigationHandler.goToLogin(context)),
+            item(
+                Icons.confirmation_number_outlined,
+                'Biletlerim',
+                () => loggedIn
+                    ? NavigationHandler.goToMyTickets(context, uid)
+                    : NavigationHandler.goToLogin(context)),
+            item(Icons.person_outline_rounded,
+                loggedIn ? 'Hesabım' : 'Giriş yap', () => _tab(3)),
+            const Divider(),
+            item(Icons.help_outline_rounded, 'Yardım',
+                () => NavigationHandler.goToHelpSupport(context)),
+            item(Icons.shield_outlined, 'Gizlilik ve şartlar',
+                () => NavigationHandler.goToContracts(context)),
+            item(Icons.mail_outline_rounded, 'Bize yazın',
+                () => TiyatrolCommunicationActions.sendEmail()),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
@@ -78,6 +257,12 @@ class _WebSiteHeaderState extends ConsumerState<WebSiteHeader> {
             .where((final t) => !t.isPast)
             .length
         : 0;
+
+    // ── Dar ekran (telefon tarayıcısı): duyarlı site başlığı ──
+    if (w < 768) {
+      return _compactHeader(context, cs,
+          loggedIn: loggedIn, uid: uid, cats: cats, upcoming: upcoming);
+    }
 
     Widget bounded(final Widget child) => Center(
           child: ConstrainedBox(
@@ -308,7 +493,8 @@ class _UtilLink extends StatelessWidget {
 
 class _Brand extends StatelessWidget {
   final VoidCallback onTap;
-  const _Brand({required this.onTap});
+  final bool small;
+  const _Brand({required this.onTap, this.small = false});
 
   @override
   Widget build(final BuildContext context) {
@@ -321,8 +507,8 @@ class _Brand extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Image.asset(
             'assets/images/app_icon_master.png',
-            width: 44,
-            height: 44,
+            width: small ? 34 : 44,
+            height: small ? 34 : 44,
             cacheWidth: 132,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) =>
@@ -333,9 +519,9 @@ class _Brand extends StatelessWidget {
         Text('TİYATROL',
             style: GoogleFonts.playfairDisplay(
                 color: cs.onSurface,
-                fontSize: 24,
+                fontSize: small ? 18 : 24,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 3)),
+                letterSpacing: small ? 2 : 3)),
       ]),
     );
   }

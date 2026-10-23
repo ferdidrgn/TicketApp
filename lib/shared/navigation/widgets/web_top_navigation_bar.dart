@@ -66,19 +66,14 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
           Expanded(child: widget.navigationShell),
         ],
       ),
-      bottomNavigationBar: narrow
-          ? TicketBottomNavBar(
-              currentIndex: widget.navigationShell.currentIndex,
-              onTap: _onItemTapped,
-            )
-          : null,
+      // Web: telefonda da alt çubuk yok — duyarlı site başlığı kullanılır.
     );
   }
 
   Widget _buildTopBar(final BuildContext context, {required final bool narrow}) {
     final cs = context.colors;
     // Geniş ekran: gerçek web sitesi başlığı (üst şerit + arama + tür menüsü).
-    if (!narrow) {
+    {
       return WebSiteHeader(
         currentIndex: widget.navigationShell.currentIndex,
         onTab: _onItemTapped,
