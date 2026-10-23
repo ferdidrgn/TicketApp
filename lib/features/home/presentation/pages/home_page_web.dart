@@ -23,6 +23,8 @@ import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/home_sessions_provider.dart';
+import '../widgets/sahne/home_experience.dart' show HomeBudgetCard;
+import '../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../providers/home_show_filter_provider.dart';
 import '../widgets/web/web_home_extras.dart';
 
@@ -326,6 +328,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: _BudgetRail(
                               sessions: sessions,
                               width: inner,
+                              wide: desktop,
                               onOpen: _openShow)),
                       top: 64),
                 // 4) MEKÂNLAR + TOPLULUKLAR
@@ -407,6 +410,7 @@ class _Hoverable extends StatefulWidget {
 class _HoverableState extends State<_Hoverable> {
   bool _hover = false;
   bool _focus = false;
+  bool _down = false;
 
   @override
   Widget build(final BuildContext context) => Semantics(
@@ -425,7 +429,15 @@ class _HoverableState extends State<_Hoverable> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onTap,
-            child: widget.builder(_hover || _focus),
+            onTapDown: (_) => setState(() => _down = true),
+            onTapUp: (_) => setState(() => _down = false),
+            onTapCancel: () => setState(() => _down = false),
+            child: AnimatedScale(
+              scale: _down ? 0.98 : 1,
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOut,
+              child: widget.builder(_hover || _focus),
+            ),
           ),
         ),
       );
@@ -439,44 +451,12 @@ class _Title extends StatelessWidget {
   const _Title({required this.title, this.subtitle, this.action, this.onAction});
 
   @override
-  Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool narrow = MediaQuery.sizeOf(context).width < 640;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 14,
-            children: [
-              Text(title,
-                  style: Sk.display(context,
-                      size: narrow ? 24 : 30, height: 1.1)),
-              if (subtitle != null && !narrow)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(subtitle!,
-                      style: Sk.ui(context,
-                          size: 14,
-                          color: cs.onSurfaceVariant,
-                          weight: FontWeight.w600)),
-                ),
-            ],
-          ),
-        ),
-        if (action != null)
-          TextButton(
-            onPressed: onAction,
-            child: Text(action!,
-                style: Sk.ui(context,
-                    size: narrow ? 13 : 14,
-                    color: cs.primary,
-                    weight: FontWeight.w800)),
-          ),
-      ],
-    );
-  }
+  Widget build(final BuildContext context) => SkSectionHead(
+        title: title,
+        subtitle: subtitle,
+        actionLabel: action,
+        onAction: onAction,
+      );
 }
 
 class _Empty extends StatelessWidget {
@@ -982,10 +962,11 @@ class _ShowCard extends StatelessWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: skSoftShadow(context, strength: hover ? 1.2 : 0.7),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(26),
               child: AspectRatio(
                 aspectRatio: 2 / 3,
                 child: Stack(
@@ -1503,7 +1484,6 @@ class _PlayerRow extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
     final List<Player> list = [
       for (final Player p in players)
         if (p.imageUrl.startsWith('http')) p,
@@ -1511,54 +1491,33 @@ class _PlayerRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Title(title: 'Sahnenin yüzleri', subtitle: 'Oyuncular'),
-        const SizedBox(height: 22),
+        const _Title(
+            title: 'Sahnenin yüzleri', subtitle: 'dokun, oyuncuyu tanı'),
+        const SizedBox(height: 26),
         _ScrollRow(
-          height: 170,
-          itemWidth: 110,
-          gap: 26,
+          height: 196,
+          itemWidth: 132,
+          gap: 24,
           children: [
             for (final Player p in list)
-              _Hoverable(
-                label: '${p.firstName} ${p.lastName}'.trim(),
-                onTap: () => NavigationHandler.goToPlayer(
-                    context, p.id, '${p.firstName} ${p.lastName}'.trim(),
+              SizedBox(
+                width: 132,
+                child: Center(
+                  child: SkFlowerPortrait(
                     imageUrl: p.imageUrl,
-                    title: '${p.firstName} ${p.lastName}'.trim()),
-                builder: (final hover) => SizedBox(
-                  width: 110,
-                  child: Column(children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: hover ? cs.primary : Colors.transparent,
-                            width: 2),
-                      ),
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 96,
-                          height: 96,
-                          child: SkImage(
-                              url: p.imageUrl,
-                              alignment: const Alignment(0, -0.35),
-                              fallbackIcon: Icons.person_rounded),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text('${p.firstName} ${p.lastName}'.trim(),
+                    size: 112,
+                    semanticLabel: '${p.firstName} ${p.lastName}'.trim(),
+                    onTap: () => NavigationHandler.goToPlayer(
+                        context, p.id, '${p.firstName} ${p.lastName}'.trim(),
+                        imageUrl: p.imageUrl,
+                        title: '${p.firstName} ${p.lastName}'.trim()),
+                    title: Text('${p.firstName} ${p.lastName}'.trim(),
                         maxLines: 2,
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                         style: Sk.ui(context,
-                            size: 13.5,
-                            weight: FontWeight.w800,
-                            height: 1.2,
-                            color: hover ? cs.primary : cs.onSurface)),
-                  ]),
+                            size: 13.5, weight: FontWeight.w800, height: 1.2)),
+                  ),
                 ),
               ),
           ],

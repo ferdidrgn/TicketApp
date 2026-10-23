@@ -7,6 +7,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/navigation/widgets/web_site_header.dart';
 import '../../../../shared/widgets/footers/web_mega_footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
+import '../../../../shared/widgets/sahne/flower_portrait.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
@@ -989,41 +990,31 @@ class _CastGrid extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Wrap(spacing: 28, runSpacing: 28, children: [
+    return Wrap(spacing: 28, runSpacing: 34, children: [
       for (final Player p in players)
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => NavigationHandler.goToPlayer(
-                context, p.id, '${p.firstName} ${p.lastName}'.trim(),
-                imageUrl: p.imageUrl,
-                title: '${p.firstName} ${p.lastName}'.trim()),
-            child: SizedBox(
-              width: 140,
-              child: Column(children: [
-                ClipOval(
-                  child: SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: SkImage(
-                        url: p.imageUrl,
-                        alignment: const Alignment(0, -0.35),
-                        fallbackIcon: Icons.person_rounded),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text('${p.firstName} ${p.lastName}'.trim(),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: Sk.ui(context,
-                        size: 14.5, weight: FontWeight.w800, height: 1.2)),
-                if (!current.any((final c) => c.id == p.id))
-                  Text('Önceki kadro',
-                      style: Sk.ui(context,
-                          size: 12,
-                          color: cs.onSurfaceVariant,
-                          weight: FontWeight.w600)),
-              ]),
+        SizedBox(
+          width: 150,
+          child: Center(
+            child: SkFlowerPortrait(
+              imageUrl: p.imageUrl,
+              size: 126,
+              semanticLabel: '${p.firstName} ${p.lastName}'.trim(),
+              bottomChip: current.any((final c) => c.id == p.id)
+                  ? 'Kadroda'
+                  : 'Önceki kadro',
+              bottomChipAccent: current.any((final c) => c.id == p.id),
+              onTap: () => NavigationHandler.goToPlayer(
+                  context, p.id, '${p.firstName} ${p.lastName}'.trim(),
+                  imageUrl: p.imageUrl,
+                  title: '${p.firstName} ${p.lastName}'.trim()),
+              title: Text('${p.firstName} ${p.lastName}'.trim(),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: Sk.ui(context,
+                      size: 14.5,
+                      weight: FontWeight.w800,
+                      height: 1.2,
+                      color: cs.onSurface)),
             ),
           ),
         ),

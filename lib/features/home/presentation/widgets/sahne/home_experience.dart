@@ -597,7 +597,7 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
               // Bütçe kadranı — Smart_home'daki daire kaydırıcı
               if (prices.length >= 2)
                 gap(
-                  pad(_BudgetCard(
+                  pad(HomeBudgetCard(
                     key: ValueKey<double?>(_budget),
                     prices: prices,
                     applied: _budget,
@@ -1244,12 +1244,12 @@ class _RangeChips extends StatelessWidget {
 // SIRADAKİ BİLETİN
 // ═════════════════════════════════════════════════════════════════════════════
 
-class _BudgetCard extends StatefulWidget {
+class HomeBudgetCard extends StatefulWidget {
   final List<double> prices; // seansların gerçek bilet fiyatları
   final double? applied;
   final ValueChanged<double?> onApply;
 
-  const _BudgetCard({
+  const HomeBudgetCard({
     super.key,
     required this.prices,
     required this.applied,
@@ -1257,10 +1257,10 @@ class _BudgetCard extends StatefulWidget {
   });
 
   @override
-  State<_BudgetCard> createState() => _BudgetCardState();
+  State<HomeBudgetCard> createState() => _HomeBudgetCardState();
 }
 
-class _BudgetCardState extends State<_BudgetCard> {
+class _HomeBudgetCardState extends State<HomeBudgetCard> {
   double _v = 0.6;
 
   double get _max {

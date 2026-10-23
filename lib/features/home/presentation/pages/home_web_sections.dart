@@ -39,7 +39,7 @@ class _DateStrip extends StatefulWidget {
 }
 
 class _DateStripState extends State<_DateStrip> {
-  int _sel = 0;
+  int _sel = -1; // -1: en yakın seans gününü otomatik seç
 
   @override
   Widget build(final BuildContext context) {
@@ -47,12 +47,17 @@ class _DateStripState extends State<_DateStrip> {
     final DateTime today = DateTime.now();
     final DateTime start = DateTime(today.year, today.month, today.day);
     final List<DateTime> days = [
-      for (int i = 0; i < 14; i++) start.add(Duration(days: i)),
+      for (int i = 0; i < 45; i++) start.add(Duration(days: i)),
     ];
     int countOn(final DateTime d) => widget.sessions
         .where((final s) => s.day == d)
         .length;
-    final DateTime selected = days[_sel];
+    int selIndex = _sel;
+    if (selIndex < 0) {
+      selIndex = days.indexWhere((final d) => countOn(d) > 0);
+      if (selIndex < 0) selIndex = 0;
+    }
+    final DateTime selected = days[selIndex];
     final List<HomeSession> list = [
       for (final HomeSession s in widget.sessions)
         if (s.day == selected) s,
@@ -61,7 +66,7 @@ class _DateStripState extends State<_DateStrip> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Title(title: 'Tarih seç', subtitle: 'Önümüzdeki 14 gün'),
+        const _Title(title: 'Tarih seç', subtitle: 'önümüzdeki 45 gün, seansı olan günler çerçeveli'),
         const SizedBox(height: 20),
         SizedBox(
           height: 96,
@@ -72,7 +77,7 @@ class _DateStripState extends State<_DateStrip> {
             itemBuilder: (final context, final i) {
               final DateTime d = days[i];
               final int n = countOn(d);
-              final bool sel = i == _sel;
+              final bool sel = i == selIndex;
               return _Hoverable(
                 label: '${d.day} ${kMonthsTr[d.month - 1]}, $n seans',
                 onTap: () => setState(() => _sel = i),
@@ -134,7 +139,7 @@ class _DateStripState extends State<_DateStrip> {
           ),
           child: list.isEmpty
               ? Container(
-                  key: ValueKey<int>(_sel),
+                  key: ValueKey<int>(selIndex),
                   width: double.infinity,
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
@@ -149,7 +154,7 @@ class _DateStripState extends State<_DateStrip> {
                           weight: FontWeight.w600)),
                 )
               : Wrap(
-                  key: ValueKey<int>(_sel),
+                  key: ValueKey<int>(selIndex),
                   spacing: 18,
                   runSpacing: 18,
                   children: [
@@ -457,16 +462,20 @@ class _Fact extends StatelessWidget {
 class _BudgetRail extends StatefulWidget {
   final List<HomeSession> sessions;
   final double width;
+  final bool wide;
   final void Function(Show) onOpen;
   const _BudgetRail(
-      {required this.sessions, required this.width, required this.onOpen});
+      {required this.sessions,
+      required this.width,
+      required this.wide,
+      required this.onOpen});
 
   @override
   State<_BudgetRail> createState() => _BudgetRailState();
 }
 
 class _BudgetRailState extends State<_BudgetRail> {
-  double? _max = 250;
+  double? _max;
 
   @override
   Widget build(final BuildContext context) {
@@ -479,63 +488,32 @@ class _BudgetRailState extends State<_BudgetRail> {
         cheapestByShow[s.show.id] = s;
       }
     }
+    if (cheapestByShow.isEmpty) return const SizedBox.shrink();
+    final List<double> prices = [
+      for (final HomeSession s in widget.sessions)
+        if (s.priceLabel != null) _priceOf(s),
+    ];
     final List<HomeSession> list = [
       for (final HomeSession s in cheapestByShow.values)
         if (_max == null || _priceOf(s) <= _max!) s,
     ]..sort((a, b) => _priceOf(a).compareTo(_priceOf(b)));
-    if (cheapestByShow.isEmpty) return const SizedBox.shrink();
 
-    Widget tab(final String label, final double? v) {
-      final bool sel = _max == v;
-      return _Hoverable(
-        label: label,
-        onTap: () => setState(() => _max = v),
-        builder: (final hover) => AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          decoration: BoxDecoration(
-            color: sel
-                ? cs.primary
-                : (hover ? cs.surfaceContainerHighest : cs.surfaceContainerHigh),
-            borderRadius: BorderRadius.circular(26),
-          ),
-          child: Text(label,
-              style: Sk.ui(context,
-                  size: 14,
-                  color: sel ? cs.onPrimary : cs.onSurface,
-                  weight: FontWeight.w800)),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 24,
-          runSpacing: 12,
-          children: [
-            Text('Bütçene göre',
-                style: Sk.display(context,
-                    size: MediaQuery.sizeOf(context).width < 640 ? 24 : 30,
-                    height: 1.1)),
-            Wrap(spacing: 10, runSpacing: 10, children: [
-              tab('250 ₺ altı', 250),
-              tab('500 ₺ altı', 500),
-              tab('Tümü', null),
-            ]),
-          ],
-        ),
-        const SizedBox(height: 22),
-        if (list.isEmpty)
-          Text('Bu bütçede seans yok.',
-              style: Sk.ui(context,
-                  size: 14.5,
-                  color: cs.onSurfaceVariant,
-                  weight: FontWeight.w600))
-        else
-          _ScrollRow(
+    final Widget dial = HomeBudgetCard(
+      key: ValueKey<double?>(_max),
+      prices: prices,
+      applied: _max,
+      onApply: (final b) => setState(() => _max = b),
+    );
+    final Widget rail = list.isEmpty
+        ? Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Text('Bu bütçede seans yok. Kadranı biraz yukarı çevir.',
+                style: Sk.ui(context,
+                    size: 14.5,
+                    color: cs.onSurfaceVariant,
+                    weight: FontWeight.w600)),
+          )
+        : _ScrollRow(
             height: 232 * 1.5 + 128,
             itemWidth: 232,
             gap: 24,
@@ -544,10 +522,26 @@ class _BudgetRailState extends State<_BudgetRail> {
                 SizedBox(
                   width: 232,
                   child: _ShowCard(
-                      show: s.show, next: s, onOpen: () => widget.onOpen(s.show)),
+                      show: s.show,
+                      next: s,
+                      onOpen: () => widget.onOpen(s.show)),
                 ),
             ],
-          ),
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _Title(
+            title: 'Bütçene göre', subtitle: 'kadranı çevir, cebine uyanları gör'),
+        const SizedBox(height: 26),
+        widget.wide
+            ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(width: 380, child: dial),
+                const SizedBox(width: 36),
+                Expanded(child: rail),
+              ])
+            : Column(children: [dial, const SizedBox(height: 24), rail]),
       ],
     );
   }
