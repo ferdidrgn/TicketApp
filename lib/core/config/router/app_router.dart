@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
 import 'package:ticketapp/features/admin/presentation/pages/admin_home_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
+import 'package:ticketapp/features/players/presentation/pages/player_details_web.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
@@ -23,6 +24,7 @@ import '../../../features/notifications/presentation/pages/notification_inbox_pa
 import '../../../features/onboarding/data/onboarding_gate.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
+import '../../../features/search/presentation/pages/search_page_web.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
@@ -217,8 +219,15 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'playerDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: PlayerDetailPage(
-              playerId: state.pathParameters['slugWithId']!.split('-').last),
+          // Web ve mobil AYRI tasarım: web = eski gişe/program düzeni,
+          // mobil = "Sahne" deneyimi.
+          child: kIsWeb
+              ? PlayerDetailPageWeb(
+                  playerId:
+                      state.pathParameters['slugWithId']!.split('-').last)
+              : PlayerDetailPage(
+                  playerId:
+                      state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 560),
           reverseTransitionDuration: const Duration(milliseconds: 480),
@@ -256,7 +265,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'search',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: SearchPage(),
+          child: kIsWeb ? SearchPageWeb() : SearchPage(),
           transitionsBuilder: sharedAxisZTransition,
           transitionDuration: AppMotion.normal,
         ),
