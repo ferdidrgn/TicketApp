@@ -25,6 +25,7 @@ import '../../../features/onboarding/data/onboarding_gate.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/search/presentation/pages/search_page_web.dart';
+import '../../../shared/navigation/widgets/web_site_frame.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
@@ -153,8 +154,14 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
-                  child: DiscoveryPage(
-                      selectedCategory: state.uri.queryParameters['category']),
+                  child: kIsWeb
+                      ? SearchPageWeb(
+                          embedded: true,
+                          initialCategory:
+                              state.uri.queryParameters['category'])
+                      : DiscoveryPage(
+                          selectedCategory:
+                              state.uri.queryParameters['category']),
                   transitionsBuilder: fadeTransition,
                   transitionDuration: const Duration(milliseconds: 500),
                 ),
@@ -239,8 +246,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'stageDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: StageDetailPage(
-              stageId: state.pathParameters['slugWithId']!.split('-').last),
+          child: WebSiteFrame(child: StageDetailPage(
+              stageId: state.pathParameters['slugWithId']!.split('-').last)),
           transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 560),
           reverseTransitionDuration: const Duration(milliseconds: 480),
@@ -252,8 +259,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'teamDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: TeamDetailsPage(
-              teamId: state.pathParameters['slugWithId']!.split('-').last),
+          child: WebSiteFrame(
+              child: TeamDetailsPage(
+                  teamId:
+                      state.pathParameters['slugWithId']!.split('-').last)),
           transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 560),
           reverseTransitionDuration: const Duration(milliseconds: 480),
@@ -316,7 +325,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'favorites',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: FavoritesPage(),
+          child: WebSiteFrame(child: FavoritesPage()),
           // Kişisel bir liste sayfası — dramatik bir "sahne kararması"
           // hak etmiyor, nötr kalmalı.
           transitionsBuilder: fadeTransition,
@@ -329,8 +338,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'myTickets',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: MyTicketPage(
-              userId: state.pathParameters['slugWithId']!.split('-').last),
+          child: WebSiteFrame(
+              child: MyTicketPage(
+                  userId:
+                      state.pathParameters['slugWithId']!.split('-').last)),
           transitionsBuilder: scrollSlideTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -353,7 +364,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'contracts',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: ContractsPage(),
+          child: WebSiteFrame(child: ContractsPage()),
           // Hukuki bir metin — netlik ister, "gizemli bir kapı" değil.
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
@@ -365,7 +376,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'helpSupport',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: HelpSupportPage(),
+          child: WebSiteFrame(child: HelpSupportPage()),
           // Destek sayfası — kullanıcı zaten bir sorunla geliyor, dramatik
           // bir geçiş yerine hızlı ve nötr bir erişim daha doğru.
           transitionsBuilder: fadeTransition,
@@ -383,7 +394,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
           return CustomTransitionPage(
             key: state.pageKey,
-            child: CampaignShowcasePage(initialIndex: initialIndex),
+            child: WebSiteFrame(child: CampaignShowcasePage(initialIndex: initialIndex)),
             transitionsBuilder: shadowGateTransition,
             transitionDuration: const Duration(milliseconds: 500),
           );

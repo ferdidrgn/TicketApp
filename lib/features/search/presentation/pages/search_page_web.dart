@@ -19,7 +19,12 @@ import '../providers/search_query_provider.dart';
 /// başlığı + sıralama + afiş ızgarası; oyuncu/mekân/topluluk sonuçları
 /// altta ayrı bloklarda. Mobil uygulamanın arama sayfasından AYRIDIR.
 class SearchPageWeb extends ConsumerStatefulWidget {
-  const SearchPageWeb({super.key});
+  /// Keşfet sekmesi olarak kullanılırken (kabuk başlığı zaten var) üst başlık
+  /// ve altbilgi tekrar çizilmez; `/discover?category=` ilk türü seçer.
+  final bool embedded;
+  final String? initialCategory;
+
+  const SearchPageWeb({super.key, this.embedded = false, this.initialCategory});
 
   @override
   ConsumerState<SearchPageWeb> createState() => _SearchPageWebState();
@@ -44,6 +49,8 @@ class _SearchPageWebState extends ConsumerState<SearchPageWeb> {
   void initState() {
     super.initState();
     _text.text = ref.read(searchQueryProvider);
+    final String? c = widget.initialCategory;
+    if (c != null && c.isNotEmpty) _category = browseCategoryKey(c);
   }
 
   @override
@@ -71,7 +78,7 @@ class _SearchPageWebState extends ConsumerState<SearchPageWeb> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const WebSiteHeader(currentIndex: 1),
+            if (!widget.embedded) const WebSiteHeader(currentIndex: 1),
             LayoutBuilder(builder: (final context, final box) {
               final double w = box.maxWidth;
               final bool desktop = w >= 1024;
