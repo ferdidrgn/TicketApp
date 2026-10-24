@@ -9,8 +9,10 @@ import 'package:ticketapp/features/players/presentation/pages/player_details.dar
 import 'package:ticketapp/features/players/presentation/pages/player_details_web.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
+import 'package:ticketapp/features/stages/presentation/pages/stage_details_web.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
 import '../../../features/appTools/presentation/pages/contracts.dart';
+import 'package:ticketapp/features/teams/presentation/pages/team_details_web.dart';
 import '../../../features/appTools/presentation/pages/help_support_page.dart';
 import '../../../features/auth/presentation/page/login_screen.dart';
 import '../../../features/auth/presentation/page/phone_login_page.dart';
@@ -246,8 +248,14 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'stageDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(child: StageDetailPage(
-              stageId: state.pathParameters['slugWithId']!.split('-').last)),
+          // Web = kendi başlığını çizen "künye ve program" sayfası.
+          child: kIsWeb
+              ? StageDetailPageWeb(
+                  stageId: state.pathParameters['slugWithId']!.split('-').last)
+              : WebSiteFrame(
+                  child: StageDetailPage(
+                      stageId:
+                          state.pathParameters['slugWithId']!.split('-').last)),
           transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 560),
           reverseTransitionDuration: const Duration(milliseconds: 480),
@@ -259,10 +267,14 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'teamDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(
-              child: TeamDetailsPage(
-                  teamId:
-                      state.pathParameters['slugWithId']!.split('-').last)),
+          child: kIsWeb
+              ? TeamDetailPageWeb(
+                  teamId: state.pathParameters['slugWithId']!.split('-').last)
+              : WebSiteFrame(
+                  child: TeamDetailsPage(
+                      teamId: state.pathParameters['slugWithId']!
+                          .split('-')
+                          .last)),
           transitionsBuilder: heroSharedTransition,
           transitionDuration: const Duration(milliseconds: 560),
           reverseTransitionDuration: const Duration(milliseconds: 480),
