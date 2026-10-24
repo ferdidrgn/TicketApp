@@ -1,3 +1,8 @@
+import '../../../features/favorite/presentation/pages/favorites_page_web.dart';
+import '../../../features/tickets/presentation/pages/my_ticket_page_web.dart';
+import '../../../features/appTools/presentation/pages/help_support_page_web.dart';
+import '../../../features/appTools/presentation/pages/contracts_page_web.dart';
+import '../../../features/campaigns/presentation/pages/campaign_showcase_page_web.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -339,7 +344,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'favorites',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(child: FavoritesPage()),
+          child: kIsWeb ? const FavoritesPageWeb() : FavoritesPage(),
           // Kişisel bir liste sayfası — dramatik bir "sahne kararması"
           // hak etmiyor, nötr kalmalı.
           transitionsBuilder: fadeTransition,
@@ -352,10 +357,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'myTickets',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(
-              child: MyTicketPage(
+          child: kIsWeb
+              ? MyTicketPageWeb(
                   userId:
-                      state.pathParameters['slugWithId']!.split('-').last)),
+                      state.pathParameters['slugWithId']!.split('-').last)
+              : MyTicketPage(
+                  userId:
+                      state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: scrollSlideTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -378,7 +386,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'contracts',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(child: ContractsPage()),
+          child: kIsWeb ? const ContractsPageWeb() : ContractsPage(),
           // Hukuki bir metin — netlik ister, "gizemli bir kapı" değil.
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
@@ -390,7 +398,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'helpSupport',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: WebSiteFrame(child: HelpSupportPage()),
+          child: kIsWeb ? const HelpSupportPageWeb() : HelpSupportPage(),
           // Destek sayfası — kullanıcı zaten bir sorunla geliyor, dramatik
           // bir geçiş yerine hızlı ve nötr bir erişim daha doğru.
           transitionsBuilder: fadeTransition,
@@ -408,7 +416,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
           return CustomTransitionPage(
             key: state.pageKey,
-            child: WebSiteFrame(child: CampaignShowcasePage(initialIndex: initialIndex)),
+            child: kIsWeb
+                ? CampaignShowcasePageWeb(initialIndex: initialIndex)
+                : CampaignShowcasePage(initialIndex: initialIndex),
             transitionsBuilder: shadowGateTransition,
             transitionDuration: const Duration(milliseconds: 500),
           );
