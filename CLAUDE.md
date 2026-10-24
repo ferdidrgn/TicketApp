@@ -116,3 +116,11 @@ oku" talimatı ve yukarıdaki güncel kararlar (5 tema, yasaklar, token
 kullanımı) açıkça yazılır — agent'lar kendi worktree'lerinde başlıyor ve
 bunu otomatik görmeyebilir. Agent önce `git fetch` + dalın ucuna
 `reset --hard` ile başlar, push'tan hemen önce yeniden rebase eder.
+
+## Web sitesi — `site/` (HTML/CSS/JS, dal `tiyatrol-web-perde`, 25.10.2026)
+
+Sahibi Flutter web'i bıraktırdı: **web sitesi artık `site/` klasöründe saf HTML + CSS + ES modülleri**
+(derleme yok), aynı Firestore'u okur; mobil uygulama Flutter'da kalır. Satın alma yok (bilet uygulamada /
+harici link). Giriş sadece mobilde + web yönetim paneli (`/yonetim`, Firebase Auth + `User.role == admin`,
+asıl güvenlik `firestore.rules`). Tema: `site/js/theme.js` (mod × palet × özel renk, ayar paneli başlıkta).
+Ayrıntı: `docs/WEB-SITESI.md`. Web tasarımı yaparken önce bu klasörü genişlet; Flutter `*_web.dart` sayfalarına yeni iş yazma.

@@ -1,0 +1,26 @@
+/* TiyatRol Web — tema belirteçleri. JS (theme.js) bu değişkenleri çalışma anında
+   yeniden yazar; buradaki değerler ilk boyama ve JS'siz yedek içindir. */
+:root {
+  --accent: #c50337;
+  --accent-ink: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --bg: #0a0509;
+  --surface: #160a10;
+  --surface-2: #2b0f18;
+  --ink: #f2ecd9;
+  --ink-2: #c9bba5;
+  --ink-3: #9c8f79;
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --paper: #f4ecd8;           /* bilet kâğıdı — her temada sabit */
+  --paper-ink: #1d1410;
+  --ok: #4caf50;
+  --warn: #ff9800;
+  --err: #f44336;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 10px 30px -12px rgba(0,0,0,.55);
+  --ease: cubic-bezier(.22,1,.36,1);
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
