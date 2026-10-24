@@ -20,6 +20,7 @@ import '../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../features/campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
+import '../../../features/discovery/presentation/pages/nearby_events_page_web.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page.dart';
 import '../../../features/notifications/presentation/pages/notification_inbox_page.dart';
@@ -32,6 +33,7 @@ import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
 import '../../../features/users/presentation/pages/profile_page.dart';
+import '../../../features/users/presentation/pages/profile_page_web.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../../shared/navigation/providers/navigation_keys.dart';
 import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
@@ -181,7 +183,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
-                  child: NearbyEventsPage(),
+                  child: kIsWeb ? NearbyEventsPageWeb() : NearbyEventsPage(),
                   transitionsBuilder: scrollSlideTransition,
                   transitionDuration: const Duration(milliseconds: 500),
                 ),
@@ -199,7 +201,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
-                  child: ProfilePage(),
+                  child: kIsWeb ? ProfilePageWeb() : ProfilePage(),
                   transitionsBuilder: fadeTransition,
                   transitionDuration: const Duration(milliseconds: 500),
                 ),
