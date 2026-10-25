@@ -162,3 +162,4 @@ node_modules/
 .pnpm-store/
 # Widget Preview related
 .widget_preview/
+site-dist/

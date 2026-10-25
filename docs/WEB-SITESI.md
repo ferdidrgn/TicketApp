@@ -54,3 +54,12 @@ ekrana sabit renk gömülmez (bilet kâğıdı hariç).
 ## Dosya haritası
 `js/firebase.js` (SDK) · `js/store.js` (okuma + türetme) · `js/ui.js` (başlık, arama önerileri, kartlar) · `js/detay.js` (program/bilet iskeleti, takvim, harita) ·
 `js/admin/schema.js` (alan şeması) · `js/admin/admin.js` (panel).
+
+## Google / AdSense için: önceden üretilmiş sayfalar
+Sayfalar tarayıcıda JS ile çizilir; Google'ın boş HTML görmemesi için yayın öncesi
+`node site/tools/build.mjs` her oyun/sahne/oyuncu/topluluk için içeriği HTML'de olan sayfa
+(başlık, açıklama, Open Graph, JSON-LD `TheaterEvent`/`Person`/`PerformingArtsTheater`, iç bağlantılar),
+`sitemap.xml` ve `robots.txt` üretir (`site-dist/`). `firebase deploy --only hosting:web` bunu otomatik çalıştırır (`predeploy`).
+Alan adı: `SITE_URL=https://alanadin.com node site/tools/build.mjs` (varsayılan https://tiyatrol.com).
+Kontrol: `curl https://adres/oyun/...` çıktısında oyun adı ve açıklama görünmeli; Search Console → Site Haritaları → `sitemap.xml` ekle.
+AdSense ayrıca özgün içerik, gizlilik/iletişim sayfası ve kendi alan adı ister.
