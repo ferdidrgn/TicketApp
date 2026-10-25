@@ -47,6 +47,7 @@ export function etkilesimler() {
     let liste = [], k = 0;
     const goster = () => { lb.querySelector('img').src = liste[k]; };
     const git = (d) => { k = (k + d + liste.length) % liste.length; goster(); };
+    document.addEventListener('lb-ac', (e) => { liste = e.detail.liste; k = e.detail.k; goster(); lb.classList.add('open'); });
     document.addEventListener('click', (e) => {
       const im = e.target.closest('.gal img, .mosaic img');
       if (im) { const hepsi = [...im.closest('.gal, .mosaic').querySelectorAll('img')]; liste = hepsi.map((x) => x.dataset.full || x.src); k = hepsi.indexOf(im); goster(); lb.classList.add('open'); return; }
@@ -61,7 +62,20 @@ export function etkilesimler() {
   }
 }
 
-export const galeri = (urls, alt = '') => urls.length ? `<div class="mosaic">${urls.map((u) => `<img src="${esc(u)}" data-full="${esc(u)}" alt="${esc(alt)}" loading="lazy">`).join('')}</div>` : '';
+export const galeri = (urls, alt = '') => {
+  if (!urls.length) return '';
+  if (urls.length === 1) return `<div class="gal2 tek"><div class="g-sahne"><div class="g-track"><div class="g-slayt" style="--bl:url('${esc(urls[0])}')"><img src="${esc(urls[0])}" alt="${esc(alt)}" loading="lazy"></div></div></div></div>`;
+  const ok = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">';
+  return `<div class="gal2" data-n="${urls.length}" data-alt="${esc(alt)}">
+    <div class="g-sahne">
+      <div class="g-track" tabindex="0" aria-label="Galeri, ${urls.length} fotoğraf">${urls.map((u, i) => `<div class="g-slayt" style="--bl:url('${esc(u)}')"><img src="${esc(u)}" alt="${esc(alt)} ${i + 1}" ${i > 1 ? 'loading="lazy"' : ''} data-full="${esc(u)}"></div>`).join('')}</div>
+      <button class="g-ok g-p" aria-label="Önceki">${ok}<path d="m15 5-7 7 7 7"/></svg></button><button class="g-ok g-n" aria-label="Sonraki">${ok}<path d="m9 5 7 7-7 7"/></svg></button>
+      <div class="g-ust"><span class="g-sayac">1 / ${urls.length}</span><span class="g-ar"><button class="g-tum" aria-label="Tüm fotoğrafları göster">${ok}<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>Tümü</button><button class="g-buyut" aria-label="Tam ekran">${ok}<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span></div>
+      <div class="g-noktalar" aria-hidden="true">${urls.slice(0, 12).map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>
+    </div>
+    <div class="g-seritler" role="tablist">${urls.map((u, i) => `<button role="tab" class="${i === 0 ? 'on' : ''}" data-i="${i}" aria-label="${i + 1}. fotoğraf"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div>
+  </div>`;
+};
 
 export function harita(lat, lng, adres = '') {
   if (lat == null || lng == null || (lat === 0 && lng === 0)) return '';
@@ -138,3 +152,43 @@ export function sekmeler(kap, liste, baslangic = 0) {
   const h = location.hash.slice(1); const ilk = l.findIndex((x) => x.id === h);
   ciz(ilk >= 0 ? ilk : baslangic);
 }
+
+// ---------- Galeri (kaydırmalı sahne + küçük resim şeridi + tüm fotoğraflar penceresi) ----------
+// Tek olay yönetimi (delegasyon): sekme değişse bile yeniden bağlamaya gerek yok.
+const gAz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const gUrls = (g) => [...g.querySelectorAll('.g-slayt img')].map((x) => x.dataset.full || x.src);
+function gGit(g, i, yumusak = true) {
+  const t = g.querySelector('.g-track'), n = +g.dataset.n; i = (i + n) % n;
+  t.scrollTo({ left: i * t.clientWidth, behavior: yumusak && !gAz ? 'smooth' : 'auto' });
+  gIsaret(g, i);
+}
+function gIsaret(g, i) {
+  if (g.dataset.k === String(i)) return; g.dataset.k = i;
+  g.querySelector('.g-sayac').textContent = `${i + 1} / ${g.dataset.n}`;
+  g.querySelectorAll('.g-seritler button').forEach((b, k) => { b.classList.toggle('on', k === i); if (k === i) b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: gAz ? 'auto' : 'smooth' }); });
+  g.querySelectorAll('.g-noktalar i').forEach((d, k) => d.classList.toggle('on', k === i % 12));
+}
+document.addEventListener('scroll', (e) => {
+  const t = e.target; if (!t.classList || !t.classList.contains('g-track')) return;
+  const g = t.closest('.gal2'); clearTimeout(t._gt);
+  t._gt = setTimeout(() => gIsaret(g, Math.round(t.scrollLeft / t.clientWidth)), 60);
+}, true);
+document.addEventListener('click', (e) => {
+  const g = e.target.closest('.gal2'); if (!g) { if (e.target.closest('.g-modal-kapat') || e.target.classList?.contains('g-modal')) document.querySelector('.g-modal')?.remove(); return; }
+  const cur = () => +(g.dataset.k || 0);
+  if (e.target.closest('.g-p')) return gGit(g, cur() - 1);
+  if (e.target.closest('.g-n')) return gGit(g, cur() + 1);
+  const th = e.target.closest('.g-seritler button'); if (th) return gGit(g, +th.dataset.i);
+  if (e.target.closest('.g-buyut') || e.target.closest('.g-slayt img')) return document.dispatchEvent(new CustomEvent('lb-ac', { detail: { liste: gUrls(g), k: cur() } }));
+  if (e.target.closest('.g-tum')) {
+    const m = document.createElement('div'); m.className = 'g-modal'; m.setAttribute('role', 'dialog');
+    m.innerHTML = `<div class="g-modal-k"><header><b>${g.dataset.n} fotoğraf</b><button class="g-modal-kapat btn btn-ghost btn-sm">Kapat</button></header><div class="g-izgara">${gUrls(g).map((u, i) => `<button data-i="${i}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div></div>`;
+    document.body.append(m);
+    m.addEventListener('click', (ev) => { const b = ev.target.closest('[data-i]'); if (b) { m.remove(); gGit(g, +b.dataset.i, false); g.scrollIntoView({ block: 'center', behavior: 'smooth' }); } });
+  }
+});
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelector('.g-modal')?.remove();
+  const g = document.activeElement?.closest?.('.gal2'); if (!g) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); gGit(g, +(g.dataset.k || 0) + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); gGit(g, +(g.dataset.k || 0) - 1); }
+});

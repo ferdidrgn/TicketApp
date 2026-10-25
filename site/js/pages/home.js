@@ -2,6 +2,7 @@ import '../theme.js';
 import { yukle } from '../store.js';
 import { perdeAc, isikKur } from '../fx.js';
 import { ilOku, ilYaz } from '../iller.js';
+import { tarihAyristir } from '../util.js';
 import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
@@ -49,6 +50,16 @@ function ciz(d0) {
 
   if (hafta.length) parts.push(`<section class="sec">${bolumBasligi('Bu hafta sahnede', 'Önümüzdeki yedi günde perde açan oyunlar.', '/kesfet?zaman=hafta')}${ray(hafta.map((s) => oyunKarti(s)).join(''))}</section>`);
 
+  // Kampanya şeridi
+  if (d.tumKampanyalar.some((c) => c.durum !== 'bitti')) {
+    const kl = d.tumKampanyalar.filter((c) => c.durum !== 'bitti').slice(0, 6);
+    parts.push(`<section class="sec">${bolumBasligi('Kampanyalar', 'Bilet fırsatları ve indirimler.', '/kampanyalar')}<div class="kamp-seridi">${kl.map((c) => `<a class="kamp" href="/kampanyalar">${c.imageUrl ? `<img src="${esc(c.imageUrl)}" alt="" loading="lazy">` : ''}<div><span class="durum ${c.durum}">${c.durum === 'son' ? 'Son günler' : 'Devam ediyor'}</span><b>${esc(c.title || 'Kampanya')}</b><small>${c.bit ? (c.kalanGun === 0 ? 'Bugün son gün' : `Son ${c.kalanGun} gün`) : 'Süresiz'}</small></div></a>`).join('')}</div></section>`);
+  }
+
+  // Hafta sonu
+  const hSonu = aktif.filter((s) => s.upcoming.some((e) => { const wd = e.when.getDay(); return (wd === 0 || wd === 6 || (wd === 5 && e.when.getHours() >= 17)) && e.when - now < 8 * 864e5; }));
+  if (hSonu.length) parts.push(`<section class="sec">${bolumBasligi('Bu hafta sonu', 'Cuma akşamından pazara perde açılanlar.', '/kesfet?zaman=haftasonu')}${ray(hSonu.map((s) => oyunKarti(s)).join(''))}</section>`);
+
   // Ruh hâli
   const adaylar = gorunen.length ? gorunen : d.shows.filter((x) => x.state !== 'bitti');
   if (adaylar.length >= 2) parts.push(`<section class="sec">${bolumBasligi('Bu akşam ne izlesem?', 'Ruh hâlini seç, sana bir bilet çıkaralım.')}<div class="mood"><div><div class="mood-chips" id="mood-chips">${MOODS.map((m, i) => `<button class="chip" data-m="${i}">${m.ad}</button>`).join('')}</div><p class="tiny" style="margin-top:14px">Önerilen oyun seçtiğin ruh hâline göre türünden ve anlatımından bulunur.</p></div><div class="mood-out" id="mood-out"><div class="empty">Bir ruh hâli seç.</div></div></div></section>`);
@@ -68,6 +79,28 @@ function ciz(d0) {
     parts.push(`<section class="sec"><div class="budget"><div class="budget-box"><h2 style="font-size:28px">Bütçene göre</h2><p class="muted" style="margin-top:8px">Bilet fiyatı için üst sınırı seç.</p>
       <output id="bt">${tl(mx)}</output><input type="range" id="br" min="${mn}" max="${mx}" step="50" value="${mx}" aria-label="En yüksek bilet fiyatı"><p class="tiny" id="bn"></p></div><div id="brail"></div></div></section>`);
   }
+
+  // Çocuklarla / ücretsiz / yeni eklenenler
+  const cocuk = gorunen.filter((s) => /çocuk|masal|müzikal/i.test(`${s.cat} ${s.type || ''} ${s.name}`));
+  if (cocuk.length) parts.push(`<section class="sec">${bolumBasligi('Çocuklarla', 'Çocuk oyunları ve aile seçimleri.', '/kesfet')}${ray(cocuk.map((s) => oyunKarti(s)).join(''))}</section>`);
+  const bedava = aktif.filter((s) => s.upcoming.some((e) => e.priceNum === 0));
+  if (bedava.length) parts.push(`<section class="sec">${bolumBasligi('Ücretsiz seanslar', 'Bilet gerektirmeyen ya da ücretsiz oyunlar.')}${ray(bedava.map((s) => oyunKarti(s)).join(''))}</section>`);
+  const yeniler = [...gorunen].filter((s) => s._createdAt).sort((a, b) => (tarihAyristir(b._createdAt) || 0) - (tarihAyristir(a._createdAt) || 0)).slice(0, 10);
+  if (yeniler.length >= 3) parts.push(`<section class="sec">${bolumBasligi('Yeni eklenenler', 'Programa son girenler.')}${ray(yeniler.map((s) => oyunKarti(s, { rozet: 'Yeni' })).join(''))}</section>`);
+
+  // Tür bazlı raylar (en kalabalık 3 tür)
+  const turSay = new Map(); gorunen.forEach((s) => turSay.set(s.cat, (turSay.get(s.cat) || 0) + 1));
+  [...turSay.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([k]) => {
+    parts.push(`<section class="sec">${bolumBasligi(`${k} oyunları`, '', `/kesfet?tur=${encodeURIComponent(k)}`)}${ray(gorunen.filter((s) => s.cat === k).map((s) => oyunKarti(s)).join(''))}</section>`);
+  });
+
+  // Haritada keşfet + il çipleri
+  const ilCip = [...d0.ilSayilari.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const afisPaket = gorunen.filter((s) => s.imageUrl).slice(0, 4);
+  parts.push(`<section class="sec"><div class="harita-bant"><div><h2>Haritada keşfet</h2><p class="muted">Oyunları ve sahneleri afişleriyle haritada gör; ilini seç, yakınındakileri bul.</p>
+    ${ilCip.length ? `<div class="il-cipler">${ilCip.map(([i, n]) => `<button class="chip ${il === i ? 'on' : ''}" data-il="${esc(i)}">${esc(i)} <small>${n}</small></button>`).join('')}</div>` : ''}
+    <a class="btn btn-primary" href="/harita" style="margin-top:18px">Haritayı aç</a></div>
+    <a class="hb-afis" href="/harita" aria-label="Harita">${afisPaket.map((s, i) => `<img src="${esc(s.imageUrl)}" alt="" style="--i:${i}" loading="lazy">`).join('')}<i class="hb-pin"></i></a></div></section>`);
 
   const siralı = [...d.shows].sort((a, b) => (a.state === 'aktif' ? 0 : a.state === 'vitrin' ? 1 : a.state === 'taslak' ? 2 : 3) - (b.state === 'aktif' ? 0 : b.state === 'vitrin' ? 1 : b.state === 'taslak' ? 2 : 3));
   if (siralı.length) parts.push(`<section class="sec">${bolumBasligi('Tüm oyunlar', 'Repertuvardaki bütün oyunlar.', '/kesfet')}${ray(siralı.map((s) => oyunKarti(s, { rozet: s.state === 'taslak' ? 'Yakında' : '' })).join(''))}</section>`);
@@ -104,6 +137,7 @@ function ciz(d0) {
   if (il) parts.unshift(`<section class="sec"><div class="il-bant"><span><b>${esc(il)}</b> programı gösteriliyor · ${aktif.length + vitrin.length} oyun</span><button class="btn btn-ghost btn-sm" id="il-tum">Tüm Türkiye'ye geç</button></div>${!aktif.length && !vitrin.length ? `<div class="empty" style="margin-top:20px"><h3>${esc(il)} için şu an program yok</h3><p>Yakındaki illere bakabilir ya da Tüm Türkiye'yi açabilirsin.</p></div>` : ''}</section>`);
   home.innerHTML = parts.join('');
   document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
+  document.querySelectorAll('.il-cipler [data-il]').forEach((b) => b.addEventListener('click', () => ilYaz(b.dataset.il)));
   if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d, gunler);
   if (fiyatli.length >= 3) butceKur(fiyatli);
