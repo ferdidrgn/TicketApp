@@ -51,6 +51,8 @@ export async function yukle() {
 
     for (const s of shows) {
       s.cat = (s.category || 'Diğer').trim();
+      s.accessKodlari = list(s.access).map((x) => x.toUpperCase().trim()).filter(Boolean);
+      s.oneCikan = /^(evet|true|1|e)$/i.test(String(s.featured || '').trim());
       s.sessions = [];
       s.nowPlayers = list(s.nowPlayersId);
       s.oldPlayers = list(s.oldPlayersId);

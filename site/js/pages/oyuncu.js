@@ -1,7 +1,8 @@
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, ray, kelimeKelime, resim } from '../ui.js';
 import { baslikYaz, bulunamadi, hata, etkilesimler, sekmeler, sayAc } from '../detay.js';
-import { paylas, favMi } from '../fav.js';
+import { favMi } from '../fav.js';
+import { paylasMenusu } from '../ozellik.js';
 import { $, $$, esc, idFromPath, linkOf, baslangic, tarihUzun, saat, kisalt } from '../util.js';
 
 kabukCiz('kesfet');
@@ -40,5 +41,5 @@ yukle().then((d) => {
   <div class="wrap"><div id="sekme-kap"></div></div>`;
   sekmeler($('#sekme-kap'), tabHtml);
   sayAc(); etkilesimler();
-  $('#paylas').addEventListener('click', () => paylas(p.fullName, kisalt(p.bio, 120)));
+  $('#paylas').addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, p.fullName, kisalt(p.bio, 120)));
 }).catch(hata);

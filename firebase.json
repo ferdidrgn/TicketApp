@@ -347,6 +347,14 @@
       ],
       "rewrites": [
         {
+          "source": "/ayarlar",
+          "destination": "/ayarlar.html"
+        },
+        {
+          "source": "/takvim",
+          "destination": "/takvim.html"
+        },
+        {
           "source": "/kampanyalar",
           "destination": "/kampanyalar.html"
         },

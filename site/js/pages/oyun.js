@@ -1,7 +1,8 @@
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, ray, resim, kelimeKelime, DIS_IKON, alanAdi } from '../ui.js';
 import { baslikYaz, bulunamadi, hata, etkilesimler, harita, takvimMenusu, dakikaOku, geriSayim, galeri } from '../detay.js';
-import { kalpDugme, paylas, favMi } from '../fav.js';
+import { kalpDugme, favMi } from '../fav.js';
+import { paylasMenusu } from '../ozellik.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
@@ -53,7 +54,8 @@ function ciz(d) {
 
   // ---------- gövde bölümleri ----------
   const kadro = (l) => `<div class="cast">${l.map((p) => `<a href="${linkOf('oyuncu', p)}"><div class="arch">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="${esc(p.fullName)}" loading="lazy">` : esc(baslangic(p.fullName))}</div><b>${esc(p.fullName)}</b>${p.quote ? `<small>“${esc(kisalt(p.quote, 40))}”</small>` : ''}</a>`).join('')}</div>`;
-  const benzer = d.shows.filter((x) => x.id !== s.id && (x.cat === s.cat || (s.team && x.teamId === s.teamId)) && x.state !== 'bitti').slice(0, 10);
+  const skor = (x) => (x.cat === s.cat ? 3 : 0) + (s.teamId && x.teamId === s.teamId ? 3 : 0) + (x.iller.some((i) => s.iller.includes(i)) ? 2 : 0) + (x.ageLimit && x.ageLimit === s.ageLimit ? 1 : 0) + (x.cast.some((p) => s.cast.includes(p)) ? 2 : 0) + (x.state === 'aktif' ? 1 : 0);
+  const benzer = d.shows.filter((x) => x.id !== s.id && x.state !== 'bitti' && skor(x) >= 3).sort((a, b) => skor(b) - skor(a)).slice(0, 10);
   const yil = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
   const yorumHtml = s.ratingCount ? `<div class="yorum-ozet"><div><div class="buyuk">${s.ratingAvg.toFixed(1)}</div><div class="yil">${yil(Math.round(s.ratingAvg))}</div><div class="tiny">${s.ratingCount} yorum</div></div>
       <div class="dag">${s.ratingDist.map((n, i) => `<div><span>${5 - i}</span><i><b style="width:${(n / s.ratingCount) * 100}%"></b></i><span>${n}</span></div>`).join('')}</div></div>
@@ -61,6 +63,12 @@ function ciz(d) {
       <p class="tiny" style="margin-top:14px">Yorum yazmak için TiyatRol uygulamasını kullan.</p>` : `<div class="empty"><h3>Henüz yorum yok</h3><p>İlk yorumu TiyatRol uygulamasından yazabilirsin.</p></div>`;
   const bolumler = [
     { id: 'hikaye', ad: 'Hikâye', html: s.description ? `<p class="story">${esc(s.description)}</p>` : '' },
+    { id: 'bilgi', ad: 'Bilmeniz gerekenler', html: (() => {
+      const satir = [['Süre', s.duration], ['Ara', s.interval], ['Yaş önerisi', s.ageLimit && `${s.ageLimit}`], ['İçerik uyarısı', s.contentNotes], ['Tür', s.cat], ['Mekân', (yer && yer.name) || s.externalVenueName], ['Ulaşım', yer && yer.transit], ['Erişim', yer && yer.accessNotes], ['Bilet', s.external ? `${alan} üzerinden` : 'TiyatRol uygulaması']].filter(([, v]) => v);
+      const ERIS = { AD: 'Sesli betimleme', CAP: 'Altyazılı', BSL: 'İşaret dili', R: 'Rahat gösterim', TS: 'İşaret dili' };
+      const er = (s.accessKodlari || []).filter((k) => ERIS[k]);
+      return satir.length > 2 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
+    })() },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
     { id: 'mekan', ad: 'Mekân', html: yer ? `<p style="margin-bottom:14px"><a href="${linkOf('sahne', yer)}"><b>${esc(yer.name)}</b></a><br><span class="muted">${esc(yer.address || '')}</span></p>${harita(yer.lat, yer.lng)}` : (s.externalVenueName ? `<p><b>${esc(s.externalVenueName)}</b><br><span class="muted">${esc(s.externalVenueAddress || '')}</span></p>${harita(s.externalLat, s.externalLng)}` : '') },
@@ -81,15 +89,15 @@ function ciz(d) {
       <div class="op-info"><div class="crumbs">${kirinti}</div><h1>${kelimeKelime(s.name)}</h1>
         <div class="facts" style="margin-bottom:18px">${chips}${s.ratingCount ? `<a class="chip" href="#yorumlar"><span class="yildiz" style="margin:0">★ ${s.ratingAvg.toFixed(1)}</span> ${s.ratingCount} yorum</a>` : ''}</div>
         ${s.description ? `<p class="op-lead">${esc(kisalt(s.description, 210))}</p>` : ''}
-        ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
+        ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${(() => { const dk = dakikaOku(s.duration); if (!s.duration) return ''; const bt = new Date(n.when.getTime() + dk * 60000); return `<div class="f"><small>Tahmini bitiş</small><b>${saat(bt)}</b></div>`; })()}${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
         <div class="op-act">
           ${s.external ? `<a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} al ${DIS_IKON.replace('<svg', '<svg width="16" height="16"')}</a>` : `<a class="btn btn-primary" href="#seanslar">Seansları gör</a>`}
-          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button></div>
+          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button><button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
       </div></div></section>
   <div class="mini-bar" id="mini"><div class="wrap">${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="">` : ''}<b>${esc(s.name)}</b>${s.external ? `<a class="btn btn-primary btn-sm" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti al</a>` : `<a class="btn btn-primary btn-sm" href="#seanslar">Seanslar</a>`}</div></div>
   <div class="wrap"><nav class="bar-nav" id="bnav" aria-label="Sayfa bölümleri">${bolumler.map((b) => `<a href="#${b.id}">${esc(b.ad)}</a>`).join('')}</nav>
   <div class="op-body"><div class="op-main">${bolumler.map((b) => `<section class="block" id="${b.id}"><h2>${esc(b.ad)}</h2>${b.html}</section>`).join('')}</div>
-  <aside class="op-side" id="panel">${panel()}</aside></div></div>`;
+  <aside class="op-side" id="panel">${panel()}<a class="tiny" style="text-align:center" href="mailto:info@tiyatrol.com?subject=${encodeURIComponent('Hata bildir: ' + s.name)}&body=${encodeURIComponent(location.href)}">Bilgi hatalı mı? Bize bildir</a></aside></div></div>`;
 
   // ---------- canlı davranışlar ----------
   etkilesimler();
@@ -110,7 +118,8 @@ function ciz(d) {
   };
   seansCiz(); baglan();
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
-  $('#paylas')?.addEventListener('click', () => paylas(s.name, kisalt(s.description, 120)));
+  $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
+  $('#yazdir')?.addEventListener('click', () => print());
   // üst çubuk: hero görünmezken
   const mini = $('#mini'), ust = $('#ust');
   new IntersectionObserver(([e]) => mini.classList.toggle('on', !e.isIntersecting), { rootMargin: '-80px 0px 0px 0px' }).observe(ust);
@@ -118,6 +127,9 @@ function ciz(d) {
   const bg = $('.op-bg img');
   if (bg && !matchMedia('(prefers-reduced-motion: reduce)').matches) addEventListener('scroll', () => { if (scrollY < 900) bg.style.transform = `translateY(${scrollY * 0.18}px) scale(1.2)`; }, { passive: true });
 
+  { const bc = document.createElement('script'); bc.type = 'application/ld+json';
+    bc.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Vitrin', item: location.origin + '/' }, { '@type': 'ListItem', position: 2, name: s.cat, item: location.origin + '/kesfet?tur=' + encodeURIComponent(s.cat) }, { '@type': 'ListItem', position: 3, name: s.name }] });
+    document.head.append(bc); }
   if (n) {
     const ld = document.createElement('script'); ld.type = 'application/ld+json';
     ld.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'TheaterEvent', name: s.name, description: kisalt(s.description, 300), image: s.imageUrl, startDate: n.when.toISOString(), location: { '@type': 'Place', name: n.stage?.name || '', address: n.stage?.address || '' }, offers: s.minPrice != null ? { '@type': 'Offer', price: s.minPrice, priceCurrency: 'TRY', url: s.externalTicketUrl || location.href } : undefined });

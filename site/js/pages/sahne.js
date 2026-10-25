@@ -1,7 +1,8 @@
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, ray, kelimeKelime } from '../ui.js';
 import { baslikYaz, bulunamadi, hata, etkilesimler, sekmeler, sayAc, harita } from '../detay.js';
-import { paylas, favMi } from '../fav.js';
+import { favMi } from '../fav.js';
+import { paylasMenusu } from '../ozellik.js';
 import { $, esc, idFromPath, linkOf, tl, tarihUzun, saat, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('sahneler');
@@ -22,6 +23,7 @@ yukle().then((d) => {
     { id: 'hakkinda', ad: 'Hakkında', html: `<div class="pf-iki"><div>${g.description ? `<p class="story">${esc(g.description)}</p>` : '<div class="empty">Açıklama eklenmedi.</div>'}</div>${yan}</div>` },
     { id: 'oyunlar', ad: 'Bu sahnede oynayanlar', sayi: oynayan.length, html: oynayan.length ? `<div class="grid">${oynayan.map((s) => oyunKarti(s)).join('')}</div>` : '' },
     { id: 'konum', ad: 'Konum', html: harita(g.lat, g.lng, g.address) },
+    { id: 'yakin', ad: 'Yakındaki sahneler', html: (() => { if (g.lat == null) return ''; const km = (a, b, c, e) => { const r = Math.PI / 180, x = (e - b) * r * Math.cos(((a + c) / 2) * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * 6371; }; const l = d.stages.filter((x) => x.id !== g.id && x.lat != null).map((x) => ({ x, k: km(g.lat, g.lng, x.lat, x.lng) })).filter((o) => o.k <= 40).sort((a, b) => a.k - b.k).slice(0, 6); return l.length ? `<div class="venues">${l.map(({ x, k }) => `<a class="venue" href="${linkOf('sahne', x)}">${x.imageUrl ? `<img src="${esc(x.imageUrl)}" alt="" loading="lazy">` : ''}<div><h3>${esc(x.name)}</h3><small>${k.toFixed(1)} km · ${x.upcoming.length} yaklaşan seans</small></div></a>`).join('')}</div>` : ''; })() },
   ];
   $('#icerik').innerHTML = `
   <section class="pf-hero"><div class="wrap pf-grid">
@@ -34,5 +36,5 @@ yukle().then((d) => {
   <div class="wrap"><div id="sekme-kap"></div></div>`;
   sekmeler($('#sekme-kap'), tabHtml);
   sayAc(); etkilesimler();
-  $('#paylas').addEventListener('click', () => paylas(g.name, kisalt(g.description, 120)));
+  $('#paylas').addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, g.name, kisalt(g.description, 120)));
 }).catch(hata);

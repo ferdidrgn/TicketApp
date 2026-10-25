@@ -1,11 +1,22 @@
 import '../theme.js';
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, kisi, hataKutusu, iskelet } from '../ui.js';
-import { favListe } from '../fav.js';
+import { favListe, bildir } from '../fav.js';
+import { takvimLinkleri, dakikaOku } from '../detay.js';
 import { $, $$, esc, linkOf } from '../util.js';
 import { baslikYaz } from '../detay.js';
 
 kabukCiz('');
+// Yedek bağlantısı: /favoriler?al=<kodlanmış liste> — favorileri birleştirir
+try {
+  const al = new URLSearchParams(location.search).get('al');
+  if (al) {
+    const yeni = JSON.parse(decodeURIComponent(escape(atob(al)))); const mevcut = new Set(favListe());
+    const toplam = new Set([...mevcut, ...yeni.filter((x) => typeof x === 'string')]);
+    localStorage.setItem('tiyatrol.fav.v1', JSON.stringify([...toplam]));
+    history.replaceState(null, '', '/favoriler'); setTimeout(() => bildir(`${toplam.size - mevcut.size} favori eklendi`), 600);
+  }
+} catch {}
 baslikYaz('Favorilerim', 'Favori oyunların, sahnelerin ve sanatçıların.');
 const ic = $('#icerik');
 let sekme = 'oyun';
@@ -24,6 +35,15 @@ function ciz(d) {
   const sek = [['oyun', 'Oyunlar', oyunlar.length], ['sahne', 'Sahneler', sahneler.length], ['sanatci', 'Sanatçılar', sanatcilar.length], ['topluluk', 'Topluluklar', topluluklar.length]];
   ic.innerHTML = `<div class="pg-ust"><h1>Favorilerim</h1><p>Bu liste bu tarayıcıda saklanır; giriş gerekmez. Uygulamadaki favorilerin hesabına bağlı olduğundan ayrıdır.</p></div>
     <div class="fav-sek">${sek.map(([k, a, n]) => `<button class="chip ${sekme === k ? 'on' : ''}" data-k="${k}">${a} (${n})</button>`).join('')}</div><div id="fav-icerik"></div>`;
+  if (oyunlar.some((s) => s.upcoming.length)) {
+    $('.pg-ust').insertAdjacentHTML('beforeend', '<p style="margin-top:14px"><button class="btn btn-ghost btn-sm" id="fav-ics">Favorilerimin seanslarını takvime aktar (.ics)</button></p>');
+    $('#fav-ics').addEventListener('click', () => {
+      const z = (t) => String(t).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'), p2 = (n) => String(n).padStart(2, '0');
+      const iso = (x) => `${x.getFullYear()}${p2(x.getMonth() + 1)}${p2(x.getDate())}T${p2(x.getHours())}${p2(x.getMinutes())}00`;
+      const olaylar = oyunlar.flatMap((s) => s.upcoming.map((e) => `BEGIN:VEVENT\r\nUID:${e.docId}@tiyatrol.com\r\nDTSTAMP:${iso(new Date())}\r\nDTSTART:${iso(e.when)}\r\nDTEND:${iso(new Date(e.when.getTime() + dakikaOku(s.duration) * 60000))}\r\nSUMMARY:${z(s.name)}\r\nLOCATION:${z(e.stage?.name || '')}\r\nBEGIN:VALARM\r\nTRIGGER:-P1D\r\nACTION:DISPLAY\r\nDESCRIPTION:Yarın: ${z(s.name)}\r\nEND:VALARM\r\nEND:VEVENT`)).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TiyatRol//TR\r\n${olaylar}\r\nEND:VCALENDAR\r\n`], { type: 'text/calendar' })); a.download = 'tiyatrol-favorilerim.ics'; a.click();
+    });
+  }
   $$('.fav-sek .chip').forEach((b) => b.addEventListener('click', () => { sekme = b.dataset.k; ciz(d); }));
   const bos = (m) => `<div class="empty"><h3>${m}</h3><p>Kartlardaki kalbe dokunarak favori ekleyebilirsin.</p><p style="margin-top:16px"><a class="btn btn-primary" href="/kesfet">Oyunlara göz at</a></p></div>`;
   const k = $('#fav-icerik');

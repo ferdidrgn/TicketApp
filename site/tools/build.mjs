@@ -8,6 +8,7 @@
 import { cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ilBul } from '../js/iller.js';
 
 const KOK = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CIKTI = join(KOK, '..', 'site-dist');
@@ -100,7 +101,7 @@ await cp(KOK, CIKTI, { recursive: true, filter: (s) => !s.includes('tools') });
 const sh = new Map(shows.map((s) => [s.id, s])), sg = new Map(stages.map((s) => [s.id, s])), tm = new Map(teams.map((t) => [t.id, t])), pl = new Map(players.map((p) => [p.id, p]));
 const stageOf = (e) => sg.get(e.stageId) || stages.find((x) => x.name === e.stageId) || null;
 const simdi = Date.now();
-const adresler = [{ u: '/', p: 1 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/kampanyalar', p: 0.5 }, { u: '/favoriler', p: 0.3 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
+const adresler = [{ u: '/', p: 1 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/kampanyalar', p: 0.5 }, { u: '/takvim', p: 0.7 }, { u: '/favoriler', p: 0.3 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
 const sablon = async (ad) => readFile(join(KOK, ad), 'utf8');
 const oyunT = await sablon('oyun.html'), oyuncuT = await sablon('oyuncu.html'), sahneT = await sablon('sahne.html'), toplulukT = await sablon('topluluk.html'), anaT = await sablon('index.html'), kesfetT = await sablon('kesfet.html');
 
@@ -157,6 +158,39 @@ const oyunListesi = `<section><h1>TiyatRol — tiyatro oyunları, sahneler ve se
 const siteLd = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'TiyatRol', url: SITE, potentialAction: { '@type': 'SearchAction', target: `${SITE}/kesfet?q={q}`, 'query-input': 'required name=q' } };
 await writeFile(join(CIKTI, 'index.html'), sayfa(anaT, { baslik: 'TiyatRol — Tiyatro oyunları, sahneler ve seanslar', aciklama: "Bu hafta hangi tiyatro oyunu var? Oyunları, sahneleri, oyuncuları ve seans saatlerini tek yerde keşfet.", adres: '/', govde: oyunListesi, jsonld: siteLd }), 'utf8');
 await writeFile(join(CIKTI, 'kesfet.html'), sayfa(kesfetT, { baslik: 'Tüm oyunlar — TiyatRol', aciklama: 'Tiyatro oyunlarını türe, tarihe ve bütçeye göre süz; oyuncuları, sahneleri ve toplulukları keşfet.', adres: '/kesfet', govde: oyunListesi, jsonld: null }), 'utf8');
+
+// ---------- İl sayfaları: /il/<il> (içerikli, JSON-LD ItemList) ----------
+const sayiOf = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? null : n; };
+const ilStage = new Map(stages.map((g) => [g.id, ilBul({ city: g.city, address: g.address, lat: sayiOf(g.lat ?? g.locationLat), lng: sayiOf(g.long ?? g.locationLng) })]));
+const ilShows = new Map();
+for (const e of events) {
+  const g = sg.get(e.stageId) || stages.find((x) => x.name === e.stageId); const il = g && ilStage.get(g.id);
+  const s = sh.get(e.showId); const t = tarih(e.date);
+  if (il && s && t && t.dt.getTime() >= simdi) (ilShows.get(il) || ilShows.set(il, new Map()).get(il)).set(s.id, s);
+}
+for (const s of shows) {
+  if (!s.externalTicketUrl) continue;
+  const il = ilBul({ address: s.externalVenueAddress, lat: sayiOf(s.externalLat), lng: sayiOf(s.externalLng) });
+  if (il) (ilShows.get(il) || ilShows.set(il, new Map()).get(il)).set(s.id, s);
+}
+for (const [il, mp] of ilShows) {
+  const liste = [...mp.values()]; const u = `/il/${slug(il)}`;
+  const govde = `<article><h1>${esc(il)} tiyatro oyunları</h1><p>${esc(il)} ilinde yaklaşan ${liste.length} tiyatro oyunu, sahneleri ve seans saatleri.</p><ul>${liste.map((s) => `<li>${link(yol('oyun', s, s.name), s.name)}${s.category ? ` — ${esc(s.category)}` : ''}</li>`).join('')}</ul></article>`;
+  const html = sayfa(kesfetT, { baslik: `${il} tiyatro oyunları ve seansları — TiyatRol`, aciklama: `${il} ilinde yaklaşan tiyatro oyunları, sahneler ve seans saatleri. Programa göz at.`, adres: u, govde, jsonld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${il} tiyatro oyunları`, itemListElement: liste.slice(0, 50).map((s, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + yol('oyun', s, s.name), name: s.name })) } })
+    .replace('<link rel="stylesheet" href="/css/theme.css">', `<script>try{localStorage.setItem('tiyatrol.il.v1',${JSON.stringify(il)})}catch(e){}</script>\n<link rel="stylesheet" href="/css/theme.css">`);
+  await yazDosya(`${u}/index.html`, html);
+  adresler.push({ u, p: 0.7 });
+}
+
+// ---------- Takvim aboneliği (.ics): tüm yaklaşan seanslar ----------
+{
+  const z = (t) => String(t ?? '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'), p2 = (n) => String(n).padStart(2, '0');
+  const ic = (t) => `${t.y}${p2(t.mo)}${p2(t.d)}T${p2(t.h)}${p2(t.mi)}00`;
+  const olay = events.map((e) => ({ e, t: tarih(e.date), s: sh.get(e.showId), g: sg.get(e.stageId) || stages.find((x) => x.name === e.stageId) })).filter((o) => o.t && o.s && o.t.dt.getTime() >= simdi).sort((a, b) => a.t.dt - b.t.dt)
+    .map(({ e, t, s, g }) => { const dk = parseInt(String(s.duration || '').replace(/\D/g, ''), 10); const bit = new Date(t.dt.getTime() + (dk >= 20 && dk < 400 ? dk : 90) * 60000 + 3 * 3600000); const bt = { y: bit.getUTCFullYear(), mo: bit.getUTCMonth() + 1, d: bit.getUTCDate(), h: bit.getUTCHours(), mi: bit.getUTCMinutes() };
+      return `BEGIN:VEVENT\r\nUID:${e.docId || slug(e.id)}@tiyatrol.com\r\nDTSTAMP:${ic({ y: 2026, mo: 1, d: 1, h: 0, mi: 0 })}\r\nDTSTART;TZID=Europe/Istanbul:${ic(t)}\r\nDTEND;TZID=Europe/Istanbul:${ic(bt)}\r\nSUMMARY:${z(s.name)}\r\nLOCATION:${z([g?.name, g?.address].filter(Boolean).join(', '))}\r\nURL:${SITE}${yol('oyun', s, s.name)}\r\nEND:VEVENT`; }).join('\r\n');
+  await writeFile(join(CIKTI, 'takvim.ics'), `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TiyatRol//TR\r\nX-WR-CALNAME:TiyatRol Tiyatro Programı\r\nX-WR-TIMEZONE:Europe/Istanbul\r\nREFRESH-INTERVAL;VALUE=DURATION:PT12H\r\n${olay}\r\nEND:VCALENDAR\r\n`, 'utf8');
+}
 
 // sitemap + robots
 const bugun = new Date().toISOString().slice(0, 10);

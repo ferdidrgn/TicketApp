@@ -1,10 +1,11 @@
 // Ortak arayüz: üst başlık + arama önerileri, altbilgi, tema paneli, kartlar, raylar.
 import { yukle } from './store.js';
 import './fx.js';
+import './ozellik.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme, favListe } from './fav.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
-import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt } from './util.js';
+import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt, ayniGun, tarihAyristir } from './util.js';
 
 const ICON = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
@@ -42,7 +43,7 @@ export function kabukCiz(aktif = '') {
       </div>
     </div>
     <nav class="nav" aria-label="Ana menü"><div class="wrap" id="nav">
-      ${nav('ana', '/', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('harita', '/harita', 'Harita')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
+      ${nav('ana', '/', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('harita', '/harita', 'Harita')}${nav('takvim', '/takvim', 'Takvim')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
       <span id="nav-turler"></span><span class="sp"></span>
       ${nav('sahneler', '/kesfet?tur=sahneler', 'Sahneler')}${nav('toplulukler', '/kesfet?tur=topluluklar', 'Topluluklar')}
     </div></nav>
@@ -52,8 +53,8 @@ export function kabukCiz(aktif = '') {
     <div class="ftr-grid">
       <div><a href="/" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
-      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
-      <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
+      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
+      <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
     </div>
     <div class="ftr-ad" aria-hidden="true">TİYATROL</div>
@@ -207,12 +208,17 @@ export function oyunKarti(s, { rozet = '', fiyat = true } = {}) {
   const dis = s.external;
   const alan = dis ? alanAdi(s.externalTicketUrl) : '';
   const sub = n ? `${tarihUzun(n.when)} · ${saat(n.when)}` : s.state === 'bitti' ? 'Sezon bitti' : s.cat;
-  const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : '');
+  const bugunMu = n && ayniGun(n.when, new Date());
+  const yeniMi = s._createdAt && (Date.now() - (tarihAyristir(s._createdAt) || 0)) < 14 * 864e5;
+  const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : bugunMu ? 'Bugün' : (s.upcoming.length && s.upcoming.length <= 2 ? 'Son seanslar' : (yeniMi ? 'Yeni' : '')));
+  const bSinif = s.state === 'bitti' ? 'dim' : (b === 'Yeni' ? 'yeni' : b === 'Son seanslar' ? 'son' : b === 'Bugün' ? 'bugun' : '');
   const fp = fiyat && s.minPrice != null ? `<div class="price">${tl(s.minPrice)}'den</div>` : '';
   const yildiz = s.ratingCount ? `<span class="yildiz" title="${s.ratingAvg.toFixed(1)} / 5 (${s.ratingCount} yorum)">★ ${s.ratingAvg.toFixed(1)}</span>` : '';
+  const ERIS = { AD: ['Sesli betimleme', '#2563eb'], CAP: ['Altyazılı', '#7c3aed'], BSL: ['İşaret dili', '#dc2626'], R: ['Rahat gösterim', '#16a34a'], TS: ['İşaret dili', '#dc2626'] };
+  const eris = (s.accessKodlari || []).filter((k) => ERIS[k]).map((k) => `<span class="er" style="background:${ERIS[k][1]}" title="${ERIS[k][0]}">${k}</span>`).join('');
   const disSatir = dis ? `<div class="sub-dis">${DIS_IKON}Bilet: ${esc(alan || 'başka platform')}</div>` : '';
   return `<article class="card"><a class="card-a" href="${linkOf('oyun', s)}" aria-label="${esc(s.name)}">
-    <div class="pic">${resim(afis(s), s.name)}${b ? `<span class="badge ${s.state === 'bitti' ? 'dim' : ''}">${esc(b)}</span>` : ''}${dis ? `<span class="dis" title="Bu oyunun biletleri başka bir platformda satılıyor">${DIS_IKON}<span>Biletler ${esc(alan || 'başka platformda')}</span></span>` : ''}</div>
+    <div class="pic">${resim(afis(s), s.name)}${b ? `<span class="badge ${bSinif}">${esc(b)}</span>` : ''}${eris ? `<span class="er-grup">${eris}</span>` : ''}${dis ? `<span class="dis" title="Bu oyunun biletleri başka bir platformda satılıyor">${DIS_IKON}<span>Biletler ${esc(alan || 'başka platformda')}</span></span>` : ''}</div>
     <h3>${esc(s.name)}</h3><div class="sub">${esc(sub)} ${yildiz}</div>${disSatir || fp}</a>${kalpDugme(s.id)}</article>`;
 }
 

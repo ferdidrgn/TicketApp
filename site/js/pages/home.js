@@ -146,9 +146,9 @@ function ciz(d0) {
 function heroKur(d, aktif, vitrin) {
   const slaytlar = [
     ...d.campaigns.filter((c) => c.imageUrl).map((c) => ({ tip: 'kampanya', baslik: c.title || 'Kampanya', img: c.imageUrl, link: c.url || '/kesfet', kicker: 'Kampanya', lead: '', meta: [] })),
-    ...[...aktif].sort((a, b) => a.next.when - b.next.when).slice(0, 5).map((s) => ({
+    ...[...aktif].sort((a, b) => (b.oneCikan ? 1 : 0) - (a.oneCikan ? 1 : 0) || a.next.when - b.next.when).slice(0, 5).map((s) => ({
       tip: 'oyun', baslik: s.name, img: afis(s), link: linkOf('oyun', s), kicker: s.cat, lead: kisalt(s.description, 170),
-      meta: [['Sıradaki seans', `${tarihUzun(s.next.when)} · ${saat(s.next.when)}`], ['Sahne', s.next.stage?.name || '—'], ['Bilet', s.minPrice != null ? `${tl(s.minPrice)}'den` : 'Yakında']], damga: 'Bu hafta sahnede', dis: s.external ? alanAdi(s.externalTicketUrl) : '',
+      meta: [['Sıradaki seans', `${tarihUzun(s.next.when)} · ${saat(s.next.when)}`], ['Sahne', s.next.stage?.name || '—'], ['Bilet', s.minPrice != null ? `${tl(s.minPrice)}'den` : 'Yakında']], damga: s.oneCikan ? 'Haftanın oyunu' : 'Bu hafta sahnede', dis: s.external ? alanAdi(s.externalTicketUrl) : '',
     })),
   ];
   if (!slaytlar.length) vitrin.slice(0, 3).forEach((s) => slaytlar.push({ tip: 'oyun', baslik: s.name, img: afis(s), link: linkOf('oyun', s), kicker: s.cat, lead: kisalt(s.description, 170), meta: [] }));

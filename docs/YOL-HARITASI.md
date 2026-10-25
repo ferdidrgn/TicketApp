@@ -53,3 +53,19 @@ Bunlar Flutter dalı (`sahne-ui-v3`) için ayrı bir tur olarak yapılır.
 - `firestore.rules` yayınla; Auth yetkili alan adı; Storage `images/**` yalnızca admin
 - Hosting sitesi aç (`tiyatrol-web`), `firebase deploy --only hosting:web`
 - Search Console: sitemap gönder; AdSense için gizlilik metnindeki `[Ad Soyad]`/`[Adres]` doldur
+
+
+## Uygulanan özellik listesi (rakip araştırması + denetim)
+Araştırma notu: `rea` CLI kurulu (v6.7.0) ama `analyze-web-bundle` / `capture-web-screenshot` çalışan bir Chrome'un CDP uç noktası ve targetId ister;
+URL ile çalışmaz. Ajanlar `capture-browser-scenario` ile bir sayfa açabildi, derin analiz yapılamadı. Gözlemlerin çoğu WebFetch/WebSearch özetlerine dayanır.
+
+1. Aylık takvim sayfası `/takvim`  2. Takvim aboneliği `takvim.ics` (webcal + Google)  3. Favori seansları tek .ics
+4. Favori yedek/aktarım bağlantısı  5. Paylaş menüsü (WhatsApp/X/Facebook/e-posta/kopyala)  6. Tahmini bitiş saati
+7. .ics hatırlatma alarmı (1 gün + 2 saat)  8. Yeni / Son seanslar / Bugün / Yakında rozetleri  9. Skorlu benzer oyunlar
+10. Yakındaki sahneler  11. Erişilebilirlik ayarları (yazı boyutu, kontrast, hareket, okuma)  12. `/ayarlar` sayfası
+13. Çerez bildirimi  14. Klavye kısayolları (`?`)  15. PWA (manifest + servis çalışanı + ana ekrana ekle)
+16. Özel 404  17. İl sayfaları `/il/<il>` (build)  18. Breadcrumb JSON-LD  19. Yazdır düğmesi + print CSS
+20. "Bilgi hatalı mı?" bildirimi  21. Başa dön (bilet koçanı)  22. Erişilebilir performans rozetleri (AD/CAP/BSL/R) + filtre
+23. "Bilmeniz gerekenler" kutusu (süre, ara, yaş, içerik uyarısı, ulaşım)  24. Haftanın oyunu (vitrin)
+25. Sahne ulaşım/erişim notları + admin alanları  26. Kampanya şeridi, hafta sonu/çocuk/ücretsiz/yeni/tür rayları, harita bandı
+Açık: haber/eleştiri akışı (Article), atölye/söyleşi türü (Event.kind), e-bülten, EN dil, web push, koltuk planı.

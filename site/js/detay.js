@@ -97,7 +97,7 @@ export function takvimLinkleri({ baslik, bas, dakika = 90, yer = '', aciklama = 
     yahoo: `https://calendar.yahoo.com/?v=60&title=${q(baslik)}&st=${iso(bas)}&dur=${String(Math.floor(dakika / 60)).padStart(2, '0')}${String(dakika % 60).padStart(2, '0')}&desc=${q(det)}&in_loc=${q(yer)}`,
     ics: () => {
       const z = (s) => String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-      const t = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TiyatRol//TR\r\nBEGIN:VEVENT\r\nUID:${Date.now()}@tiyatrol.com\r\nDTSTAMP:${iso(new Date())}\r\nDTSTART:${iso(bas)}\r\nDTEND:${iso(bit)}\r\nSUMMARY:${z(baslik)}\r\nLOCATION:${z(yer)}\r\nDESCRIPTION:${z(det)}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+      const t = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TiyatRol//TR\r\nBEGIN:VEVENT\r\nUID:${Date.now()}@tiyatrol.com\r\nDTSTAMP:${iso(new Date())}\r\nDTSTART:${iso(bas)}\r\nDTEND:${iso(bit)}\r\nSUMMARY:${z(baslik)}\r\nLOCATION:${z(yer)}\r\nDESCRIPTION:${z(det)}\r\nBEGIN:VALARM\r\nTRIGGER:-P1D\r\nACTION:DISPLAY\r\nDESCRIPTION:Yarın: ${z(baslik)}\r\nEND:VALARM\r\nBEGIN:VALARM\r\nTRIGGER:-PT2H\r\nACTION:DISPLAY\r\nDESCRIPTION:2 saat sonra: ${z(baslik)}\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([t], { type: 'text/calendar' }));
       a.download = 'tiyatrol-seans.ics'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
