@@ -25,8 +25,10 @@ function ciz(d) {
     <div class="box" id="b-tur"><h4>Tür</h4><label><input type="radio" name="f-c" value="" ${!st.tur || ozel ? 'checked' : ''}>Tümü</label>${d.kategoriler.map((k) => `<label><input type="radio" name="f-c" value="${esc(k)}" ${st.tur === k ? 'checked' : ''}>${esc(k)}</label>`).join('')}</div>
     <div class="box" id="b-zaman"><h4>Zaman</h4>${[['', 'Hepsi'], ['bugun', 'Bu akşam'], ['yarin', 'Yarın'], ['hafta', 'Bu hafta'], ['haftasonu', 'Hafta sonu'], ['ay', 'Bu ay']].map(([k, a]) => `<label><input type="radio" name="f-z" value="${k}" ${st.zaman === k ? 'checked' : ''}>${a}</label>`).join('')}
       <label><input type="checkbox" id="f-g" ${st.gecmis ? 'checked' : ''}>Biten oyunları da göster</label></div>
+    <div class="box"><h4>Saat dilimi</h4>${[['sabah', 'Sabah (–12:00)'], ['ogle', 'Öğleden sonra (12–17)'], ['aksam', 'Akşam (17–21)'], ['gece', 'Gece (21:00+)']].map(([v, a]) => `<label><input type="checkbox" data-saat="${v}">${a}</label>`).join('')}</div>
+    <div class="box"><h4>Yaş aralığı</h4><div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${[['', 'Hepsi'], ['0-6', '0–6'], ['7-12', '7–12'], ['13-17', '13–17'], ['18', '18+']].map(([v, a]) => `<button class="chip ${v === '' ? 'on' : ''}" data-yas="${v}">${a}</button>`).join('')}</div></div>
     <div class="box"><h4>Daha fazla süzgeç</h4><label><input type="checkbox" id="f-a">Erişilebilir gösterim</label><label><input type="checkbox" id="f-c">Çocuklarla</label><label><input type="checkbox" id="f-u">Ücretsiz</label><label style="display:grid;gap:6px">En çok fiyat: <b id="f-fv">Sınırsız</b><input type="range" id="f-f" min="0" max="1500" step="50" value="1500" style="accent-color:var(--accent)"></label></div>
-  </aside><section><div class="bar"><div id="sayi"></div><label class="muted">Sırala <select id="f-s" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 10px"><option value="tarih">Yakın tarih</option><option value="fiyat">En düşük fiyat</option><option value="ad">A–Z</option></select></label></div><div id="sonuc"></div></section></div>`;
+  </aside><section><div class="bar"><div id="sayi"></div><label class="muted">Sırala <select id="f-s" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 10px"><option value="tarih">Yakın tarih</option><option value="fiyat">En düşük fiyat</option><option value="puan">En yüksek puan</option><option value="yorum">En çok yorum</option><option value="yeni">En yeni</option><option value="ad">A–Z</option></select></label></div><div id="sonuc"></div></section></div>`;
 
   const gor = () => {
     const now = new Date(), q = st.q.trim().toLocaleLowerCase('tr');
@@ -38,6 +40,8 @@ function ciz(d) {
     if (st.tur === 'topluluklar') { const l = d.teams.filter((t) => !q || es(t.name)); say.innerHTML = `<b>${l.length}</b> topluluk`; out.innerHTML = `<div class="people" style="flex-wrap:wrap">${l.map((t) => `<a class="person" href="${linkOf('topluluk', t)}"><div class="flower">${t.imageUrl ? `<img src="${esc(t.imageUrl)}" alt="" loading="lazy">` : esc(t.name[0])}</div><b>${esc(t.name)}</b></a>`).join('')}</div>`; return; }
     let l = d.shows.filter((s) => (!il || s.iller.includes(il)) && (st.gecmis || s.state !== 'bitti') && (!q || es(s.name) || es(s.cat) || s.cast.some((p) => es(p.fullName))));
     if (st.tur) l = l.filter((s) => s.cat === st.tur);
+    if (st.saatler && st.saatler.size) l = l.filter((s) => s.upcoming.some((e) => { const h = e.when.getHours(); const b = h < 12 ? 'sabah' : h < 17 ? 'ogle' : h < 21 ? 'aksam' : 'gece'; return st.saatler.has(b); }));
+    if (st.yas) { const [a, b] = st.yas.split('-').map(Number); l = l.filter((s) => { const n = parseInt(s.ageLimit, 10); if (isNaN(n)) return false; return st.yas === '18' ? n >= 18 : n >= a && n <= b || (n <= b && n >= 0 && a === 0); }); }
     if (st.erisim) l = l.filter((s) => (s.accessKodlari || []).length);
     if (st.cocuk) l = l.filter((s) => /çocuk|masal/i.test(`${s.cat} ${s.type || ''} ${s.name}`) || /^[0-9]\s*\+?$/.test(String(s.ageLimit || '').trim()) && parseInt(s.ageLimit) <= 7);
     if (st.ucretsiz) l = l.filter((s) => s.minPrice === 0 || s.upcoming.some((e) => e.priceNum === 0));
@@ -50,7 +54,7 @@ function ciz(d) {
       const bas = gunBasi(now), bit = new Date(bas); bit.setDate(bit.getDate() + (st.zaman === 'bugun' ? 1 : st.zaman === 'hafta' ? 7 : 31));
       l = l.filter((s) => s.upcoming.some((e) => e.when >= (st.zaman === 'bugun' ? now : bas) && e.when < bit));
     }
-    l.sort((a, b) => st.siralama === 'ad' ? a.name.localeCompare(b.name, 'tr')
+    l.sort((a, b) => st.siralama === 'puan' ? (b.ratingAvg - a.ratingAvg) : st.siralama === 'yorum' ? (b.ratingCount - a.ratingCount) : st.siralama === 'yeni' ? ((Date.parse(b._createdAt?.seconds ? b._createdAt.seconds * 1000 : b._createdAt) || 0) - (Date.parse(a._createdAt?.seconds ? a._createdAt.seconds * 1000 : a._createdAt) || 0)) : st.siralama === 'ad' ? a.name.localeCompare(b.name, 'tr')
       : st.siralama === 'fiyat' ? (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9)
       : (a.next?.when ?? 8.64e15) - (b.next?.when ?? 8.64e15));
     say.innerHTML = `<b>${l.length}</b> oyun${il ? ` · ${esc(il)}` : ''}`;
@@ -62,6 +66,8 @@ function ciz(d) {
   $$('[name=f-c]').forEach((r) => r.addEventListener('change', () => { st.tur = r.value; $$('[name=f-t]')[0].checked = true; gor(); yaz(); }));
   $$('[name=f-z]').forEach((r) => r.addEventListener('change', () => { st.zaman = r.value; gor(); yaz(); }));
   $('#f-g').addEventListener('change', (e) => { st.gecmis = e.target.checked; gor(); });
+  $$('[data-saat]').forEach((c) => c.addEventListener('change', () => { st.saatler = new Set($$('[data-saat]:checked').map((x) => x.dataset.saat)); gor(); }));
+  $$('[data-yas]').forEach((b) => b.addEventListener('click', () => { st.yas = b.dataset.yas; $$('[data-yas]').forEach((x) => x.classList.toggle('on', x === b)); gor(); }));
   $('#f-a').addEventListener('change', (e) => { st.erisim = e.target.checked; gor(); });
   $('#f-c').addEventListener('change', (e) => { st.cocuk = e.target.checked; gor(); });
   $('#f-u').addEventListener('change', (e) => { st.ucretsiz = e.target.checked; gor(); });

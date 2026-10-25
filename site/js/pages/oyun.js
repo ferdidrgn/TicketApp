@@ -69,6 +69,16 @@ function ciz(d) {
       const er = (s.accessKodlari || []).filter((k) => ERIS[k]);
       return satir.length > 2 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
     })() },
+    { id: 'sss', ad: 'Sık sorulanlar', html: (() => {
+      const q = [];
+      if (s.duration) q.push([`${s.name} kaç dakika sürüyor?`, `Oyunun süresi ${s.duration}${s.interval ? `; ${s.interval}` : ''}.`]);
+      if (s.ageLimit) q.push([`${s.name} için yaş sınırı var mı?`, `Önerilen yaş: ${s.ageLimit}.${s.contentNotes ? ` İçerik uyarısı: ${s.contentNotes}.` : ''}`]);
+      if (yer && yer.name) q.push([`${s.name} nerede oynanıyor?`, `${yer.name}${yer.address ? `, ${yer.address}` : ''}.`]);
+      if (s.next) q.push([`${s.name} bir sonraki seansı ne zaman?`, `${tarihUzun(s.next.when)} saat ${saat(s.next.when)}${s.next.stage ? `, ${s.next.stage.name}` : ''}.`]);
+      q.push([`${s.name} biletini nereden alırım?`, s.external ? `Biletler ${alan || 'organizatörün sitesi'} üzerinden satılıyor; TiyatRol bilet satışı yapmaz, seni doğru sayfaya yönlendirir.` : 'Bilet satın alma TiyatRol mobil uygulamasından yapılır; web sitesi program rehberidir.']);
+      window.__sss = q;
+      return `<div>${q.map(([a, b]) => `<details><summary>${esc(a)}</summary><p>${esc(b)}</p></details>`).join('')}</div>`;
+    })() },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
     { id: 'mekan', ad: 'Mekân', html: yer ? `<p style="margin-bottom:14px"><a href="${linkOf('sahne', yer)}"><b>${esc(yer.name)}</b></a><br><span class="muted">${esc(yer.address || '')}</span></p>${harita(yer.lat, yer.lng)}` : (s.externalVenueName ? `<p><b>${esc(s.externalVenueName)}</b><br><span class="muted">${esc(s.externalVenueAddress || '')}</span></p>${harita(s.externalLat, s.externalLng)}` : '') },
@@ -127,6 +137,9 @@ function ciz(d) {
   const bg = $('.op-bg img');
   if (bg && !matchMedia('(prefers-reduced-motion: reduce)').matches) addEventListener('scroll', () => { if (scrollY < 900) bg.style.transform = `translateY(${scrollY * 0.18}px) scale(1.2)`; }, { passive: true });
 
+  if (window.__sss && window.__sss.length) { const fq = document.createElement('script'); fq.type = 'application/ld+json';
+    fq.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: window.__sss.map(([a, b]) => ({ '@type': 'Question', name: a, acceptedAnswer: { '@type': 'Answer', text: b } })) });
+    document.head.append(fq); }
   { const bc = document.createElement('script'); bc.type = 'application/ld+json';
     bc.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Vitrin', item: location.origin + '/' }, { '@type': 'ListItem', position: 2, name: s.cat, item: location.origin + '/kesfet?tur=' + encodeURIComponent(s.cat) }, { '@type': 'ListItem', position: 3, name: s.name }] });
     document.head.append(bc); }
