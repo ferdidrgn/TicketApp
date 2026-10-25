@@ -5,7 +5,7 @@
 // sayfayı canlı veriyle yeniden çizer. Firestore okuması herkese açık REST ile yapılır.
 //
 // Kullanım:  node site/tools/build.mjs        (SITE_URL=https://tiyatrol.com ile alan adı verilebilir)
-import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -92,7 +92,9 @@ console.log('Firestore okunuyor…');
 const [shows, events, stages, teams, players] = await Promise.all(['Show', 'Event', 'Stage', 'Team', 'Player'].map(oku));
 console.log(`  Oyun ${shows.length}, seans ${events.length}, sahne ${stages.length}, topluluk ${teams.length}, oyuncu ${players.length}`);
 
-await rm(CIKTI, { recursive: true, force: true });
+// Klasörün kendisini silme (başka bir program — sunucu, emülatör — içinde duruyor olabilir, Windows EBUSY verir); içindekileri temizle.
+await mkdir(CIKTI, { recursive: true });
+for (const ad of await readdir(CIKTI)) await rm(join(CIKTI, ad), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 await cp(KOK, CIKTI, { recursive: true, filter: (s) => !s.includes('tools') });
 
 const sh = new Map(shows.map((s) => [s.id, s])), sg = new Map(stages.map((s) => [s.id, s])), tm = new Map(teams.map((t) => [t.id, t])), pl = new Map(players.map((p) => [p.id, p]));
