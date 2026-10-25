@@ -100,7 +100,7 @@ await cp(KOK, CIKTI, { recursive: true, filter: (s) => !s.includes('tools') });
 const sh = new Map(shows.map((s) => [s.id, s])), sg = new Map(stages.map((s) => [s.id, s])), tm = new Map(teams.map((t) => [t.id, t])), pl = new Map(players.map((p) => [p.id, p]));
 const stageOf = (e) => sg.get(e.stageId) || stages.find((x) => x.name === e.stageId) || null;
 const simdi = Date.now();
-const adresler = [{ u: '/', p: 1 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
+const adresler = [{ u: '/', p: 1 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/kampanyalar', p: 0.5 }, { u: '/favoriler', p: 0.3 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
 const sablon = async (ad) => readFile(join(KOK, ad), 'utf8');
 const oyunT = await sablon('oyun.html'), oyuncuT = await sablon('oyuncu.html'), sahneT = await sablon('sahne.html'), toplulukT = await sablon('topluluk.html'), anaT = await sablon('index.html'), kesfetT = await sablon('kesfet.html');
 

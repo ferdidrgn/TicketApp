@@ -2,7 +2,7 @@
 import { yukle } from './store.js';
 import './fx.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
-import { kalpDugme } from './fav.js';
+import { kalpDugme, favListe } from './fav.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt } from './util.js';
 
@@ -10,6 +10,7 @@ const ICON = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>',
   palette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.2-.4-1.2.4-2.3 1.7-2.3H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>',
   left: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 5-7 7 7 7"/></svg>',
   right: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 5 7 7-7 7"/></svg>',
 };
@@ -36,6 +37,7 @@ export function kabukCiz(aktif = '') {
       </form>
       <div class="hdr-act">
         <button class="icon-btn" id="tema-ac" aria-label="Görünüm ayarları">${ICON.palette}</button>
+        <a class="icon-btn fav-link" href="/favoriler" aria-label="Favorilerim">${ICON.heart}<i class="fav-n" id="fav-n"></i></a>
         <a class="icon-btn" href="/uygulama" aria-label="Uygulama">${ICON.user}</a>
       </div>
     </div>
@@ -50,7 +52,7 @@ export function kabukCiz(aktif = '') {
     <div class="ftr-grid">
       <div><a href="/" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
-      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
+      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
     </div>
@@ -59,6 +61,8 @@ export function kabukCiz(aktif = '') {
   </div></footer>`;
   temaPaneli();
   ilSecici();
+  const favSay = () => { const n = favListe().length; const e = $('#fav-n'); if (e) { e.textContent = n || ''; e.style.display = n ? '' : 'none'; } };
+  favSay(); document.addEventListener('fav-degisti', favSay);
   aramaKur();
   yukle().then((d) => {
     $('#nav-turler').outerHTML = d.kategoriler.slice(0, 7).map((k) => `<a href="/kesfet?tur=${encodeURIComponent(k)}">${esc(k)}</a>`).join('');
@@ -205,10 +209,11 @@ export function oyunKarti(s, { rozet = '', fiyat = true } = {}) {
   const sub = n ? `${tarihUzun(n.when)} · ${saat(n.when)}` : s.state === 'bitti' ? 'Sezon bitti' : s.cat;
   const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : '');
   const fp = fiyat && s.minPrice != null ? `<div class="price">${tl(s.minPrice)}'den</div>` : '';
+  const yildiz = s.ratingCount ? `<span class="yildiz" title="${s.ratingAvg.toFixed(1)} / 5 (${s.ratingCount} yorum)">★ ${s.ratingAvg.toFixed(1)}</span>` : '';
   const disSatir = dis ? `<div class="sub-dis">${DIS_IKON}Bilet: ${esc(alan || 'başka platform')}</div>` : '';
   return `<article class="card"><a class="card-a" href="${linkOf('oyun', s)}" aria-label="${esc(s.name)}">
     <div class="pic">${resim(afis(s), s.name)}${b ? `<span class="badge ${s.state === 'bitti' ? 'dim' : ''}">${esc(b)}</span>` : ''}${dis ? `<span class="dis" title="Bu oyunun biletleri başka bir platformda satılıyor">${DIS_IKON}<span>Biletler ${esc(alan || 'başka platformda')}</span></span>` : ''}</div>
-    <h3>${esc(s.name)}</h3><div class="sub">${esc(sub)}</div>${disSatir || fp}</a>${kalpDugme(s.id)}</article>`;
+    <h3>${esc(s.name)}</h3><div class="sub">${esc(sub)} ${yildiz}</div>${disSatir || fp}</a>${kalpDugme(s.id)}</article>`;
 }
 
 export function ray(htmlKartlar) {

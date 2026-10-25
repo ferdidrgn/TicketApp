@@ -347,6 +347,14 @@
       ],
       "rewrites": [
         {
+          "source": "/kampanyalar",
+          "destination": "/kampanyalar.html"
+        },
+        {
+          "source": "/favoriler",
+          "destination": "/favoriler.html"
+        },
+        {
           "source": "/harita",
           "destination": "/harita.html"
         },

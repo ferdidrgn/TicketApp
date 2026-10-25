@@ -74,6 +74,22 @@ function ciz(d0) {
 
   if (d.stages.length) parts.push(`<section class="sec">${bolumBasligi('Sahneler', 'Perdenin açıldığı mekânlar.', '/kesfet?tur=sahneler')}<div class="venues">${d.stages.filter((s) => s.imageUrl).slice(0, 6).map((s) => `<a class="venue" href="${linkOf('sahne', s)}"><img src="${esc(s.imageUrl)}" alt="" loading="lazy"><div><h3>${esc(s.name)}</h3><small>${s.upcoming.length ? `${s.upcoming.length} yaklaşan seans` : esc(kisalt(s.address, 50))}</small></div></a>`).join('')}</div></section>`);
 
+  // Günün repliği (her gün başka bir oyuncunun sözü)
+  const sozlu = d.players.filter((p) => p.quote && p.quote.length > 8);
+  if (sozlu.length) {
+    const gun = Math.floor(Date.now() / 864e5), p = sozlu[gun % sozlu.length];
+    parts.push(`<section class="sec"><div class="replik"><div><small class="tiny">GÜNÜN REPLİĞİ</small><blockquote>${esc(p.quote)}</blockquote><cite>— ${esc(p.fullName)}</cite></div><a href="${linkOf('oyuncu', p)}" aria-label="${esc(p.fullName)}"><div class="flower">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy">` : esc(p.fullName[0])}</div></a></div></section>`);
+  }
+  // Oyuncu hikâyeleri
+  const hik = d.players.filter((p) => p.imageUrl && (p.quote || p.nowShows.length)).slice(0, 14);
+  if (hik.length >= 3) parts.push(`<section class="sec">${bolumBasligi('Sahnenin yüzleri', 'Sözleri ve sıradaki oyunlarıyla oyuncular.')}<div class="hikayeler">${hik.map((p) => `<a class="hik" href="${linkOf('oyuncu', p)}"><img src="${esc(p.imageUrl)}" alt="" loading="lazy"><div><b>${esc(p.fullName)}</b><small>${esc(p.quote ? '“' + kisalt(p.quote, 54) + '”' : (p.nowShows[0] ? p.nowShows[0].name : ''))}</small></div></a>`).join('')}</div></section>`);
+  // Son baktıkların
+  try {
+    const ids = JSON.parse(localStorage.getItem('tiyatrol.son') || '[]');
+    const l = ids.map((id) => d.showById.get(id)).filter(Boolean).slice(0, 10);
+    if (l.length) parts.push(`<section class="sec">${bolumBasligi('Son baktıkların', 'Kaldığın yerden devam et.')}${ray(l.map((s) => oyunKarti(s)).join(''))}</section>`);
+  } catch {}
+
   const oyuncular = d.players.filter((p) => p.nowShows.length).slice(0, 24);
   if (oyuncular.length) parts.push(`<section class="sec">${bolumBasligi('Sahnedeki oyuncular')}<div class="people">${oyuncular.map(kisi).join('')}</div></section>`);
 

@@ -7,6 +7,8 @@ const PRESETS = [
   { id: 'orman', ad: 'Orman', renk: '#2e8b57' },
   { id: 'mor', ad: 'Menekşe', renk: '#7e4bd8' },
   { id: 'kehribar', ad: 'Kehribar', renk: '#d98a00' },
+  { id: 'doga', ad: 'Doğa (Material)', renk: '#4f8a5b', tonlu: true },
+  { id: 'ahenk', ad: 'Ahenk (Material)', renk: '#8a63c7', tonlu: true },
 ];
 const DEFAULTS = { mod: 'sistem', palet: 'sarap', ozel: '#c50337', material: false };
 
@@ -60,8 +62,15 @@ export function temaUygula(s = temaOku()) {
   set('--accent', accent);
   const probe = accentHex || seed;
   set('--accent-ink', luminance(probe) > .42 ? '#1a1410' : '#ffffff');
+  const tonlu = !!(PRESETS.find((p) => p.id === s.palet) || {}).tonlu;
   const isDefault = s.palet === 'sarap';
-  if (dark) {
+  if (dark && tonlu) {
+    set('--bg', hsl(h, 32, 8)); set('--surface', hsl(h, 30, 13)); set('--surface-2', hsl(h, 28, 20));
+    set('--ink', hsl(h, 25, 94)); set('--ink-2', hsl(h, 16, 78)); set('--ink-3', hsl(h, 11, 62));
+  } else if (tonlu) {
+    set('--bg', hsl(h, 42, 96)); set('--surface', hsl(h, 45, 99)); set('--surface-2', hsl(h, 50, 91));
+    set('--ink', hsl(h, 35, 10)); set('--ink-2', hsl(h, 18, 30)); set('--ink-3', hsl(h, 12, 46));
+  } else if (dark) {
     if (isDefault) {
       set('--bg', '#0a0509'); set('--surface', '#160a10'); set('--surface-2', '#2b0f18');
       set('--ink', '#f2ecd9'); set('--ink-2', '#c9bba5'); set('--ink-3', '#9c8f79');

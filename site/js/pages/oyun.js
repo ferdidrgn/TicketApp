@@ -13,6 +13,7 @@ function ciz(d) {
   const s = d.showById.get(idFromPath());
   if (!s) return bulunamadi('Oyun');
   baslikYaz(s.name, s.description, s.imageUrl);
+  try { const son = JSON.parse(localStorage.getItem('tiyatrol.son') || '[]').filter((x) => x !== s.id); localStorage.setItem('tiyatrol.son', JSON.stringify([s.id, ...son].slice(0, 12))); } catch {}
   const seanslar = s.upcoming;
   const st = { i: 0, ay: 'hepsi' };
   const alan = s.external ? alanAdi(s.externalTicketUrl) : '';
@@ -53,12 +54,18 @@ function ciz(d) {
   // ---------- gövde bölümleri ----------
   const kadro = (l) => `<div class="cast">${l.map((p) => `<a href="${linkOf('oyuncu', p)}"><div class="arch">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="${esc(p.fullName)}" loading="lazy">` : esc(baslangic(p.fullName))}</div><b>${esc(p.fullName)}</b>${p.quote ? `<small>“${esc(kisalt(p.quote, 40))}”</small>` : ''}</a>`).join('')}</div>`;
   const benzer = d.shows.filter((x) => x.id !== s.id && (x.cat === s.cat || (s.team && x.teamId === s.teamId)) && x.state !== 'bitti').slice(0, 10);
+  const yil = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const yorumHtml = s.ratingCount ? `<div class="yorum-ozet"><div><div class="buyuk">${s.ratingAvg.toFixed(1)}</div><div class="yil">${yil(Math.round(s.ratingAvg))}</div><div class="tiny">${s.ratingCount} yorum</div></div>
+      <div class="dag">${s.ratingDist.map((n, i) => `<div><span>${5 - i}</span><i><b style="width:${(n / s.ratingCount) * 100}%"></b></i><span>${n}</span></div>`).join('')}</div></div>
+      ${s.reviews.slice(0, 8).map((r) => `<div class="yorum"><div><b>${esc(r.userName || 'Seyirci')}</b> <span class="yil">${yil(r.rating)}</span>${r.tarih ? ` <span class="tiny">· ${tarihUzun(r.tarih)}</span>` : ''}</div>${r.text ? `<p>${esc(r.text)}</p>` : ''}</div>`).join('')}
+      <p class="tiny" style="margin-top:14px">Yorum yazmak için TiyatRol uygulamasını kullan.</p>` : `<div class="empty"><h3>Henüz yorum yok</h3><p>İlk yorumu TiyatRol uygulamasından yazabilirsin.</p></div>`;
   const bolumler = [
     { id: 'hikaye', ad: 'Hikâye', html: s.description ? `<p class="story">${esc(s.description)}</p>` : '' },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
     { id: 'mekan', ad: 'Mekân', html: yer ? `<p style="margin-bottom:14px"><a href="${linkOf('sahne', yer)}"><b>${esc(yer.name)}</b></a><br><span class="muted">${esc(yer.address || '')}</span></p>${harita(yer.lat, yer.lng)}` : (s.externalVenueName ? `<p><b>${esc(s.externalVenueName)}</b><br><span class="muted">${esc(s.externalVenueAddress || '')}</span></p>${harita(s.externalLat, s.externalLng)}` : '') },
     { id: 'galeri', ad: 'Galeri', html: galeri(s.photos, s.name) },
+    { id: 'yorumlar', ad: s.ratingCount ? `Yorumlar (${s.ratingCount})` : 'Yorumlar', html: yorumHtml },
     { id: 'eski', ad: 'Eski kadro', html: s.pastCast.length ? kadro(s.pastCast) : '' },
     { id: 'benzer', ad: 'Benzer oyunlar', html: benzer.length ? ray(benzer.map((x) => oyunKarti(x)).join('')) : '' },
   ].filter((b) => b.html);
@@ -72,7 +79,7 @@ function ciz(d) {
     <div class="wrap op-grid">
       <div class="op-poster">${resim(s.imageUrl, s.name)}${s.external ? `<span class="dis">${DIS_IKON}<span>Biletler ${esc(alan || 'başka platformda')}</span></span>` : ''}</div>
       <div class="op-info"><div class="crumbs">${kirinti}</div><h1>${kelimeKelime(s.name)}</h1>
-        <div class="facts" style="margin-bottom:18px">${chips}</div>
+        <div class="facts" style="margin-bottom:18px">${chips}${s.ratingCount ? `<a class="chip" href="#yorumlar"><span class="yildiz" style="margin:0">★ ${s.ratingAvg.toFixed(1)}</span> ${s.ratingCount} yorum</a>` : ''}</div>
         ${s.description ? `<p class="op-lead">${esc(kisalt(s.description, 210))}</p>` : ''}
         ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
         <div class="op-act">

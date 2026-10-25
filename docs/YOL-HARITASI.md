@@ -13,13 +13,13 @@ Kural: webde **satın alma yok**, **giriş yok** (yalnızca mobil + `/yonetim`).
 | 4 | Harici platform rozeti (kart, slayt, oyun sayfası) | yapıldı |
 | 5 | Kayan vitrin (otomatik + ok + kaydırma) | yapıldı |
 | 6 | Oyun / oyuncu / topluluk / sahne sayfaları yeniden | yapıldı |
-| 7 | `/favoriler` sayfası (Oyunlar/Sahneler/Sanatçılar, Sahnede/Perdesi kapananlar) | sırada |
-| 8 | Kampanyalar sayfası: kupon kartı, geçerlilik etiketi | sırada |
-| 9 | Yorumlar ve puan (oyun sayfası, salt okuma) + kartlarda ★ | sırada |
-| 10 | Keşfet: Yarın / Hafta sonu, yaş/çocuk, fiyat, "ücretsiz" süzgeçleri | sırada |
-| 11 | Günün repliği + oyuncu hikâyeleri (ana sayfa) | sırada |
-| 12 | "Son baktıkların" + son aramalar | sırada |
-| 13 | Ayarlar sayfası: 6 tema stili (Gündüz, Gece, Oto, Doğa, Ahenk, Özel) + önizleme | sırada |
+| 7 | `/favoriler` sayfası (Oyunlar/Sahneler/Sanatçılar, Sahnede/Perdesi kapananlar) | yapıldı |
+| 8 | Kampanyalar sayfası: kupon kartı, geçerlilik etiketi | yapıldı |
+| 9 | Yorumlar ve puan (oyun sayfası, salt okuma) + kartlarda ★ | yapıldı |
+| 10 | Keşfet: Yarın / Hafta sonu, yaş/çocuk, fiyat, "ücretsiz" süzgeçleri | yapıldı |
+| 11 | Günün repliği + oyuncu hikâyeleri (ana sayfa) | yapıldı |
+| 12 | "Son baktıkların" + son aramalar | yapıldı |
+| 13 | Ayarlar sayfası: 6 tema stili (Gündüz, Gece, Oto, Doğa, Ahenk, Özel) + önizleme | kısmen (Doğa/Ahenk paletleri eklendi; ayrı sayfa sırada) |
 | 14 | Yardım/SSS/Gizlilik/Şartlar → `AppTools` (tek kaynak) | sırada |
 
 ## Dalga 2

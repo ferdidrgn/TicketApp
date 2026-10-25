@@ -19,8 +19,8 @@ export function temizle() { cache = null; }
 export async function yukle() {
   if (cache) return cache;
   cache = (async () => {
-    const [shows, events, stages, teams, players, campaigns] = await Promise.all([
-      oku('Show'), oku('Event'), oku('Stage'), oku('Team'), oku('Player'), oku('Campaign').catch(() => []),
+    const [shows, events, stages, teams, players, campaigns, reviews] = await Promise.all([
+      oku('Show'), oku('Event'), oku('Stage'), oku('Team'), oku('Player'), oku('Campaign').catch(() => []), oku('Review').catch(() => []),
     ]);
     const now = new Date();
     const stageById = new Map(stages.map((s) => [s.id, s]));
@@ -79,6 +79,15 @@ export async function yukle() {
       t.shows = shows.filter((s) => s.teamId === t.id || list(t.showsId).includes(s.id));
       t.photos = list(t.photosId);
     }
+    // Yorumlar: gizli olmayanlar; oyun başına ortalama ve dağılım
+    for (const s of shows) { s.reviews = []; }
+    for (const r of reviews) { if (r.hidden) continue; const s = showById.get(r.showId); if (s) s.reviews.push({ ...r, rating: Math.min(5, Math.max(1, Math.round(+r.rating || 0))), tarih: tarihAyristir(r.createdAt) }); }
+    for (const s of shows) {
+      s.reviews.sort((a, b) => (b.tarih || 0) - (a.tarih || 0));
+      s.ratingCount = s.reviews.length;
+      s.ratingAvg = s.ratingCount ? s.reviews.reduce((t, r) => t + r.rating, 0) / s.ratingCount : 0;
+      s.ratingDist = [5, 4, 3, 2, 1].map((n) => s.reviews.filter((r) => r.rating === n).length);
+    }
     // İl bilgisi: Stage.city (varsa) > adres > koordinat. Harici (başka platform) oyunlar kendi mekânından.
     for (const st of stages) st.il = ilBul({ city: st.city, address: st.address, lat: st.lat, lng: st.lng });
     for (const s of shows) {
@@ -88,12 +97,18 @@ export async function yukle() {
     }
     const aktif = shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin');
     const bugun = gunBasi(now);
+    const tumKamp = campaigns.map((c) => {
+      const b = tarihAyristir(c.startDate), e = tarihAyristir(c.endDate);
+      const kalanGun = e ? Math.ceil((e - bugun) / 864e5) : null;
+      const durum = e && e < bugun ? 'bitti' : b && b > now ? 'yakinda' : kalanGun !== null && kalanGun <= 7 ? 'son' : 'aktif';
+      return { ...c, bas: b, bit: e, kalanGun, durum };
+    }).sort((a, b) => ({ son: 0, aktif: 1, yakinda: 2, bitti: 3 }[a.durum] - { son: 0, aktif: 1, yakinda: 2, bitti: 3 }[b.durum]));
     const camp = campaigns.filter((c) => {
       const b = tarihAyristir(c.startDate), e = tarihAyristir(c.endDate);
       return (!b || b <= now) && (!e || e >= bugun);
     });
     return {
-      shows, events: ev, stages, teams, players, campaigns: camp, aktif,
+      shows, events: ev, stages, teams, players, campaigns: camp, tumKampanyalar: tumKamp, aktif,
       showById, stageById, teamById, playerById,
       ilSayilari: (() => { const m = new Map(); shows.filter((x) => x.state === 'aktif' || x.state === 'vitrin').forEach((x) => x.iller.forEach((i) => m.set(i, (m.get(i) || 0) + 1))); return m; })(),
       kategoriler: [...new Set(aktif.map((s) => s.cat))].sort((a, b) => a.localeCompare(b, 'tr')),
