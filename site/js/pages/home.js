@@ -1,6 +1,7 @@
 import '../theme.js';
 import { yukle } from '../store.js';
 import { perdeAc, isikKur } from '../fx.js';
+import { ilOku, ilYaz } from '../iller.js';
 import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
@@ -11,7 +12,19 @@ home.innerHTML = `<section class="sec">${bolumBasligi('Yükleniyor')}<div class=
 
 yukle().then(ciz).catch((e) => { console.error(e); $('#hero').remove(); home.innerHTML = `<section class="sec">${hataKutusu(e.message)}</section>`; });
 
-function ciz(d) {
+document.addEventListener('il-degisti', () => location.reload());
+
+function ilSuz(d, il) {
+  if (!il) return d;
+  const shows = d.shows.filter((s) => s.iller.includes(il));
+  const stages = d.stages.filter((g) => g.il === il);
+  return { ...d, shows, stages, events: d.events.filter((e) => e.stage?.il === il),
+    kategoriler: [...new Set(shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin').map((s) => s.cat))].sort((a, b) => a.localeCompare(b, 'tr')) };
+}
+
+function ciz(d0) {
+  const il = ilOku();
+  const d = ilSuz(d0, il);
   const now = new Date();
   const aktif = d.shows.filter((s) => s.state === 'aktif');
   const vitrin = d.shows.filter((s) => s.state === 'vitrin');
@@ -72,7 +85,9 @@ function ciz(d) {
     <div class="guide"><div class="rom">II. Perde</div><h3>Seansı seç</h3><p>Her oyunun yaklaşan seansları saat, sahne ve fiyatıyla listelenir; takvimine tek dokunuşla ekle.</p></div>
     <div class="guide"><div class="rom">III. Perde</div><h3>Bileti al</h3><p>Bileti TiyatRol uygulamasından ya da oyunun organizatörünün sitesinden al; biletin hep uygulamada.</p></div></div></section>`);
 
+  if (il) parts.unshift(`<section class="sec"><div class="il-bant"><span><b>${esc(il)}</b> programı gösteriliyor · ${aktif.length + vitrin.length} oyun</span><button class="btn btn-ghost btn-sm" id="il-tum">Tüm Türkiye'ye geç</button></div>${!aktif.length && !vitrin.length ? `<div class="empty" style="margin-top:20px"><h3>${esc(il)} için şu an program yok</h3><p>Yakındaki illere bakabilir ya da Tüm Türkiye'yi açabilirsin.</p></div>` : ''}</section>`);
   home.innerHTML = parts.join('');
+  document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
   if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d, gunler);
   if (fiyatli.length >= 3) butceKur(fiyatli);

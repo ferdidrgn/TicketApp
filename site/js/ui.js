@@ -1,6 +1,7 @@
 // Ortak arayüz: üst başlık + arama önerileri, altbilgi, tema paneli, kartlar, raylar.
 import { yukle } from './store.js';
 import './fx.js';
+import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme } from './fav.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt } from './util.js';
@@ -27,6 +28,7 @@ export function kabukCiz(aktif = '') {
   <header class="hdr" id="hdr">
     <div class="wrap hdr-main">
       <a href="/" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
+      <button type="button" class="il-btn" id="il-btn" aria-label="İl seç"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.2A7 7 0 0 1 19 9.8C19 14.800 12 21 12 21Z"/><circle cx="12" cy="9.8" r="2.5"/></svg><span id="il-ad">${ilOku() || 'Tüm Türkiye'}</span></button>
       <form class="search" role="search" action="/kesfet" autocomplete="off">
         <input id="q" name="q" type="search" placeholder="Oyun, oyuncu, sahne ya da topluluk ara" aria-label="Ara">
         <kbd>/</kbd><button aria-label="Ara">${ICON.search}</button>
@@ -38,7 +40,7 @@ export function kabukCiz(aktif = '') {
       </div>
     </div>
     <nav class="nav" aria-label="Ana menü"><div class="wrap" id="nav">
-      ${nav('ana', '/', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
+      ${nav('ana', '/', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('harita', '/harita', 'Harita')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
       <span id="nav-turler"></span><span class="sp"></span>
       ${nav('sahneler', '/kesfet?tur=sahneler', 'Sahneler')}${nav('toplulukler', '/kesfet?tur=topluluklar', 'Topluluklar')}
     </div></nav>
@@ -48,7 +50,7 @@ export function kabukCiz(aktif = '') {
     <div class="ftr-grid">
       <div><a href="/" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
-      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
+      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
     </div>
@@ -56,6 +58,7 @@ export function kabukCiz(aktif = '') {
     <div class="ftr-bot"><span>© ${new Date().getFullYear()} TiyatRol</span><span>Bilet satın alma uygulamada ya da organizatör sitesinde yapılır.</span></div>
   </div></footer>`;
   temaPaneli();
+  ilSecici();
   aramaKur();
   yukle().then((d) => {
     $('#nav-turler').outerHTML = d.kategoriler.slice(0, 7).map((k) => `<a href="/kesfet?tur=${encodeURIComponent(k)}">${esc(k)}</a>`).join('');
@@ -88,6 +91,40 @@ function temaPaneli() {
     if (e.target.id === 'tema-kapat') ac(false);
   });
   d.addEventListener('input', (e) => { if (e.target.id === 'ozel') { temaYaz({ palet: 'ozel', ozel: e.target.value }); } });
+}
+
+
+function ilSecici() {
+  const bg = document.createElement('div'); bg.className = 'il-bg'; bg.setAttribute('role', 'dialog'); bg.setAttribute('aria-label', 'İl seç');
+  bg.innerHTML = '<div class="il-modal"><header><h3>Hangi ilde izlemek istersin?</h3><input type="search" id="il-ara" placeholder="İl ara…" autocomplete="off"><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" id="il-konum">Konumumu kullan</button><button class="btn btn-ghost btn-sm" id="il-hepsi">Tüm Türkiye</button><button class="btn btn-ghost btn-sm" id="il-kapat" style="margin-left:auto">Kapat</button></div></header><div class="il-liste" id="il-liste"></div></div>';
+  document.body.append(bg);
+  const guncelle = () => { $('#il-ad').textContent = ilOku() || 'Tüm Türkiye'; };
+  const ciz = (q = '') => {
+    const sayi = window.__ilSayilari || new Map(), sec = ilOku();
+    const t = q.toLocaleLowerCase('tr');
+    const l = ILLER.filter((i) => !t || i.ad.toLocaleLowerCase('tr').includes(t));
+    const var_ = l.filter((i) => sayi.get(i.ad)), yok = l.filter((i) => !sayi.get(i.ad));
+    const dugme = (i, bos) => `<button class="il-o ${sec === i.ad ? 'on' : ''} ${bos ? 'bos' : ''}" data-il="${i.ad}">${i.ad}${sayi.get(i.ad) ? `<small>${sayi.get(i.ad)} oyun</small>` : ''}</button>`;
+    $('#il-liste').innerHTML = (var_.length ? `<h5>Programı olan iller</h5>${var_.map((i) => dugme(i)).join('')}` : '') + (yok.length ? `<h5>Diğer iller</h5>${yok.map((i) => dugme(i, true)).join('')}` : '');
+  };
+  const ac = async () => {
+    bg.classList.add('open');
+    try { const { yukle } = await import('./store.js'); const d = await yukle(); window.__ilSayilari = d.ilSayilari; } catch {}
+    ciz(); $('#il-ara').value = ''; $('#il-ara').focus();
+  };
+  const kapat = () => bg.classList.remove('open');
+  $('#il-btn').addEventListener('click', ac);
+  bg.addEventListener('click', (e) => { if (e.target === bg) kapat(); const b = e.target.closest('[data-il]'); if (b) { ilYaz(b.dataset.il); guncelle(); kapat(); } });
+  $('#il-kapat').addEventListener('click', kapat);
+  $('#il-hepsi').addEventListener('click', () => { ilYaz(''); guncelle(); kapat(); });
+  $('#il-ara').addEventListener('input', (e) => ciz(e.target.value));
+  $('#il-konum').addEventListener('click', () => {
+    if (!navigator.geolocation) return;
+    $('#il-konum').textContent = 'Konum alınıyor…';
+    navigator.geolocation.getCurrentPosition((p) => { const il = enYakinIl(p.coords.latitude, p.coords.longitude, 200); if (il) { ilYaz(il.ad); guncelle(); } kapat(); $('#il-konum').textContent = 'Konumumu kullan'; }, () => { $('#il-konum').textContent = 'Konum izni verilmedi'; }, { timeout: 9000 });
+  });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') kapat(); });
+  document.addEventListener('il-degisti', guncelle);
 }
 
 function aramaKur() {

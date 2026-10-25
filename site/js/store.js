@@ -4,6 +4,7 @@
 // Show.eventsId yalnızca yedektir; tarihi geçen kayıtlar silinmez, "bitti" sayılır.
 import { db, collection, getDocs } from './firebase.js';
 import { tarihAyristir, sayi, gunBasi } from './util.js';
+import { ilBul } from './iller.js';
 
 let cache = null;
 
@@ -78,6 +79,13 @@ export async function yukle() {
       t.shows = shows.filter((s) => s.teamId === t.id || list(t.showsId).includes(s.id));
       t.photos = list(t.photosId);
     }
+    // İl bilgisi: Stage.city (varsa) > adres > koordinat. Harici (başka platform) oyunlar kendi mekânından.
+    for (const st of stages) st.il = ilBul({ city: st.city, address: st.address, lat: st.lat, lng: st.lng });
+    for (const s of shows) {
+      s.extLat = sayi(s.externalLat); s.extLng = sayi(s.externalLng);
+      s.extIl = s.external || s.externalVenueName || s.externalVenueAddress ? ilBul({ address: s.externalVenueAddress, lat: s.extLat, lng: s.extLng }) : '';
+      s.iller = [...new Set([...s.upcoming.map((e) => e.stage?.il), s.extIl].filter(Boolean))];
+    }
     const aktif = shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin');
     const bugun = gunBasi(now);
     const camp = campaigns.filter((c) => {
@@ -87,6 +95,7 @@ export async function yukle() {
     return {
       shows, events: ev, stages, teams, players, campaigns: camp, aktif,
       showById, stageById, teamById, playerById,
+      ilSayilari: (() => { const m = new Map(); shows.filter((x) => x.state === 'aktif' || x.state === 'vitrin').forEach((x) => x.iller.forEach((i) => m.set(i, (m.get(i) || 0) + 1))); return m; })(),
       kategoriler: [...new Set(aktif.map((s) => s.cat))].sort((a, b) => a.localeCompare(b, 'tr')),
     };
   })();
