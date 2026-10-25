@@ -39,17 +39,29 @@ export function etkilesimler() {
     secs.forEach((s) => s && io.observe(s));
     links[0].classList.add('on');
   }
-  // Galeri lightbox
+  // Galeri gezgini: önceki/sonraki, klavye, kaydırma
   const lb = $('#lb');
-  document.addEventListener('click', (e) => {
-    const im = e.target.closest('.gal img');
-    if (im) { lb.querySelector('img').src = im.dataset.full || im.src; lb.classList.add('open'); }
-    else if (e.target.closest('#lb')) lb.classList.remove('open');
-  });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('open'); });
+  if (lb && !lb.dataset.k) {
+    lb.dataset.k = '1';
+    lb.insertAdjacentHTML('beforeend', '<button class="lb-btn lb-x" aria-label="Kapat">×</button><button class="lb-btn lb-p" aria-label="Önceki">‹</button><button class="lb-btn lb-n" aria-label="Sonraki">›</button>');
+    let liste = [], k = 0;
+    const goster = () => { lb.querySelector('img').src = liste[k]; };
+    const git = (d) => { k = (k + d + liste.length) % liste.length; goster(); };
+    document.addEventListener('click', (e) => {
+      const im = e.target.closest('.gal img, .mosaic img');
+      if (im) { const hepsi = [...im.closest('.gal, .mosaic').querySelectorAll('img')]; liste = hepsi.map((x) => x.dataset.full || x.src); k = hepsi.indexOf(im); goster(); lb.classList.add('open'); return; }
+      if (e.target.closest('.lb-p')) return git(-1);
+      if (e.target.closest('.lb-n')) return git(1);
+      if (e.target.closest('#lb')) lb.classList.remove('open');
+    });
+    addEventListener('keydown', (e) => {
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') lb.classList.remove('open'); if (e.key === 'ArrowRight') git(1); if (e.key === 'ArrowLeft') git(-1);
+    });
+  }
 }
 
-export const galeri = (urls, alt = '') => urls.length ? `<div class="gal">${urls.map((u) => `<img src="${esc(u)}" data-full="${esc(u)}" alt="${esc(alt)}" loading="lazy">`).join('')}</div>` : '';
+export const galeri = (urls, alt = '') => urls.length ? `<div class="mosaic">${urls.map((u) => `<img src="${esc(u)}" data-full="${esc(u)}" alt="${esc(alt)}" loading="lazy">`).join('')}</div>` : '';
 
 export function harita(lat, lng, adres = '') {
   if (lat == null || lng == null || (lat === 0 && lng === 0)) return '';
@@ -91,3 +103,38 @@ export function takvimMenusu(btn, veri) {
 }
 export const dakikaOku = (s) => { const n = parseInt(String(s || '').replace(/\D/g, ''), 10); return n >= 20 && n < 400 ? n : 90; };
 export { tarihUzun, saat };
+
+// ---------- Ortak canlı parçalar ----------
+// Sayı animasyonu: 0'dan hedefe (ease-out)
+export function sayAc(kok = document) {
+  const az = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  kok.querySelectorAll('[data-say]').forEach((el) => {
+    const hedef = +el.dataset.say; if (az || !hedef) { el.textContent = hedef; return; }
+    const t0 = performance.now(), sure = 900;
+    const adim = (t) => { const p = Math.min(1, (t - t0) / sure); el.textContent = Math.round(hedef * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(adim); };
+    requestAnimationFrame(adim);
+  });
+}
+// Geri sayım: "12 gün 3 saat 05 dk"
+export function geriSayim(el, hedef) {
+  const g = () => {
+    let ms = hedef - Date.now();
+    if (ms <= 0) { el.textContent = 'Şimdi başlıyor'; return; }
+    const gun = Math.floor(ms / 864e5); ms -= gun * 864e5;
+    const sa = Math.floor(ms / 36e5); ms -= sa * 36e5;
+    const dk = Math.floor(ms / 6e4);
+    el.textContent = gun ? `${gun} gün ${sa} saat` : `${sa} saat ${String(dk).padStart(2, '0')} dk`;
+  };
+  g(); setInterval(g, 30000);
+}
+// Sekmeli panel: { id, ad, html, sayi }
+export function sekmeler(kap, liste, baslangic = 0) {
+  const l = liste.filter((x) => x.html);
+  if (!l.length) { kap.innerHTML = ''; return; }
+  const ciz = (i) => {
+    kap.innerHTML = `<div class="tabs" role="tablist">${l.map((x, k) => `<button role="tab" aria-selected="${k === i}" class="${k === i ? 'on' : ''}" data-k="${k}">${esc(x.ad)}${x.sayi ? `<span class="n">${x.sayi}</span>` : ''}</button>`).join('')}</div><div class="panel" role="tabpanel">${l[i].html}</div>`;
+    kap.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => { ciz(+b.dataset.k); history.replaceState(null, '', '#' + l[+b.dataset.k].id); }));
+  };
+  const h = location.hash.slice(1); const ilk = l.findIndex((x) => x.id === h);
+  ciz(ilk >= 0 ? ilk : baslangic);
+}

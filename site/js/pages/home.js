@@ -1,7 +1,7 @@
 import '../theme.js';
 import { yukle } from '../store.js';
 import { perdeAc, isikKur } from '../fx.js';
-import { kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
+import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
 kabukCiz('ana');
@@ -83,35 +83,48 @@ function heroKur(d, aktif, vitrin) {
     ...d.campaigns.filter((c) => c.imageUrl).map((c) => ({ tip: 'kampanya', baslik: c.title || 'Kampanya', img: c.imageUrl, link: c.url || '/kesfet', kicker: 'Kampanya', lead: '', meta: [] })),
     ...[...aktif].sort((a, b) => a.next.when - b.next.when).slice(0, 5).map((s) => ({
       tip: 'oyun', baslik: s.name, img: afis(s), link: linkOf('oyun', s), kicker: s.cat, lead: kisalt(s.description, 170),
-      meta: [['Sıradaki seans', `${tarihUzun(s.next.when)} · ${saat(s.next.when)}`], ['Sahne', s.next.stage?.name || '—'], ['Bilet', s.minPrice != null ? `${tl(s.minPrice)}'den` : 'Yakında']], damga: 'Bu hafta sahnede',
+      meta: [['Sıradaki seans', `${tarihUzun(s.next.when)} · ${saat(s.next.when)}`], ['Sahne', s.next.stage?.name || '—'], ['Bilet', s.minPrice != null ? `${tl(s.minPrice)}'den` : 'Yakında']], damga: 'Bu hafta sahnede', dis: s.external ? alanAdi(s.externalTicketUrl) : '',
     })),
   ];
   if (!slaytlar.length) vitrin.slice(0, 3).forEach((s) => slaytlar.push({ tip: 'oyun', baslik: s.name, img: afis(s), link: linkOf('oyun', s), kicker: s.cat, lead: kisalt(s.description, 170), meta: [] }));
   const hero = $('#hero');
   if (!slaytlar.length) { hero.remove(); return; }
-  hero.innerHTML = slaytlar.map((x, i) => `
-    <div class="hero-slide ${i === 0 ? 'on' : ''}">
+  const kart = (x, i) => `
+    <div class="hero-slide ${i === 0 ? 'on' : ''}" data-i="${i}">
       <div class="hero-bg">${x.img ? `<img src="${esc(x.img)}" alt="">` : ''}</div>
       <div class="wrap"><div class="hero-grid">
-        <div><div class="hero-kicker">${esc(x.kicker)}</div><h1>${kelimeKelime(x.baslik)}</h1>
+        <div><div class="hero-kicker">${esc(x.kicker)}</div><h1>${x.tip === 'oyun' ? esc(x.baslik) : esc(x.baslik)}</h1>
           ${x.lead ? `<p class="lead">${esc(x.lead)}</p>` : ''}
           ${x.meta.length ? `<div class="hero-meta">${x.meta.map(([a, b]) => `<div><b>${a}</b><span>${esc(b)}</span></div>`).join('')}</div>` : ''}
           <div class="hero-cta"><a class="btn btn-primary" href="${esc(x.link)}">${x.tip === 'oyun' ? 'Seansları gör' : 'İncele'}</a><a class="btn btn-ghost" href="/kesfet">Tüm oyunlar</a></div></div>
-        <a class="hero-art" href="${esc(x.link)}" aria-label="${esc(x.baslik)}">${x.img ? `<img class="poster" src="${esc(x.img)}" alt="${esc(x.baslik)}" ${i ? 'loading="lazy"' : ''}>` : ''}${x.damga ? `<span class="stamp">${esc(x.damga)}</span>` : ''}</a>
-      </div></div></div>`).join('') + (slaytlar.length > 1 ? `<div class="hero-dots">${slaytlar.map((_, i) => `<button aria-label="${i + 1}. slayt" class="${i === 0 ? 'on' : ''}"><i></i></button>`).join('')}</div>` : '');
+        <a class="hero-art" href="${esc(x.link)}" aria-label="${esc(x.baslik)}">${x.img ? `<img class="poster" src="${esc(x.img)}" alt="${esc(x.baslik)}" ${i ? 'loading="lazy"' : ''}>` : ''}${x.damga ? `<span class="stamp">${esc(x.damga)}</span>` : ''}${x.dis ? `<span class="stamp" style="left:auto;right:-14px;bottom:auto;top:30px;transform:rotate(6deg)">Bilet: ${esc(x.dis)}</span>` : ''}</a>
+      </div></div></div>`;
+  hero.innerHTML = `<div class="hero-track" id="hero-track">${slaytlar.map(kart).join('')}</div>`
+    + (slaytlar.length > 1 ? `<button class="hero-arrow l" aria-label="Önceki slayt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 5-7 7 7 7"/></svg></button><button class="hero-arrow r" aria-label="Sonraki slayt"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 5 7 7-7 7"/></svg></button><div class="hero-dots">${slaytlar.map((_, i) => `<button aria-label="${i + 1}. slayt" class="${i === 0 ? 'on' : ''}"><i></i></button>`).join('')}</div><div class="hero-count" id="hero-count">1 / ${slaytlar.length}</div>` : '');
   if (slaytlar.length < 2) return;
-  const sl = $$('.hero-slide', hero), dots = $$('.hero-dots button', hero);
-  let cur = 0, timer;
-  const git = (i) => {
-    cur = (i + sl.length) % sl.length;
-    sl.forEach((s, k) => s.classList.toggle('on', k === cur));
+  const track = $('#hero-track'), sl = $$('.hero-slide', hero), dots = $$('.hero-dots button', hero);
+  let cur = 0, timer, durdur = false;
+  const SURE = 7000;
+  const isaret = (i) => {
+    cur = i;
+    sl.forEach((x, k) => x.classList.toggle('on', k === cur));
     dots.forEach((b, k) => { b.classList.remove('on', 'done'); if (k < cur) b.classList.add('done'); if (k === cur) { void b.offsetWidth; b.classList.add('on'); } });
-    clearTimeout(timer); timer = setTimeout(() => git(cur + 1), 7000);
+    $('#hero-count').textContent = `${cur + 1} / ${sl.length}`;
+    clearTimeout(timer); if (!durdur) timer = setTimeout(() => git(cur + 1), SURE);
   };
+  const git = (i) => { i = (i + sl.length) % sl.length; track.scrollTo({ left: i * track.clientWidth, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); isaret(i); };
+  // kullanıcı kaydırırsa / sürüklerse etkin slaytı bul
+  let st;
+  track.addEventListener('scroll', () => { clearTimeout(st); st = setTimeout(() => { const i = Math.round(track.scrollLeft / track.clientWidth); if (i !== cur) isaret(i); }, 120); }, { passive: true });
+  $('.hero-arrow.l', hero).addEventListener('click', () => git(cur - 1));
+  $('.hero-arrow.r', hero).addEventListener('click', () => git(cur + 1));
   dots.forEach((b, i) => b.addEventListener('click', () => git(i)));
-  hero.addEventListener('mouseenter', () => clearTimeout(timer));
-  hero.addEventListener('mouseleave', () => git(cur));
-  git(0);
+  addEventListener('keydown', (e) => { if (/input|textarea|select/i.test(document.activeElement?.tagName || '')) return; if (e.key === 'ArrowLeft') git(cur - 1); if (e.key === 'ArrowRight') git(cur + 1); });
+  hero.addEventListener('pointerenter', () => { durdur = true; clearTimeout(timer); dots[cur]?.classList.remove('on'); });
+  hero.addEventListener('pointerleave', () => { durdur = false; isaret(cur); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(timer); else isaret(cur); });
+  addEventListener('resize', () => track.scrollTo({ left: cur * track.clientWidth }));
+  isaret(0);
 }
 
 function ajandaKur(d, gunler) {

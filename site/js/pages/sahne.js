@@ -1,27 +1,38 @@
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, ray, kelimeKelime } from '../ui.js';
-import { baslikYaz, bulunamadi, hata, programIskeleti, etkilesimler, harita } from '../detay.js';
-import { $, esc, idFromPath, linkOf, tl, tarihUzun, saat } from '../util.js';
+import { baslikYaz, bulunamadi, hata, etkilesimler, sekmeler, sayAc, harita } from '../detay.js';
+import { paylas, favMi } from '../fav.js';
+import { $, esc, idFromPath, linkOf, tl, tarihUzun, saat, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('sahneler');
 yukle().then((d) => {
-  const st = d.stageById.get(idFromPath());
-  if (!st) return bulunamadi('Sahne');
-  baslikYaz(st.name, st.description, st.imageUrl);
-  const n = st.upcoming[0];
-  const tel = String(st.communication || '').trim();
-  const bilet = `<div class="ticket"><div class="head"><span>Sahne künyesi</span><span>${n ? 'Perde açık' : 'Programda yok'}</span></div>
-    ${st.imageUrl ? `<img class="poster" style="aspect-ratio:4/3" src="${esc(st.imageUrl)}" alt="${esc(st.name)}">` : ''}
-    <div class="body"><div class="fields"><div class="fld"><small>Kapasite</small><b>${esc(st.capacity || '—')}</b></div><div class="fld"><small>Yaklaşan seans</small><b>${st.upcoming.length}</b></div>
-      ${n ? `<div class="fld"><small>Sıradaki</small><b>${tarihUzun(n.when)} ${saat(n.when)}</b></div>` : ''}</div>
-    <div class="perf"></div>${n?.show ? `<a class="btn btn-primary" href="${linkOf('oyun', n.show)}">Sıradaki oyunu gör</a>` : (st.lat != null ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}">Yol tarifi al</a>` : '')}<div class="bars"></div></div></div>`;
-  const seans = st.upcoming.length ? `<div class="sessions">${st.upcoming.slice(0, 30).map((e) => `<a class="sess" href="${e.show ? linkOf('oyun', e.show) : '#'}"><div class="d"><b>${e.when.getDate()}</b><small>${tarihUzun(e.when).split(' ')[1]}</small></div><div><b>${esc(e.show?.name || 'Oyun')}</b><br><span class="muted">${saat(e.when)}</span></div><div class="pr"><b>${e.priceNum ? tl(e.priceNum) : ''}</b></div><span class="btn btn-ghost btn-sm">Detay</span></a>`).join('')}</div>` : '';
-  const bolumler = [
-    { id: 'seanslar', ad: 'Seanslar', html: seans },
-    { id: 'hakkinda', ad: 'Hakkında', html: st.description ? `<p class="story">${esc(st.description)}</p>` : '' },
-    { id: 'oyunlar', ad: 'Bu sahnede oynayanlar', html: st.shows.length ? ray(st.shows.map((s) => oyunKarti(s)).join('')) : '' },
-    { id: 'konum', ad: 'Konum ve iletişim', html: `${st.address ? `<p class="muted" style="margin-bottom:14px">${esc(st.address)}</p>` : ''}${harita(st.lat, st.lng)}${tel ? `<div class="info-row"><span>İletişim</span><a href="${/@/.test(tel) ? 'mailto:' : 'tel:'}${esc(tel)}"><b>${esc(tel)}</b></a></div>` : ''}` },
+  const g = d.stageById.get(idFromPath());
+  if (!g) return bulunamadi('Sahne');
+  baslikYaz(g.name, g.description, g.imageUrl);
+  const n = g.upcoming[0];
+  const tel = String(g.communication || '').trim();
+  const oynayan = g.shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin');
+  const kalpB = `<button type="button" class="kalp-b ${favMi(g.id) ? 'on' : ''}" data-fav="${g.id}" aria-pressed="${favMi(g.id)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Takip et</button>`;
+  const yol = g.lat != null && g.lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}` : '';
+
+  const seans = g.upcoming.length ? `<div class="sessions">${g.upcoming.slice(0, 40).map((e) => `<a class="sess" href="${e.show ? linkOf('oyun', e.show) : '#'}"><div class="d"><b>${e.when.getDate()}</b><small>${AYLAR[e.when.getMonth()].slice(0, 3)}</small></div><div><b>${esc(e.show?.name || 'Oyun')}</b><br><span class="muted">${saat(e.when)}</span></div><div class="pr"><b>${e.priceNum ? tl(e.priceNum) : ''}</b></div><span class="btn btn-ghost btn-sm">Detay</span></a>`).join('')}</div>` : '';
+  const yan = `<aside class="yan-kart"><h3>Nasıl gidilir?</h3>${g.address ? `<p class="muted">${esc(g.address)}</p>` : ''}${yol ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${yol}">Yol tarifi al</a>` : ''}${tel ? `<a class="btn btn-ghost" href="${/@/.test(tel) ? 'mailto:' : 'tel:'}${esc(tel)}">${/@/.test(tel) ? 'E-posta gönder' : 'Ara'}: ${esc(tel)}</a>` : ''}${g.capacity ? `<div class="info-row"><span>Kapasite</span><b>${esc(g.capacity)}</b></div>` : ''}</aside>`;
+  const tabHtml = [
+    { id: 'seanslar', ad: 'Seanslar', sayi: g.upcoming.length, html: seans },
+    { id: 'hakkinda', ad: 'Hakkında', html: `<div class="pf-iki"><div>${g.description ? `<p class="story">${esc(g.description)}</p>` : '<div class="empty">Açıklama eklenmedi.</div>'}</div>${yan}</div>` },
+    { id: 'oyunlar', ad: 'Bu sahnede oynayanlar', sayi: oynayan.length, html: oynayan.length ? `<div class="grid">${oynayan.map((s) => oyunKarti(s)).join('')}</div>` : '' },
+    { id: 'konum', ad: 'Konum', html: harita(g.lat, g.lng, g.address) },
   ];
-  $('#icerik').innerHTML = programIskeleti({ bilet, kirinti: '<a href="/">Vitrin</a> / <a href="/kesfet?tur=sahneler">Sahneler</a>', baslik: kelimeKelime(st.name), bilgiler: st.address ? `<span class="chip">${esc(st.address)}</span>` : '', bolumler });
-  etkilesimler();
+  $('#icerik').innerHTML = `
+  <section class="pf-hero"><div class="wrap pf-grid">
+    <div class="pf-foto kare">${g.imageUrl ? `<img src="${esc(g.imageUrl)}" alt="${esc(g.name)}">` : `<div class="yok">${esc(baslangic(g.name))}</div>`}</div>
+    <div class="pf-info"><div class="crumbs"><a href="/">Vitrin</a> / <a href="/kesfet?tur=sahneler">Sahneler</a></div><h1>${kelimeKelime(g.name)}</h1>
+      ${g.address ? `<p class="op-lead">${esc(g.address)}</p>` : ''}
+      <div class="pf-sayilar"><div><b data-say="${g.upcoming.length}">0</b><span>Yaklaşan seans</span></div><div><b data-say="${oynayan.length}">0</b><span>Oyun</span></div>${g.capacity ? `<div><b>${esc(g.capacity)}</b><span>Kapasite</span></div>` : ''}</div>
+      <div class="op-act">${n?.show ? `<a class="btn btn-primary" href="${linkOf('oyun', n.show)}">Sıradaki: ${esc(kisalt(n.show.name, 28))}</a>` : (yol ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${yol}">Yol tarifi al</a>` : '')}${kalpB}<button class="btn btn-ghost" id="paylas">Paylaş</button></div></div>
+  </div></section>
+  <div class="wrap"><div id="sekme-kap"></div></div>`;
+  sekmeler($('#sekme-kap'), tabHtml);
+  sayAc(); etkilesimler();
+  $('#paylas').addEventListener('click', () => paylas(g.name, kisalt(g.description, 120)));
 }).catch(hata);

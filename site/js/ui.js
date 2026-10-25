@@ -1,6 +1,7 @@
 // Ortak arayüz: üst başlık + arama önerileri, altbilgi, tema paneli, kartlar, raylar.
 import { yukle } from './store.js';
 import './fx.js';
+import { kalpDugme } from './fav.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt } from './util.js';
 
@@ -157,14 +158,20 @@ export function bolumBasligi(baslik, alt = '', link = '', linkMetni = 'Tümü') 
   return `<div class="sec-head"><div><h2>${esc(baslik)}${squiggle}</h2>${alt ? `<p>${esc(alt)}</p>` : ''}</div>${link ? `<a class="link-more" href="${link}">${linkMetni} →</a>` : ''}</div>`;
 }
 
+export const DIS_IKON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+export const alanAdi = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+
 export function oyunKarti(s, { rozet = '', fiyat = true } = {}) {
   const n = s.next;
+  const dis = s.external;
+  const alan = dis ? alanAdi(s.externalTicketUrl) : '';
   const sub = n ? `${tarihUzun(n.when)} · ${saat(n.when)}` : s.state === 'bitti' ? 'Sezon bitti' : s.cat;
-  const b = rozet || (s.state === 'vitrin' ? 'Vitrinde' : s.state === 'bitti' ? 'Bitti' : '');
+  const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : '');
   const fp = fiyat && s.minPrice != null ? `<div class="price">${tl(s.minPrice)}'den</div>` : '';
-  return `<a class="card" href="${linkOf('oyun', s)}" aria-label="${esc(s.name)}">
-    <div class="pic">${resim(afis(s), s.name)}${b ? `<span class="badge ${s.state === 'bitti' ? 'dim' : ''}">${esc(b)}</span>` : ''}</div>
-    <h3>${esc(s.name)}</h3><div class="sub">${esc(sub)}</div>${fp}</a>`;
+  const disSatir = dis ? `<div class="sub-dis">${DIS_IKON}Bilet: ${esc(alan || 'başka platform')}</div>` : '';
+  return `<article class="card"><a class="card-a" href="${linkOf('oyun', s)}" aria-label="${esc(s.name)}">
+    <div class="pic">${resim(afis(s), s.name)}${b ? `<span class="badge ${s.state === 'bitti' ? 'dim' : ''}">${esc(b)}</span>` : ''}${dis ? `<span class="dis" title="Bu oyunun biletleri başka bir platformda satılıyor">${DIS_IKON}<span>Biletler ${esc(alan || 'başka platformda')}</span></span>` : ''}</div>
+    <h3>${esc(s.name)}</h3><div class="sub">${esc(sub)}</div>${disSatir || fp}</a>${kalpDugme(s.id)}</article>`;
 }
 
 export function ray(htmlKartlar) {
