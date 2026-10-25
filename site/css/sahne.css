@@ -1,0 +1,94 @@
+/* =====================================================================
+   SAHNE DİLİ — perde, ışık, program şeridi, ruh hâli, kaydırmayla yanan söz
+   ===================================================================== */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; animation-timing-function: var(--ease); }
+
+/* Giriş animasyonları: JS yoksa içerik görünür kalır */
+.js .rv { opacity: 0; transform: translateY(22px); transition: opacity .6s var(--ease), transform .6s var(--ease); transition-delay: calc(var(--i, 0) * 70ms); }
+.js .rv.in { opacity: 1; transform: none; }
+.az-hareket .rv { opacity: 1 !important; transform: none !important; }
+.card.basili .pic { transform: scale(.97) !important; transition-duration: .12s; }
+
+/* Perde açılışı */
+.perde { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; pointer-events: auto; cursor: pointer; }
+.perde i { position: absolute; top: 0; bottom: 0; width: 50.2%; transition: transform 1.25s cubic-bezier(.77,0,.18,1); background:
+  repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent) 62%, #000) 0 38px, color-mix(in srgb, var(--accent) 38%, #000) 38px 52px, color-mix(in srgb, var(--accent) 70%, #000) 52px 90px);
+  box-shadow: inset 0 -120px 120px -60px rgba(0,0,0,.55); }
+.perde .sol { left: 0; } .perde .sag { right: 0; }
+.perde b { position: relative; font: 800 clamp(28px, 6vw, 72px) var(--font-display); letter-spacing: .14em; color: #f2ecd9; text-shadow: 0 6px 24px rgba(0,0,0,.5); transition: opacity .5s, transform .9s var(--ease); }
+.perde.acik { pointer-events: none; }
+.perde.acik .sol { transform: translateX(-102%); } .perde.acik .sag { transform: translateX(102%); }
+.perde.acik b { opacity: 0; transform: scale(1.12); }
+
+/* Hero: ışık imleci + yavaş yakınlaşma */
+.hero .hero-bg img { animation: kb 22s ease-in-out infinite alternate; }
+@keyframes kb { from { transform: scale(1.25); } to { transform: scale(1.4) translate(-1.5%, -1%); } }
+.hero::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .4s;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--paper) 22%, transparent), transparent 70%); mix-blend-mode: soft-light; }
+.hero.isik::after { opacity: 1; }
+.hero-art .poster { will-change: transform; }
+
+/* Kayan program şeridi */
+.band { background: var(--accent); color: var(--accent-ink); overflow: hidden; white-space: nowrap; padding: 12px 0; font-weight: 600; letter-spacing: .02em; }
+.band-in { display: inline-flex; gap: 44px; padding-left: 44px; animation: kay 46s linear infinite; }
+.band:hover .band-in { animation-play-state: paused; }
+.band a { display: inline-flex; gap: 12px; align-items: center; }
+.band a::after { content: '✦'; opacity: .6; margin-left: 32px; }
+@keyframes kay { to { transform: translateX(-50%); } }
+.az-hareket .band-in { animation: none; }
+
+/* Kaydırmayla yanan söz */
+.soz-sec { padding-block: clamp(70px, 11vw, 150px) 0; }
+.soz { font: 700 clamp(28px, 4.6vw, 64px)/1.18 var(--font-display); max-width: 20ch; letter-spacing: -.015em; }
+.soz span { opacity: .16; transition: opacity .35s var(--ease); }
+.soz-yan { display: grid; grid-template-columns: 1.3fr .7fr; gap: 40px; align-items: end; }
+.soz-yan p { color: var(--ink-2); max-width: 34ch; }
+@media (max-width: 800px) { .soz-yan { grid-template-columns: 1fr; } }
+
+/* Ruh hâli: "Bu akşam ne izlesem?" */
+.mood { display: grid; grid-template-columns: minmax(240px, 420px) 1fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+.mood-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.mood-chips .chip { min-height: 44px; font-size: 15px; }
+.mood-out { position: relative; min-height: 260px; }
+.m-ticket { display: grid; grid-template-columns: 170px 1fr auto; background: var(--paper); color: var(--paper-ink); border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px -34px rgba(0,0,0,.65); animation: bilet .55s var(--ease); }
+@keyframes bilet { from { opacity: 0; transform: translateX(46px) rotate(2.2deg); } to { opacity: 1; transform: none; } }
+.m-ticket .afis { aspect-ratio: 2/3; width: 100%; height: 100%; object-fit: cover; background: #ddd; }
+.m-ticket .govde { padding: 22px 24px; display: grid; gap: 8px; align-content: center; }
+.m-ticket h3 { font-size: clamp(22px, 2.6vw, 34px); }
+.m-ticket .kocan { display: grid; place-items: center; padding: 18px; border-left: 2px dashed rgba(29,20,16,.35); gap: 10px; text-align: center; }
+.m-ticket .btn-primary { background: var(--paper-ink); color: var(--paper); border-radius: 12px; }
+.m-ticket small { font: 700 10px var(--font-body); letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+@media (max-width: 860px) { .mood { grid-template-columns: 1fr; } .m-ticket { grid-template-columns: 110px 1fr; } .m-ticket .kocan { grid-column: 1/-1; border-left: 0; border-top: 2px dashed rgba(29,20,16,.35); } }
+
+/* Bilet koçanı yırtılır */
+.ticket .bars { transform-origin: left top; transition: transform .6s var(--ease), opacity .6s; }
+.ticket.yirtildi .bars { transform: translate(18px, 26px) rotate(7deg); opacity: 0; }
+.ticket.yirtildi .perf { border-top-style: dotted; }
+
+/* Arama: ışıyan kenar + büyük panel */
+@property --ac { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.search::before { content: ''; position: absolute; inset: -2px; border-radius: 999px; padding: 2px; opacity: 0; transition: opacity .3s;
+  background: conic-gradient(from var(--ac), transparent 0 55%, var(--accent) 80%, transparent 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: don 3.2s linear infinite; pointer-events: none; }
+.search:focus-within::before { opacity: 1; }
+@keyframes don { to { --ac: 360deg; } }
+.search kbd { position: absolute; right: 52px; top: 50%; transform: translateY(-50%); font: 600 12px var(--font-body); color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; pointer-events: none; }
+.search:focus-within kbd { display: none; }
+.arama-perde { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .25s; }
+body.arama .arama-perde { opacity: 1; pointer-events: auto; }
+body.arama .hdr { z-index: 60; }
+.suggest { width: min(960px, 94vw); left: 50%; transform: translateX(-50%); padding: 8px; }
+.sg-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 12px 14px; }
+.sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px; }
+.sg-row { display: flex; gap: 14px; overflow-x: auto; padding: 4px 12px 12px; scrollbar-width: none; }
+.suggest .sg-row a { flex: none; width: 112px; display: grid; gap: 6px; padding: 0; font-size: 13px; line-height: 1.3; }
+.sg-row img { width: 112px; height: 160px; border-radius: 10px; object-fit: cover; }
+.suggest a { animation: sg .22s var(--ease) both; }
+@keyframes sg { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Altbilgi: devasa isim + perde saçağı */
+.ftr { position: relative; overflow: hidden; margin-top: clamp(80px, 10vw, 150px); }
+.ftr::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 30px; background: radial-gradient(circle at 21px 0, var(--bg) 20px, transparent 20.6px) repeat-x; background-size: 42px 30px; }
+.ftr-ad { font: 800 clamp(56px, 16.5vw, 280px)/.85 var(--font-display); letter-spacing: .02em; color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--ink) 22%, transparent); text-align: center; margin-top: 56px; user-select: none; transition: -webkit-text-stroke-color .5s; white-space: nowrap; }
+.ftr:hover .ftr-ad { -webkit-text-stroke-color: var(--accent); }
+.rom { font: 800 40px var(--font-display); color: color-mix(in srgb, var(--accent) 70%, transparent); }

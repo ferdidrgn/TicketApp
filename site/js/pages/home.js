@@ -1,9 +1,11 @@
 import '../theme.js';
 import { yukle } from '../store.js';
+import { perdeAc, isikKur } from '../fx.js';
 import { kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
 kabukCiz('ana');
+perdeAc();
 const home = $('#home');
 home.innerHTML = `<section class="sec">${bolumBasligi('Yükleniyor')}<div class="rail">${iskelet(6)}</div></section>`;
 
@@ -16,6 +18,8 @@ function ciz(d) {
   const gorunen = [...aktif, ...vitrin];
 
   heroKur(d, aktif, vitrin);
+  isikKur($('#hero'));
+  seritKur(d);
 
   const hafta = aktif.filter((s) => s.next.when - now < 7 * 864e5).sort((a, b) => a.next.when - b.next.when);
   const sonCagri = aktif.filter((s) => s.upcoming.length <= 2 && s.next.when - now < 21 * 864e5).sort((a, b) => a.upcoming.at(-1).when - b.upcoming.at(-1).when);
@@ -31,6 +35,10 @@ function ciz(d) {
   }
 
   if (hafta.length) parts.push(`<section class="sec">${bolumBasligi('Bu hafta sahnede', 'Önümüzdeki yedi günde perde açan oyunlar.', '/kesfet?zaman=hafta')}${ray(hafta.map((s) => oyunKarti(s)).join(''))}</section>`);
+
+  // Ruh hâli
+  const adaylar = gorunen.length ? gorunen : d.shows.filter((x) => x.state !== 'bitti');
+  if (adaylar.length >= 2) parts.push(`<section class="sec">${bolumBasligi('Bu akşam ne izlesem?', 'Ruh hâlini seç, sana bir bilet çıkaralım.')}<div class="mood"><div><div class="mood-chips" id="mood-chips">${MOODS.map((m, i) => `<button class="chip" data-m="${i}">${m.ad}</button>`).join('')}</div><p class="tiny" style="margin-top:14px">Önerilen oyun seçtiğin ruh hâline göre türünden ve anlatımından bulunur.</p></div><div class="mood-out" id="mood-out"><div class="empty">Bir ruh hâli seç.</div></div></div></section>`);
 
   // Ajanda
   const gunler = [...new Map(d.events.filter((e) => e.when >= gunBasi(now) && e.show && e.show.state !== 'taslak').map((e) => [gunBasi(e.when).getTime(), gunBasi(e.when)])).values()].sort((a, b) => a - b).slice(0, 40);
@@ -58,12 +66,14 @@ function ciz(d) {
 
   if (d.teams.length) parts.push(`<section class="sec">${bolumBasligi('Topluluklar', '', '/kesfet?tur=topluluklar')}<div class="people">${d.teams.slice(0, 20).map((t) => `<a class="person" href="${linkOf('topluluk', t)}"><div class="flower">${t.imageUrl ? `<img src="${esc(t.imageUrl)}" alt="" loading="lazy">` : esc(t.name[0])}</div><b>${esc(t.name)}</b></a>`).join('')}</div></section>`);
 
+  parts.push(`<section class="soz-sec"><div class="soz-yan"><p class="soz">Perde açılır, ışık düşer, hikâye başlar. Sen yalnızca seansı seç.</p><p>Her akşam şehrin bir yerinde bir sahne yanıyor. TiyatRol, o ışığı bulman için var.</p></div></section>`);
   parts.push(`<section class="sec"><div class="guides">
-    <div class="guide"><div class="n">1</div><h3>Oyunu bul</h3><p>Türe, tarihe ya da bütçene göre süz; afişten oyunun hikâyesine, kadrosuna ve sahnesine geç.</p></div>
-    <div class="guide"><div class="n">2</div><h3>Seansı seç</h3><p>Her oyunun yaklaşan seansları saat, sahne ve fiyatıyla listelenir; takvimine tek dokunuşla ekle.</p></div>
-    <div class="guide"><div class="n">3</div><h3>Bileti al</h3><p>Bileti TiyatRol uygulamasından ya da oyunun organizatörünün sitesinden al; biletin hep uygulamada.</p></div></div></section>`);
+    <div class="guide"><div class="rom">I. Perde</div><h3>Oyunu bul</h3><p>Türe, tarihe ya da bütçene göre süz; afişten oyunun hikâyesine, kadrosuna ve sahnesine geç.</p></div>
+    <div class="guide"><div class="rom">II. Perde</div><h3>Seansı seç</h3><p>Her oyunun yaklaşan seansları saat, sahne ve fiyatıyla listelenir; takvimine tek dokunuşla ekle.</p></div>
+    <div class="guide"><div class="rom">III. Perde</div><h3>Bileti al</h3><p>Bileti TiyatRol uygulamasından ya da oyunun organizatörünün sitesinden al; biletin hep uygulamada.</p></div></div></section>`);
 
   home.innerHTML = parts.join('');
+  if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d, gunler);
   if (fiyatli.length >= 3) butceKur(fiyatli);
 }
@@ -125,4 +135,39 @@ function butceKur(fiyatli) {
     box.innerHTML = l.length ? ray(l.slice(0, 12).map((s) => oyunKarti(s)).join('')) : '<div class="empty">Bu bütçeye uygun oyun yok.</div>';
   };
   r.addEventListener('input', g); g();
+}
+
+const MOODS = [
+  { ad: 'Güldürsün', k: ['komedi', 'güldür', 'mizah', 'komik', 'eğlen'] },
+  { ad: 'Düşündürsün', k: ['dram', 'trajedi', 'kara', 'toplum', 'varoluş', 'felsef'] },
+  { ad: 'Çocuklarla', k: ['çocuk', 'masal', 'müzikal', 'aile'] },
+  { ad: 'Romantik', k: ['aşk', 'romantik', 'sevgi', 'ilişki'] },
+  { ad: 'Sıradışı', k: ['deneysel', 'oyun', 'sıra dışı', 'performans', 'monolog'] },
+];
+function moodKur(adaylar) {
+  const out = $('#mood-out'); let son = -1;
+  const sec = (m) => {
+    const anahtar = MOODS[m].k;
+    let l = adaylar.filter((x) => anahtar.some((a) => `${x.cat} ${x.type || ''} ${x.name} ${x.description || ''}`.toLocaleLowerCase('tr').includes(a)));
+    if (!l.length) l = adaylar;
+    let x; do { x = l[Math.floor(Math.random() * l.length)]; } while (l.length > 1 && x.id === son);
+    son = x.id;
+    const n = x.next;
+    out.innerHTML = `<div class="m-ticket"><img class="afis" src="${esc(afis(x))}" alt="${esc(x.name)}"><div class="govde"><small>${esc(x.cat)}</small><h3>${esc(x.name)}</h3><p class="muted">${esc(kisalt(x.description, 130))}</p><small>${n ? `${tarihUzun(n.when)} · ${saat(n.when)}` : 'Seans yakında'}</small></div><div class="kocan"><small>${x.minPrice != null ? tl(x.minPrice) : 'Bilet'}</small><a class="btn btn-primary btn-sm" href="${linkOf('oyun', x)}">İncele</a><button class="btn btn-ghost btn-sm" data-yeni style="border-color:rgba(29,20,16,.3)">Başkası</button></div></div>`;
+    out.querySelector('[data-yeni]').addEventListener('click', () => sec(m));
+  };
+  $$('#mood-chips .chip').forEach((b) => b.addEventListener('click', () => {
+    $$('#mood-chips .chip').forEach((c) => c.classList.toggle('on', c === b));
+    sec(+b.dataset.m);
+  }));
+}
+
+function seritKur(d) {
+  const now = new Date();
+  const l = d.events.filter((e) => e.show && e.when >= now).sort((a, b) => a.when - b.when).slice(0, 14);
+  if (!l.length) return;
+  const parca = l.map((e) => `<a href="${linkOf('oyun', e.show)}">${tarihUzun(e.when).split(' ').slice(0, 2).join(' ')} · ${saat(e.when)} — ${esc(e.show.name)}${e.stage ? ` · ${esc(e.stage.name)}` : ''}</a>`).join('');
+  const b = document.createElement('div'); b.className = 'band'; b.setAttribute('aria-label', 'Yaklaşan seanslar');
+  b.innerHTML = `<div class="band-in">${parca}${parca}</div>`;
+  const hero = $('#hero'); if (hero) hero.after(b);
 }

@@ -1,5 +1,6 @@
 // Ortak arayüz: üst başlık + arama önerileri, altbilgi, tema paneli, kartlar, raylar.
 import { yukle } from './store.js';
+import './fx.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt } from './util.js';
 
@@ -27,7 +28,7 @@ export function kabukCiz(aktif = '') {
       <a href="/" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
       <form class="search" role="search" action="/kesfet" autocomplete="off">
         <input id="q" name="q" type="search" placeholder="Oyun, oyuncu, sahne ya da topluluk ara" aria-label="Ara">
-        <button aria-label="Ara">${ICON.search}</button>
+        <kbd>/</kbd><button aria-label="Ara">${ICON.search}</button>
         <div class="suggest" id="suggest"></div>
       </form>
       <div class="hdr-act">
@@ -50,6 +51,7 @@ export function kabukCiz(aktif = '') {
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
     </div>
+    <div class="ftr-ad" aria-hidden="true">TİYATROL</div>
     <div class="ftr-bot"><span>© ${new Date().getFullYear()} TiyatRol</span><span>Bilet satın alma uygulamada ya da organizatör sitesinde yapılır.</span></div>
   </div></footer>`;
   temaPaneli();
@@ -91,36 +93,64 @@ function aramaKur() {
   const q = $('#q'), box = $('#suggest');
   const url = new URLSearchParams(location.search).get('q');
   if (url && location.pathname.startsWith('/kesfet')) q.value = url;
+  const perde = document.createElement('div'); perde.className = 'arama-perde'; document.body.append(perde);
+  const kapat = () => { box.classList.remove('open'); document.body.classList.remove('arama'); };
+  perde.addEventListener('click', () => { kapat(); q.blur(); });
+  // daktilo ipucu
+  const ipuclari = ['Oyun ara…', 'Oyuncu ara…', 'Sahne ara…', 'Topluluk ara…', 'Komedi, dram, çocuk oyunu…'];
+  let ii = 0, ci = 0, sil = false, tm;
+  const yazIpucu = () => {
+    if (document.activeElement === q || q.value) { tm = setTimeout(yazIpucu, 1200); return; }
+    const m = ipuclari[ii];
+    ci += sil ? -1 : 1;
+    q.placeholder = m.slice(0, ci) + '│';
+    let gec = sil ? 28 : 70;
+    if (!sil && ci === m.length) { sil = true; gec = 1400; }
+    else if (sil && ci === 0) { sil = false; ii = (ii + 1) % ipuclari.length; gec = 350; }
+    tm = setTimeout(yazIpucu, gec);
+  };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) yazIpucu();
+  const sonlar = () => { try { return JSON.parse(localStorage.getItem('tiyatrol.arama') || '[]'); } catch { return []; } };
+  const sonYaz = (t) => { try { const l = [t, ...sonlar().filter((x) => x !== t)].slice(0, 5); localStorage.setItem('tiyatrol.arama', JSON.stringify(l)); } catch {} };
   let hl = -1;
   const ciz = debounce(async () => {
     const t = q.value.trim().toLocaleLowerCase('tr');
-    if (t.length < 2) { box.classList.remove('open'); return; }
+    document.body.classList.add('arama');
     let d; try { d = await yukle(); } catch { return; }
-    const eslesme = (a) => String(a || '').toLocaleLowerCase('tr').includes(t);
-    const o = d.shows.filter((s) => s.state !== 'taslak' && eslesme(s.name)).slice(0, 5);
-    const k = d.players.filter((p) => eslesme(p.fullName)).slice(0, 3);
-    const s = d.stages.filter((x) => eslesme(x.name)).slice(0, 2);
-    const tp = d.teams.filter((x) => eslesme(x.name)).slice(0, 2);
-    const grp = (b, arr, f) => arr.length ? `<h5>${b}</h5>${arr.map(f).join('')}` : '';
     const row = (kind, x, sub = '', img = x.imageUrl) => `<a href="${linkOf(kind, x)}">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<span>${esc(x.name)}<small>${esc(sub)}</small></span></a>`;
+    if (t.length < 2) {
+      const aktif = d.shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin').slice(0, 8);
+      box.innerHTML = `<h5>Hızlı başla</h5><div class="sg-chips">${d.kategoriler.slice(0, 8).map((k) => `<a class="chip" href="/kesfet?tur=${encodeURIComponent(k)}">${esc(k)}</a>`).join('')}<a class="chip" href="/kesfet?zaman=bugun">Bu akşam</a><a class="chip" href="/kesfet?zaman=hafta">Bu hafta</a></div>`
+        + (sonlar().length ? `<h5>Son aramaların</h5><div class="sg-chips">${sonlar().map((x) => `<a class="chip" href="/kesfet?q=${encodeURIComponent(x)}">${esc(x)}</a>`).join('')}</div>` : '')
+        + (aktif.length ? `<h5>Şimdi sahnede</h5><div class="sg-row">${aktif.map((s) => `<a href="${linkOf('oyun', s)}">${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="" loading="lazy">` : ''}<span>${esc(s.name)}</span></a>`).join('')}</div>` : '');
+      box.classList.add('open'); hl = -1; return;
+    }
+    const eslesme = (a) => String(a || '').toLocaleLowerCase('tr').includes(t);
+    const o = d.shows.filter((s) => s.state !== 'taslak' && (eslesme(s.name) || eslesme(s.cat))).slice(0, 6);
+    const k = d.players.filter((p) => eslesme(p.fullName)).slice(0, 4);
+    const s = d.stages.filter((x) => eslesme(x.name)).slice(0, 3);
+    const tp = d.teams.filter((x) => eslesme(x.name)).slice(0, 3);
+    const grp = (b, arr, f) => arr.length ? `<h5>${b}</h5><div class="sg-grid">${arr.map(f).join('')}</div>` : '';
     box.innerHTML = grp('Oyunlar', o, (x) => row('oyun', x, x.next ? `${tarihUzun(x.next.when)} · ${saat(x.next.when)}` : x.cat))
       + grp('Oyuncular', k, (x) => row('oyuncu', x))
       + grp('Sahneler', s, (x) => row('sahne', x, x.address))
       + grp('Topluluklar', tp, (x) => row('topluluk', x))
-      || '<h5>Sonuç yok</h5>';
+      || `<h5>“${esc(q.value)}” için sonuç yok</h5><div class="sg-chips"><a class="chip" href="/kesfet">Tüm oyunlara bak</a></div>`;
     box.classList.add('open'); hl = -1;
-  }, 160);
+  }, 140);
   q.addEventListener('input', ciz);
   q.addEventListener('focus', ciz);
+  q.closest('form').addEventListener('submit', () => { if (q.value.trim()) sonYaz(q.value.trim()); });
   q.addEventListener('keydown', (e) => {
     const items = $$('a', box);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault(); hl = (hl + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % (items.length || 1);
-      items.forEach((a, i) => a.classList.toggle('hl', i === hl));
+      items.forEach((a, i) => a.classList.toggle('hl', i === hl)); items[hl]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && hl >= 0 && items[hl]) { e.preventDefault(); location.href = items[hl].href; }
-    else if (e.key === 'Escape') box.classList.remove('open');
+    else if (e.key === 'Escape') { kapat(); q.blur(); }
   });
-  document.addEventListener('click', (e) => { if (!e.target.closest('.search')) box.classList.remove('open'); });
+  addEventListener('keydown', (e) => { if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement?.tagName || '')) { e.preventDefault(); q.focus(); } });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.search') && !e.target.closest('.arama-perde')) kapat(); });
 }
 
 export function bolumBasligi(baslik, alt = '', link = '', linkMetni = 'Tümü') {
