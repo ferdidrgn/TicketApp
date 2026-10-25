@@ -42,10 +42,35 @@
 .hr-harita { position: relative; min-height: 400px; }
 #map { position: absolute; inset: 0; background: var(--surface-2); }
 .pin-w { background: none; border: 0; }
-.pin { display: grid; place-items: start center; width: 38px; height: 46px; background: var(--accent); color: var(--accent-ink); border-radius: 19px 19px 19px 4px; transform: rotate(-45deg) translate(6px, 2px); box-shadow: 0 6px 14px rgba(0,0,0,.4); transition: transform .2s var(--ease); }
-.pin b { transform: rotate(45deg); margin-top: 7px; font: 700 15px var(--font-body); }
-.pin.dis { background: var(--paper); color: var(--paper-ink); border: 2px solid var(--accent); }
-.vurgu .pin, .leaflet-marker-icon:hover .pin { transform: rotate(-45deg) translate(6px, 2px) scale(1.18); }
+.pm { position: relative; width: 56px; height: 82px; animation: dus .6s var(--ease) both; cursor: pointer; }
+@keyframes dus { from { opacity: 0; transform: translateY(-26px) scale(.8); } to { opacity: 1; transform: none; } }
+.pm-stack { position: absolute; left: 4px; top: 2px; width: 48px; height: 68px; }
+.pm-stack img, .pm-bos { position: absolute; inset: 0; width: 48px; height: 68px; object-fit: cover; border-radius: 7px; border: 2.5px solid var(--paper); background: var(--surface-2); box-shadow: 0 5px 12px rgba(0,0,0,.45); transform: translate(calc(var(--i) * 5px), calc(var(--i) * -3px)) rotate(calc(var(--i) * 5deg - 3deg)); transform-origin: bottom left; transition: transform .3s var(--ease); }
+.pm-stack img:first-child { z-index: 3; } .pm-stack img:nth-child(2) { z-index: 2; } .pm-stack img:nth-child(3) { z-index: 1; }
+.pm-tip { position: absolute; left: 50%; bottom: 3px; width: 14px; height: 14px; background: var(--paper); transform: translateX(-50%) rotate(45deg); border-radius: 0 0 3px 0; box-shadow: 3px 3px 6px rgba(0,0,0,.3); z-index: 0; }
+.pm-n { position: absolute; right: -6px; top: -8px; z-index: 5; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 700 13px/24px var(--font-body); text-align: center; box-shadow: 0 3px 8px rgba(0,0,0,.4); }
+.pm-dis { position: absolute; left: -6px; top: -8px; z-index: 5; width: 22px; height: 22px; border-radius: 50%; background: var(--paper); color: var(--accent); display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0,0,0,.4); }
+.pm-dis svg { width: 12px; height: 12px; }
+.pm.dis .pm-stack img { border-color: var(--accent); }
+.pm-c { width: 60px; height: 86px; } .pm-c .pm-n { background: var(--paper); color: var(--paper-ink); }
+.pin-w:hover .pm-stack img:first-child, .vurgu .pm-stack img:first-child { transform: translate(0, -6px) scale(1.12); }
+.pin-w:hover .pm-stack img:nth-child(2), .vurgu .pm-stack img:nth-child(2) { transform: translate(9px, -6px) rotate(8deg); }
+.pin-w:hover, .vurgu { z-index: 900 !important; }
+.hr-lej { position: absolute; left: 12px; bottom: 26px; z-index: 500; display: flex; gap: 14px; padding: 8px 14px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 999px; font-size: 12.5px; backdrop-filter: blur(8px); }
+.hr-lej span { display: inline-flex; align-items: center; gap: 6px; } .lj { width: 12px; height: 12px; border-radius: 3px; border: 2px solid var(--paper); background: var(--accent); } .lj.dis { border-color: var(--accent); background: var(--paper); }
+.hr-sat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hr-tik { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--ink-2); cursor: pointer; } .hr-tik input { accent-color: var(--accent); width: 18px; height: 18px; }
+.hr-kart { display: grid; grid-template-columns: 62px 1fr; gap: 14px; }
+.hr-k-i { position: relative; height: 86px; } .hr-k-i .pm-stack { left: 2px; top: 4px; transform: scale(.9); transform-origin: top left; }
+.hr-kart.on .pm-stack img:first-child { transform: translate(0, -4px) scale(1.06); }
+.pop-b { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pop-sc { display: flex; gap: 12px; overflow-x: auto; padding: 12px 2px 6px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.pp { flex: none; width: 104px; scroll-snap-align: start; display: grid; gap: 3px; align-content: start; }
+.pp-i { position: relative; width: 104px; height: 148px; border-radius: 10px; overflow: hidden; background: var(--surface-2); } .pp-i img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease); } .pp:hover img { transform: scale(1.06); }
+.pp-d { position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--paper); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
+.pp b { font: 600 13px/1.3 var(--font-body); color: var(--ink); } .pp span { font-size: 12px; color: var(--ink-2); } .pp em { font: 700 12.5px var(--font-body); font-style: normal; color: var(--accent); }
+.pop-a { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.vurgu .pm { animation: none; }
 .hr-popup .leaflet-popup-content-wrapper { background: var(--surface); color: var(--ink); border-radius: 16px; }
 .hr-popup .leaflet-popup-tip { background: var(--surface); }
 .pop b { font: 700 16px var(--font-display); } .pop ul { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; } .pop li a { font-weight: 600; color: var(--accent); } .pop li span { font-size: 12.5px; color: var(--ink-2); }

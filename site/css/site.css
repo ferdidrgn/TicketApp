@@ -1,5 +1,4 @@
 /* TiyatRol Web — site stilleri. Renkler yalnızca theme.css belirteçlerinden gelir. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Caveat:wght@600&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }

@@ -73,8 +73,8 @@ function sayfa(sablon, { baslik, aciklama, adres, gorsel, govde, jsonld }) {
   const ek = `<link rel="canonical" href="${SITE}${adres}">\n<meta property="og:url" content="${SITE}${adres}">\n<meta property="og:locale" content="tr_TR">\n<meta name="twitter:card" content="summary_large_image">` + (jsonld ? `\n<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : '');
   h = h.replace('</head>', `${ek}\n</head>`);
   // #icerik / #home yer tutucusunu gerçek içerikle doldur (site.js tarayıcıda yeniden çizer)
-  h = h.replace(/<div id="icerik">[\s\S]*?<\/div>\s*<\/main>/, `<div id="icerik">${govde}</div></main>`);
-  h = h.replace(/(<div class="wrap" id="home">)[\s\S]*?(<\/div>\s*<\/main>)/, `$1${govde}$2`);
+  h = h.replace(/<div id="icerik">([\s\S]*?)<\/div>\s*<\/main>/, (m, ic) => { const sk = (ic.match(/<div class="sk-sayfa"[\s\S]*$/) || [''])[0]; return `<div id="icerik">${sk}<div class="onyuz">${govde}</div></div></main>`; });
+  h = h.replace(/(<div class="wrap" id="home">)([\s\S]*?)(<\/div>\s*<\/main>)/, (m, a, ic, z) => `${a}${(ic.match(/<div class="sk-sat"[\s\S]*$/) || [''])[0]}<div class="onyuz">${govde}</div>${z}`);
   h = h.replace('<div id="hdr"></div>', `<div id="hdr"><nav aria-label="Ana menü"><a href="/">Vitrin</a> <a href="/kesfet">Tüm oyunlar</a> <a href="/kesfet?tur=sahneler">Sahneler</a> <a href="/kesfet?tur=topluluklar">Topluluklar</a> <a href="/yardim">Yardım</a></nav></div>`);
   return h;
 }

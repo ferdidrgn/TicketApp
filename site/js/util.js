@@ -27,6 +27,7 @@ export const debounce = (fn, ms = 200) => { let t; return (...a) => { clearTimeo
 export function tarihAyristir(v) {
   if (!v) return null;
   if (typeof v.toDate === 'function') return v.toDate();
+  if (typeof v === 'object' && v.seconds != null) return new Date(v.seconds * 1000);
   // Uygulamanın yazdığı biçim: "15.11.2026,22:00" (gg.aa.yyyy,ss:dd)
   const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})[,\s]+(\d{1,2}):(\d{2})/.exec(String(v).trim());
   if (m) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]);

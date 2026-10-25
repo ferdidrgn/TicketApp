@@ -109,3 +109,21 @@ document.addEventListener('pointerdown', (e) => {
   if (c) c.classList.add('basili');
 }, { passive: true });
 addEventListener('pointerup', () => document.querySelectorAll('.card.basili').forEach((c) => c.classList.remove('basili')), { passive: true });
+
+// ---------- Üst yükleme çubuğu ----------
+(() => {
+  const b = document.createElement('div'); b.id = 'yuk'; document.body.append(b);
+  requestAnimationFrame(() => { b.style.transform = 'scaleX(.72)'; });
+  const bitir = () => { b.style.transform = 'scaleX(1)'; setTimeout(() => { b.style.opacity = '0'; setTimeout(() => b.remove(), 400); }, 180); };
+  document.addEventListener('veri-hazir', bitir, { once: true });
+  setTimeout(bitir, 8000);
+})();
+
+// ---------- Bağlantıların üstüne gelince sayfayı önceden yükle ----------
+const onYuklenen = new Set();
+document.addEventListener('pointerover', (e) => {
+  const a = e.target.closest?.('a[href^="/"]'); if (!a || onYuklenen.has(a.href)) return;
+  if (a.target === '_blank' || /#/.test(a.getAttribute('href'))) return;
+  onYuklenen.add(a.href);
+  const l = document.createElement('link'); l.rel = 'prefetch'; l.href = a.href; document.head.append(l);
+}, { passive: true });

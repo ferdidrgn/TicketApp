@@ -7,6 +7,26 @@ import { tarihAyristir, sayi, gunBasi } from './util.js';
 import { ilBul } from './iller.js';
 
 let cache = null;
+// ---------- Ham veri: sessionStorage önbelleği ----------
+// İlk ziyarette Firestore'dan okunur; sonraki sayfa geçişlerinde önbellekten ANINDA açılır, arka planda tazelenir.
+// Koltuk planı (Event.seats) siteye gerekmediği için önbelleğe/belleğe alınmaz.
+const ONBELLEK = 'tiyatrol.ham.v2', OMUR = 45 * 60 * 1000;
+const KOLEKSIYONLAR = ['Show', 'Event', 'Stage', 'Team', 'Player', 'Campaign', 'Review'];
+async function tazele() {
+  const sonuc = await Promise.all(KOLEKSIYONLAR.map((a) => oku(a).catch(() => [])));
+  const ham = Object.fromEntries(KOLEKSIYONLAR.map((a, i) => [a, sonuc[i]]));
+  ham.Event = ham.Event.map(({ seats, ...e }) => e);
+  try { sessionStorage.setItem(ONBELLEK, JSON.stringify({ t: Date.now(), ham })); } catch {}
+  return ham;
+}
+async function hamAl() {
+  try {
+    const c = JSON.parse(sessionStorage.getItem(ONBELLEK) || 'null');
+    if (c && Date.now() - c.t < OMUR) { tazele().catch(() => {}); return c.ham; }
+  } catch {}
+  return tazele();
+}
+
 
 const list = (v) => (Array.isArray(v) ? v.map(String) : []);
 async function oku(ad) {
@@ -19,9 +39,8 @@ export function temizle() { cache = null; }
 export async function yukle() {
   if (cache) return cache;
   cache = (async () => {
-    const [shows, events, stages, teams, players, campaigns, reviews] = await Promise.all([
-      oku('Show'), oku('Event'), oku('Stage'), oku('Team'), oku('Player'), oku('Campaign').catch(() => []), oku('Review').catch(() => []),
-    ]);
+    const ham = await hamAl();
+    const { Show: shows, Event: events, Stage: stages, Team: teams, Player: players, Campaign: campaigns, Review: reviews } = ham;
     const now = new Date();
     const stageById = new Map(stages.map((s) => [s.id, s]));
     const teamById = new Map(teams.map((t) => [t.id, t]));
@@ -114,5 +133,5 @@ export async function yukle() {
       kategoriler: [...new Set(aktif.map((s) => s.cat))].sort((a, b) => a.localeCompare(b, 'tr')),
     };
   })();
-  try { return await cache; } catch (e) { cache = null; throw e; }
+  try { const r = await cache; document.dispatchEvent(new Event('veri-hazir')); return r; } catch (e) { cache = null; throw e; }
 }
