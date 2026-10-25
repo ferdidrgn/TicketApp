@@ -65,7 +65,7 @@ export function perdeAc() {
   if (goruldu || azHareket) return;
   const p = document.createElement('div');
   p.className = 'perde'; p.setAttribute('aria-hidden', 'true');
-  p.innerHTML = '<i class="sol"></i><i class="sag"></i><b>TİYATROL</b>';
+  p.innerHTML = '<i class="sol"></i><i class="sag"></i><div class="perde-orta"><svg class="perde-mandala" viewBox="0 0 200 200" fill="none" stroke="#f2ecd9" stroke-width="1.2" stroke-linecap="round"><circle cx="100" cy="100" r="92"/><circle cx="100" cy="100" r="60"/><polygon points="100,54 111,82 140,70 128,98 156,110 126,120 134,150 106,134 100,160 94,134 66,150 74,120 44,110 72,98 60,70 89,82"/><circle cx="100" cy="100" r="10"/></svg><b>TİYATROL</b><small>Sahne, her an yanında</small></div>';
   document.body.append(p);
   const bitir = () => { p.classList.add('acik'); setTimeout(() => p.remove(), 1500); };
   setTimeout(bitir, 650);
@@ -127,3 +127,19 @@ document.addEventListener('pointerover', (e) => {
   onYuklenen.add(a.href);
   const l = document.createElement('link'); l.rel = 'prefetch'; l.href = a.href; document.head.append(l);
 }, { passive: true });
+
+// ---------- Sahne tozu: ağır, yavaş süzülen ışık zerreleri (yalnızca transform/opacity) ----------
+if (!azHareket && !dokunmatik) {
+  const toz = document.createElement('div'); toz.className = 'toz'; toz.setAttribute('aria-hidden', 'true');
+  toz.innerHTML = Array.from({ length: 16 }, (_, i) => `<i style="left:${(i * 61) % 100}%;--s:${3 + (i % 4)}px;--d:${14 + (i % 7) * 3}s;--g:${-(i * 2.3)}s;--x:${((i % 5) - 2) * 40}px"></i>`).join('');
+  document.body.prepend(toz);
+}
+
+// ---------- Güvence: IntersectionObserver gecikirse/çalışmazsa görünen öğeleri aç ----------
+let rvBekle = 0;
+const rvTara = () => {
+  rvBekle = 0;
+  document.querySelectorAll('.rv:not(.in)').forEach((el) => { const r = el.getBoundingClientRect(); if (r.top < innerHeight * 0.96 && r.bottom > -40) el.classList.add('in'); });
+};
+addEventListener('scroll', () => { if (!rvBekle) rvBekle = requestAnimationFrame(rvTara); }, { passive: true });
+setInterval(rvTara, 700);

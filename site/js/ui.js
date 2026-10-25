@@ -242,3 +242,27 @@ export function kelimeKelime(metin) {
 export const iskelet = (n = 6) => Array.from({ length: n }, () => '<div class="card"><div class="pic skel"></div></div>').join('');
 export const hataKutusu = (m) => `<div class="err"><b>Veriler yüklenemedi.</b><p class="muted">${esc(m || 'İnternet bağlantını kontrol edip sayfayı yenile.')}</p></div>`;
 export { kisalt };
+
+// ---------- Süs: sahne mandalası (kendini çizen çizgi sanatı) ----------
+export function mandala(boyut = 320, sinif = '') {
+  const petal = (a) => `<g transform="rotate(${a} 100 100)"><path d="M100 100C84 80 84 52 100 22C116 52 116 80 100 100Z"/><path d="M100 100C92 84 92 66 100 46C108 66 108 84 100 100Z" opacity=".6"/></g>`;
+  const yildiz = [...Array(16)].map((_, i) => { const r = i % 2 ? 24 : 46, a = (i * Math.PI) / 8 - Math.PI / 2; return `${(100 + r * Math.cos(a)).toFixed(1)},${(100 + r * Math.sin(a)).toFixed(1)}`; }).join(' ');
+  return `<svg class="mandala ${sinif}" width="${boyut}" height="${boyut}" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="100" cy="100" r="96"/><circle cx="100" cy="100" r="88" stroke-dasharray="2 5"/>
+    ${[0, 45, 90, 135, 180, 225, 270, 315].map(petal).join('')}
+    <circle cx="100" cy="100" r="58" opacity=".7"/><polygon points="${yildiz}"/><circle cx="100" cy="100" r="9"/>
+    ${[0, 60, 120, 180, 240, 300].map((a) => `<circle cx="${(100 + 77 * Math.cos((a * Math.PI) / 180)).toFixed(1)}" cy="${(100 + 77 * Math.sin((a * Math.PI) / 180)).toFixed(1)}" r="3"/>`).join('')}
+  </svg>`;
+}
+// Kampanya sahnesi: spot ışığı altında dev bilet (HD vektör)
+export const KAMPANYA_SANAT = `<svg class="kamp-sanat" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs><linearGradient id="ks-isik" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="ks-bilet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6eedb"/><stop offset="1" stop-color="#e6d8b8"/></linearGradient></defs>
+  <g class="ks-isik"><path d="M120 -10 L40 420 L260 420Z" fill="url(#ks-isik)"/><path d="M520 -10 L380 420 L600 420Z" fill="url(#ks-isik)" opacity=".7"/></g>
+  <g class="ks-konfeti">${[...Array(18)].map((_, i) => `<rect x="${(i * 37 + 20) % 620}" y="${(i * 53) % 380}" width="8" height="14" rx="2" fill="${['#ff4d6d', '#ffd166', '#06d6a0', '#8ecae6', '#ffffff'][i % 5]}" style="--d:${(i % 6) * 0.5}s;--r:${i * 40}deg"/>`).join('')}</g>
+  <g class="ks-bilet" transform="translate(120 110) rotate(-6)"><path d="M0 0H380V70a22 22 0 0 0 0 44V190H0V114a22 22 0 0 0 0-44Z" fill="url(#ks-bilet)"/><path d="M290 8V182" stroke="#1d1410" stroke-opacity=".35" stroke-dasharray="6 6" stroke-width="2"/>
+    <text x="34" y="82" font-family="Playfair Display,serif" font-weight="800" font-size="64" fill="#1d1410">%20</text><text x="38" y="122" font-family="Inter,sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#1d1410" fill-opacity=".7">BİLET FIRSATI</text>
+    <text x="38" y="158" font-family="Inter,sans-serif" font-size="13" fill="#1d1410" fill-opacity=".6">TiyatRol kampanyaları</text>
+    <g fill="#1d1410" fill-opacity=".8">${[...Array(14)].map((_, i) => `<rect x="${304 + i * 5}" y="${40 + (i % 3) * 2}" width="${i % 3 ? 2 : 3}" height="${96 - (i % 3) * 4}"/>`).join('')}</g></g>
+  <g class="ks-yildiz" fill="#ffd166">${[[70, 60], [560, 80], [90, 330], [540, 320]].map(([x, y], i) => `<path d="M${x} ${y - 14}L${x + 4} ${y - 4}L${x + 14} ${y}L${x + 4} ${y + 4}L${x} ${y + 14}L${x - 4} ${y + 4}L${x - 14} ${y}L${x - 4} ${y - 4}Z" style="--d:${i * 0.4}s"/>`).join('')}</g>
+</svg>`;

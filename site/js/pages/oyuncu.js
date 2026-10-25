@@ -10,8 +10,11 @@ yukle().then((d) => {
   const p = d.playerById.get(idFromPath());
   if (!p) return bulunamadi('Oyuncu');
   baslikYaz(p.fullName, p.bio, p.imageUrl);
-  const liste = (v) => (Array.isArray(v) ? v : String(v || '').split('\n')).map((x) => String(x).trim()).filter(Boolean);
-  const oduller = liste(p.achievements), isbirlikleri = liste(p.collaborations);
+  const metin = (x) => (x && typeof x === 'object') ? [x.title || x.name || x.baslik || '', x.detail || x.description || x.aciklama || ''].filter(Boolean).join(' — ') : String(x ?? '').trim();
+  const liste = (v) => (Array.isArray(v) ? v : String(v || '').split('\n')).map(metin).filter(Boolean);
+  const odulOgeleri = (Array.isArray(p.achievements) ? p.achievements : String(p.achievements || '').split('\n')).map((x) => (x && typeof x === 'object') ? { baslik: x.title || x.name || x.baslik || '', detay: x.detail || x.description || x.aciklama || '', yil: x.year || x.yil || '' } : { baslik: String(x).trim(), detay: '', yil: '' }).filter((x) => x.baslik)
+    .sort((a, b) => (parseInt(b.yil) || 0) - (parseInt(a.yil) || 0));
+  const oduller = odulOgeleri, isbirlikleri = liste(p.collaborations);
   const sahnede = p.nowShows.filter((s) => s.state !== 'bitti');
   const sonraki = p.nowShows.map((s) => s.next).filter(Boolean).sort((a, b) => a.when - b.when)[0];
   const butunOyunlar = [...p.nowShows, ...p.oldShows];
@@ -27,7 +30,7 @@ yukle().then((d) => {
     { id: 'hakkinda', ad: 'Hakkında', html: bio },
     { id: 'sahnede', ad: 'Sahnede', sayi: sahnede.length, html: sahnede.length ? ray(sahnede.map((s) => oyunKarti(s)).join('')) : '' },
     { id: 'gecmis', ad: 'Geçmiş oyunlar', sayi: p.oldShows.length, html: p.oldShows.length ? `<div class="grid">${p.oldShows.map((s) => oyunKarti(s)).join('')}</div>` : '' },
-    { id: 'oduller', ad: 'Ödüller', sayi: oduller.length, html: oduller.length ? `<div class="zaman"><ul>${oduller.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></div>` : '' },
+    { id: 'oduller', ad: 'Ödüller', sayi: oduller.length, html: oduller.length ? `<div class="odul-izgara">${oduller.map((a) => `<article class="odul"><div class="odul-yil">${esc(a.yil || '★')}</div><div><h3>${esc(a.baslik)}</h3>${a.detay ? `<p>${esc(a.detay)}</p>` : ''}</div><svg class="odul-kupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M12 14v4M8 20h8"/></svg></article>`).join('')}</div>` : '' },
   ];
 
   $('#icerik').innerHTML = `

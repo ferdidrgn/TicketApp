@@ -171,6 +171,7 @@ function alanHtml(c, a, x) {
     case 'sel': return `<div class="fld-in${tam}">${L}<select id="${id}"><option value="">— Seç —</option>${adlari(a.kaynak).sort((p, q) => p.ad.localeCompare(q.ad, 'tr')).map((o) => `<option value="${esc(o.id)}" ${(v === o.id || v === o.docId) ? 'selected' : ''}>${esc(o.ad)}</option>`).join('')}</select></div>`;
     case 'multi': { const secili = new Set(Array.isArray(v) ? v : []); return `<div class="fld-in${tam}">${L}<div class="multi" id="${id}">${adlari(a.kaynak).sort((p, q) => p.ad.localeCompare(q.ad, 'tr')).map((o) => `<label><input type="checkbox" value="${esc(o.id)}" ${secili.has(o.id) ? 'checked' : ''}>${esc(o.ad)}</label>`).join('') || '<span class="hint">Henüz kayıt yok.</span>'}</div></div>`; }
     case 'lines': return `<div class="fld-in${tam}">${L}<textarea id="${id}">${esc((Array.isArray(v) ? v : []).join('\n'))}</textarea></div>`;
+    case 'odul': return `<div class="fld-in${tam}">${L}<textarea id="${id}" placeholder="2013 | Yılın En Başarılı Erkek Oyuncusu | Pippa oyunundaki performansı">${esc((Array.isArray(v) ? v : []).map((x) => (x && typeof x === 'object') ? [x.year || '', x.title || '', x.detail || ''].join(' | ') : String(x)).join('\n'))}</textarea><span class="hint">Mobil uygulamayla aynı biçimde (yıl, başlık, detay) kaydedilir.</span></div>`;
     case 'dt': return `<div class="fld-in${tam}">${L}<input id="${id}" type="datetime-local" value="${dtLokalden(v)}"></div>`;
     case 'day': return `<div class="fld-in${tam}">${L}<input id="${id}" type="date" value="${gunYaz(v)}"></div>`;
     case 'num': return `<div class="fld-in${tam}">${L}<input id="${id}" type="number" step="any" value="${v ?? ''}"></div>`;
@@ -206,6 +207,7 @@ function form(c, x = null) {
       let v;
       if (a.t === 'multi') v = [...el.querySelectorAll('input:checked')].map((i) => i.value);
       else if (a.t === 'lines') v = el.value.split('\n').map((s) => s.trim()).filter(Boolean);
+      else if (a.t === 'odul') v = el.value.split('\n').map((s) => s.trim()).filter(Boolean).map((s) => { const [y, t, ...r] = s.split('|').map((x) => x.trim()); return t === undefined ? { year: '', title: y, detail: '' } : { year: y, title: t, detail: r.join(' | ') }; });
       else if (a.t === 'dt') v = dtUygulamaya(el.value);
       else if (a.t === 'num') v = el.value === '' ? null : Number(el.value);
       else v = el.value.trim();

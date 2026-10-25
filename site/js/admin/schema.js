@@ -76,7 +76,7 @@ export const KOLEKSIYONLAR = {
       { k: 'imageUrl', e: 'Fotoğraf', t: 'img', tam: true },
       { k: 'quote', e: 'Sözü', t: 'text', tam: true },
       { k: 'bio', e: 'Biyografi', t: 'area', tam: true },
-      { k: 'achievements', e: 'Ödüller (her satıra bir tane)', t: 'lines', tam: true },
+      { k: 'achievements', e: 'Ödüller — her satıra: Yıl | Başlık | Detay', t: 'odul', tam: true },
       { k: 'collaborations', e: 'İş birlikleri (her satıra bir tane)', t: 'lines', tam: true },
       { k: 'nowShowsId', e: 'Şu an oynadığı oyunlar', t: 'multi', kaynak: 'Show', tam: true },
       { k: 'oldShowsId', e: 'Eski oyunları', t: 'multi', kaynak: 'Show', tam: true },
