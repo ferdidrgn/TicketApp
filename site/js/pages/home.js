@@ -4,7 +4,9 @@ import { perdeAc, isikKur } from '../fx.js';
 import { ilOku, ilYaz } from '../iller.js';
 import { tarihAyristir } from '../util.js';
 import { mandala, KAMPANYA_SANAT } from '../ui.js';
-import { temaYaz, temaOku } from '../theme.js';
+import { temaYaz, temaOku, temaHesapla, temaSecenekleri } from '../theme.js';
+import { takvimMenusu, dakikaOku } from '../detay.js';
+import { kalpDugme } from '../fav.js';
 import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, gunAdi, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
@@ -70,7 +72,7 @@ function ciz(d0) {
 
   // Ajanda
   const gunler = [...new Map(d.events.filter((e) => e.when >= gunBasi(now) && e.show && e.show.state !== 'taslak').map((e) => [gunBasi(e.when).getTime(), gunBasi(e.when)])).values()].sort((a, b) => a - b).slice(0, 40);
-  if (gunler.length) parts.push(`<section class="sec" id="ajanda">${bolumBasligi('Tarih seç', 'Perde açılan günler — birini seç, o günün programını gör.')}<div class="ajanda-izgara"><div class="ajanda-sol"><div class="ay-etiket" id="ay-etiket"></div><div class="dates2" id="dates"></div></div><div class="ag-kartlar" id="agenda"></div></div></section>`);
+  if (gunler.length) parts.push(`<section class="sec" id="ajanda">${bolumBasligi('Tarih seç', 'Perde açılan günleri gez; saat, sahne ve fiyat tek bakışta.')}<div class="pano" id="pano"></div></section>`);
 
   if (top.length >= 3) parts.push(`<section class="sec">${bolumBasligi('Şu an en çok oynayanlar', 'Önümüzdeki seans sayısına göre ilk on.')}<div class="top10">${top.map((s, i) => `<div class="t10"><span class="n">${i + 1}</span>${oyunKarti(s, { fiyat: false })}</div>`).join('')}</div></section>`);
 
@@ -139,24 +141,25 @@ function ciz(d0) {
     <div class="guide"><div class="rom">III. Perde</div><h3>Bileti al</h3><p>Bileti TiyatRol uygulamasından ya da oyunun organizatörünün sitesinden al; biletin hep uygulamada.</p></div></div></section>`);
 
   if (il) parts.unshift(`<section class="sec"><div class="il-bant"><span><b>${esc(il)}</b> programı gösteriliyor · ${aktif.length + vitrin.length} oyun</span><button class="btn btn-ghost btn-sm" id="il-tum">Tüm Türkiye'ye geç</button></div>${!aktif.length && !vitrin.length ? `<div class="empty" style="margin-top:20px"><h3>${esc(il)} için şu an program yok</h3><p>Yakındaki illere bakabilir ya da Tüm Türkiye'yi açabilirsin.</p></div>` : ''}</section>`);
-  // Karşılama: cam kart (selamlama, il, arama, harita) + tema önizlemeleri
-  { const sa = new Date().getHours(), selam = sa < 6 ? 'İyi geceler' : sa < 12 ? 'Günaydın' : sa < 18 ? 'İyi günler' : 'İyi akşamlar';
-    const bugunSay = d.events.filter((e) => e.show && ayniGun(e.when, now) && e.when >= now).length;
-    const TEMALAR = [['sarap', 'gece', 'Şarap · Gece', '#c50337', '#0a0509'], ['sarap', 'gunduz', 'Şarap · Gündüz', '#c50337', '#f8fafc'], ['okyanus', 'gece', 'Okyanus', '#1e6fd9', '#070d16'], ['doga', 'gece', 'Doğa', '#4f8a5b', '#0a1510'], ['mor', 'gunduz', 'Menekşe', '#7e4bd8', '#f6f2fc']];
-    parts.unshift(`<section class="sec karsilama"><div class="cam-kart"><div class="kr-sol"><button class="il-chip" id="kr-il"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.2A7 7 0 0 1 19 9.8C19 14.800 12 21 12 21Z"/><circle cx="12" cy="9.8" r="2.5"/></svg>${esc(il || 'Tüm Türkiye')}</button>
-      <h2>${selam}, perde açılıyor</h2><p class="muted">${bugunSay ? `Bugün ${bugunSay} seans var.` : 'Bugün için seans görünmüyor.'} Oyun, oyuncu ya da sahne ara.</p>
-      <form class="kr-ara" action="/kesfet"><input name="q" placeholder="Oyun, oyuncu, sahne ara…" aria-label="Ara"><button class="btn btn-primary" type="submit">Ara</button></form>
-      <div class="kr-btn"><a class="btn btn-ghost btn-sm" href="/harita">Haritada gör</a><a class="btn btn-ghost btn-sm" href="/takvim">Takvim</a><a class="btn btn-ghost btn-sm" href="/kesfet?zaman=haftasonu">Hafta sonu</a></div></div>
-      <div class="kr-sag">${mandala(300, 'doner')}</div></div>
-      <div class="tema-onizleme"><div class="to-ust"><b>Yeni: Temalar</b><span class="tiny">Görünümü tek dokunuşla değiştir</span></div><div class="to-satir">${TEMALAR.map(([p, m, ad, ac, bg]) => `<button class="to-kart" data-p="${p}" data-m="${m}" style="--ac:${ac};--bg2:${bg}"><i></i><b>${ad}</b></button>`).join('')}</div></div></section>`);
+  // Tema seçimi: her kutu seçeneğin gerçek renkleriyle dolu bir mini sayfa önizlemesi
+  { const sec = temaOku();
+    const L = [['sarap', 'gece', 'Şarap', 'Gece'], ['sarap', 'gunduz', 'Şarap', 'Gündüz'], ['okyanus', 'gece', 'Okyanus', 'Gece'], ['okyanus', 'gunduz', 'Okyanus', 'Gündüz'], ['orman', 'gece', 'Orman', 'Gece'], ['mor', 'gunduz', 'Menekşe', 'Gündüz'], ['mor', 'gece', 'Menekşe', 'Gece'], ['kehribar', 'gunduz', 'Kehribar', 'Gündüz'], ['doga', 'gece', 'Doğa', 'Material'], ['ahenk', 'gunduz', 'Ahenk', 'Material']];
+    const kart = ([p, m, ad, alt]) => { const v = temaHesapla({ palet: p, mod: m, ozel: '#c50337' }); const aktif = sec.palet === p && (sec.mod === m);
+      return `<button class="to-kart ${aktif ? 'on' : ''}" data-p="${p}" data-m="${m}" aria-label="${ad} ${alt}" style="--tb:${v['--bg']};--ts:${v['--surface']};--ts2:${v['--surface-2']};--ti:${v['--ink']};--ta:${v['--accent']};--tai:${v['--accent-ink']}"><span class="to-mini"><span class="to-bar"><i></i><i></i><i></i></span><span class="to-gv"><span class="to-poster"></span><span class="to-ic"><b></b><b></b><em>Bilet</em></span></span></span><span class="to-ad">${ad}<small>${alt}</small></span></button>`; };
+    parts.push(`<section class="sec tema-sec"><div class="to-ust"><div><h2>Temanı seç</h2><p class="muted">Görünümü tek dokunuşla değiştir; seçimin hatırlanır.</p></div><label class="to-ozel">Özel renk <input type="color" id="to-ozel" value="${sec.ozel || '#c50337'}" aria-label="Özel vurgu rengi"></label></div><div class="to-izgara">${L.map(kart).join('')}</div></section>`);
   }
+
+  // Bölümleri istenen sıraya diz (işaret metnine göre); sırada olmayanlar özgün sırasıyla sona gider
+  const SIRA = [/tema-sec/, /id="ajanda"/, /<h2>[^<]* oyunları</, /harita-bant/, /soz-sec/, /<h2>Ücretsiz seanslar</, /ne izlesem/, /<h2>Bu hafta sahnede</, /<h2>Bu hafta sonu</, /en çok oynayanlar/, /<h2>Yeni eklenenler</, /<h2>Son çağrı</, /<h2>Çocuklarla</, /class="budget"/, /<h2>Tüm oyunlar</, /<h2>Sahneler</, /class="replik"/, /Sahnenin yüzleri/, /<h2>Son baktıkların</, /Sahnedeki oyuncular/, /<h2>Topluluklar</, /kamp-vitrin/, /class="guides"/];
+  const rank = (s) => { const k = SIRA.findIndex((r) => r.test(s)); return k < 0 ? 99 : k; };
+  parts.sort((a, b) => rank(a) - rank(b));
   home.innerHTML = parts.join('');
-  $('#kr-il')?.addEventListener('click', () => document.getElementById('il-btn')?.click());
-  $$('.to-kart').forEach((b) => b.addEventListener('click', () => { temaYaz({ palet: b.dataset.p, mod: b.dataset.m }); }));
+  $$('.to-kart').forEach((b) => b.addEventListener('click', () => { temaYaz({ palet: b.dataset.p, mod: b.dataset.m }); $$('.to-kart').forEach((x) => x.classList.toggle('on', x === b)); }));
+  $('#to-ozel')?.addEventListener('input', (e) => { temaYaz({ palet: 'ozel', ozel: e.target.value }); $$('.to-kart').forEach((x) => x.classList.remove('on')); });
   document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
   document.querySelectorAll('.il-cipler [data-il]').forEach((b) => b.addEventListener('click', () => ilYaz(b.dataset.il)));
   if (adaylar.length >= 2) moodKur(adaylar);
-  if (gunler.length) ajandaKur(d, gunler);
+  if (gunler.length) ajandaKur(d);
   if (fiyatli.length >= 3) butceKur(fiyatli);
 }
 
@@ -209,17 +212,54 @@ function heroKur(d, aktif, vitrin) {
   isaret(0);
 }
 
-function ajandaKur(d, gunler) {
-  const dates = $('#dates'), ag = $('#agenda');
-  let sec = gunler[0];
-  const AYLAR_U = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+function ajandaKur(d) {
+  const kok = $('#pano'); const simdi = new Date(), bugun = gunBasi(simdi);
+  const AY = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  const tum = d.events.filter((e) => e.show && e.show.state !== 'taslak' && e.when >= simdi).sort((a, b) => a.when - b.when);
+  const turler = [...new Set(tum.map((e) => e.show.cat))].sort((a, b) => a.localeCompare(b, 'tr'));
+  const gunlerSet = new Map(); tum.forEach((e) => { const k = gunBasi(e.when).getTime(); gunlerSet.set(k, (gunlerSet.get(k) || 0) + 1); });
+  const ilkGun = tum[0] ? gunBasi(tum[0].when) : bugun;
+  const st = { aralik: 'ilk', bas: ilkGun, bit: ilkGun, ay: new Date(ilkGun.getFullYear(), ilkGun.getMonth(), 1), tur: '', sayfa: 1 };
+  const gunEk = (n) => { const x = new Date(bugun); x.setDate(x.getDate() + n); return x; };
+  const hizli = { bugun: [bugun, bugun], yarin: [gunEk(1), gunEk(1)], hafta: [bugun, gunEk(6)], haftasonu: null, ay: [bugun, new Date(bugun.getFullYear(), bugun.getMonth() + 1, 0)] };
+  const sonuc = () => tum.filter((e) => {
+    const g = gunBasi(e.when);
+    if (st.tur && e.show.cat !== st.tur) return false;
+    if (st.aralik === 'haftasonu') { const wd = e.when.getDay(); return (wd === 0 || wd === 6 || (wd === 5 && e.when.getHours() >= 17)) && g - bugun < 8 * 864e5; }
+    if (st.aralik === 'hepsi') return true;
+    return g >= st.bas && g <= st.bit;
+  });
   const ciz = () => {
-    $('#ay-etiket').textContent = `${AYLAR_U[sec.getMonth()]} ${sec.getFullYear()}`;
-    dates.innerHTML = gunler.slice(0, 28).map((g) => `<button class="day ${ayniGun(g, sec) ? 'on' : ''}" data-t="${g.getTime()}" aria-label="${g.getDate()} ${AYLAR_U[g.getMonth()]}"><small>${ayniGun(g, new Date()) ? 'Bugün' : gunKisa(g)}</small><b>${g.getDate()}</b><small>${AY_KISA[g.getMonth()]}</small></button>`).join('');
-    const ev = d.events.filter((e) => e.show && e.show.state !== 'taslak' && ayniGun(e.when, sec)).sort((a, b) => a.when - b.when);
-    ag.innerHTML = ev.map((e) => `<a class="ag-kart" href="${linkOf('oyun', e.show)}"><div class="ag-saat"><b>${saat(e.when)}</b><small>${esc(gunAdi(e.when))}</small></div>${e.show.imageUrl ? `<img src="${esc(e.show.imageUrl)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<div class="ag-g"><span class="tag">${esc(e.show.cat)}</span><h3>${esc(e.show.name)}</h3><p class="tiny">${esc(e.stage?.name || '')}${e.stage?.il ? ` · ${esc(e.stage.il)}` : ''}</p></div><div class="ag-s"><b>${e.priceNum ? tl(e.priceNum) : (e.priceNum === 0 ? 'Ücretsiz' : '')}</b><span class="btn btn-ghost btn-sm">İncele</span></div></a>`).join('') || '<div class="empty">Bu gün için seans yok.</div>';
+    const l = sonuc(), gr = new Map(); l.forEach((e) => { const k = gunBasi(e.when).getTime(); (gr.get(k) || gr.set(k, []).get(k)).push(e); });
+    const bas = new Date(st.ay), bos = (bas.getDay() + 6) % 7, gs = new Date(st.ay.getFullYear(), st.ay.getMonth() + 1, 0).getDate();
+    const hucre = []; for (let i = 0; i < bos; i++) hucre.push('<i class="pm-bos2"></i>');
+    for (let g = 1; g <= gs; g++) { const t = new Date(st.ay.getFullYear(), st.ay.getMonth(), g), n = gunlerSet.get(t.getTime()) || 0; const sec = st.aralik === 'ozel' || st.aralik === 'ilk' ? (t >= st.bas && t <= st.bit) : false;
+      hucre.push(`<button class="pm-g ${n ? 'var' : ''} ${sec ? 'on' : ''} ${t.getTime() === bugun.getTime() ? 'bugun' : ''}" data-t="${t.getTime()}" ${n ? '' : 'tabindex="-1"'} aria-label="${g} ${AY[st.ay.getMonth()]}, ${n} seans">${g}${n ? `<u>${n}</u>` : ''}</button>`); }
+    const HIZ = [['bugun', 'Bugün'], ['yarin', 'Yarın'], ['haftasonu', 'Hafta sonu'], ['hafta', 'Bu hafta'], ['ay', 'Bu ay'], ['hepsi', 'Tümü']];
+    const sayfaBoy = 8 * st.sayfa, gorunen = [...gr.entries()].sort((a, b) => a[0] - b[0]);
+    let sayac = 0; const bloklar = [];
+    for (const [k, ev] of gorunen) { if (sayac >= sayfaBoy) break; const ek = ev.slice(0, sayfaBoy - sayac); sayac += ek.length; bloklar.push([k, ek, ev.length]); }
+    const kalan = l.length - sayac;
+    kok.innerHTML = `<div class="pano-ust"><div class="pano-hizli" role="group" aria-label="Hızlı tarih">${HIZ.map(([k, a]) => `<button class="chip ${st.aralik === k ? 'on' : ''}" data-h="${k}">${a}</button>`).join('')}</div>
+      <div class="pano-tur"><button class="chip ${st.tur === '' ? 'on' : ''}" data-tur="">Tüm türler</button>${turler.map((t) => `<button class="chip ${st.tur === t ? 'on' : ''}" data-tur="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>
+    <div class="pano-govde"><aside class="pano-takvim"><div class="pt-ust"><button class="icon-btn" data-ay="-1" aria-label="Önceki ay">‹</button><b>${AY[st.ay.getMonth()]} ${st.ay.getFullYear()}</b><button class="icon-btn" data-ay="1" aria-label="Sonraki ay">›</button></div>
+      <div class="pt-adlar">${['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'].map((x) => `<span>${x}</span>`).join('')}</div><div class="pt-izgara">${hucre.join('')}</div>
+      <p class="tiny" style="margin-top:12px">Noktalı günlerde seans var. Bir güne dokun; iki güne sırayla dokunarak aralık seç.</p><div class="pt-ozet"><b>${l.length}</b> seans · <b>${new Set(l.map((e) => e.show.id)).size}</b> oyun</div></aside>
+      <div class="pano-liste">${bloklar.map(([k, ev, toplam]) => { const t = new Date(k); const fark = Math.round((t - bugun) / 864e5);
+        return `<section class="pg-gun"><header><h3>${esc(gunAdi(t))}, ${t.getDate()} ${AY[t.getMonth()]}</h3><span>${fark === 0 ? 'Bugün' : fark === 1 ? 'Yarın' : `${fark} gün sonra`} · ${toplam} seans</span></header>
+        <div class="pg-kartlar">${ev.map((e) => `<article class="bilet2"><a class="b2-sol" href="${linkOf('oyun', e.show)}" aria-label="${esc(e.show.name)}"><div class="b2-saat"><b>${saat(e.when)}</b><small>${esc(e.stage?.il || gunKisa(e.when))}</small></div>${e.show.imageUrl ? `<img src="${esc(e.show.imageUrl)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<div class="b2-g"><span class="tag">${esc(e.show.cat)}</span><h4>${esc(e.show.name)}</h4><p class="tiny">${esc(e.stage?.name || '')}</p></div></a>
+          <div class="b2-sag"><b>${e.priceNum ? tl(e.priceNum) : (e.priceNum === 0 ? 'Ücretsiz' : '')}</b><div class="b2-ar"><button class="btn btn-ghost btn-sm" data-cal="${esc(e.docId)}" aria-label="Takvime ekle">Takvim</button>${kalpDugme(e.show.id, 'kalp ic')}</div></div></article>`).join('')}</div></section>`; }).join('') || '<div class="empty"><h3>Bu aralıkta seans yok</h3><p>Başka bir gün ya da tür seç.</p></div>'}
+        ${kalan > 0 ? `<button class="btn btn-ghost" id="pano-daha" style="margin:8px auto 0;display:flex">${kalan} seans daha göster</button>` : ''}</div></div>`;
+    $$('[data-h]', kok).forEach((b) => b.addEventListener('click', () => { const k = b.dataset.h; st.aralik = k; st.sayfa = 1; if (k === 'haftasonu' || k === 'hepsi') {} else if (hizli[k]) { st.bas = hizli[k][0]; st.bit = hizli[k][1]; st.ay = new Date(st.bas.getFullYear(), st.bas.getMonth(), 1); } ciz(); }));
+    $$('[data-tur]', kok).forEach((b) => b.addEventListener('click', () => { st.tur = b.dataset.tur; st.sayfa = 1; ciz(); }));
+    $$('[data-ay]', kok).forEach((b) => b.addEventListener('click', () => { st.ay = new Date(st.ay.getFullYear(), st.ay.getMonth() + (+b.dataset.ay), 1); ciz(); }));
+    let ilk = null;
+    $$('.pm-g.var', kok).forEach((b) => b.addEventListener('click', () => { const t = new Date(+b.dataset.t);
+      if (st.aralik === 'ozel' && st.secimAcik) { st.bit = t < st.bas ? st.bas : t; if (t < st.bas) st.bas = t; st.secimAcik = false; } else { st.aralik = 'ozel'; st.bas = t; st.bit = t; st.secimAcik = true; }
+      st.sayfa = 1; ciz(); }));
+    $('#pano-daha')?.addEventListener('click', () => { st.sayfa++; ciz(); });
+    $$('[data-cal]', kok).forEach((b) => b.addEventListener('click', () => { const e = tum.find((x) => x.docId === b.dataset.cal); if (!e) return; takvimMenusu(b, { baslik: e.show.name, bas: e.when, dakika: dakikaOku(e.show.duration), yer: [e.stage?.name, e.stage?.address].filter(Boolean).join(', '), aciklama: kisalt(e.show.description, 200), url: location.origin + linkOf('oyun', e.show) }); }));
   };
-  dates.addEventListener('click', (e) => { const b = e.target.closest('.day'); if (!b) return; sec = new Date(+b.dataset.t); ciz(); });
   ciz();
 }
 
