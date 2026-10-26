@@ -1,16 +1,19 @@
 // SADECE TEST — gerçek backend'in YERİNE GEÇMEZ.
-// Sözleşmeye uygun SAHTE callable'lar: holdSeats, releaseHold, startPayment, confirmFree.
+// Sözleşmeye uygun SAHTE callable'lar: holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket
+// (+ Config/satis: SATIS_MODE=kapali|rezervasyon|online verilirse açılışta yazılır; REZ_LIMIT, IPTAL_SAAT).
 // Cloud Functions emülatörünün HTTP protokolünü taklit eder (127.0.0.1:5001) ve Firestore emülatörüne REST ile yazar.
 // Gerçek kimlik doğrulama YOK: Auth emülatörünün ürettiği (imzasız) kimlik belirtecindeki uid'e güvenir.
 //   node site/tools/mock-functions/server.mjs        (HOLD_SECONDS=20 PAY_MODE=ok|fail PAY_DELAY_MS=3000)
 import http from 'node:http';
 import { oku, yaz, guncelle, yeniId, listele } from '../emu-rest.mjs';
 
-const PORT = 5001;
+const PORT = +(process.env.PORT || 5001);
 const HOLD = +(process.env.HOLD_SECONDS || 600);
 const PAY_MODE = process.env.PAY_MODE || 'ok';
 const PAY_DELAY = +(process.env.PAY_DELAY_MS || 3000);
 const LIMIT = 3;
+const REZ_LIMIT = +(process.env.REZ_LIMIT || 3);
+const IPTAL_SAAT = +(process.env.IPTAL_SAAT || 24);
 
 class Hata extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 const HTTP = { INVALID_ARGUMENT: 400, FAILED_PRECONDITION: 400, UNAUTHENTICATED: 401, PERMISSION_DENIED: 403, NOT_FOUND: 404, RESOURCE_EXHAUSTED: 429, INTERNAL: 500 };
@@ -54,7 +57,7 @@ async function holdSeats(uid, { eventId, seatIds }) {
   await guncelle(`Event/${eventId}`, alan);
   const orderId = yeniId();
   const total = fiyat * seatIds.length;
-  await yaz(`Order/${orderId}`, { _id: orderId, customerId: uid, eventId, showId: ev.showId || '', stageId: ev.stageId || '', status: 'held', seatIds, total, currency: 'TRY', free: ucretsiz, expiresAt: bitis, createdAt: simdi });
+  await yaz(`Order/${orderId}`, { _id: orderId, customerId: uid, eventId, showId: ev.showId || '', stageId: ev.stageId || '', userId: uid, status: 'held', seatIds, total, currency: 'TRY', free: ucretsiz, expiresAt: bitis, createdAt: simdi });
   return { orderId, expiresAt: bitis, total, currency: 'TRY', free: ucretsiz, seats: seatIds.map((id) => ({ id, price: fiyat })) };
 }
 
@@ -90,8 +93,37 @@ async function confirmFree(uid, { orderId }) {
   if (o.status !== 'held' || o.expiresAt < Date.now()) throw new Hata('FAILED_PRECONDITION', 'Süre doldu. Koltukları yeniden seç.');
   return { ticketIds: await satisTamamla(o, 'free_confirmed') };
 }
+async function satisModu() { return (await oku('Config/satis'))?.mode || 'rezervasyon'; }
+async function confirmReservation(uid, { orderId }) {
+  const o = await siparisAl(uid, orderId);
+  if (o.free) throw new Hata('FAILED_PRECONDITION', 'Bu sipariş ücretsiz; ücretsiz bileti onayla.');
+  if ((await satisModu()) !== 'rezervasyon') throw new Hata('FAILED_PRECONDITION', 'Rezervasyon şu anda kullanılamıyor.');
+  if (o.status !== 'held' || o.expiresAt < Date.now()) throw new Hata('FAILED_PRECONDITION', 'Süre doldu. Koltukları yeniden seç.');
+  const var_ = (await listele('Ticket')).filter((t) => t.customerId === uid && ['pay_at_venue'].includes(t.paymentStatus)).reduce((n, t) => n + (t.buySeats?.length || 0), 0);
+  if (var_ + o.seatIds.length > REZ_LIMIT) throw new Hata('RESOURCE_EXHAUSTED', `Kişi başı toplam en fazla ${REZ_LIMIT} rezervasyon yapabilirsin. Şu an ${var_} aktif rezervasyonun var.`);
+  const ev = await oku(`Event/${o.eventId}`); const show = ev?.showId ? await oku(`Show/${ev.showId}`) : null; const st = ev?.stageId ? await oku(`Stage/${ev.stageId}`) : null;
+  const alan = {}; o.seatIds.forEach((id) => { alan[`seats.${id}`] = { status: 'sold', customerId: uid, soldAt: Date.now() }; });
+  await guncelle(`Event/${o.eventId}`, alan);
+  await yaz(`Ticket/${orderId}`, { _id: orderId, customerId: uid, eventId: o.eventId, showId: ev?.showId || '', stageId: ev?.stageId || '', showName: show?.name || '', showImageUrl: show?.imageUrl || '', stageName: st?.name || '', eventDate: ev?.date || '', buySeats: o.seatIds, orderPrice: String(o.total), orderMethod: 'venue', paymentStatus: 'pay_at_venue', orderId, isPast: false });
+  await guncelle(`Order/${orderId}`, { status: 'rezervasyon', ticketIds: [orderId] });
+  return { ticketIds: [orderId], status: 'rezervasyon' };
+}
+async function cancelTicket(uid, { ticketId }) {
+  if (typeof ticketId !== 'string' || !ticketId) throw new Hata('INVALID_ARGUMENT', 'Bilet belirtilmedi.');
+  const t = await oku(`Ticket/${ticketId}`);
+  if (!t) throw new Hata('NOT_FOUND', 'Bilet bulunamadı.');
+  if (t.customerId !== uid) throw new Hata('PERMISSION_DENIED', 'Bu bilet sana ait değil.');
+  if (!['venue', 'free'].includes(t.orderMethod) || ['paid', 'no_show', 'cancelled'].includes(t.paymentStatus)) throw new Hata('FAILED_PRECONDITION', 'Bu bilet iptal edilemez.');
+  const when = tarihAyristir(t.eventDate);
+  if (when && when.getTime() - Date.now() < IPTAL_SAAT * 3600e3) throw new Hata('FAILED_PRECONDITION', `Etkinliğe ${IPTAL_SAAT} saatten az kaldığı için bu bilet artık iptal edilemez.`);
+  const alan = {}; (t.buySeats || []).forEach((id) => { alan[`seats.${id}`] = { status: 'available', customerId: null }; });
+  await guncelle(`Event/${t.eventId}`, alan);
+  await guncelle(`Ticket/${ticketId}`, { paymentStatus: 'cancelled', cancelledAt: Date.now() });
+  return { ok: true };
+}
 async function startPayment(uid, { orderId, provider, returnUrl }) {
   const o = await siparisAl(uid, orderId);
+  if ((await satisModu()) !== 'online') throw new Hata('FAILED_PRECONDITION', 'Online ödeme şu anda çalışmıyor. Rezervasyon yaparak sahnede ödeyebilirsin.');
   if (provider !== 'iyzico') throw new Hata('INVALID_ARGUMENT', 'Ödeme sağlayıcısı geçersiz.');
   if (o.free) throw new Hata('FAILED_PRECONDITION', 'Bu sipariş ücretsiz.');
   if (o.status !== 'held' || o.expiresAt < Date.now()) throw new Hata('FAILED_PRECONDITION', 'Süre doldu. Koltukları yeniden seç.');
@@ -116,7 +148,8 @@ setInterval(async () => {
   } catch {}
 }, 2000);
 
-const ISLEVLER = { holdSeats, releaseHold, startPayment, confirmFree };
+const ISLEVLER = { holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket };
+if (process.env.SATIS_MODE) yaz('Config/satis', { mode: process.env.SATIS_MODE, rezervasyonLimit: REZ_LIMIT, iptalSaat: IPTAL_SAAT }).then(() => console.log('Config/satis =', process.env.SATIS_MODE)).catch((e) => console.error(e.message));
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization,content-type,firebase-instance-id-token,x-firebase-appcheck', 'access-control-allow-methods': 'POST,OPTIONS' };
 http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }

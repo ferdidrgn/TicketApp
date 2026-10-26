@@ -4,7 +4,8 @@
 import { kabukCiz } from '../ui.js';
 import { db, doc, getDoc, onSnapshot } from '../firebase.js';
 import { girisGerekli, oturumDinle } from '../auth.js';
-import { biletleriDinle, biletKarti, biletlerBagla } from '../bilet-ortak.js';
+import { biletleriDinle, biletKarti, biletlerBagla, ayarla, iptalSaati } from '../bilet-ortak.js';
+import { satisAyari } from '../bilet-api.js';
 import { $, esc, tl } from '../util.js';
 
 // iyzico formu iframe içinden döndüyse üst pencereye çık
@@ -14,7 +15,7 @@ kabukCiz('');
 const kok = $('#icerik');
 const p = new URLSearchParams(location.search);
 const ORDER = /^[\w.-]{1,128}$/.test(p.get('order') || '') ? p.get('order') : '';
-const URL_DURUM = p.get('durum') === 'basarili' ? 'basarili' : p.get('durum') === 'hata' ? 'hata' : '';
+const URL_DURUM = ['basarili', 'hata', 'rezervasyon'].includes(p.get('durum')) ? p.get('durum') : '';
 const yaz = (h) => { kok.setAttribute('aria-busy', 'false'); kok.innerHTML = h; };
 
 const IKON = {
@@ -32,6 +33,18 @@ function ciz() {
   if (order === undefined) return yaz(`<section class="s-sayfa">${kart('hata', 'Sipariş bulunamadı', 'Bu siparişi görüntüleme yetkin yok ya da sipariş mevcut değil.', '<a class="btn btn-primary" href="/biletlerim">Biletlerim</a><a class="btn btn-ghost" href="/kesfet">Oyunlara göz at</a>')}</section>`);
   if (order === null) return yaz('<section class="s-sayfa"><div class="skel" style="width:min(560px,100%);height:280px"></div></section>');
   const st = order.status, geri = order.eventId ? `/koltuk/${encodeURIComponent(order.eventId)}` : '/kesfet';
+  const ilgiliR = biletler.filter((b) => b.id === ORDER || b.orderId === ORDER);
+  const GENEL = ['held', 'paying', 'expired', 'failed', 'cancelled', 'paid', 'free_confirmed'];
+  if (!GENEL.includes(st) || (URL_DURUM === 'rezervasyon' && st === 'held' && ilgiliR.length)) {
+    // Rezervasyon: koltuk adına ayrıldı, tutar etkinlik günü sahnede ödenecek
+    const tutar = order.total != null ? tl(order.total) : (ilgiliR[0]?.tutar != null ? tl(ilgiliR[0].tutar) : '');
+    yaz(`<section class="s-sayfa">${kart('ok', 'Rezervasyonun alındı', 'Koltukların senin adına ayrıldı. Girişte QR kodunu göstermen yeterli.', '<a class="btn btn-primary" href="/biletlerim">Tüm biletlerim</a><a class="btn btn-ghost" href="/kesfet">Başka oyunlara bak</a>')}
+      <div class="odeme-vurgu" role="note"><small>Ödeme etkinlik günü sahnede alınacak</small>${tutar ? `<b>${esc(tutar)}</b>` : ''}<span>Bilet bedelini gişede ödersin; şimdi kartından para çekilmez.</span></div>
+      <p class="tiny" style="max-width:52ch;text-align:center">Etkinlikten ${esc(String(iptalSaati()))} saat öncesine kadar Biletlerim sayfasından iptal edebilirsin.</p>
+      <div class="s-biletler" aria-live="polite">${ilgiliR.length ? ilgiliR.map((b, i) => biletKarti(b, i)).join('') : '<div class="skel" style="height:190px"></div><p class="tiny" style="text-align:center">Biletin hazırlanıyor…</p>'}</div></section>`);
+    biletlerBagla(kok, ilgiliR);
+    return;
+  }
   if (st === 'paid' || st === 'free_confirmed') {
     const ilgili = biletler.filter((b) => (order.ticketIds || []).includes(b.id) || b.orderId === ORDER || (b.eventId === order.eventId && b.koltuklar.some((k) => (order.seatIds || []).includes(k))));
     const ucretsiz = st === 'free_confirmed';
@@ -61,7 +74,7 @@ function baslat(u) {
   order = null; biletler = []; ciz();
   if (!u || !ORDER) return;
   ordAbone = onSnapshot(doc(db, 'Order', ORDER), (s) => { order = s.exists() ? { ...s.data() } : undefined; ciz(); }, () => { order = undefined; ciz(); });
-  bilAbone = biletleriDinle(u.uid, (l) => { biletler = l; if (order && (order.status === 'paid' || order.status === 'free_confirmed')) ciz(); });
+  bilAbone = biletleriDinle(u.uid, (l) => { biletler = l; if (order && !['held', 'paying', 'expired', 'failed', 'cancelled'].includes(order.status)) ciz(); });
   // webhook gecikirse: 'paying' durumunda sunucudan periyodik yenile (en çok 3 dk); sonra durdur
   yenileTimer = setInterval(() => {
     if (Date.now() - basla > 180000) return clearInterval(yenileTimer);
@@ -71,6 +84,7 @@ function baslat(u) {
 }
 
 if (!ORDER) ciz();
+satisAyari().then((a) => { ayarla(a); });
 oturumDinle((u) => {
   if (!u) {
     yaz(`<section class="s-sayfa"><div class="empty"><h3>Siparişini görmek için giriş yap</h3><p>Siparişlerin hesabına bağlıdır.</p><p style="margin-top:16px"><button type="button" class="btn btn-primary" id="giris">Giriş yap</button></p></div></section>`);

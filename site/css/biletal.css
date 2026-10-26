@@ -206,5 +206,40 @@ body.modal-acik { overflow: hidden; }
 .k-toast.on { opacity: 1; transform: translate(-50%, 0); }
 .k-toast.bilgi { border-left-color: var(--accent); }
 @media (max-width: 960px) { .k-toast { bottom: 86px; } }
+
+/* ---------- Rezervasyon modu (ödeme sahnede) ---------- */
+.odeme-sec { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.odeme-sec legend { font: 700 12px var(--font-body); letter-spacing: .12em; text-transform: uppercase; opacity: .65; padding: 0; margin-bottom: 6px; }
+.odeme-k { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 12px 14px; border-radius: 14px; border: 1.5px solid rgba(29,20,16,.22); cursor: pointer; transition: border-color .2s ease-out, background .2s ease-out; }
+.odeme-k input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--accent); }
+.odeme-k b { display: block; font-size: 15px; line-height: 1.25; }
+.odeme-k small { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.45; opacity: .78; }
+.odeme-k.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.odeme-k:has(input:focus-visible) { outline: 2px solid var(--paper-ink); outline-offset: 2px; }
+.odeme-k.kapali { cursor: not-allowed; background: color-mix(in srgb, var(--paper-ink) 6%, transparent); border-style: dashed; }
+.odeme-k.kapali b, .odeme-k.kapali input { opacity: .55; }
+.rozet { display: inline-block; vertical-align: 1px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--paper-ink) 14%, transparent); font: 700 11px var(--font-body); letter-spacing: .04em; font-style: normal; }
+.k-uyari.kapali-satis { border-color: color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.k-uyari.rezervasyon { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); }
+.odeme-vurgu { width: min(560px, 100%); display: grid; gap: 4px; justify-items: center; padding: 16px 18px; border-radius: 16px; border: 1.5px solid var(--accent); background: var(--accent-soft); text-align: center; }
+.odeme-vurgu small { font: 700 11px var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.odeme-vurgu b { font: 800 clamp(22px, 5vw, 30px) var(--font-display); font-variant-numeric: tabular-nums; }
+.odeme-vurgu span { font-size: 14px; color: var(--ink-2); }
+.durum-rozet { display: inline-flex; align-items: center; width: fit-content; padding: 3px 10px; border-radius: 999px; font: 700 12px var(--font-body); background: color-mix(in srgb, var(--paper-ink) 12%, transparent); }
+.durum-rozet.rez { background: color-mix(in srgb, var(--warn) 24%, transparent); }
+.durum-rozet.ok { background: color-mix(in srgb, var(--ok) 24%, transparent); }
+.durum-rozet.iptal, .durum-rozet.gelmedi { background: color-mix(in srgb, var(--err) 20%, transparent); }
+.bk-g .odeme-not { font-size: 12.5px; font-weight: 600; opacity: .8; }
+.bilet-k.iptal { opacity: .6; filter: grayscale(.7); }
+.bk-act .btn.tehlike { border-color: color-mix(in srgb, var(--err) 60%, transparent); color: var(--err); }
+.iptal-bg { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.55); animation: etiketIn .2s ease-out; }
+.iptal-kutu { width: min(440px, 100%); display: grid; gap: 14px; padding: 26px 24px 22px; border-radius: 22px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.iptal-kutu h2 { font: 700 24px/1.2 var(--font-display); }
+.iptal-kutu p { color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.iptal-kutu .mesaj { color: var(--err); font-weight: 600; }
+.iptal-kutu .mesaj:empty { display: none; }
+.iptal-btnlar { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 560px) { .iptal-bg { place-items: end center; padding: 0; } .iptal-kutu { border-radius: 22px 22px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom)); } .iptal-btnlar .btn { flex: 1; min-height: 48px; } }
+@media (prefers-reduced-motion: reduce) { .iptal-bg, .odeme-k { animation: none !important; transition: none !important; } }
 .plan-zoom .btn { width: auto; height: 36px; padding: 0 14px; border-radius: 999px; font-size: 14px; line-height: 1; }
 .k-ust .ph-poster { display: grid; place-items: center; text-align: center; font: 600 10px/1.2 var(--font-body); color: var(--ink-3); padding: 4px; overflow: hidden; }

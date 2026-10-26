@@ -1,6 +1,6 @@
 // Bilet satın alma API'si (Cloud Functions, europe-west1). İstemci ASLA fiyat/tutar göndermez; sunucu hesaplar.
 // Hata kodları: unauthenticated, failed-precondition, resource-exhausted, invalid-argument, permission-denied, not-found.
-import { fonksiyon } from './firebase.js';
+import { fonksiyon, db, doc, getDoc } from './firebase.js';
 
 const VARSAYILAN = {
   unauthenticated: 'Oturumun kapanmış. Devam etmek için tekrar giriş yap.',
@@ -40,6 +40,24 @@ export const ucretsizOnayla = (orderId) => cagir('confirmFree', { orderId });
 /** returnUrl daima kendi origin'imiz; sunucu iyzico dönüşünde buraya yönlendirir. */
 export const odemeBaslat = (orderId) =>
   cagir('startPayment', { orderId, provider: 'iyzico', returnUrl: `${location.origin}/odeme-sonuc?order=${encodeURIComponent(orderId)}` });
+
+/** Rezervasyon (ödeme sahnede): ücretli siparişi bilete çevirir. Başarıda { ticketIds, status:'rezervasyon' }. */
+export const rezervasyonOnayla = (orderId) => cagir('confirmReservation', { orderId });
+/** Kendi venue/ücretsiz biletini iptal eder (sunucu iptal süresini denetler). */
+export const biletIptal = (ticketId) => cagir('cancelTicket', { ticketId });
+
+const SATIS_VARSAYILAN = { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 };
+/** Config/satis (herkes okur). Yoksa ya da okunamazsa güvenli varsayılan: rezervasyon modu. */
+export async function satisAyari() {
+  try {
+    const s = await getDoc(doc(db, 'Config', 'satis'));
+    const d = s.exists() ? s.data() : {};
+    const mode = ['kapali', 'rezervasyon', 'online'].includes(d.mode) ? d.mode : SATIS_VARSAYILAN.mode;
+    const lim = Number(d.rezervasyonLimit), saat = Number(d.iptalSaat);
+    return { mode, rezervasyonLimit: lim > 0 ? Math.floor(lim) : SATIS_VARSAYILAN.rezervasyonLimit, iptalSaat: saat >= 0 && Number.isFinite(saat) ? saat : SATIS_VARSAYILAN.iptalSaat };
+  } catch { return { ...SATIS_VARSAYILAN }; }
+}
+export const satisEtiketi = (mode) => (mode === 'online' ? 'Bilet al' : mode === 'kapali' ? 'Bilet satışı kapalı' : 'Rezervasyon yap');
 
 /** Yönlendirilecek ödeme adresi güvenli mi? https (ya da emülatörde yerel http). */
 export function guvenliUrl(u) {

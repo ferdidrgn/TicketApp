@@ -6,7 +6,7 @@ import { kabukCiz, resim } from '../ui.js';
 import { yukle } from '../store.js';
 import { db, doc, onSnapshot, getDoc, collection, query, where } from '../firebase.js';
 import { girisGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
-import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl } from '../bilet-api.js';
+import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl, rezervasyonOnayla, satisAyari } from '../bilet-api.js';
 import { $, $$, esc, tl, sayi, tarihUzun, saat, tarihAyristir, linkOf } from '../util.js';
 
 const EID = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
@@ -23,6 +23,7 @@ const S = {
   secili: [], adim: 'sec', hold: null, bekliyor: false,
   mesaj: '', banner: null, iframe: '', zaman: null, dugme: new Map(), satirlar: [], konum: new Map(), odak: '', z: 1,
   duzenHazir: false, siparisAbone: null,
+  satis: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 },
   siparisler: [], benim: new Set(), yoksay: new Set(), siparislerAbone: null, siparislerUid: '',
 };
 
@@ -37,6 +38,10 @@ const ucretsizMi = () => {
   if (p == null || p === '') return false;
   return /^\s*(ücretsiz|free)\s*$/i.test(String(p)) || sayi(p) === 0;
 };
+/** Ücretli etkinlikte satış kapalı mı? (ücretsiz biletler her modda çalışır) */
+const satisKapali = () => S.satis.mode === 'kapali' && !(S.hold ? S.hold.free : ucretsizMi());
+const kartAcik = () => S.satis.mode === 'online';
+const sahneAcik = () => S.satis.mode === 'rezervasyon';
 const fiyat = () => sayi(S.ev?.price);
 const para = (n) => (n === 0 ? 'Ücretsiz' : tl(n));
 const benimUid = () => mevcut()?.uid || '';
@@ -299,6 +304,19 @@ async function onayla() {
   } catch (e) { bildir(e.message); S.bekliyor = false; panelCiz(); }
 }
 
+async function rezerve() {
+  if (S.bekliyor || !S.hold || !sahneAcik()) return;
+  S.bekliyor = true; S.mesaj = ''; panelCiz();
+  try {
+    await rezervasyonOnayla(S.hold.orderId);
+    const id = S.hold.orderId; tutmaTemizle();
+    location.assign(`/odeme-sonuc?order=${encodeURIComponent(id)}&durum=rezervasyon`);
+  } catch (e) {
+    bildir(e.message); S.bekliyor = false; panelCiz();
+    if (e.kod === 'unauthenticated') girisGerekli('Oturumun kapanmış. Devam etmek için tekrar giriş yap.');
+  }
+}
+
 function sureDoldu() {
   if (!S.hold) return;
   if (S.adim === 'odeme') { location.assign(`/odeme-sonuc?order=${encodeURIComponent(S.hold.orderId)}`); return; }
@@ -317,6 +335,7 @@ function siparisDinle(orderId) {
     const st = s.data().status;
     if (st === 'paid' || st === 'free_confirmed') { tutmaTemizle(); location.assign(`/odeme-sonuc?order=${encodeURIComponent(orderId)}&durum=basarili`); }
     else if (st === 'expired' || st === 'cancelled') sureDoldu();
+    else if (!['held', 'paying', 'failed'].includes(st)) { tutmaTemizle(); location.assign(`/odeme-sonuc?order=${encodeURIComponent(orderId)}&durum=rezervasyon`); }
     else if (st === 'failed') { if (S.adim === 'odeme') location.assign(`/odeme-sonuc?order=${encodeURIComponent(orderId)}&durum=hata`); }
   }, (e) => console.warn('Order dinlenemedi', e?.code));
 }
@@ -353,6 +372,15 @@ function ozetSatirlari() {
     || '<span class="k-sec-yok">Henüz koltuk seçmedin. Plandan en fazla 3 koltuk seç.</span>';
 }
 
+function odemeMenusu() {
+  const lim = S.satis.rezervasyonLimit, saatIptal = S.satis.iptalSaat;
+  const sahne = sahneAcik() ? `<label class="odeme-k on"><input type="radio" name="yontem" value="sahne" checked><span><b>Sahnede öde (rezervasyon)</b><small>Koltuğun senin adına ayrılır, tutarı etkinlik günü gişede ödersin. Kişi başı toplam en fazla ${lim} rezervasyon; etkinlikten ${saatIptal} saat öncesine kadar iptal edebilirsin.</small></span></label>` : '';
+  const kart = kartAcik()
+    ? `<label class="odeme-k on"><input type="radio" name="yontem" value="kart" checked><span><b>Kart ile öde (iyzico)</b><small>Ödeme iyzico güvenli sayfasında alınır.</small></span></label>`
+    : `<label class="odeme-k kapali" aria-disabled="true"><input type="radio" name="yontem" value="kart" disabled aria-describedby="kart-kapali"><span><b>Kart ile öde (iyzico)<em class="rozet">Yakında</em></b><small id="kart-kapali">Şu anda ödeme sistemi çalışmıyor.</small></span></label>`;
+  return `<fieldset class="odeme-sec"><legend>Ödeme yöntemi</legend>${sahne}${kart}</fieldset>`;
+}
+
 function panelCiz() {
   const p = $('#k-panel'), alt = $('#k-alt'); if (!p) return;
   const e = S.ev, when = S.when;
@@ -365,11 +393,12 @@ function panelCiz() {
   let govde = '', basl = 'Koltuk seçimi', btn = '', altBtn = '', altOzet = '';
 
   if (S.adim === 'sec') {
-    const dis = !n || bek || kapali;
-    btn = `<button type="button" class="btn btn-primary" data-act="tut" ${dis ? 'disabled' : ''}>${bek ? 'Tutuluyor…' : n ? `Koltukları tut (${n})` : 'Koltuk seç'}</button>`;
+    const sk = satisKapali();
+    const dis = !n || bek || kapali || sk;
+    btn = `<button type="button" class="btn btn-primary" data-act="tut" ${dis ? 'disabled' : ''}>${bek ? 'Tutuluyor…' : sk ? 'Bilet satışı kapalı' : n ? `Koltukları tut (${n})` : 'Koltuk seç'}</button>`;
     govde = `<div class="k-secililer" aria-label="Seçilen koltuklar">${ozetSatirlari()}</div>
       <div class="k-toplam"><span>${ucr ? 'Bilet' : 'Tahmini tutar'}</span><b>${toplamMetin}</b></div>
-      <p class="k-not">${ucr ? 'Ücretsiz bilet — kişi başı toplam 3. Koltukları tuttuktan sonra tek adımda onaylarsın.' : 'Kesin tutar koltukları tuttuğunda gösterilir. Tutulan koltuklar 10 dakika senin için ayrılır; ödeme bir sonraki adımdır.'}</p>`;
+      <p class="k-not">${ucr ? 'Ücretsiz bilet — kişi başı toplam 3. Koltukları tuttuktan sonra tek adımda onaylarsın.' : sk ? 'Bilet satışı şu an kapalı. Koltuk seçimine bakabilirsin ama bilet alınamaz.' : 'Kesin tutar koltukları tuttuğunda gösterilir. Tutulan koltuklar 10 dakika senin için ayrılır; ardından ödeme yöntemini seçersin.'}</p>`;
     altOzet = `<b>${n ? toplamMetin : 'Koltuk seç'}</b><small>${n ? esc(S.secili.join(', ')) : `En fazla ${LIMIT} koltuk`}</small>`;
     altBtn = btn;
   } else {
@@ -380,13 +409,16 @@ function panelCiz() {
       govde = `${sayac}<div id="odeme-yer"><p class="k-not">Ödeme formu yükleniyor…</p></div><p class="k-not">Kart bilgilerin TiyatRol sunucularına gelmez; iyzico güvenli ödeme sayfasında işlenir.</p>`;
       altOzet = `<b data-sure>--:--</b><small>Ödeme sürüyor</small>`;
     } else {
+      const sk = satisKapali();
       btn = h.free
         ? `<button type="button" class="btn btn-primary" data-act="onayla" ${bek ? 'disabled' : ''}>${bek ? 'Onaylanıyor…' : 'Ücretsiz bileti onayla'}</button>`
+        : sk ? '<button type="button" class="btn btn-primary" disabled>Bilet satışı kapalı</button>'
+        : sahneAcik() ? `<button type="button" class="btn btn-primary" data-act="rezerve" ${bek ? 'disabled' : ''}>${bek ? 'Onaylanıyor…' : `Rezervasyonu onayla · ${toplamMetin}`}</button>`
         : `<button type="button" class="btn btn-primary" data-act="ode" ${bek ? 'disabled' : ''}>${bek ? 'Bekle…' : `Ödemeye geç · ${toplamMetin}`}</button>`;
       altBtn = btn;
       govde = `${sayac}<div class="k-secililer" aria-label="Tutulan koltuklar">${ozetSatirlari()}</div>
         <div class="k-toplam"><span>${h.free ? 'Bilet' : 'Toplam'}</span><b>${toplamMetin}</b></div>
-        ${h.free ? '<p class="k-not">Ücretsiz bilet — kişi başı toplam 3. Onayladığında biletin Biletlerim sayfasına eklenir.</p>' : '<p class="k-not">Tutar sunucuda hesaplandı. Ödeme iyzico güvenli sayfasında alınır.</p>'}`;
+        ${h.free ? '<p class="k-not">Ücretsiz bilet — kişi başı toplam 3. Onayladığında biletin Biletlerim sayfasına eklenir.</p>' : sk ? '<p class="k-not" role="note">Bilet satışı şu an kapalı. Koltukların süre dolana kadar ayrılı kalır; vazgeçebilirsin.</p>' : `${odemeMenusu()}<p class="k-not">Tutar sunucuda hesaplandı.</p>`}`;
       altOzet = `<b data-sure>--:--</b><small>${esc(h.seatIds.join(', '))}</small>`;
     }
   }
@@ -419,7 +451,7 @@ function iskeleCiz() {
     <div id="k-banner"></div>
     <div class="k-izgara">
       <div class="k-sol">
-        <div id="k-bilgi">${ucretsizMi() ? `<div class="k-uyari ucretsiz">${IKON_BILGI}<div><b>Ücretsiz bilet — kişi başı toplam 3</b>Bu etkinlik ücretsiz. Aynı hesap için toplam en fazla 3 ücretsiz bilet alınabilir.</div></div>` : ''}</div>
+        <div id="k-bilgi">${!ucretsizMi() && S.satis.mode === 'kapali' ? `<div class="k-uyari kapali-satis" role="note">${IKON_BILGI}<div><b>Bilet satışı şu an kapalı</b>Koltuk planına bakabilirsin; satış açıldığında burada bilet alabilirsin.</div></div>` : ''}${!ucretsizMi() && S.satis.mode === 'rezervasyon' ? `<div class="k-uyari rezervasyon" role="note">${IKON_BILGI}<div><b>Rezervasyon — ödeme sahnede</b>Koltuğunu ayırt, tutarı etkinlik günü gişede öde. Kişi başı toplam en fazla ${S.satis.rezervasyonLimit} rezervasyon; ${S.satis.iptalSaat} saat öncesine kadar iptal edebilirsin.</div></div>` : ''}${ucretsizMi() ? `<div class="k-uyari ucretsiz">${IKON_BILGI}<div><b>Ücretsiz bilet — kişi başı toplam 3</b>Bu etkinlik ücretsiz. Aynı hesap için toplam en fazla 3 ücretsiz bilet alınabilir.</div></div>` : ''}</div>
         <div class="plan-kutu">
           <div class="plan-arac"><b id="k-say" aria-live="off">0 / ${LIMIT} koltuk</b>
             <div class="plan-zoom" role="group" aria-label="Plan yakınlaştırma"><button type="button" data-zoom="-" aria-label="Uzaklaştır">−</button><output id="zoom-oran" aria-live="off">100%</output><button type="button" data-zoom="+" aria-label="Yakınlaştır">+</button><button type="button" class="btn btn-ghost btn-sm" data-zoom="fit">Sığdır</button></div></div>
@@ -459,6 +491,7 @@ document.addEventListener('click', (ev) => {
   if (a === 'tut') tut();
   else if (a === 'ode') ode();
   else if (a === 'onayla') onayla();
+  else if (a === 'rezerve') rezerve();
   else if (a === 'birak') birak();
   else if (a === 'cikar') { S.secili = S.secili.filter((x) => x !== b.dataset.id); S.mesaj = ''; boya(); panelCiz(); }
 });
@@ -500,6 +533,7 @@ function seansBilgisi(veri, d) {
 async function baslat() {
   if (!/^[\w.-]{1,128}$/.test(EID)) return bosEkran('Geçersiz bağlantı', 'Bu koltuk seçimi adresi tanınmadı.');
 await oturumBekle();
+  S.satis = await satisAyari(); // hata olursa varsayılan (rezervasyon)
   let d = null; try { d = await yukle(); } catch {}
   let ilk = true;
   onSnapshot(doc(db, 'Event', EID), (snap) => {
