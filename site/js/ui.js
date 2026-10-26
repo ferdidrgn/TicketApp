@@ -56,7 +56,7 @@ export function kabukCiz(aktif = '') {
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
       <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/biletlerim">Biletlerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
-      <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
+      <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/mesafeli-satis">Mesafeli satış sözleşmesi</a><a href="/iade-iptal">İade ve iptal</a><a href="/guvenli-odeme">Güvenli ödeme</a><a href="/hakkimizda">Hakkımızda</a><a href="/iletisim">İletişim</a><a href="/yonetim">Yönetim</a></div>
     </div>
     <div class="ftr-ad" aria-hidden="true">TİYATROL</div>
     <div class="ftr-bot"><span>© ${new Date().getFullYear()} TiyatRol</span><span>Biletler sitede, uygulamada ya da organizatörün kendi sayfasında alınır.</span></div>

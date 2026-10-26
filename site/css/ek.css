@@ -88,3 +88,6 @@ html { background: var(--bg); }
 .makale h1 { font-size: clamp(32px, 4.6vw, 56px); margin: 14px 0; } .makale-ozet { color: var(--ink-2); font-size: 19px; margin-bottom: 28px; }
 .makale-govde { font-size: 18px; line-height: 1.8; color: var(--ink-2); } .makale-govde h2 { font-size: 26px; color: var(--ink); margin: 34px 0 10px; } .makale-govde p, .makale-govde ul { margin: 0 0 16px; } .makale-govde li { margin-bottom: 8px; } .makale-govde strong { color: var(--ink); } .makale-govde a { color: var(--accent); text-decoration: underline; }
 .makale-alt { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 32px; }
+
+.hukuk-uyari { padding: 12px 16px; border-radius: 12px; background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); font-size: 14px; }
+.metin mark { background: #ffe14d; color: #1a1410; padding: 0 5px; border-radius: 4px; }

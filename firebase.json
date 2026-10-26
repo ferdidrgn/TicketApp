@@ -4,7 +4,12 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "nodejs20",
-      "ignore": ["node_modules", ".git", "*.log", "test"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log",
+        "test"
+      ]
     }
   ],
   "firestore": {
@@ -12,10 +17,18 @@
     "indexes": "firestore.indexes.json"
   },
   "emulators": {
-    "auth": { "port": 9099 },
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8080 },
-    "ui": { "enabled": false },
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    },
     "singleProjectMode": true
   },
   "hosting": [
@@ -365,6 +378,30 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/guvenli-odeme",
+          "destination": "/guvenli-odeme.html"
+        },
+        {
+          "source": "/hakkimizda",
+          "destination": "/hakkimizda.html"
+        },
+        {
+          "source": "/iletisim",
+          "destination": "/iletisim.html"
+        },
+        {
+          "source": "/on-bilgilendirme",
+          "destination": "/on-bilgilendirme.html"
+        },
+        {
+          "source": "/iade-iptal",
+          "destination": "/iade-iptal.html"
+        },
+        {
+          "source": "/mesafeli-satis",
+          "destination": "/mesafeli-satis.html"
+        },
         {
           "source": "/rehber/**",
           "destination": "/rehber.html"
