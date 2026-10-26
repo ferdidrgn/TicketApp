@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/common/enum/enums.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/services/fcm_manager_service.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../users/domain/entities/user.dart' as entity;
 import '../../../users/presentation/providers/user_provider.dart';
@@ -56,8 +57,16 @@ class AuthMutation extends _$AuthMutation {
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      // 🔔 Çıkıştan ÖNCE (oturum açıkken): User.fcmToken'ı temizle, topic'ten
+      // çık, cihaz token'ını sil — eski token başka hesaba bildirim sızdırmasın.
+      try {
+        await FCMManager.instance.detachFromUser();
+      } catch (e) {
+        debugPrint('Push temizliği başarısız (çıkış sürüyor): $e');
+      }
       await ref.read(signOutUseCaseProvider).call();
       await LocalStorageService.clearAllUserData();
+      unawaited(FCMManager.instance.syncAnnouncementTopic());
       ref.invalidate(authFirebaseUserProvider);
     });
   }

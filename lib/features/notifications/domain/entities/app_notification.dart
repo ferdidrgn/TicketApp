@@ -5,6 +5,12 @@ import 'package:equatable/equatable.dart';
 /// iptal, kampanya vb. türler eklenmek istenirse buraya eklenmesi yeterli.
 enum NotificationType {
   bookingConfirmation,
+
+  /// Yönetimden genel duyuru (push + bildirim kutusu).
+  announcement,
+
+  /// Yönetimden SESLİ ALARM duyurusu.
+  alarm,
   unknown;
 
   static NotificationType fromString(final String? value) =>
@@ -23,6 +29,9 @@ class AppNotification extends Equatable {
 
   final String showId;
   final String showName;
+
+  /// Yönetim duyurusunun bağlı olduğu etkinlik (yoksa boş).
+  final String eventId;
 
   /// "dd.MM.yyyy, HH:mm" formatında etkinlik tarihi.
   /// bkz. [DateFormatter] (lib/core/util/date_formatter.dart) — Event.date ile
@@ -43,6 +52,7 @@ class AppNotification extends Equatable {
     required this.type,
     required this.showId,
     required this.showName,
+    this.eventId = '',
     required this.eventDate,
     required this.seats,
     required this.isRead,
@@ -61,6 +71,7 @@ class AppNotification extends Equatable {
         type: type,
         showId: showId,
         showName: showName,
+        eventId: eventId,
         eventDate: eventDate,
         seats: seats,
         isRead: isRead ?? this.isRead,
@@ -76,6 +87,7 @@ class AppNotification extends Equatable {
         type,
         showId,
         showName,
+        eventId,
         eventDate,
         seats,
         isRead,
