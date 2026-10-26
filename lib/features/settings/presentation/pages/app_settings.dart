@@ -16,6 +16,7 @@ import '../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/app_version_provider.dart';
+import '../widgets/announcement_switch_row.dart';
 import '../widgets/preference_widgets.dart';
 
 /// AYARLAR — sade bir "tercihler" sayfası. Sahibinin en sevdiği özellik
@@ -169,6 +170,7 @@ class AppSettingsPage extends ConsumerWidget {
             subtitle: l10n.settingsNotificationsPermissionSubtitle,
             onTap: () => _handlePermission(Permission.notification),
           ),
+          ...announcementPreferenceRows(context),
         ],
       ),
     ];

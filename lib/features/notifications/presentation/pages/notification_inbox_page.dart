@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/services/fcm_manager_service.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
@@ -196,7 +198,7 @@ class NotificationInboxPage extends ConsumerWidget {
             child: TicketNotice(
               label: 'GİŞE',
               title: 'Henüz bildirimin yok',
-              message: 'Bir bilet aldığında onayı ve seans bilgisi burada '
+              message: 'Bilet onayların ve gişeden gelen duyurular burada '
                   'görünür.',
               actionLabel: 'Oyunlara göz at',
               actionIcon: Icons.explore_outlined,
@@ -235,6 +237,12 @@ class NotificationInboxPage extends ConsumerWidget {
 
   Future<void> _markRead(
       final WidgetRef ref, final AppNotification notification) async {
+    // Yönetim duyurusu bir etkinliğe bağlıysa dokununca oraya git.
+    final bool announced = notification.type == NotificationType.announcement ||
+        notification.type == NotificationType.alarm;
+    if (announced && notification.eventId.isNotEmpty) {
+      unawaited(FCMManager.instance.openEvent(notification.eventId));
+    }
     if (notification.isRead) return;
     HapticFeedback.selectionClick();
     try {
@@ -334,6 +342,12 @@ class _NotificationRow extends StatelessWidget {
         ? null
         : DateFormatter.parseDateString(notification.eventDate);
     final String? received = _received(notification.createdAt);
+    final bool isAlarm = notification.type == NotificationType.alarm;
+    final String? typeLabel = switch (notification.type) {
+      NotificationType.alarm => 'ALARM',
+      NotificationType.announcement => 'DUYURU',
+      _ => null,
+    };
     final List<String> seats = notification.seats
         .map((final s) => s.trim())
         .where((final s) => s.isNotEmpty)
@@ -349,6 +363,7 @@ class _NotificationRow extends StatelessWidget {
       button: unread,
       label: [
         if (unread) 'Okunmamış',
+        if (typeLabel != null) typeLabel == 'ALARM' ? 'Alarm' : 'Duyuru',
         notification.title,
         notification.body,
         ...meta,
@@ -357,7 +372,9 @@ class _NotificationRow extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: unread
-            ? Color.alphaBlend(cs.primary.withOpacity(0.06), cs.surface)
+            ? Color.alphaBlend(
+                (isAlarm ? cs.error : cs.primary).withOpacity(isAlarm ? 0.10 : 0.06),
+                cs.surface)
             : Colors.transparent,
         child: InkWell(
           onTap: onTap,
@@ -374,12 +391,24 @@ class _NotificationRow extends StatelessWidget {
                 if (session != null)
                   _SessionStub(date: session, dimmed: !unread)
                 else
-                  _Glyph(unread: unread),
+                  _Glyph(unread: unread, type: notification.type),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (typeLabel != null) ...[
+                        Text(
+                          typeLabel,
+                          style: TextStyle(
+                            color: isAlarm ? cs.error : cs.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -517,24 +546,37 @@ class _SessionStub extends StatelessWidget {
 /// Seansı olmayan bildirim: sade, temaya bağlı ikon.
 class _Glyph extends StatelessWidget {
   final bool unread;
-  const _Glyph({required this.unread});
+  final NotificationType type;
+  const _Glyph({required this.unread, this.type = NotificationType.unknown});
 
   @override
   Widget build(final BuildContext context) {
     final cs = context.colors;
+    final bool alarm = type == NotificationType.alarm;
+    final IconData icon = switch (type) {
+      NotificationType.alarm => Icons.notifications_active_rounded,
+      NotificationType.announcement => Icons.campaign_outlined,
+      _ => Icons.notifications_none_rounded,
+    };
+    final Color bg = alarm
+        ? cs.errorContainer
+        : (unread ? cs.primaryContainer : cs.surfaceContainerHighest);
+    final Color fg = alarm
+        ? cs.onErrorContainer
+        : (unread ? cs.onPrimaryContainer : cs.onSurfaceVariant);
     return ExcludeSemantics(
       child: SizedBox(
         width: 52,
         height: 52,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: unread ? cs.primaryContainer : cs.surfaceContainerHighest,
+            color: bg,
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Icon(
-            Icons.notifications_none_rounded,
+            icon,
             size: 24,
-            color: unread ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+            color: fg,
           ),
         ),
       ),

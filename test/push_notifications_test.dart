@@ -1,0 +1,261 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ticketapp/core/services/push/push_message_mapper.dart';
+import 'package:ticketapp/core/services/push/push_payload.dart';
+import 'package:ticketapp/core/services/push/push_service.dart';
+import 'package:ticketapp/features/notifications/data/mappers/notification_mapper.dart';
+import 'package:ticketapp/features/notifications/data/models/notification_model.dart';
+import 'package:ticketapp/features/notifications/domain/entities/app_notification.dart';
+
+class FakeGateway implements PushGateway {
+  final List<String> calls = [];
+  bool failDelete = false;
+  @override
+  Future<String?> getToken() async => 'tok';
+  @override
+  Future<void> deleteToken() async {
+    calls.add('deleteToken');
+    if (failDelete) throw Exception('boom');
+  }
+
+  @override
+  Future<void> subscribeToTopic(final String topic) async =>
+      calls.add('sub:$topic');
+  @override
+  Future<void> unsubscribeFromTopic(final String topic) async =>
+      calls.add('unsub:$topic');
+}
+
+class FakeTokenStore implements PushTokenStore {
+  final List<String> calls;
+  bool fail = false;
+  FakeTokenStore(this.calls);
+  @override
+  Future<void> clearTokenForCurrentUser() async {
+    calls.add('clearToken');
+    if (fail) throw Exception('firestore');
+  }
+}
+
+class FakePrefs implements PushPrefs {
+  final Map<String, bool> map = {};
+  @override
+  Future<bool?> readBool(final String key) async => map[key];
+  @override
+  Future<void> writeBool(final String key, final bool value) async =>
+      map[key] = value;
+}
+
+class FakeNotifier implements LocalNotifier {
+  final List<LocalNotificationSpec> shown = [];
+  @override
+  Future<void> show(final LocalNotificationSpec spec) async => shown.add(spec);
+}
+
+void main() {
+  group('PushRoutes (beyaz liste)', () {
+    test('geçerli uygulama içi rotalar kabul edilir', () {
+      for (final r in [
+        '/notifications',
+        '/app',
+        '/my-tickets/bildirim-abc123',
+        '/show/oyun-adi-XyZ9',
+        '/stage/s-1',
+      ]) {
+        expect(PushRoutes.safeRoute(r), r, reason: r);
+      }
+    });
+
+    test('tehlikeli / bilinmeyen rotalar reddedilir', () {
+      for (final r in [
+        'https://evil.example/x',
+        '//evil.example',
+        '/admin',
+        '/show/../admin',
+        '/show/a?x=1',
+        '/login',
+        'javascript:alert(1)',
+        '/notifications/../admin',
+        '',
+        null,
+      ]) {
+        expect(PushRoutes.safeRoute(r), isNull, reason: '$r');
+      }
+    });
+
+    test('resolve: route > ticketId > event > varsayılan', () {
+      expect(
+          PushRoutes.resolve(const PushPayload(route: '/favorites')),
+          '/favorites');
+      expect(
+          PushRoutes.resolve(const PushPayload(route: 'https://x.y'),
+              userId: 'u1', showIdForEvent: null),
+          '/notifications');
+      expect(
+          PushRoutes.resolve(const PushPayload(ticketId: 't1'), userId: 'u1'),
+          '/my-tickets/bildirim-u1');
+      expect(PushRoutes.resolve(const PushPayload(ticketId: 't1')),
+          '/notifications'); // giriş yok -> güvenli varsayılan
+      expect(
+          PushRoutes.resolve(const PushPayload(eventId: 'e1'),
+              showIdForEvent: 'show9'),
+          '/show/bildirim-show9');
+    });
+
+    test('payload kimlikleri temizlenir ve encode/decode gidiş-dönüş yapar',
+        () {
+      final p = PushPayload.fromData({
+        'kind': 'alarm',
+        'eventId': 'ev_1',
+        'ticketId': '../../x',
+        'route': '/notifications',
+      });
+      expect(p.isAlarm, isTrue);
+      expect(p.ticketId, isNull);
+      final back = PushPayload.decode(p.encode());
+      expect(back.kind, PushKind.alarm);
+      expect(back.eventId, 'ev_1');
+      expect(PushPayload.decode('not json').kind, PushKind.normal);
+      expect(PushPayload.fromData({'kind': 'whatever'}).kind, PushKind.normal);
+    });
+  });
+
+  group('PushMessageMapper', () {
+    test('alarm -> tiyatrol_alarm kanalı', () {
+      final s = PushMessageMapper.toSpec(const PushIncoming(
+          messageId: 'm1',
+          title: 'Sahne değişti',
+          body: 'Salon B',
+          data: {'kind': 'alarm', 'eventId': 'e1'}));
+      expect(s.channelId, 'tiyatrol_alarm');
+      expect(s.isAlarm, isTrue);
+      expect(s.title, 'Sahne değişti');
+      expect(PushPayload.decode(s.payload).eventId, 'e1');
+    });
+
+    test('normal / eksik veri -> tiyatrol_default ve varsayılan başlık', () {
+      final s = PushMessageMapper.toSpec(const PushIncoming(data: {}));
+      expect(s.channelId, 'tiyatrol_default');
+      expect(s.title, PushMessageMapper.defaultTitle);
+      final a = PushMessageMapper.toSpec(
+          const PushIncoming(data: {'kind': 'alarm'}));
+      expect(a.title, PushMessageMapper.alarmTitle);
+    });
+
+    test('data-only mesajda başlık/gövde data alanından, kimlik kararlı', () {
+      final a = PushMessageMapper.toSpec(const PushIncoming(
+          messageId: 'same', data: {'title': 'T', 'body': 'B'},
+          hasNotificationBlock: false));
+      final b = PushMessageMapper.toSpec(
+          const PushIncoming(messageId: 'same', title: 'x'));
+      expect(a.title, 'T');
+      expect(a.body, 'B');
+      expect(a.id, b.id);
+      expect(a.id, greaterThanOrEqualTo(0));
+    });
+  });
+
+  group('PushService', () {
+    late FakeGateway gw;
+    late FakeTokenStore store;
+    late FakePrefs prefs;
+    late FakeNotifier notifier;
+    late List<String> alarms;
+    late List<String> banners;
+    late PushService svc;
+
+    setUp(() {
+      gw = FakeGateway();
+      store = FakeTokenStore(gw.calls);
+      prefs = FakePrefs();
+      notifier = FakeNotifier();
+      alarms = [];
+      banners = [];
+      svc = PushService(
+        gateway: gw,
+        tokenStore: store,
+        prefs: prefs,
+        notifier: notifier,
+        alarmPresenter: (final m, final p) async => alarms.add(m.title ?? ''),
+        bannerPresenter: (final m, final p) async => banners.add(m.title ?? ''),
+      );
+    });
+
+    test('duyuru topic tercihi: varsayılan açık, kapat/aç abonelik değiştirir',
+        () async {
+      expect(await svc.announcementsEnabled(), isTrue);
+      await svc.setAnnouncementsEnabled(false);
+      expect(await svc.announcementsEnabled(), isFalse);
+      expect(gw.calls.last, 'unsub:all_users');
+      await svc.setAnnouncementsEnabled(true);
+      expect(gw.calls.last, 'sub:all_users');
+    });
+
+    test('syncAnnouncementTopic kayıtlı tercihe uyar', () async {
+      prefs.map[PushService.announcementsPrefKey] = false;
+      await svc.syncAnnouncementTopic();
+      expect(gw.calls, ['unsub:all_users']);
+    });
+
+    test('çıkışta token temizlenir, topicten çıkılır, token silinir (sırayla)',
+        () async {
+      final failed = await svc.detachFromUser();
+      expect(failed, isEmpty);
+      expect(gw.calls, ['clearToken', 'unsub:all_users', 'deleteToken']);
+    });
+
+    test('bir temizlik adımı patlasa da diğerleri çalışır', () async {
+      store.fail = true;
+      gw.failDelete = true;
+      final failed = await svc.detachFromUser();
+      expect(failed, ['clearToken', 'deleteToken']);
+      expect(gw.calls, contains('unsub:all_users'));
+    });
+
+    test('ön plan: alarm yerel bildirim + uyarı, normal yalnız şerit',
+        () async {
+      await svc.handleForeground(const PushIncoming(
+          title: 'ALARM', data: {'kind': 'alarm'}));
+      expect(notifier.shown.single.channelId, 'tiyatrol_alarm');
+      expect(alarms, ['ALARM']);
+      expect(banners, isEmpty);
+
+      await svc.handleForeground(
+          const PushIncoming(title: 'Merhaba', data: {'kind': 'normal'}));
+      expect(notifier.shown, hasLength(1));
+      expect(banners, ['Merhaba']);
+    });
+
+    test('arka plan: notification bloğu varsa tekrar gösterilmez, yalnız-data '
+        'ise gösterilir', () async {
+      await svc.handleBackground(const PushIncoming(
+          title: 'x', body: 'y', data: {'kind': 'alarm'}));
+      expect(notifier.shown, isEmpty);
+      await svc.handleBackground(const PushIncoming(
+          data: {'kind': 'alarm', 'title': 'Acil', 'body': 'Detay'},
+          hasNotificationBlock: false));
+      expect(notifier.shown.single.channelId, 'tiyatrol_alarm');
+      expect(notifier.shown.single.title, 'Acil');
+    });
+  });
+
+  group('Bildirim kutusu modeli', () {
+    test('yeni türler ve eventId okunur; createdAt yedek alan çalışır', () {
+      final e = NotificationModel.fromFirestore({
+        '_id': 'n1',
+        'userId': 'u',
+        'title': 'T',
+        'body': 'B',
+        'type': 'alarm',
+        'eventId': 'ev1',
+        'isRead': false,
+        'createdAt': '2026-10-26T10:00:00.000',
+      }).toEntity();
+      expect(e.type, NotificationType.alarm);
+      expect(e.eventId, 'ev1');
+      expect(e.createdAt, '2026-10-26T10:00:00.000');
+      expect(NotificationType.fromString('announcement'),
+          NotificationType.announcement);
+      expect(NotificationType.fromString('???'), NotificationType.unknown);
+    });
+  });
+}

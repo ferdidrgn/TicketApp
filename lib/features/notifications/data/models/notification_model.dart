@@ -8,6 +8,7 @@ class NotificationModel {
   final String? type;
   final String? showId;
   final String? showName;
+  final String? eventId;
   final String? eventDate;
   final List<String>? seats;
   final bool? isRead;
@@ -21,6 +22,7 @@ class NotificationModel {
     this.type,
     this.showId,
     this.showName,
+    this.eventId,
     this.eventDate,
     this.seats,
     this.isRead,
@@ -37,13 +39,17 @@ class NotificationModel {
         type: data['type'] as String?,
         showId: data['showId'] as String?,
         showName: data['showName'] as String?,
+        eventId: data['eventId'] as String?,
         eventDate: data['eventDate'] as String?,
         seats: (data['seats'] as List?)?.map((e) => e.toString()).toList(),
         isRead: data['isRead'] as bool?,
-        createdAt: data['_createdAt'] is Timestamp
-            ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
-            : data['_createdAt']?.toString(),
+        // Uygulama `_createdAt`, yönetim/backend duyuruları `createdAt` yazar.
+        createdAt: _readDate(data['_createdAt'] ?? data['createdAt']),
       );
+
+  static String? _readDate(final Object? v) => v is Timestamp
+      ? v.toDate().toIso8601String()
+      : v?.toString();
 
   Map<String, dynamic> toFirestore() => {
         '_id': id,
@@ -53,6 +59,7 @@ class NotificationModel {
         'type': type,
         'showId': showId,
         'showName': showName,
+        if (eventId != null) 'eventId': eventId,
         'eventDate': eventDate,
         'seats': seats,
         'isRead': isRead,
