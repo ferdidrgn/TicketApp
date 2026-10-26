@@ -2,29 +2,14 @@
 // TiyatRol (TicketApp) — Cloud Firestore Güvenlik Kuralları
 // =============================================================================
 //
-// !!! BU DOSYA STATİK OLARAK YAZILDI, EMULATOR/DEPLOY İLE TEST EDİLMEDİ !!!
-// Bu Claude Code oturumunun çalıştığı sandbox'ta Firebase CLI / Firebase
-// Emulator Suite YOK (bkz. repo kökündeki CLAUDE.md — "Mimari notlar").
-// Kurallar, koddaki gerçek Entity/DataSource dosyaları (lib/features/*/
-// domain/entities/*.dart, lib/features/*/data/datasources/
-// *_remote_data_source_and_impl.dart) okunarak elle çıkarıldı ve sadece
-// dengeli parantez / temel sözdizimi açısından gözden geçirildi. Deploy
-// ETMEDEN ÖNCE MUTLAKA:
+// SATIŞ GÜVENLİĞİ (bkz. docs/ODEME-GUVENLIK.md): koltuk, bilet, sipariş ve ücretsiz-bilet
+// sayacı yazımı SADECE Cloud Functions (Admin SDK, kuralları atlar) tarafından yapılır.
+// İstemci Event.seats / Ticket / Order / UserLimits'e YAZAMAZ. functions/test/rules.test.js
+// bu kuralları emülatörde otomatik test eder (npm --prefix functions run test:emulator).
 //
-//   1) `firebase emulators:start --only firestore` ile ayağa kaldırıp gerçek
-//      senaryoları deneyin: kendi hesabınızla / başka bir kullanıcı hesabıyla
-//      Ticket-Notification okuma, admin olmayan kullanıcı ile Show/Event/
-//      Stage/Team/Player/Campaign yazma, koltuk (Event.seats) rezervasyon /
-//      iptal / satın-alma akışları.
-//   2) Mümkünse `@firebase/rules-unit-testing` ile bu senaryoları otomatik
-//      teste bağlayın (özellikle "başkasının koltuğunu/biletini/bildirimini
-//      okuyabiliyor/değiştirebiliyor mu" negatif testleri).
-//   3) Sadece bunlardan SONRA `firebase deploy --only firestore:rules`
-//      çalıştırın. Bu commit'ten önce repo'da hiç `firestore.rules` yoktu ve
-//      `firebase.json`'da da `firestore` anahtarı tanımlı değildi — yani bu
-//      proje güvenlik kurallarını kaynak kontrolünde HİÇ tutmuyordu; konsolda
-//      şu an ne deploy edili olduğu bu dosyadan bağımsızdır, ilk deploy'dan
-//      önce konsoldaki mevcut kuralları da gözden geçirin.
+// !!! Bu kurallar, mobil uygulamanın ESKİ istemci-taraflı satın alma akışını
+// (attemptReservation / confirmPurchase / createTicket) KIRAR. Mobil holdSeats/startPayment/
+// confirmFree çağıracak şekilde taşınmadan DEPLOY ETMEYİN (geçiş planı: docs/ODEME-GUVENLIK.md).
 //
 // =============================================================================
 
@@ -110,36 +95,12 @@ service cloud.firestore {
       allow read: if isSignedIn() &&
         (resource.data.customerId == request.auth.uid || isAdmin());
 
-      // Create: fiyat/koltuk gibi kritik alanlar client'tan geliyor ve bu
-      // proje bir Cloud Function/backend katmanı içermiyor (functions/
-      // dizini yok) — yani bu üretim mühendisliği kararı client-side
-      // transaction'a güvenmek zorunda. Bunu asgari düzeyde doğrulamak
-      // için: bilet SADECE, listelenen koltuklardan en az biri (ilk koltuk)
-      // ilgili Event.seats içinde GERÇEKTEN bu kullanıcı adına 'sold'
-      // olarak işaretlenmişse oluşturulabilir. buySeats listesindeki TÜM
-      // koltukların tek tek doğrulanması rules dilinde pratik değil (bkz.
-      // aşağıdaki Event.seats notundaki aynı kısıt — dinamik anahtarlı
-      // map'lerde genel amaçlı eleman-bazlı iterasyon desteklenmiyor);
-      // yine de bu kontrol, hiç satın alma yapmadan sıfırdan sahte bir
-      // Ticket dokümanı üretilmesini (fiyat/koltuk uydurmayı) engeller.
-      allow create: if isSignedIn() &&
-        request.resource.data.customerId == request.auth.uid &&
-        request.resource.data.eventId is string &&
-        request.resource.data.eventId.size() > 0 &&
-        request.resource.data.buySeats is list &&
-        request.resource.data.buySeats.size() > 0 &&
-        request.resource.data.buySeats[0] in
-          get(/databases/$(database)/documents/Event/$(request.resource.data.eventId)).data.seats &&
-        get(/databases/$(database)/documents/Event/$(request.resource.data.eventId))
-          .data.seats[request.resource.data.buySeats[0]].status == 'sold' &&
-        get(/databases/$(database)/documents/Event/$(request.resource.data.eventId))
-          .data.seats[request.resource.data.buySeats[0]].customerId == request.auth.uid;
+      // Create: KAPALI. Bilet yalnızca ödeme/onay sunucuda doğrulandıktan sonra Cloud Functions
+      // (Admin SDK) tarafından, id = orderId olarak yazılır. (Eski istemci-taraflı createTicket
+      // akışı sahte bilet üretimine açıktı.)
+      allow create: if false;
 
-      // Update/Delete: kod tabanında bilet güncelleme/silme YOK (satış
-      // sonrası bilet immutable kabul ediliyor) — bu yüzden ikisi de
-      // kapalı. `isPast` gibi otomasyonla değişmesi gereken alanlar
-      // ileride bir Cloud Function/Admin SDK job'ı ile (rules'u atlayarak)
-      // güncellenmelidir, client'a asla açılmamalı.
+      // Update/Delete: bilet sonradan değişmez.
       // İSTİSNA (13.10.2026): admin, "Arşiv" aracıyla eski biletlere SADECE
       // özet alanlarını (oyun adı/afiş/sahne adı/tarih) yazabilir — fiyat,
       // koltuk, sahip gibi hiçbir kritik alan değişemez.
@@ -277,84 +238,31 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------
     // Event — lib/features/events/domain/entities/event.dart
-    // Koleksiyon adı: 'Event' (bkz. event_remote_data_source_and_impl.dart).
-    // `seats`: Map<seatId, { status: 'available'|'reserved'|'sold',
-    // customerId: String?, reservedAt/soldAt: Timestamp }>.
-    //
-    // Bu proje bir Cloud Functions katmanı İÇERMİYOR — attemptReservation /
-    // releaseReservation / confirmPurchase hepsi CLIENT SDK'dan doğrudan
-    // Firestore transaction'ı ile `seats.$seatId.*` dot-path update()
-    // çağırıyor. Yani koltuk bütünlüğünün TEK güvenlik sınırı bu rules
-    // dosyasıdır — istemci tarafındaki transaction içi kontroller (ör.
-    // "bu koltuk zaten reserved mı") sadece iyi niyetli/normal uygulama
-    // akışı içindir, ham Firestore SDK ile doğrudan yazan kötü niyetli bir
-    // istemciye karşı HİÇBİR koruma sağlamaz — onu SADECE bu rules
-    // sağlayabilir.
+    // Koleksiyon adı: 'Event'. `seats`: Map<seatId, {status, customerId, reservedAt, orderId,
+    // holdExpiresAt}>. Okuma herkese açık (koltuk planı gösterimi). YAZMA SADECE ADMIN:
+    // rezervasyon/satın alma yalnızca Cloud Functions (holdSeats/startPayment/confirmFree/
+    // iyzicoCallback/expireHolds) üzerinden, Admin SDK ile yapılır; istemci koltuk yazımı KAPALI.
     // -------------------------------------------------------------------
     match /Event/{eventId} {
       allow read: if true;
-
-      // Create: yeni etkinlik/takvim girişi sadece admin panelinden.
-      allow create: if isAdmin();
-
-      // Update: ya admin (her alanı değiştirebilir: price/date/stageId/
-      // showId/seats — takvim düzenleme, iptal, fiyat güncelleme vb.),
-      // ya da giriş yapmış herhangi bir kullanıcının KENDİ koltuk
-      // rezervasyon/iptal/satın-alma yazımı.
-      allow update: if isAdmin() || isValidSeatUpdate();
-
-      allow delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
-    // Giriş yapmış bir kullanıcının Event.seats üzerindeki yazımını
-    // doğrular. request.resource.data / resource.data karşılaştırması ile
-    // MÜMKÜN OLDUĞUNCA sıkı tutuluyor, ancak Firestore Rules dilinin bilinen
-    // bir kısıtı var: dinamik (önceden bilinmeyen) anahtarlı bir map'in
-    // (`seats`, anahtarları koltuk ID'leri) HER elemanı için ayrı ayrı
-    // "eski değer -> yeni değer geçişi geçerli mi" kontrolü YAPILAMIYOR —
-    // rules dilinde map anahtarları üzerinde genel amaçlı bir for-each/
-    // recursion mekanizması yok (sadece sabit/bilinen anahtarlarla
-    // çalışılabiliyor, koltuk ID'leri ise sahneye göre dinamik).
-    //
-    // Bu yüzden burada UYGULANAN kontroller (kesin/garanti):
-    //   1) Sadece 'seats' alanı değişebilir — price/date/stageId/showId
-    //      gibi diğer Event alanları bu yoldan ASLA değiştirilemez.
-    //   2) Koltuk haritasının ANAHTAR KÜMESİ sabit kalmalı — yeni bir
-    //      "hayalet" koltuk eklenemez, mevcut bir koltuk silinemez (var
-    //      olan koltukların İÇ alanları değişebilir, koltuk sayısı/kimliği
-    //      değişemez).
-    //   3) Tek bir yazımda değişen koltuk sayısı en fazla 3 olabilir —
-    //      bu, uygulamanın kendi iş kuralıyla (bkz. seats_provider.dart
-    //      `canSelectMore`: kullanıcı başına aktif rezervasyon/satış < 3)
-    //      tutarlı bir üst sınır; "blast radius"ı (tek yazımda kaç koltuğun
-    //      etkilenebileceğini) sınırlar.
-    //
-    // BİLİNÇLİ OLARAK UYGULANAMAYAN (residual risk — AŞAĞIDAKİ ÖNERİYE
-    // BAKIN): yukarıdaki 3 kontrolü geçen, kimliği doğrulanmış (giriş
-    // yapmış) kötü niyetli bir kullanıcı, teorik olarak BAŞKASINA AİT
-    // 'reserved'/'sold' bir koltuğun customerId'sini kendi uid'sine
-    // yazabilir (çünkü rules, hangi koltuk anahtarının değiştiğini VE o
-    // koltuğun ÖNCEKİ sahibinin kim olduğunu aynı anda, anahtar adını
-    // bilmeden doğrulayacak bir mekanizmaya sahip değil). İYİLEŞTİRME
-    // ÖNERİSİ (üretime almadan önce ciddiye alınmalı): koltuk
-    // rezervasyon/satın alma yazımlarını bir Cloud Functions callable
-    // fonksiyonuna taşıyıp (Admin SDK + gerçek sunucu-taraflı transaction,
-    // tıpkı şu an client'ta yapılan attemptReservation/confirmPurchase
-    // mantığı gibi ama sunucuda), bu rules dosyasında `Event.seats`
-    // alanına DOĞRUDAN client yazımını tamamen kapatmak (yalnızca admin
-    // yazabilsin) en sağlam çözümdür. Alternatif: `seats` map'ini
-    // `Event/{eventId}/seats/{seatId}` alt koleksiyonuna taşımak — o zaman
-    // her koltuk KENDİ dokümanı olur ve bu fonksiyon burada anlatılan
-    // kısıt olmadan (resource.data / request.resource.data doğrudan tek
-    // bir koltuğu işaret eder) tam güvenle yazılabilir. Bu görev kapsamında
-    // MEVCUT veri modeli (tek Event dokümanında map) korunduğu için bu
-    // değişiklik yapılmadı.
-    function isValidSeatUpdate() {
-      return isSignedIn() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seats']) &&
-        request.resource.data.seats.keys().hasAll(resource.data.seats.keys()) &&
-        resource.data.seats.keys().hasAll(request.resource.data.seats.keys()) &&
-        request.resource.data.seats.diff(resource.data.seats).affectedKeys().size() <= 3;
+    // -------------------------------------------------------------------
+    // Order — sipariş (tutma/ödeme durumu). Sadece sahibi OKUR; yazma yalnızca Admin SDK.
+    // -------------------------------------------------------------------
+    match /Order/{orderId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // UserLimits — kullanıcı başına sayaçlar (ücretsiz bilet sayısı, hold hız sınırı).
+    // Sahibi okur; yazma yalnızca Admin SDK (aksi halde limit sıfırlanabilirdi).
+    // -------------------------------------------------------------------
+    match /UserLimits/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
     }
 
     // -------------------------------------------------------------------
