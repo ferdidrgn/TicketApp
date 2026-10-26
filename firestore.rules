@@ -54,7 +54,10 @@ service cloud.firestore {
       // Create: kullanıcı SADECE kendi uid'siyle kendi dokümanını
       // oluşturabilir (bkz. UserRemoteDataSourceImpl.saveUser, isUpdate:
       // false dalı — zaten var olan bir dokümanın üzerine yazmıyor).
-      allow create: if isOwner(userId);
+      // GÜVENLİK (26.10.2026): create SIRASINDA da role denetlenir; aksi hâlde yeni kullanıcı
+      // User/{uid} belgesini role:'admin' ile oluşturup kendini yönetici yapabilirdi.
+      allow create: if isOwner(userId) &&
+        request.resource.data.get('role', 'user') in ['user', 'guest', 'unknown'];
 
       // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
       // ASLA kendi kendine değiştiremez — aksi halde herhangi bir kullanıcı
@@ -65,7 +68,7 @@ service cloud.firestore {
       // Console / Admin SDK (custom claim veya doğrudan doküman düzenleme)
       // üzerinden, geliştirici tarafından elle yapılmalı.
       allow update: if isOwner(userId) &&
-        request.resource.data.role == resource.data.role;
+        request.resource.data.get('role', null) == resource.data.get('role', null);
 
       // Delete: hesap silme akışı var (bkz. delete_user_use_case_impl.dart
       // -> UserRemoteDataSourceImpl.deleteUser) — sadece kendi hesabı.
@@ -151,6 +154,8 @@ service cloud.firestore {
     // kullanıcı bir oyuna TEK yorum bırakır. "Yalnızca izleyen yazar" kuralı
     // istemcide (geçmiş bilet) uygulanır; rules bilet sorgulayamaz, bu yüzden
     // burada kimlik, puan aralığı ve metin sınırı zorlanır.
+    // GİZLİLİK NOTU: `userName` / `userImage` yorumla birlikte KAMUYA AÇIK gösterilir — bu bilinçli
+    // bir ürün kararıdır (yorum yazarken kullanıcı bunu görür). Başka hiçbir kullanıcı verisi buraya yazılmaz.
     // -------------------------------------------------------------------
     match /Review/{reviewId} {
       allow read: if true;
@@ -238,8 +243,10 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------
     // Event — lib/features/events/domain/entities/event.dart
-    // Koleksiyon adı: 'Event'. `seats`: Map<seatId, {status, customerId, reservedAt, orderId,
-    // holdExpiresAt}>. Okuma herkese açık (koltuk planı gösterimi). YAZMA SADECE ADMIN:
+    // Koleksiyon adı: 'Event'. `seats`: Map<seatId, {status, orderId?(opak), holdExpiresAt?, reservedAt?}>.
+    // GİZLİLİK: bu belge HERKESE okunur; koltuklarda kullanıcı kimliği (uid/e-posta/ad) TUTULMAZ
+    // (yönetici bloğu: status 'blocked'). Sahiplik Order/Ticket üzerinden (yalnızca sahibi okur).
+    // Okuma herkese açık (koltuk planı gösterimi). YAZMA SADECE ADMIN:
     // rezervasyon/satın alma yalnızca Cloud Functions (holdSeats/startPayment/confirmFree/
     // iyzicoCallback/expireHolds) üzerinden, Admin SDK ile yapılır; istemci koltuk yazımı KAPALI.
     // -------------------------------------------------------------------

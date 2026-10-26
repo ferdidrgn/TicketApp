@@ -22,7 +22,7 @@ beforeEach(async () => {
     await setDoc(doc(d, 'User/admin1'), { role: 'admin' });
     await setDoc(doc(d, 'User/alice'), { role: 'user' });
     await setDoc(doc(d, 'User/bob'), { role: 'user' });
-    await setDoc(doc(d, 'Event/e1'), { price: '100', seats: { A1: { status: 'available', customerId: null }, A2: { status: 'sold', customerId: 'bob' } } });
+    await setDoc(doc(d, 'Event/e1'), { price: '100', seats: { A1: { status: 'available' }, A2: { status: 'sold', orderId: 'o2' } } });
     await setDoc(doc(d, 'Ticket/t1'), { customerId: 'alice', eventId: 'e1', buySeats: ['A1'], orderPrice: '100.00', showName: 'x', showImageUrl: '', stageName: '', eventDate: '' });
     await setDoc(doc(d, 'Order/o1'), { userId: 'alice', eventId: 'e1', total: 100, status: 'held' });
     await setDoc(doc(d, 'UserLimits/alice'), { freeTickets: 3 });

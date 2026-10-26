@@ -44,7 +44,7 @@ Veri modeli: `Order/{orderId}` (alanlar görev sözleşmesindeki gibi + `totalKu
 (`_id,_createdAt,_updatedAt,customerId,showId,stageId,eventId,orderPrice,orderMethod,buySeats,isPast,showName,
 showImageUrl,stageName,eventDate`) + `orderId`. `orderMethod`: ödemeli `card`, ücretsiz `free`
 (mobil `ticketPaymentLabel` `free` için ham metin gösterir; `'free' => 'Ücretsiz'` eklenmeli).
-`Event.seats[sid]` = `{status, customerId, reservedAt, orderId, holdExpiresAt(ms), soldAt}`; mevcut biçim korunur.
+`Event.seats[sid]` (herkese açık, KİMLİKSİZ — bkz. bölüm 9): `{status:'available'}` | `{status:'reserved', orderId, holdExpiresAt(ms), reservedAt}` | `{status:'sold', orderId}` | `{status:'blocked'}`.
 `UserLimits/{uid}` = `{freeTickets, holdWindowStart, holdCount}`.
 
 İş kuralları (hepsi sunucuda, `functions/src/config.js` sabitleri):
@@ -125,12 +125,83 @@ web için reCAPTCHA Enterprise/v3, Android Play Integrity, iOS App Attest sağla
 
 ## 8. Kalan riskler / yapılacaklar
 
-1. **iyzico entegrasyonu gerçek sandbox ile denenmedi.** İstek/yanıt biçimi ve IYZWSv2 imzası resmî dokümana göre yazıldı ve sahte HTTP istemcisiyle test edildi; ilk iş sandbox anahtarlarıyla uçtan uca deneme yapmak (özellikle `detail` yanıtındaki `basketId`/`conversationId`/`paidPrice` biçimi; doğrulama bilerek katı — eşleşmezse bilet üretilmez).
+1. **iyzico entegrasyonu gerçek sandbox ile denenmedi** (yalnızca resmî dokümana göre yazılmış SAHTE sunucuyla uçtan uca test edildi, bölüm 11). İstek/yanıt biçimi ve IYZWSv2 imzası resmî dokümana göre yazıldı ve sahte HTTP istemcisiyle test edildi; ilk iş sandbox anahtarlarıyla uçtan uca deneme yapmak (özellikle `detail` yanıtındaki `basketId`/`conversationId`/`paidPrice` biçimi; doğrulama bilerek katı — eşleşmezse bilet üretilmez).
 2. `buyer.identityNumber` iyzico'da zorunlu; TCKN toplanmadığı için sabit yer tutucu (`11111111111`, sandbox'ta kabul edilir) gönderiliyor. Canlıda iyzico/hukuk ile teyit edilmeli; gerekirse kullanıcıdan alınmalı.
-3. `Event.seats` **herkese açık okunuyor** ve `customerId` (uid) içeriyor: koltuk sahibi uid'ler görünür. Çözüm: koltuk planını `customerId`'siz bir `SeatMap` görünümüne ya da alt koleksiyona taşımak (şu an veri modeli korunuyor).
+3. ~~`Event.seats` uid sızdırıyor~~ — ÇÖZÜLDÜ (26.10.2026, bölüm 9). Kalan: mevcut üretim Event belgelerindeki ESKİ `customerId` alanları `node functions/tools/scrub-seat-owners.js` ile temizlenmedikçe okunabilir kalır (deploy sonrası bir kez çalıştırın).
 4. İade/iptal akışı yok. `refundRequired:true` olan siparişler manuel incelenmeli (iyzico panelinden iade). Admin için `Order` listesi ve iade aracı yapılmalı. Bilet iptalinde `UserLimits.freeTickets` azaltılmalı.
 5. `Notification` create kuralı istemciye açık kaldı (kendi adına); sunucu artık kendisi yazıyor, mobil taşıma bitince bu kural kapatılabilir.
 6. `Seats/{stageId}` sahne planı ile koltuk üretimi sunucuda yapılır; plan değişirse mevcut etkinliklerin `seats` haritası güncellenmez (mevcut davranışla aynı).
 7. Hız sınırı kullanıcı başınadır; çok sayıda hesapla dağıtık kilitleme için App Check + e-posta doğrulaması düşünülmeli.
 8. `expireHolds` 5 dk'da bir çalışır; süre dolumu ile serbest kalma arasında en çok 5 dk gecikme olur (ancak süresi dolmuş koltuk gecikmeden bağımsız başkasınca alınabilir).
 9. Node 20 runtime 2026 sonunda destek sonuna yaklaşır; `engines` ve `firebase.json` runtime'ı Node 22'ye yükseltilmeli (testler Node 24 ile koştu).
+
+## 9. Gizlilik modeli (26.10.2026)
+
+Prensip: **herkese açık belgeden başka bir kullanıcının uid'i / e-postası / adı okunamaz.**
+
+| Koleksiyon | Okuma | Yazma |
+|---|---|---|
+| `Event` (koltuk haritası dahil) | herkes | yalnız admin (+ Cloud Functions). Koltuk girdisi: `{status, orderId?(opak), holdExpiresAt?, reservedAt?}` — kimlik YOK |
+| `Order`, `UserLimits`, `Notification`, `User` | yalnız sahibi | Order/UserLimits: hiç kimse (yalnız Admin SDK); Notification: sahibi kendi adına; User: sahibi (role değiştiremez, role:'admin' ile OLUŞTURAMAZ) |
+| `Ticket` | sahibi + admin | yalnız Admin SDK (admin yalnız arşiv özet alanlarını) |
+| `Review` | herkes | sahibi; **`userName`/`userImage` kamuya açıktır — bilinçli ürün kararı** |
+| `ReviewReport` | yalnız admin | giriş yapan kendi adına create |
+
+- Sahiplik sunucuda `orderId` + `Order.userId` ile denetlenir. Kullanıcı başına koltuk limiti (koltukta kimlik olmadığından) `Ticket` (`customerId+eventId`) ve `paying` Order'lardan hesaplanır.
+- Web "benim koltuğum": kullanıcının KENDİ `Order` belgeleri (`where userId==uid and eventId==...`; status `held`/`paying`, süresi dolmamış, `seatIds`). Başkasının tuttuğu koltuk yalnız "başkası tutuyor / dolu" görünür.
+- `orderId` opaktır (rastgele); Order/Ticket yalnız sahibine okunur, orderId'den kimliğe ulaşılamaz.
+- Her sunucu yazımı koltuktaki eski `customerId` alanını SİLER. Mevcut verinin toplu temizliği: `node functions/tools/scrub-seat-owners.js` (varsayılan emülatör + kuru çalıştırma; üretim için `--project <id> --i-know-this-is-production --apply`; çalıştırılmadı).
+- **Güvenlik açığı düzeltildi:** eski `User` create kuralı `role` denetlemiyordu; yeni kullanıcı kendi `User/{uid}` belgesini `role:'admin'` ile oluşturup yönetici olabilirdi (`isAdmin()` bu belgeyi okur). Artık create'te role `user|guest|unknown` olmalı.
+- Otomatik denetim: `functions/test/leak.test.js` (iki kullanıcılı; get/list/where/in/!=/limit/yazma/silme; admin ayrımı).
+- **Geriye uyum (yönetici bloğu):** eski biçim `{status:'sold', customerId:'__ADMIN_BLOCKED__'}` (mobil admin ve mobil seans tohumlaması) sunucuda ve web'de hâlâ "kapalı" sayılır; sunucunun ürettiği yeni haritalar `{status:'blocked'}` kullanır. Bu işaret sabit bir değerdir, kullanıcı kimliği değil: sızıntı oluşturmaz. Mobil taşınınca `seatVisualOf` `blocked` durumunu `SeatVisual.blocked` yapmalı (şimdi bilinmeyen durum "müsait" çizilir; sunucu yine reddeder), admin blokla/aç `status:'blocked'`/`'available'` yazmalı.
+
+## 10. Süre dolumu ve çökme davranışı — kim ne zaman neyi serbest bırakır
+
+| Durum | Süre | Kim serbest bırakır | Ne olur |
+|---|---|---|---|
+| `held` (koltuk seçildi, ödeme yok) | 10 dk | (1) başka kullanıcının `holdSeats`'i, süre dolmuşsa anında devralır (lazy takeover); (2) `expireHolds` (5 dk'da bir) Order'ı `expired` yapar, koltukları `available` yapar; (3) kullanıcı `releaseHold` ile vazgeçer | İstemci kapansa/çökse bile süre dolunca koltuk alınabilir. Eski sahip onaylayamaz / ödeme başlatamaz |
+| `held`, sayfa kapatıp açıldı | süre dolana dek | kullanıcı | Web, kullanıcının kendi `held` Order'ından devam ettirir ("Onayla"/"Ödemeye geç") ya da "Vazgeç" (tarayıcı belleğine bağlı değil: başka cihazdan da) |
+| `paying` (iyzico sayfasında) | 30 dk | (1) başarılı callback → bilet; (2) başarısız callback → `failed`, koltuk serbest; (3) pencere dolunca `expireHolds` ÖNCE iyzico'ya sorar, ödeme yoksa `expired` + koltuk serbest; (4) pencere dolunca başka kullanıcı lazy takeover ile devralabilir | Kullanıcı sayfayı terk ederse en geç 30 dk sonra koltuk serbest |
+| `paying` + GEÇ başarılı callback | — | `settle` | Koltuk hâlâ bu siparişteyse bilet üretilir. Koltuk başkasına geçtiyse ya da sipariş `expired/failed` ise **bilet YOK**, sipariş `failed` + `refundRequired:true` (+ `paymentId`) → manuel iade |
+| iyzico `fraudStatus=0` (inceleme) | — | `settle` | Bilet verilmez, sipariş `paying` kalır; `expireHolds` karar gelene dek kapatmaz; onay gelince bilet |
+| `free_confirmed` / `paid` | — | — | Koltuk `sold`, bilet üretildi; iptal akışı yok |
+
+Web haritası: `holdExpiresAt` + 3 sn (saat sapması toleransı) geçmiş `reserved` koltuğu BOŞ çizer (sunucu da verir).
+`expireHolds` zamanlanmış iştir: production'da **Cloud Scheduler gerekir (Blaze plan)**; emülatörde zamanlayıcı çalışmaz, testler `svc.expireHolds()`'u doğrudan çağırır. Zamanlayıcı çalışmazsa koltuklar lazy takeover ile satılabilir kalır, ancak `held/paying` Order'lar `expired`'a dönmez ve kaçan ödemeler kurtarılmaz — Scheduler'ı izleyin.
+Kanıt: `functions/test/expiry.test.js` (enjekte saat) ve `payment-e2e.test.js` (veri geri alınarak).
+
+### Manuel iade prosedürü (`refundRequired: true`)
+1. Firebase konsolu → Firestore → `Order` → `refundRequired == true` (ya da günlükte "ÖDEME ANOMALİSİ"). Alanlar: `paymentId`, `total`, `failureReason` (`paid_but_unfulfillable`), `anomaly` (neden), `userId`.
+2. iyzico merchant panelinde `paymentId` ile işlemi bulun; tutar `total` ile uyuşuyor mu bakın (uyuşmuyorsa olası manipülasyon: iade edin ve hesabı inceleyin).
+3. İşlemi panelden **iptal (aynı gün) ya da iade** edin; kullanıcıya e-posta ile bilgi verin (koltuk başkasına geçtiyse başka koltuk/seans önerin).
+4. Order'a elle `refundedAt`, `refundNote` yazıp `refundRequired:false` yapın (admin aracı yapılana dek konsoldan). Aynı `paymentId` iki kez iade edilmemeli.
+5. `Ticket/{orderId}` OLMADIĞINI doğrulayın.
+
+## 11. iyzico entegrasyonu: doğrulama ve sandbox adımları
+
+`functions/providers/iyzico.js` resmî dokümana (docs.iyzico.com: CF-Initialize, CF-Retrieve, hmacsha256-auth) göre kontrol edildi (26.10.2026): imza `HMAC-SHA256(secret, randomKey + uriPath + body)` hex → `IYZWSv2 base64(apiKey:..&randomKey:..&signature:..)` doğru; `price`/`paidPrice`/`currency`/`basketId`/`conversationId`/`callbackUrl`/`locale`/`enabledInstallments`/`buyer.*`/`billingAddress`/`basketItems` doğru. Düzeltmeler: `buyer.gsmNumber` iyzico'da ZORUNLU (telefon yoksa yer tutucu `+905000000000`); `fraudStatus` işlenir (1 onay, 0 inceleme → bilet yok/bekle, -1 red); `checkoutFormContent` ham HTML ya da Base64 gelse de çözülür. Doküman `paymentStatus` değerlerini listelemiyor — `SUCCESS` varsayımı sandbox'ta doğrulanmalı. `identityNumber` hâlâ yer tutucu (bölüm 8/2).
+
+Sahte sunucu: `functions/test/mock-iyzico/server.js` (imzayı YENİDEN hesaplar, zorunlu alanları ve sepet toplamını denetler). Functions emülatörü `functions/.env.local` (`IYZICO_BASE_URL=http://127.0.0.1:8787`, yalnız emülatör okur) ve `functions/.secret.local` (sahte anahtarlar, gitignore'da; yoksa şu iki satırı oluşturun: `IYZICO_API_KEY=sandbox-fake-api-key`, `IYZICO_SECRET_KEY=sandbox-fake-secret-key`) ile ona bağlanır. `payment-e2e.test.js`: kayıt→hold→startPayment→callback→bilet; tekrar callback→tek bilet; tutarı oynanmış→bilet yok+refundRequired; başarısız ödeme→koltuk serbest; geç callback→refundRequired; inceleme (fraud 0); ücretsiz akış.
+**Bu, gerçek iyzico sandbox'ı DEĞİLDİR.** Sandbox deneme adımları:
+1. iyzico sandbox hesabı + anahtarlar; `firebase functions:secrets:set IYZICO_API_KEY / IYZICO_SECRET_KEY` (sandbox), `IYZICO_BASE_URL=https://sandbox-api.iyzipay.com`.
+2. Functions'ı sandbox/test projesine deploy edin (Blaze). `callbackUrl` herkese açık HTTPS olmalı (otomatik: cloudfunctions.net).
+3. iyzico test kartlarıyla (başarılı / yetersiz bakiye / 3D) sipariş verin; `detail` yanıtında `paymentStatus`, `paidPrice`, `price`, `basketId`, `conversationId`, `fraudStatus` GERÇEKTE hangi biçimde geliyor kontrol edin (doğrulama KATI: eşleşmezse bilet üretilmez; "bilet gelmiyor" olarak görünür, `Order.anomaly`'e bakın).
+4. 3D Secure sonrası callback'in `token`'ı form-POST getirdiğini ve 302'nin `SITE_URL/odeme-sonuc`'a gittiğini doğrulayın; ödeme formunun iframe'de çalıştığını/üst pencereyi açtığını kontrol edin.
+5. Terk senaryosu: ödeme sayfasını kapatın, 35 dk bekleyin; `expireHolds` günlüğü ve koltuğun serbest kalması. Geç ödeme için `refundRequired` akışı.
+6. İade: panelden iade deneyin (bölüm 10).
+
+## 12. iyzico başvurusu öncesi kontrol listesi
+(Sayfalar web tarafında ayrıca ekleniyor; burada yalnızca gereksinimler.)
+- [ ] **Mesafeli satış sözleşmesi** (satıcı unvanı, adres, vergi no, hizmet, bedel, cayma/iade koşulları)
+- [ ] **Ön bilgilendirme formu** (sipariş öncesi gösterilir, onay kutusu)
+- [ ] **İade / iptal / değişim koşulları** (etkinlik iptalinde iade; tarihli hizmette cayma istisnası)
+- [ ] **İletişim bilgileri** (ticari unvan, vergi no/MERSİS, adres, telefon, e-posta) sitede görünür
+- [ ] Gizlilik/KVKK aydınlatma metni, çerez bilgisi; kart bilgisinin TiyatRol'a gelmediği açıklaması
+- [ ] Canlı alan adı + SSL; fiyatlar TL, KDV bilgisi
+- [ ] Gerçek `identityNumber` politikası iyzico ile netleşmiş (bölüm 8/2)
+- [ ] Sandbox uçtan uca deneme tamam (bölüm 11); canlıya geçişte `IYZICO_BASE_URL` ve canlı anahtarlar Secret Manager'da
+- [ ] Mobil geçiş tamam (bölüm 6) ve kurallar en son deploy; eski sürüm zorunlu güncelleme
+- [ ] `expireHolds` için Cloud Scheduler/Blaze; "ÖDEME ANOMALİSİ" günlük alarmı
+
+## 13. Mobil geçiş notu (gizlilik değişikliğinden etkilenen yerler)
+Koltukta `customerId` OKUNMAZ (yok). "Benim koltuğum" kullanıcının `Order` belgelerinden (`status in held/paying`, `where userId==uid`) ya da `Ticket`'tan (satılmış, `buySeats`) çıkarılır. `seats_provider.dart` (`cId == customerId` sayımı), `seat_plan.dart` (`ownerId`), `seat_info.dart`, admin bilet sekmesi ve `event_remote_data_source` blok/tohumlama kodu bu yüzden değişmeli; `blocked` durumu desteklenmeli (bölüm 9). `Notification` create kuralı mobil taşıma bitince kapatılabilir. Not: `site/tools/mock-functions/` eski (sunucusuz) geliştirme sahtesidir; artık gerçek functions emülatörü kullanın (`firebase emulators:start --only firestore,auth,functions` + `node site/tools/seed-emu.mjs`, tarayıcıda `localStorage['tiyatrol.emu']='1'` AYARLANIP SAYFA YENİLENDİKTEN SONRA giriş yapılmalı — yoksa gerçek Auth'a istek gider).

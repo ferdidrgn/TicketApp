@@ -3,8 +3,12 @@
  * Bilet satış çekirdeği. Firebase'e bağımlılıkları (db, sağlayıcı, saat) enjekte edilir; böylece
  * testler emülatörde gerçek Firestore ile, sahte ödeme sağlayıcısıyla çalışır.
  *
- * Koltuk modeli (Event.seats[seatId]):
- *   { status:'available'|'reserved'|'sold'|..., customerId, reservedAt, orderId, holdExpiresAt(ms), soldAt }
+ * Koltuk modeli (Event.seats[seatId]) — Event HERKESE AÇIK okunur, bu yüzden hiçbir kullanıcı kimliği yazılmaz:
+ *   { status:'available' }
+ *   { status:'reserved', orderId(opak), holdExpiresAt(ms), reservedAt }
+ *   { status:'sold',     orderId(opak) }
+ *   { status:'blocked' }   (yönetici kapattı; eski biçim: sold + customerId '__ADMIN_BLOCKED__')
+ * Sahiplik sunucuda `orderId` + Order.userId ile denetlenir. Eski kayıtlardaki `customerId` her yazımda silinir.
  * Fiyat SADECE Event.price'tan, sunucuda hesaplanır. İstemciden tutar/fiyat alınmaz.
  */
 const { FieldPath, FieldValue, Timestamp } = require('firebase-admin/firestore');
@@ -19,29 +23,46 @@ function seatHoldExpiry(seat) {
   return 0; // eski/bozuk kayıt: süresi dolmuş say
 }
 
+const DEL = () => FieldValue.delete();
+
 function releaseArgs(sid) {
   return [
     seatPath(sid, 'status'), 'available',
-    seatPath(sid, 'customerId'), null,
-    seatPath(sid, 'reservedAt'), null,
-    seatPath(sid, 'orderId'), null,
-    seatPath(sid, 'holdExpiresAt'), null,
+    seatPath(sid, 'customerId'), DEL(),
+    seatPath(sid, 'reservedAt'), DEL(),
+    seatPath(sid, 'orderId'), DEL(),
+    seatPath(sid, 'holdExpiresAt'), DEL(),
+    seatPath(sid, 'soldAt'), DEL(),
   ];
 }
 
-function soldArgs(sid, uid, orderId) {
+function reserveArgs(sid, orderId, expiresAtMs) {
+  return [
+    seatPath(sid, 'status'), 'reserved',
+    seatPath(sid, 'customerId'), DEL(),
+    seatPath(sid, 'orderId'), orderId,
+    seatPath(sid, 'holdExpiresAt'), expiresAtMs,
+    seatPath(sid, 'reservedAt'), FieldValue.serverTimestamp(),
+    seatPath(sid, 'soldAt'), DEL(),
+  ];
+}
+
+function soldArgs(sid, orderId) {
   return [
     seatPath(sid, 'status'), 'sold',
-    seatPath(sid, 'customerId'), uid,
-    seatPath(sid, 'soldAt'), FieldValue.serverTimestamp(),
+    seatPath(sid, 'customerId'), DEL(),
     seatPath(sid, 'orderId'), orderId,
-    seatPath(sid, 'reservedAt'), null,
-    seatPath(sid, 'holdExpiresAt'), null,
+    seatPath(sid, 'reservedAt'), DEL(),
+    seatPath(sid, 'holdExpiresAt'), DEL(),
+    seatPath(sid, 'soldAt'), DEL(),
   ];
 }
 
-const ownsSeat = (seat, order, orderId) =>
-  !!seat && seat.status === 'reserved' && seat.customerId === order.userId && seat.orderId === orderId;
+/** Koltuk bu siparişe mi ait? Opak orderId üzerinden; kullanıcı kimliği koltukta tutulmaz. */
+const ownsSeat = (seat, orderId) => !!seat && seat.status === 'reserved' && seat.orderId === orderId;
+
+/** Yönetici bloğu: yeni biçim 'blocked'; eski biçim sold + özel işaret (mobil admin henüz taşınmadı). */
+const isBlocked = (s) => !!s && (s.status === 'blocked' || (s.status === 'sold' && s.customerId === cfg.ADMIN_BLOCK_CUSTOMER_ID));
 
 function toIso(v) {
   if (!v) return '';
@@ -80,9 +101,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const out = {};
     for (const s of ids) {
       if (typeof s !== 'string') continue;
-      out[s] = closed.has(s)
-        ? { status: 'sold', customerId: cfg.ADMIN_BLOCK_CUSTOMER_ID }
-        : { status: 'available', customerId: null };
+      out[s] = closed.has(s) ? { status: 'blocked' } : { status: 'available' };
     }
     return Object.keys(out).length ? out : null;
   }
@@ -99,11 +118,13 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
     return db.runTransaction(async (tx) => {
       const t = now();
-      const [evSnap, limSnap, heldSnap] = await Promise.all([
+      const [evSnap, limSnap, myOrdersSnap, myTicketsSnap] = await Promise.all([
         tx.get(eventRef),
         tx.get(limitsRef),
-        tx.get(orders().where('userId', '==', uid).where('eventId', '==', eventId).where('status', '==', 'held')),
+        tx.get(orders().where('userId', '==', uid).where('eventId', '==', eventId)),
+        tx.get(db.collection('Ticket').where('customerId', '==', uid).where('eventId', '==', eventId)),
       ]);
+      const heldDocs = myOrdersSnap.docs.filter((d) => d.data().status === 'held');
       if (!evSnap.exists) throw err('not-found', 'Etkinlik bulunamadı.');
       const ev = evSnap.data();
 
@@ -138,12 +159,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       // Kullanıcının bu etkinlikteki kendi bekleyen (held) tutmaları yeni seçimle değiştirilir.
       const updates = []; // [[args...]]
       const orderUpdates = [];
-      for (const d of heldSnap.docs) {
+      for (const d of heldDocs) {
         const o = d.data();
         for (const sid of o.seatIds || []) {
           const s = seats[sid];
           if (s && s.status === 'reserved' && s.orderId === d.id) {
-            seats[sid] = { status: 'available', customerId: null };
+            seats[sid] = { status: 'available' };
             updates.push(releaseArgs(sid));
           }
         }
@@ -154,12 +175,16 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         const s = seats[sid];
         if (!s || typeof s !== 'object') throw err('invalid-argument', `Koltuk bulunamadı: ${sid}`);
         const takeable = s.status === 'available' || (s.status === 'reserved' && seatHoldExpiry(s) <= t);
-        if (!takeable) throw err('failed-precondition', `Koltuk artık müsait değil: ${sid}`);
+        if (!takeable) throw err('failed-precondition', isBlocked(s) ? `Koltuk satışa kapalı: ${sid}` : `Koltuk artık müsait değil: ${sid}`);
       }
 
+      // Kullanıcının bu etkinlikteki koltukları: biletler (satılmış) + ödemesi süren (paying) siparişler.
+      // Kimlik koltukta tutulmadığından kaynak Ticket/Order'dır (ikisi de yalnızca sahibince okunur).
       let mine = 0;
-      for (const s of Object.values(seats)) {
-        if (s && s.customerId === uid && (s.status === 'reserved' || s.status === 'sold')) mine += 1;
+      for (const d of myTicketsSnap.docs) mine += (d.data().buySeats || []).length;
+      for (const d of myOrdersSnap.docs) if (d.data().status === 'paying') mine += (d.data().seatIds || []).length;
+      for (const s of Object.values(seats)) { // eski biçim: sahipli, siparişsiz 'reserved' kayıtları
+        if (s && s.customerId === uid && s.status === 'reserved' && !s.orderId && seatHoldExpiry(s) > t) mine += 1;
       }
       if (mine + seatIds.length > cfg.SEAT_LIMIT_PER_EVENT) {
         throw err('resource-exhausted', `Bir etkinlikte en fazla ${cfg.SEAT_LIMIT_PER_EVENT} koltuk alabilirsiniz.`);
@@ -170,22 +195,13 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (initialized) {
         const full = { ...seats };
         for (const sid of seatIds) {
-          full[sid] = { status: 'reserved', customerId: uid, orderId: orderRef.id, holdExpiresAt: expiresAtMs, reservedAt: Timestamp.fromMillis(t) };
+          full[sid] = { status: 'reserved', orderId: orderRef.id, holdExpiresAt: expiresAtMs, reservedAt: Timestamp.fromMillis(t) };
         }
         tx.update(eventRef, 'seats', full);
       } else {
+        // Önce eski bekleyen tutmaların bırakılması, sonra yeni tutma (sıralı yazımlar; son yazım geçerli).
         for (const u of updates) tx.update(eventRef, ...u);
-        const args = [];
-        for (const sid of seatIds) {
-          args.push(
-            seatPath(sid, 'status'), 'reserved',
-            seatPath(sid, 'customerId'), uid,
-            seatPath(sid, 'orderId'), orderRef.id,
-            seatPath(sid, 'holdExpiresAt'), expiresAtMs,
-            seatPath(sid, 'reservedAt'), FieldValue.serverTimestamp(),
-          );
-        }
-        tx.update(eventRef, ...args);
+        tx.update(eventRef, ...seatIds.flatMap((sid) => reserveArgs(sid, orderRef.id, expiresAtMs)));
       }
       for (const ref of orderUpdates) tx.update(ref, { status: 'cancelled', updatedAt: FieldValue.serverTimestamp() });
 
@@ -262,6 +278,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
             const provider = getProvider && getProvider(o.provider);
             if (provider) {
               const det = await provider.retrieve({ token: o.providerToken, conversationId: d.id });
+              if (det && det.pending) continue; // inceleme sürüyor: kararı bekle, siparişi kapatma
               if (det && det.paid) {
                 const r = await settle(d.id, det);
                 if (r === 'paid') settledPaid += 1;
@@ -282,7 +299,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   /** Transaction içinde çağrılır; TÜM okumalar (order/event/show/stage/limits) önceden yapılmış olmalı. */
   function writeFulfillment(tx, { orderRef, orderId, order, evRef, ev, show, stage, limitsRef, method, status, extraOrder }) {
     const args = [];
-    for (const sid of order.seatIds) args.push(...soldArgs(sid, order.userId, orderId));
+    for (const sid of order.seatIds) args.push(...soldArgs(sid, orderId));
     tx.update(evRef, ...args);
 
     const iso = new Date(now()).toISOString();
@@ -328,7 +345,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     };
   }
 
-  const seatsOwned = (c) => !!c.ev && (c.order.seatIds || []).every((sid) => ownsSeat((c.ev.seats || {})[sid], c.order, c.orderId));
+  const seatsOwned = (c) => !!c.ev && (c.order.seatIds || []).every((sid) => ownsSeat((c.ev.seats || {})[sid], c.orderId));
 
   // ------------------------------------------------------------------ ücretsiz onay
   async function confirmFree(uid, data) {
@@ -391,7 +408,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const dateMs = ev && parseEventDateMs(ev.date);
       if (!ev || dateMs == null || dateMs <= t) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
       const seats = ev.seats || {};
-      if (!o.seatIds.every((sid) => ownsSeat(seats[sid], o, orderId))) {
+      if (!o.seatIds.every((sid) => ownsSeat(seats[sid], orderId))) {
         throw err('failed-precondition', 'Koltuklar artık size ait değil. Lütfen yeniden seçin.');
       }
       const newExp = t + cfg.PAYMENT_WINDOW_MS;
@@ -460,6 +477,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!c) { outcome = 'ignored'; return; }
       const { order } = c;
       if (order.status === 'paid') { outcome = 'already'; return; }
+      if (det && det.pending && !det.paid) { outcome = 'ignored'; return; } // sahtecilik incelemesi (fraudStatus 0): karar beklenir
       const v = verify(order, orderId, order.providerToken, det);
       const releaseOwn = () => {
         const a = [];

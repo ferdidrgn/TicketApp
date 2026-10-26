@@ -44,8 +44,10 @@ test('iki eşzamanlı hold: yalnızca biri başarılı, koltuk tek kişide', asy
   assert.equal(ok.length, 1);
   assert.equal(bad.length, 1);
   assert.equal(bad[0].reason.code, 'failed-precondition');
-  const winner = res[0].status === 'fulfilled' ? a : b;
-  assert.equal((await seatOf(ev, 'A1')).customerId, winner);
+  const winnerRes = res.find((r) => r.status === 'fulfilled').value;
+  assert.equal((await seatOf(ev, 'A1')).orderId, winnerRes.orderId);
+  assert.equal((await get('Order', winnerRes.orderId)).userId, res[0].status === 'fulfilled' ? a : b);
+  assert.equal('customerId' in (await seatOf(ev, 'A1')), false);
 });
 
 test('kullanıcı başına etkinlikte en fazla 3 koltuk: 4. reddedilir', async () => {
@@ -118,7 +120,7 @@ test('Event.seats boşsa sahne planından üretilir; kapalı koltuk satılamaz',
   const u = uidN();
   const r = await svc.holdSeats(u, { eventId: ev, seatIds: ['B1'] });
   assert.ok(r.orderId);
-  assert.equal((await seatOf(ev, 'B3')).status, 'sold');
+  assert.deepEqual(await seatOf(ev, 'B3'), { status: 'blocked' });
   await expectCode(svc.holdSeats(uidN(), { eventId: ev, seatIds: ['B3'] }), 'failed-precondition');
 });
 
@@ -136,7 +138,7 @@ test('süre dolunca expireHolds koltuğu serbest bırakır, sipariş expired olu
   assert.equal((await svc.expireHolds()).expired, 1);
   assert.equal((await get('Order', r.orderId)).status, 'expired');
   assert.equal((await seatOf(ev, 'A1')).status, 'available');
-  assert.equal((await seatOf(ev, 'A1')).customerId, null);
+  assert.equal('customerId' in (await seatOf(ev, 'A1')), false);
   await expectCode(svc.startPayment(u, { orderId: r.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app/x' }), 'failed-precondition');
 });
 
@@ -149,11 +151,11 @@ test('süresi dolmuş tutma, expireHolds çalışmasa da başkası tarafından a
   now.advance(11 * 60e3);
   await expectCode(svc.confirmFree(a, { orderId: ra.orderId }), 'failed-precondition');
   const rb = await svc.holdSeats(b, { eventId: ev, seatIds: ['A1'] });
-  assert.equal((await seatOf(ev, 'A1')).customerId, b);
+  assert.equal((await seatOf(ev, 'A1')).orderId, rb.orderId);
   await svc.expireHolds(); // eski sipariş expired olur ama b'nin koltuğuna dokunmaz
   assert.equal((await get('Order', ra.orderId)).status, 'expired');
-  assert.equal((await seatOf(ev, 'A1')).customerId, b);
   assert.equal((await seatOf(ev, 'A1')).orderId, rb.orderId);
+  assert.equal((await seatOf(ev, 'A1')).status, 'reserved');
 });
 
 // ----------------------------------------------------------------- sahiplik
@@ -166,7 +168,7 @@ test('başkasının siparişini serbest bırakma/ödeme/onay reddedilir', async 
   await expectCode(svc.startPayment(b, { orderId: r.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app/x' }), 'permission-denied');
   await expectCode(svc.confirmFree(b, { orderId: r.orderId }), 'permission-denied');
   await expectCode(svc.releaseHold(b, { orderId: 'olmayan' }), 'not-found');
-  assert.equal((await seatOf(ev, 'A1')).customerId, a);
+  assert.equal((await seatOf(ev, 'A1')).orderId, r.orderId);
   // sahibi serbest bırakabilir (idempotent)
   assert.deepEqual(await svc.releaseHold(a, { orderId: r.orderId }), { ok: true });
   assert.deepEqual(await svc.releaseHold(a, { orderId: r.orderId }), { ok: true });
@@ -287,7 +289,8 @@ test('callback başarı + İDEMPOTENCY: aynı callback (ardışık ve eşzamanl�
   assert.equal(notes.docs[0].data().type, 'bookingConfirmation');
   assert.equal((await get('Order', h.orderId)).status, 'paid');
   assert.equal((await seatOf(ev, 'A1')).status, 'sold');
-  assert.equal((await seatOf(ev, 'A1')).customerId, u);
+  assert.equal((await seatOf(ev, 'A1')).orderId, h.orderId);
+  assert.equal('customerId' in (await seatOf(ev, 'A1')), false);
 });
 
 test('yanlış tutar (SUCCESS ama eksik ödeme) bilet ÜRETMEZ, iade işaretlenir, koltuk serbest kalır', async () => {

@@ -73,7 +73,7 @@ let seq = 0;
 async function seedEvent({ price = '100', date = eventDate(7 * 864e5), seatNames = ['A1', 'A2', 'A3', 'A4', 'A5'], id, showId = 'show1', stageId = 'stage1' } = {}) {
   const eventId = id || `ev${++seq}_${Date.now()}`;
   const seats = {};
-  for (const s of seatNames) seats[s] = { status: 'available', customerId: null };
+  for (const s of seatNames) seats[s] = { status: 'available' };
   await db.collection('Event').doc(eventId).set({ _id: eventId, showId, stageId, date, price, seats });
   await db.collection('Show').doc(showId).set({ name: 'Test Oyunu', imageUrl: 'https://img.test/a.png' });
   await db.collection('Stage').doc(stageId).set({ name: 'Test Sahne' });

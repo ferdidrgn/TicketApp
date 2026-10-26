@@ -4,14 +4,16 @@
 // 3 koltuk sınırı istemcide yalnızca KOLAYLIKTIR; asıl sınır sunucudadır.
 import { kabukCiz, resim } from '../ui.js';
 import { yukle } from '../store.js';
-import { db, doc, onSnapshot, getDoc } from '../firebase.js';
+import { db, doc, onSnapshot, getDoc, collection, query, where } from '../firebase.js';
 import { girisGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
 import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl } from '../bilet-api.js';
 import { $, $$, esc, tl, sayi, tarihUzun, saat, tarihAyristir, linkOf } from '../util.js';
 
 const EID = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
 const LIMIT = 3;
-const ADMIN_BLOK = '__ADMIN_BLOCKED__';
+const ADMIN_BLOK = '__ADMIN_BLOCKED__'; // ESKİ yönetici bloğu işareti (kimlik değil); yeni biçim status:'blocked'
+const HOLD_MS = 10 * 60 * 1000;
+const SAAT_TOLERANSI = 3000; // istemci saati sapmasına karşı: süresi bu kadar geçmeden 'boş' gösterme
 const SURE_VARSAYILAN = 600;
 const HALKA = 2 * Math.PI * 22;
 
@@ -21,6 +23,7 @@ const S = {
   secili: [], adim: 'sec', hold: null, bekliyor: false,
   mesaj: '', banner: null, iframe: '', zaman: null, dugme: new Map(), satirlar: [], konum: new Map(), odak: '', z: 1,
   duzenHazir: false, siparisAbone: null,
+  siparisler: [], benim: new Set(), yoksay: new Set(), siparislerAbone: null, siparislerUid: '',
 };
 
 kabukCiz('kesfet');
@@ -82,13 +85,30 @@ function durum(id) {
   if (S.duzen?.kapali.has(id)) return 'kapali';
   const m = S.koltuklar[id];
   if (!m) return S.seatsBos ? 'bos' : 'kapali';
-  const uid = benimUid();
+  // Event herkese açık okunur ve kullanıcı kimliği İÇERMEZ. "Benim" tespiti kullanıcının KENDİ Order belgelerinden gelir.
   switch (m.status) {
     case 'available': return 'bos';
-    case 'reserved': return uid && m.customerId === uid ? 'benim' : 'rezerve';
+    case 'reserved':
+      if (S.benim.has(id)) return 'benim';
+      return holdBitti(m) ? 'bos' : 'rezerve'; // süresi dolmuş tutma: sunucu da bu koltuğu verir (lazy takeover)
     case 'sold': return m.customerId === ADMIN_BLOK ? 'kapali' : 'dolu';
+    case 'blocked': return 'kapali';
     default: return 'kapali';
   }
+}
+function holdBitti(m) {
+  const bitis = typeof m.holdExpiresAt === 'number' ? m.holdExpiresAt : (zamanMs(m.reservedAt) ? zamanMs(m.reservedAt) + HOLD_MS : 0);
+  return bitis > 0 ? bitis + SAAT_TOLERANSI < Date.now() : true;
+}
+/** Kullanıcının bu seanstaki canlı (held/paying, süresi dolmamış) siparişleri -> 'benim' koltuk kümesi. */
+function benimKur() {
+  const set = new Set();
+  for (const o of S.siparisler) {
+    if (!['held', 'paying'].includes(o.status) || S.yoksay.has(o.id)) continue;
+    if (zamanMs(o.expiresAt) + SAAT_TOLERANSI < Date.now()) continue;
+    (o.seatIds || []).forEach((x) => set.add(String(x)));
+  }
+  S.benim = set;
 }
 const DURUM_METNI = { bos: 'boş', secili: 'seçili', benim: 'senin için tutuluyor', dolu: 'dolu', rezerve: 'başkası için tutuluyor', kapali: 'satışa kapalı' };
 const koltukAdi = (id) => { const [r, n] = ayir(id); return r && !isNaN(n) ? `Sıra ${r}, koltuk ${n}` : id; };
@@ -108,7 +128,7 @@ function boya() {
   }
   // başkası alırsa seçimden düşür
   const dusen = S.secili.filter((id) => durum(id) !== 'bos');
-  if (dusen.length && S.adim === 'sec') {
+  if (dusen.length && S.adim === 'sec' && !S.bekliyor) { // tutma sürerken kendi koltuklarımız 'rezerve' görünebilir
     S.secili = S.secili.filter((id) => !dusen.includes(id));
     bildir(`${dusen.join(', ')} az önce başka biri tarafından alındı. Seçimden çıkarıldı.`);
   }
@@ -197,19 +217,17 @@ function oklarla(e) {
 }
 
 // ---------- Tutma / ödeme ----------
-const kayitAnahtari = () => `tiyatrol.hold.${EID}`;
 function tutmaKur(r) {
   const toplamSure = Math.max(30, Math.round((r.expiresAt - Date.now()) / 1000));
-  S.hold = { orderId: r.orderId, expiresAt: r.expiresAt, total: r.total, currency: r.currency || 'TRY', free: !!r.free, seatIds: r.seatIds, seats: r.seats || [], toplamSure: Math.min(toplamSure, SURE_VARSAYILAN) };
+  S.hold = { paying: !!r.paying, orderId: r.orderId, expiresAt: r.expiresAt, total: r.total, currency: r.currency || 'TRY', free: !!r.free, seatIds: r.seatIds, seats: r.seats || [], toplamSure: Math.min(toplamSure, SURE_VARSAYILAN) };
   S.adim = 'tut'; S.secili = []; S.banner = null;
-  try { sessionStorage.setItem(kayitAnahtari(), r.orderId); } catch {}
   sayacBaslat(); siparisDinle(r.orderId);
 }
 function tutmaTemizle() {
+  if (S.hold) S.yoksay.add(S.hold.orderId);
   S.hold = null; S.iframe = '';
   clearInterval(S.zaman); S.zaman = null;
   S.siparisAbone?.(); S.siparisAbone = null;
-  try { sessionStorage.removeItem(kayitAnahtari()); } catch {}
 }
 
 async function tut() {
@@ -372,7 +390,7 @@ function panelCiz() {
       altOzet = `<b data-sure>--:--</b><small>${esc(h.seatIds.join(', '))}</small>`;
     }
   }
-  const vazgec = S.adim === 'tut' ? `<button type="button" class="btn btn-ghost" data-act="birak" ${bek ? 'disabled' : ''}>Vazgeç, koltukları bırak</button>` : '';
+  const vazgec = S.adim === 'tut' && !S.hold?.paying ? `<button type="button" class="btn btn-ghost" data-act="birak" ${bek ? 'disabled' : ''}>Vazgeç, koltukları bırak</button>` : '';
   p.innerHTML = `<div class="ticket"><div class="head"><span>TiyatRol</span><span>${basl}</span></div>
     <div class="body">
       <div class="k-baslik">${esc(S.show?.name || 'Seans')}</div>
@@ -446,20 +464,30 @@ document.addEventListener('click', (ev) => {
 });
 
 // ---------- Başlangıç ----------
-async function devam() {
-  // sayfa yenilenirse / başka sekmeden dönülürse süren tutmayı sürdür
+/**
+ * Sayfa yenilenir / başka sekme / başka cihazdan dönülürse süren tutmayı KULLANICININ KENDİ Order belgelerinden sürdürür
+ * (sessionStorage'a bağlı değil). 'held' -> kaldığı yerden devam ya da "Vazgeç"; 'paying' -> "Ödemeye geç" aynı oturumu açar.
+ */
+function devam() {
   if (S.hold || !mevcut()) return;
-  let id = ''; try { id = sessionStorage.getItem(kayitAnahtari()) || ''; } catch {}
-  if (!id) return;
-  try {
-    const s = await getDoc(doc(db, 'Order', id));
-    const o = s.exists() ? s.data() : null;
-    const bit = o ? zamanMs(o.expiresAt) : 0;
-    if (o && o.status === 'held' && bit > Date.now() + 2000 && (!o.eventId || o.eventId === EID)) {
-      tutmaKur({ orderId: id, expiresAt: bit, total: o.total, currency: o.currency, free: o.free ?? o.total === 0, seatIds: (o.seatIds || []).map(String), seats: (o.seats || []) });
-      boya(); panelCiz(); bannerCiz();
-    } else { try { sessionStorage.removeItem(kayitAnahtari()); } catch {} }
-  } catch { try { sessionStorage.removeItem(kayitAnahtari()); } catch {} }
+  const o = S.siparisler
+    .filter((x) => ['held', 'paying'].includes(x.status) && !S.yoksay.has(x.id) && zamanMs(x.expiresAt) > Date.now() + 2000)
+    .sort((a, b) => zamanMs(b.expiresAt) - zamanMs(a.expiresAt))[0];
+  if (!o) return;
+  tutmaKur({ orderId: o.id, expiresAt: zamanMs(o.expiresAt), total: o.total, currency: o.currency, free: o.free ?? o.total === 0, seatIds: (o.seatIds || []).map(String), seats: [], paying: o.status === 'paying' });
+  boya(); panelCiz(); bannerCiz();
+}
+
+function siparisleriDinle(uid) {
+  if (S.siparislerUid === uid) return;
+  S.siparislerAbone?.(); S.siparislerAbone = null; S.siparislerUid = uid || ''; S.siparisler = []; benimKur();
+  if (!uid) return;
+  // kurallar: yalnızca where userId == uid sorgusu izinli
+  S.siparislerAbone = onSnapshot(query(collection(db, 'Order'), where('userId', '==', uid), where('eventId', '==', EID)), (qs) => {
+    S.siparisler = qs.docs.map((d) => ({ id: d.id, ...d.data() }));
+    benimKur(); devam();
+    if ($('#planic')) { boya(); panelCiz(); }
+  }, (e) => console.warn('Siparişler dinlenemedi', e?.code));
 }
 
 function seansBilgisi(veri, d) {
@@ -498,15 +526,21 @@ await oturumBekle();
         if (imza !== S.duzenImza) { S.duzenImza = imza; planCiz(); } else boya();
         panelCiz();
       }, () => { S.duzen = duzenKur(null, S.koltuklar); S.duzen.satirlar.length ? planCiz() : planYok(); });
-      if (mevcut()) devam();
-      else girisGerekli('Koltuk seçmek için giriş yap.').then((u) => { if (u) { boya(); devam(); } });
+      if (mevcut()) siparisleriDinle(mevcut().uid);
+      else girisGerekli('Koltuk seçmek için giriş yap.').then((u) => { if (u) boya(); });
     } else {
       S.when = tarihAyristir(veri.date) || S.when;
       if (S.duzen && !S.duzen.satirlar.length) { S.duzen = duzenKur(null, S.koltuklar); if (S.duzen.satirlar.length) planCiz(); }
       boya(); panelCiz();
     }
   }, () => bosEkran('Seans yüklenemedi', 'Bağlantını kontrol edip sayfayı yenile.', '<a class="btn btn-primary" href="">Yenile</a>'));
-  oturumDinle((u) => { if (!u) { S.secili = []; if (S.hold) tutmaTemizle(); S.adim = 'sec'; } if ($('#planic')) { boya(); panelCiz(); if (u) devam(); } });
+  oturumDinle((u) => {
+    if (!u) { S.secili = []; if (S.hold) tutmaTemizle(); S.adim = 'sec'; }
+    siparisleriDinle(u ? u.uid : '');
+    if ($('#planic')) { boya(); panelCiz(); }
+  });
+  // süresi dolan 'rezerve' koltuklar, kimse bir şey yapmadan da haritada boşalsın
+  setInterval(() => { if (S.dugme.size) { benimKur(); boya(); } }, 5000);
 }
 function planYok() {
   const ic = $('#planic'); if (ic) ic.innerHTML = '<div class="empty">Bu sahne için salon planı henüz hazır değil. Biletler için yakında tekrar dene.</div>';

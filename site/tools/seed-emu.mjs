@@ -8,7 +8,7 @@ const sira = (harf, adet) => Array.from({ length: adet }, (_, i) => `${harf}${i 
 
 const duzen = { A: sira('A', 10), B: sira('B', 12), C: sira('C', 12), D: sira('D', 12), E: sira('E', 14), closedSeatsId: ['E1', 'E2', 'E13', 'E14'] };
 const tumu = Object.entries(duzen).filter(([k]) => k !== 'closedSeatsId').flatMap(([, l]) => l);
-const koltuklar = () => Object.fromEntries(tumu.map((id) => [id, duzen.closedSeatsId.includes(id) ? { status: 'sold', customerId: '__ADMIN_BLOCKED__' } : { status: 'available', customerId: null }]));
+const koltuklar = () => Object.fromEntries(tumu.map((id) => [id, duzen.closedSeatsId.includes(id) ? { status: 'blocked' } : { status: 'available' }]));
 
 const temizle = async () => { for (const k of ['Show', 'Event', 'Stage', 'Seats', 'Ticket', 'Order']) for (const d of await listele(k)) await sil(`${k}/${d.id}`); };
 await temizle();
@@ -26,10 +26,11 @@ const seans = (id, showId, tarih, fiyat, ozel = {}) => {
   return yaz(`Event/${id}`, { _id: id, showId, stageId: 'stage-test', date: tarih, price: fiyat, seats: k });
 };
 await seans('ev-paid', 'show-paid', gun(9), '250', {
-  A3: { status: 'sold', customerId: 'baska-kullanici-1' }, A4: { status: 'sold', customerId: 'baska-kullanici-1' },
-  B5: { status: 'reserved', customerId: 'baska-kullanici-2' }, B6: { status: 'reserved', customerId: 'baska-kullanici-2' },
+  // Herkese açık Event'te kullanıcı kimliği YOKTUR: yalnızca durum + opak orderId (+ tutma bitişi).
+  A3: { status: 'sold', orderId: 'sentetik-siparis-1' }, A4: { status: 'sold', orderId: 'sentetik-siparis-1' },
+  B5: { status: 'reserved', orderId: 'sentetik-siparis-2', holdExpiresAt: Date.now() + 3600e3 }, B6: { status: 'reserved', orderId: 'sentetik-siparis-2', holdExpiresAt: Date.now() + 3600e3 },
 });
-await seans('ev-free', 'show-free', gun(5), '0', { C5: { status: 'sold', customerId: 'baska-kullanici-3' } });
+await seans('ev-free', 'show-free', gun(5), '0', { C5: { status: 'sold', orderId: 'sentetik-siparis-3' } });
 await seans('ev-past', 'show-paid', gun(-20), '250');
 
 const uidAt = process.argv.indexOf('--uid');

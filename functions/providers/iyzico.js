@@ -4,7 +4,9 @@
  *   - initialize : POST /payment/iyzipos/checkoutform/initialize/auth/ecom
  *   - retrieve   : POST /payment/iyzipos/checkoutform/auth/ecom/detail
  *   - Kimlik doğrulama: IYZWSv2 = base64("apiKey:<key>&randomKey:<rnd>&signature:<hmac>"),
- *     hmac = HMAC-SHA256(secretKey, randomKey + uriPath + body) (hex). Bkz. docs.iyzico.com.
+ *     hmac = HMAC-SHA256(secretKey, randomKey + uriPath + body) (hex). Bkz. docs.iyzico.com
+ *     (hmacsha256-auth; 26.10.2026'da resmî dokümana göre doğrulandı: gsmNumber/billingAddress zorunlu,
+ *     shippingAddress yalnız PHYSICAL için, fraudStatus 1=onay 0=inceleme -1=red, token+conversationId ile detail).
  *
  * Sağlayıcı arayüzü (başka sağlayıcı eklemek için aynısını uygulayın):
  *   name: string
@@ -18,6 +20,13 @@ const crypto = require('crypto');
 
 const INIT_PATH = '/payment/iyzipos/checkoutform/initialize/auth/ecom';
 const DETAIL_PATH = '/payment/iyzipos/checkoutform/auth/ecom/detail';
+
+/** Doküman Base64 HTML diyor, gerçek yanıt çoğunlukla ham <script> HTML'i; ikisini de HTML'e çevir. */
+function decodeForm(v) {
+  if (!v || typeof v !== 'string') return null;
+  if (v.trimStart().startsWith('<')) return v;
+  try { const d = Buffer.from(v, 'base64').toString('utf8'); return d.trimStart().startsWith('<') ? d : v; } catch { return v; }
+}
 
 function createIyzico({ apiKey, secretKey, baseUrl, fetchImpl, randomKey }) {
   const f = fetchImpl || globalThis.fetch;
@@ -59,7 +68,7 @@ function createIyzico({ apiKey, secretKey, baseUrl, fetchImpl, randomKey }) {
         paymentGroup: 'PRODUCT',
         callbackUrl,
         enabledInstallments: [1],
-        buyer,
+        buyer: { ...buyer, gsmNumber: buyer.gsmNumber || '+905000000000' }, // iyzico: gsmNumber ZORUNLU (yer tutucu)
         shippingAddress: address,
         billingAddress: address,
         basketItems: [{
@@ -80,16 +89,19 @@ function createIyzico({ apiKey, secretKey, baseUrl, fetchImpl, randomKey }) {
       return {
         token: String(r.token),
         paymentPageUrl: r.paymentPageUrl || null,
-        checkoutFormContent: r.checkoutFormContent || null,
+        checkoutFormContent: decodeForm(r.checkoutFormContent),
       };
     },
 
     async retrieve({ token, conversationId }) {
       const r = await post(DETAIL_PATH, { locale: 'tr', conversationId, token });
       const num = (x) => (x == null || x === '' ? NaN : Number(x));
+      const fraud = r.fraudStatus == null ? 1 : Number(r.fraudStatus);
       return {
         ok: r.status === 'success',
-        paid: r.status === 'success' && r.paymentStatus === 'SUCCESS',
+        // fraudStatus 0 (inceleme) / -1 (red) iken bilet VERİLMEZ; 0 ise `pending` (karar beklenir).
+        paid: r.status === 'success' && r.paymentStatus === 'SUCCESS' && fraud === 1,
+        pending: r.status === 'success' && r.paymentStatus === 'SUCCESS' && fraud === 0,
         paidPrice: num(r.paidPrice),
         price: num(r.price),
         currency: r.currency || null,
