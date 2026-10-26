@@ -21,24 +21,3 @@ extension TicketModelMapper on TicketModel {
         eventDate: eventDate ?? '',
       );
 }
-
-extension TicketEntityMapper on Ticket {
-  /// Entity -> Model (Yazma)
-  TicketModel toModel() => TicketModel(
-        id: id,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        customerId: customerId,
-        showId: showId,
-        stageId: stageId,
-        eventId: eventId,
-        orderMethod: orderMethod,
-        orderPrice: orderPrice,
-        buySeats: buySeats,
-        isPast: isPast,
-        showName: showName,
-        showImageUrl: showImageUrl,
-        stageName: stageName,
-        eventDate: eventDate,
-      );
-}

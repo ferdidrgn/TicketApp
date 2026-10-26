@@ -85,6 +85,8 @@ dependencies:
   flutter_svg: ^2.0.10+1
   shared_preferences: ^2.5.5
   rive: ^0.14.11
+  cloud_functions: ^6.5.1
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +100,7 @@ dev_dependencies:
   riverpod_generator: ^3.0.3
   json_serializable:
   flutter_launcher_icons: ^0.14.3
+  fake_cloud_firestore: ^4.4.0
 
 flutter:
   uses-material-design: true

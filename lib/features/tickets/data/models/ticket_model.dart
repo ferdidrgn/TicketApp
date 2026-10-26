@@ -52,22 +52,4 @@ class TicketModel {
         stageName: data['stageName'] as String?,
         eventDate: data['eventDate'] as String?,
       );
-
-  Map<String, dynamic> toFirestore() => {
-        '_createdAt': createdAt,
-        '_updatedAt': updatedAt,
-        '_id': id,
-        'customerId': customerId,
-        'showId': showId,
-        'stageId': stageId,
-        'eventId': eventId,
-        'orderMethod': orderMethod,
-        'orderPrice': orderPrice,
-        'buySeats': buySeats,
-        'isPast': isPast,
-        'showName': showName ?? '',
-        'showImageUrl': showImageUrl ?? '',
-        'stageName': stageName ?? '',
-        'eventDate': eventDate ?? '',
-      };
 }

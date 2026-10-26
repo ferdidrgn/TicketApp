@@ -33,13 +33,6 @@ class TicketRepositoryImpl extends BaseRepository implements TicketRepository {
       });
 
   @override
-  Future<Either<Failure, bool>> createTicket(final Ticket ticket) =>
-      execute(() async {
-        final ticketModel = ticket.toModel();
-        return await remoteDataSource.createTicket(ticketModel);
-      });
-
-  @override
   Future<Either<Failure, List<Ticket>>> getTicketsByEventId(
           final String eventId) =>
       execute(() async {

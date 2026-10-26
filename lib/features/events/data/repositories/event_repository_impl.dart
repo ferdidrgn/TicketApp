@@ -13,12 +13,6 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   EventRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, void>> initializeAndGetEventSeats(
-      final String eventId) async {
-    return execute(() => remoteDataSource.initializeAndGetEventSeats(eventId));
-  }
-
-  @override
   Future<Either<Failure, bool>> addEvent(final Event event) async =>
       execute(() async {
         final model = event.toModel();
@@ -52,27 +46,6 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
       // Data source'daki senkron bir hata (örn: eventId boş) fırlatılırsa
       return Stream.error(e);
     }
-  }
-
-  @override
-  Future<Either<Failure, bool>> attemptReservation(final String eventId,
-      final String seatId, final String customerId) async {
-    return execute(
-        () => remoteDataSource.attemptReservation(eventId, seatId, customerId));
-  }
-
-  @override
-  Future<Either<Failure, bool>> releaseReservation(final String eventId,
-      final String seatId, final String customerId) async {
-    return execute(
-        () => remoteDataSource.releaseReservation(eventId, seatId, customerId));
-  }
-
-  @override
-  Future<Either<Failure, bool>> confirmPurchase(final String eventId,
-      final List<String> seatIds, final String customerId) async {
-    return execute(
-        () => remoteDataSource.confirmPurchase(eventId, seatIds, customerId));
   }
 
   @override
