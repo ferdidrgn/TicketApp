@@ -26,6 +26,8 @@ beforeEach(async () => {
     await setDoc(doc(d, 'Ticket/t1'), { customerId: 'alice', eventId: 'e1', buySeats: ['A1'], orderPrice: '100.00', showName: 'x', showImageUrl: '', stageName: '', eventDate: '' });
     await setDoc(doc(d, 'Order/o1'), { userId: 'alice', eventId: 'e1', total: 100, status: 'held' });
     await setDoc(doc(d, 'UserLimits/alice'), { freeTickets: 3 });
+    await setDoc(doc(d, 'Config/satis'), { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 });
+    await setDoc(doc(d, 'System/expireHolds'), { lastRunAt: 1, expiredOrders: 0, releasedSeats: 0 });
   });
 });
 
@@ -96,4 +98,33 @@ test('Diğer kurallar korunur: Show herkese açık okuma, yalnızca admin yazma;
   await assertFails(updateDoc(doc(as('alice'), 'User/alice'), { role: 'admin' }));
   await assertSucceeds(updateDoc(doc(as('alice'), 'User/alice'), { city: 'Ankara' }));
   await assertFails(getDoc(doc(as('bob'), 'User/alice')));
+});
+
+test('Config/satis: herkes okur; yalnızca admin yazar ve şema doğrulanır', async () => {
+  await assertSucceeds(getDoc(doc(anon(), 'Config/satis')));
+  await assertSucceeds(getDoc(doc(as('alice'), 'Config/satis')));
+  await assertFails(updateDoc(doc(as('alice'), 'Config/satis'), { mode: 'online' }));
+  await assertFails(setDoc(doc(as('alice'), 'Config/satis'), { mode: 'online', rezervasyonLimit: 3, iptalSaat: 24 }));
+  await assertFails(setDoc(doc(anon(), 'Config/satis'), { mode: 'online', rezervasyonLimit: 3, iptalSaat: 24 }));
+  await assertFails(deleteDoc(doc(as('admin1'), 'Config/satis')));
+  await assertSucceeds(setDoc(doc(as('admin1'), 'Config/satis'), { mode: 'online', rezervasyonLimit: 5, iptalSaat: 12 }));
+  await assertSucceeds(setDoc(doc(as('admin1'), 'Config/satis'), { mode: 'kapali', rezervasyonLimit: 3, iptalSaat: 24 }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/satis'), { mode: 'bedava', rezervasyonLimit: 3, iptalSaat: 24 }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/satis'), { mode: 'online', rezervasyonLimit: '3', iptalSaat: 24 }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/satis'), { mode: 'online', rezervasyonLimit: -1, iptalSaat: 24 }));
+});
+
+test('System: yalnızca admin okur; kimse istemciden yazamaz', async () => {
+  await assertSucceeds(getDoc(doc(as('admin1'), 'System/expireHolds')));
+  await assertFails(getDoc(doc(as('alice'), 'System/expireHolds')));
+  await assertFails(getDoc(doc(anon(), 'System/expireHolds')));
+  await assertFails(setDoc(doc(as('admin1'), 'System/expireHolds'), { lastRunAt: 2 }));
+  await assertFails(setDoc(doc(as('alice'), 'System/expireHolds'), { lastRunAt: 2 }));
+});
+
+test('Ticket: admin durum/kullanım alanlarını istemciden değiştiremez (yalnızca callable)', async () => {
+  await assertFails(updateDoc(doc(as('admin1'), 'Ticket/t1'), { paymentStatus: 'paid' }));
+  await assertFails(updateDoc(doc(as('admin1'), 'Ticket/t1'), { usedAt: 1 }));
+  await assertFails(updateDoc(doc(as('alice'), 'Ticket/t1'), { paymentStatus: 'cancelled' }));
+  await assertSucceeds(getDoc(doc(as('admin1'), 'Ticket/t1')));
 });

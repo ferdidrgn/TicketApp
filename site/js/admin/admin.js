@@ -10,6 +10,7 @@ import {
 import { KOLEKSIYONLAR, SUTUN_ADI } from './schema.js';
 import { temaOku, temaYaz, temaSecenekleri } from '../theme.js';
 import { $, $$, esc, tarihAyristir, debounce } from '../util.js';
+import { biletKapi } from './kapi.js';
 
 const app = $('#app');
 let kullanici = null;
@@ -96,7 +97,7 @@ function iskeletCiz() {
   app.innerHTML = `<div class="adm"><aside class="adm-side"><a class="brand" href="/yonetim"><img src="/img/logo.png" alt=""><span>YÖNETİM</span></a>
     <button class="nv" data-g="ozet">📊 Genel bakış</button>
     ${Object.entries(KOLEKSIYONLAR).map(([k, c]) => `<button class="nv" data-g="${k}">${c.ikon} ${c.ad}</button>`).join('')}
-    <button class="nv" data-g="biletler">🎟️ Biletler</button>
+    <button class="nv" data-g="biletler">🎟️ Biletler &amp; Kapı</button>
     <span class="sp"></span>
     <button class="nv" data-g="gorunum">🎨 Görünüm</button><button class="nv" data-g="yardim">❓ Yardım</button>
     <a class="nv btn" href="/" style="justify-content:flex-start;color:var(--ink-2)">↗ Siteyi aç</a>
@@ -110,7 +111,7 @@ function goster() {
   $$('.nv[data-g]').forEach((b) => b.classList.toggle('on', b.dataset.g === gorunum));
   const m = $('#ana');
   if (gorunum === 'ozet') return ozet(m);
-  if (gorunum === 'biletler') return biletler(m);
+  if (gorunum === 'biletler') return biletKapi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'gorunum') return gorunumAyari(m);
   if (gorunum === 'yardim') return yardim(m);
   return liste(m, gorunum);
@@ -266,18 +267,6 @@ async function sil(c, x) {
     if (c === 'Event' && x.showId) { const s = veri.Show.find((y) => y.id === x.showId); if (s) await updateDoc(doc(db, 'Show', s.docId), { eventsId: arrayRemove(x.id) }); }
     await hepsiniYukle(); goster(); bildir('Silindi');
   } catch (e) { bildir(hataMesaji(e), true); }
-}
-
-// ---------- biletler (salt okunur özet) ----------
-async function biletler(m) {
-  m.innerHTML = '<div class="adm-top"><h1>🎟️ Biletler</h1></div><div class="skel" style="height:200px"></div>';
-  try {
-    const sn = await getDocs(query(collection(db, 'Ticket'), limit(200)));
-    const b = sn.docs.map((d) => ({ ...d.data(), docId: d.id }));
-    m.innerHTML = `<div class="adm-top"><h1>🎟️ Biletler <span class="muted" style="font-size:.5em">${b.length}${b.length === 200 ? '+' : ''}</span></h1></div>
-      <p class="muted" style="margin-bottom:16px">Salt okunur görünüm. Bilet oluşturma ve iptal işlemleri mobil uygulamadan yapılır.</p>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Oyun</th><th>Tarih</th><th>Koltuklar</th><th>Tutar</th></tr></thead><tbody>${b.map((t) => `<tr><td>${esc(t.showName || adBul('Show', t.showId))}</td><td>${esc(t.eventDate || t.date || '')}</td><td>${esc([].concat(t.buySeats || []).join(', '))}</td><td>${esc(t.orderPrice ?? '')}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty">Bilet yok.</div></td></tr>'}</tbody></table></div>`;
-  } catch (e) { m.innerHTML = `<div class="adm-top"><h1>🎟️ Biletler</h1></div><div class="err">${esc(hataMesaji(e))}</div>`; }
 }
 
 // ---------- görünüm ----------

@@ -36,7 +36,7 @@ before(async () => {
 beforeEach(async () => { await clearDb(); });
 
 test('yetkisiz çağrı reddedilir (hepsi UNAUTHENTICATED)', async () => {
-  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree']) {
+  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree', 'confirmReservation', 'cancelTicket', 'adminSetTicketStatus', 'adminCheckIn', 'adminHealth']) {
     const r = await call(n, { eventId: 'e', seatIds: ['A1'], orderId: 'o', provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app' });
     assert.equal(r.status, 401, n);
     assert.equal(r.body.error.status, 'UNAUTHENTICATED', n);
@@ -77,4 +77,33 @@ test('iyzicoCallback: sahte token 302 ile hata sayfasına yönlendirir, bilet ü
   const loc = r.headers.get('location');
   assert.match(loc, /\/odeme-sonuc\?durum=hata$/);
   assert.equal((await db.collection('Ticket').get()).size, 0);
+});
+
+test('uçtan uca (gerçek index.js): varsayılan mod rezervasyon -> startPayment reddedilir, rezervasyon + iptal + admin kapı', async () => {
+  const ev = await seedEvent({ price: '80' });
+  const { token, uid } = await signUp('r1@example.com');
+  const h = await call('holdSeats', { eventId: ev, seatIds: ['A1'] }, token);
+  assert.equal(h.status, 200);
+  const sp = await call('startPayment', { orderId: h.body.result.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol-web.web.app/odeme-sonuc' }, token);
+  assert.equal(sp.body.error.status, 'FAILED_PRECONDITION');
+  assert.match(sp.body.error.message, /Online ödeme şu anda çalışmıyor/);
+  const cr = await call('confirmReservation', { orderId: h.body.result.orderId }, token);
+  assert.equal(cr.status, 200);
+  assert.equal(cr.body.result.status, 'rezervasyon');
+  const t = (await db.collection('Ticket').doc(h.body.result.orderId).get()).data();
+  assert.equal(t.paymentStatus, 'pay_at_venue'); assert.equal(t.customerId, uid);
+
+  // admin olmayan yönetici işlevlerini çağıramaz
+  for (const [n, d] of [['adminHealth', {}], ['adminCheckIn', { ticketId: t._id }], ['adminSetTicketStatus', { ticketId: t._id, paymentStatus: 'paid' }]]) {
+    const r = await call(n, d, token);
+    assert.equal(r.body.error.status, 'PERMISSION_DENIED', n);
+  }
+  await db.collection('User').doc(uid).set({ role: 'admin' });
+  const ci = await call('adminCheckIn', { ticketId: t._id }, token);
+  assert.equal(ci.body.result.ok, true);
+  const ci2 = await call('adminCheckIn', { ticketId: t._id }, token);
+  assert.equal(ci2.body.result.already, true);
+  const hl = await call('adminHealth', {}, token);
+  assert.equal(hl.status, 200);
+  assert.equal(hl.body.result.reservations.total, 1);
 });

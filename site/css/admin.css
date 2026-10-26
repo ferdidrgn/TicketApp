@@ -65,3 +65,25 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
   .adm-side button.nv { white-space: nowrap; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Biletler & Kapı */
+.bk-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+.bk-card.bad { border-color: var(--err); }
+.bk-card h2 { font-size: 20px; margin: 0 0 12px; }
+.bk-alert { background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); border: 1px solid var(--err); border-radius: 12px; padding: 10px 14px; margin: 0 0 12px; font-weight: 600; }
+.bk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.bk-stats b { display: block; font: 800 24px var(--font-display); color: var(--accent); }
+.bk-stats span { color: var(--ink-2); font-size: 13px; }
+.bk-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.bk-seg button { text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.bk-seg button small { display: block; color: var(--ink-2); margin-top: 2px; }
+.bk-seg button.on { border-color: var(--accent); background: var(--accent-soft); }
+.bk-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.bk-res { margin-top: 14px; border-radius: 16px; padding: 22px; border: 2px solid var(--line); font-size: 16px; }
+.bk-res-t { font: 800 clamp(28px, 6vw, 44px) var(--font-display); margin-bottom: 6px; }
+.bk-res.ok { background: color-mix(in srgb, var(--ok) 22%, transparent); border-color: var(--ok); }
+.bk-res.ok .bk-res-t { color: var(--ok); }
+.bk-res.bad { background: color-mix(in srgb, var(--err) 20%, transparent); border-color: var(--err); }
+.bk-res.bad .bk-res-t { color: var(--err); }
+.bk-pay { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 25%, transparent); color: var(--warn); font-weight: 700; }
+.tag.bad { background: color-mix(in srgb, var(--err) 20%, transparent); color: var(--err); }

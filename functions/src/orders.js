@@ -70,8 +70,32 @@ function toIso(v) {
   return String(v);
 }
 
-function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console }) {
+/** Config/satis -> güvenli, normalize edilmiş ayarlar. Eksik/bozuk alan -> varsayılan. */
+function normalizeSatis(d) {
+  d = d || {};
+  const mode = cfg.SATIS_MODES.includes(d.mode) ? d.mode : cfg.SATIS_DEFAULT.mode;
+  const lim = Number.isInteger(d.rezervasyonLimit) && d.rezervasyonLimit >= 0 && d.rezervasyonLimit <= 50 ? d.rezervasyonLimit : cfg.SATIS_DEFAULT.rezervasyonLimit;
+  const iptal = typeof d.iptalSaat === 'number' && Number.isFinite(d.iptalSaat) && d.iptalSaat >= 0 && d.iptalSaat <= 24 * 90 ? d.iptalSaat : cfg.SATIS_DEFAULT.iptalSaat;
+  return { mode, rezervasyonLimit: lim, iptalSaat: iptal };
+}
+
+/** Bilet fiilen "aktif rezervasyon" sayılır mı? (iptal ve gelmedi sayaçtan düşer) */
+const INACTIVE_RES = new Set(['cancelled', 'no_show']);
+const ticketStatusOf = (t) => t.paymentStatus || (t.orderMethod === 'venue' ? 'pay_at_venue' : t.orderMethod === 'free' ? 'free' : 'paid');
+
+function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console, settings = null }) {
   const orders = () => db.collection('Order');
+  const satisRef = () => db.collection('Config').doc('satis');
+  /** Sunucu her çağrıda Config/satis'i okur. `settings` yalnızca testlerde sabitlemek içindir. */
+  async function readSatis(tx) {
+    if (settings) return normalizeSatis(await settings());
+    const snap = tx ? await tx.get(satisRef()) : await satisRef().get();
+    return normalizeSatis(snap.exists ? snap.data() : null);
+  }
+  async function assertAdmin(uid) {
+    const u = await db.collection('User').doc(uid).get();
+    if (!u.exists || u.data().role !== 'admin') throw err('permission-denied', 'Bu işlem için yönetici yetkisi gerekir.');
+  }
 
   // ------------------------------------------------------------------ yardımcılar
   async function checkRate(uid) {
@@ -110,6 +134,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   async function holdSeats(uid, data) {
     const eventId = validateId(data && data.eventId, 'etkinlik');
     const seatIds = validateSeatIds(data && data.seatIds);
+    if ((await readSatis()).mode === 'kapali') throw err('failed-precondition', 'Bilet satışı şu anda kapalı.');
     await checkRate(uid);
 
     const eventRef = db.collection('Event').doc(eventId);
@@ -181,7 +206,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       // Kullanıcının bu etkinlikteki koltukları: biletler (satılmış) + ödemesi süren (paying) siparişler.
       // Kimlik koltukta tutulmadığından kaynak Ticket/Order'dır (ikisi de yalnızca sahibince okunur).
       let mine = 0;
-      for (const d of myTicketsSnap.docs) mine += (d.data().buySeats || []).length;
+      for (const d of myTicketsSnap.docs) if (d.data().paymentStatus !== 'cancelled') mine += (d.data().buySeats || []).length;
       for (const d of myOrdersSnap.docs) if (d.data().status === 'paying') mine += (d.data().seatIds || []).length;
       for (const s of Object.values(seats)) { // eski biçim: sahipli, siparişsiz 'reserved' kayıtları
         if (s && s.customerId === uid && s.status === 'reserved' && !s.orderId && seatHoldExpiry(s) > t) mine += 1;
@@ -244,7 +269,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       }
       if (args.length) tx.update(evRef, ...args);
       tx.update(orderRef, { status: newStatus, updatedAt: FieldValue.serverTimestamp(), ...extra });
-      return { previous: o.status };
+      return { previous: o.status, released: args.length / 12 };
     });
   }
 
@@ -267,7 +292,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   async function expireHolds() {
     const t = Timestamp.fromMillis(now());
-    let expired = 0, settledPaid = 0;
+    let expired = 0, settledPaid = 0, releasedSeats = 0;
     for (const status of ['held', 'paying']) {
       const snap = await orders().where('status', '==', status).where('expiresAt', '<=', t).limit(cfg.EXPIRE_BATCH).get();
       for (const d of snap.docs) {
@@ -286,18 +311,25 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
               }
             }
           }
-          if (await expireOne(d.id)) expired += 1;
+          const r = await expireOne(d.id);
+          if (r) { expired += 1; releasedSeats += r.released || 0; }
         } catch (e) {
           log.error('expireHolds hata', { orderId: d.id, code: e && e.code, message: e && e.message });
         }
       }
     }
+    // Kalp atışı: sistem sağlığı panosu bu belgeye bakar. Yazım hatası süre dolumunu bozmaz.
+    try {
+      await db.collection('System').doc('expireHolds').set({
+        lastRunAt: Timestamp.fromMillis(now()), expiredOrders: expired, settledPaid, releasedSeats,
+      });
+    } catch (e) { log.error('heartbeat yazılamadı', { message: e && e.message }); }
     return { expired, settledPaid };
   }
 
   // ------------------------------------------------------------------ bilet üretimi (ortak)
   /** Transaction içinde çağrılır; TÜM okumalar (order/event/show/stage/limits) önceden yapılmış olmalı. */
-  function writeFulfillment(tx, { orderRef, orderId, order, evRef, ev, show, stage, limitsRef, method, status, extraOrder }) {
+  function writeFulfillment(tx, { orderRef, orderId, order, evRef, ev, show, stage, limitsRef, method, status, extraOrder, notifTitle, notifNote }) {
     const args = [];
     for (const sid of order.seatIds) args.push(...soldArgs(sid, orderId));
     tx.update(evRef, ...args);
@@ -312,15 +344,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
       stageName: (stage && stage.name) || '', eventDate, orderId,
+      paymentStatus: method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : 'paid',
     });
     tx.set(db.collection('Notification').doc(`order_${orderId}`), {
       _id: `order_${orderId}`, userId: order.userId,
-      title: 'Biletin Onaylandı!',
-      body: `${(show && show.name) || 'Gösteri'}${eventDate ? ' — ' + eventDate : ''} — Koltuklar: ${order.seatIds.join(', ')} için biletin onaylandı.`,
+      title: notifTitle || 'Biletin Onaylandı!',
+      body: `${(show && show.name) || 'Gösteri'}${eventDate ? ' — ' + eventDate : ''} — Koltuklar: ${order.seatIds.join(', ')} ${notifNote || 'için biletin onaylandı.'}`,
       type: 'bookingConfirmation', showId: order.showId || '', showName: (show && show.name) || '',
       eventDate, seats: order.seatIds, isRead: false, _createdAt: iso,
     });
     if (order.free) tx.set(limitsRef, { freeTickets: FieldValue.increment(order.seatIds.length) }, { merge: true });
+    if (method === 'venue') tx.set(limitsRef, { reservations: FieldValue.increment(order.seatIds.length) }, { merge: true });
     tx.update(orderRef, { status, ticketIds: [orderId], paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), ...extraOrder });
   }
 
@@ -370,6 +404,193 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     });
   }
 
+  // ------------------------------------------------------------------ rezervasyon (ödeme sahnede)
+  async function confirmReservation(uid, data) {
+    const orderId = validateId(data && data.orderId, 'sipariş');
+    const orderRef = orders().doc(orderId);
+    return db.runTransaction(async (tx) => {
+      const satis = await readSatis(tx);
+      const c = await readFulfillCtx(tx, orderRef, orderId);
+      if (!c) throw err('not-found', 'Sipariş bulunamadı.');
+      if (c.order.userId !== uid) throw err('permission-denied', 'Bu siparişe erişim izniniz yok.');
+      if (c.order.free) throw err('invalid-argument', 'Ücretsiz sipariş için rezervasyon gerekmez; doğrudan onaylayın.');
+      if (c.order.status === 'reserved') return { ticketIds: c.order.ticketIds || [orderId], status: 'rezervasyon' }; // idempotent
+      if (satis.mode !== 'rezervasyon') throw err('failed-precondition', 'Rezervasyon şu anda kapalı.');
+      if (c.order.status !== 'held') throw err('failed-precondition', 'Bu siparişin süresi doldu ya da iptal edildi.');
+      if (!c.order.expiresAt || c.order.expiresAt.toMillis() <= now()) throw err('failed-precondition', 'Koltuk tutma süreniz doldu. Lütfen yeniden seçin.');
+      if (!seatsOwned(c)) throw err('failed-precondition', 'Koltuklar artık size ait değil. Lütfen yeniden seçin.');
+      const dateMs = parseEventDateMs(c.ev.date);
+      if (dateMs == null || dateMs <= now()) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
+      if ((c.limits.reservations || 0) + c.order.seatIds.length > satis.rezervasyonLimit) {
+        throw err('resource-exhausted', `Toplam en fazla ${satis.rezervasyonLimit} rezervasyon yapabilirsiniz.`);
+      }
+      writeFulfillment(tx, {
+        ...c, method: 'venue', status: 'reserved',
+        notifTitle: 'Rezervasyonun Onaylandı!', notifNote: 'için rezervasyonun onaylandı. Ödemeyi etkinlik gününde sahnede yapacaksın.',
+      });
+      return { ticketIds: [orderId], status: 'rezervasyon' };
+    });
+  }
+
+  /** Bileti iptal edip koltukları bırakır, sayacı düşürür. Transaction içinde, okumalar bitmiş olmalı. */
+  function applyCancel(tx, { ticketRef, ticketId, t, evRef, ev, limitsRef, limits, counterField, orderSnap, dec }) {
+    const seats = (ev && ev.seats) || {};
+    const args = [];
+    for (const sid of t.buySeats || []) {
+      const s = seats[sid];
+      if (s && s.status === 'sold' && s.orderId === ticketId) args.push(...releaseArgs(sid));
+    }
+    if (args.length) tx.update(evRef, ...args);
+    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt: Timestamp.fromMillis(now()), _updatedAt: new Date(now()).toISOString() });
+    if (counterField && dec > 0) {
+      tx.set(limitsRef, { [counterField]: Math.max(0, (limits[counterField] || 0) - dec) }, { merge: true });
+    }
+    if (orderSnap && orderSnap.exists) tx.update(orderSnap.ref, { status: 'ticket_cancelled', updatedAt: FieldValue.serverTimestamp() });
+  }
+
+  async function cancelTicket(uid, data) {
+    const ticketId = validateId(data && data.ticketId, 'bilet');
+    const ticketRef = db.collection('Ticket').doc(ticketId);
+    return db.runTransaction(async (tx) => {
+      const satis = await readSatis(tx);
+      const tSnap = await tx.get(ticketRef);
+      if (!tSnap.exists) throw err('not-found', 'Bilet bulunamadı.');
+      const t = tSnap.data();
+      if (t.customerId !== uid) throw err('permission-denied', 'Bu bilete erişim izniniz yok.');
+      if (t.paymentStatus === 'cancelled') return { ok: true }; // idempotent
+      const evRef = db.collection('Event').doc(t.eventId);
+      const limitsRef = db.collection('UserLimits').doc(uid);
+      const [evSnap, limSnap, orderSnap] = await Promise.all([tx.get(evRef), tx.get(limitsRef), tx.get(orders().doc(ticketId))]);
+      const cur = ticketStatusOf(t);
+      if (t.orderMethod === 'card' || cur === 'paid') {
+        throw err('failed-precondition', 'Online ödenmiş biletler uygulamadan iptal edilemez. İade için bizimle iletişime geçin.');
+      }
+      if (!['pay_at_venue', 'free'].includes(cur)) throw err('failed-precondition', 'Bu bilet iptal edilemez.');
+      if (t.usedAt) throw err('failed-precondition', 'Kullanılmış bilet iptal edilemez.');
+      const ev = evSnap.exists ? evSnap.data() : null;
+      const dateMs = parseEventDateMs(ev ? ev.date : t.eventDate);
+      if (dateMs == null) throw err('failed-precondition', 'Bu biletin seans tarihi okunamadı; iptal için iletişime geçin.');
+      if (dateMs - now() < satis.iptalSaat * 3600e3) {
+        throw err('failed-precondition', `Seansa ${satis.iptalSaat} saatten az kaldığı için bilet iptal edilemez.`);
+      }
+      applyCancel(tx, {
+        ticketRef, ticketId, t, evRef, ev, limitsRef, limits: limSnap.data() || {}, orderSnap,
+        counterField: t.orderMethod === 'free' ? 'freeTickets' : 'reservations', dec: (t.buySeats || []).length,
+      });
+      return { ok: true };
+    });
+  }
+
+  // ------------------------------------------------------------------ yönetici işlemleri
+  async function adminSetTicketStatus(uid, data) {
+    await assertAdmin(uid);
+    const ticketId = validateId(data && data.ticketId, 'bilet');
+    const target = data && data.paymentStatus;
+    if (!['paid', 'pay_at_venue', 'no_show', 'cancelled'].includes(target)) throw err('invalid-argument', 'Geçersiz bilet durumu.');
+    const ticketRef = db.collection('Ticket').doc(ticketId);
+    return db.runTransaction(async (tx) => {
+      const tSnap = await tx.get(ticketRef);
+      if (!tSnap.exists) throw err('not-found', 'Bilet bulunamadı.');
+      const t = tSnap.data();
+      const cur = ticketStatusOf(t);
+      if (cur === target) return { ok: true, paymentStatus: cur };
+      if (cur === 'cancelled') throw err('failed-precondition', 'İptal edilmiş bilet yeniden açılamaz.');
+      const method = t.orderMethod;
+      const allowed = method === 'venue' ? ['paid', 'pay_at_venue', 'no_show', 'cancelled']
+        : method === 'free' ? ['no_show', 'cancelled'] : ['no_show'];
+      if (!allowed.includes(target)) {
+        throw err('failed-precondition', method === 'card'
+          ? 'Online ödenmiş biletlerde yalnızca "gelmedi" işaretlenebilir; iade ödeme panelinden yapılır.'
+          : 'Bu bilet türü için bu durum geçersiz.');
+      }
+      const evRef = db.collection('Event').doc(t.eventId);
+      const limitsRef = db.collection('UserLimits').doc(t.customerId);
+      const [evSnap, limSnap] = await Promise.all([tx.get(evRef), tx.get(limitsRef)]);
+      const n = (t.buySeats || []).length;
+      const limits = limSnap.data() || {};
+      if (target === 'cancelled') {
+        applyCancel(tx, {
+          ticketRef, ticketId, t, evRef, ev: evSnap.exists ? evSnap.data() : null, limitsRef, limits, orderSnap: null,
+          counterField: method === 'free' ? 'freeTickets' : method === 'venue' ? 'reservations' : null, dec: n,
+        });
+        return { ok: true, paymentStatus: 'cancelled' };
+      }
+      if (method === 'venue') { // aktif rezervasyon sayacı: gelmedi düşer, geri alınırsa yeniden eklenir
+        const was = !INACTIVE_RES.has(cur), will = !INACTIVE_RES.has(target);
+        if (was !== will) {
+          tx.set(limitsRef, { reservations: Math.max(0, (limits.reservations || 0) + (will ? n : -n)) }, { merge: true });
+        }
+      }
+      tx.update(ticketRef, { paymentStatus: target, _updatedAt: new Date(now()).toISOString() });
+      return { ok: true, paymentStatus: target };
+    });
+  }
+
+  async function adminCheckIn(uid, data) {
+    await assertAdmin(uid);
+    const ticketId = validateId(data && data.ticketId, 'bilet');
+    const ticketRef = db.collection('Ticket').doc(ticketId);
+    const r = await db.runTransaction(async (tx) => {
+      const tSnap = await tx.get(ticketRef);
+      if (!tSnap.exists) throw err('not-found', 'Bilet bulunamadı.');
+      const t = tSnap.data();
+      const cur = ticketStatusOf(t);
+      if (cur === 'cancelled' || cur === 'no_show') return { t, cur, ok: false, already: false };
+      if (t.usedAt) return { t, cur, ok: false, already: true };
+      const usedAt = Timestamp.fromMillis(now());
+      tx.update(ticketRef, { usedAt, _updatedAt: new Date(now()).toISOString() });
+      return { t: { ...t, usedAt }, cur, ok: true, already: false };
+    });
+    let customerName;
+    try {
+      const u = await db.collection('User').doc(r.t.customerId).get();
+      if (u.exists) customerName = `${u.data().firstName || ''} ${u.data().lastName || ''}`.trim() || undefined;
+    } catch { /* ad zorunlu değil */ }
+    return {
+      ok: r.ok, ...(r.already ? { already: true } : {}),
+      ticket: {
+        showName: r.t.showName || '', eventDate: r.t.eventDate || '', stageName: r.t.stageName || '',
+        buySeats: r.t.buySeats || [], paymentStatus: r.cur, usedAt: r.t.usedAt ? toIso(r.t.usedAt) : null,
+        ...(customerName ? { customerName } : {}),
+      },
+    };
+  }
+
+  async function adminHealth(uid) {
+    await assertAdmin(uid);
+    const t = now();
+    const grace = Timestamp.fromMillis(t - cfg.STUCK_GRACE_MS);
+    const hb = await db.collection('System').doc('expireHolds').get();
+    const hbd = hb.exists ? hb.data() : null;
+    const lastRunAt = hbd && hbd.lastRunAt && typeof hbd.lastRunAt.toMillis === 'function' ? hbd.lastRunAt.toMillis() : null;
+    const stuck = async (status) => (await orders().where('status', '==', status).where('expiresAt', '<=', grace).count().get()).data().count;
+    const dayStart = new Date(Math.floor((t + cfg.TZ_OFFSET_MIN * 60000) / 864e5) * 864e5 - cfg.TZ_OFFSET_MIN * 60000).toISOString();
+    const cnt = async (method, today) => {
+      let q = db.collection('Ticket').where('orderMethod', '==', method);
+      if (today) q = q.where('_createdAt', '>=', dayStart);
+      return (await q.count().get()).data().count;
+    };
+    const [held, paying, resToday, resTotal, freeToday, freeTotal, refundSnap, satis] = await Promise.all([
+      stuck('held'), stuck('paying'), cnt('venue', true), cnt('venue', false), cnt('free', true), cnt('free', false),
+      orders().where('refundRequired', '==', true).limit(50).get(), readSatis(),
+    ]);
+    return {
+      now: t, mode: satis.mode,
+      heartbeat: {
+        lastRunAt, ageMinutes: lastRunAt == null ? null : Math.max(0, Math.round((t - lastRunAt) / 60000)),
+        expiredOrders: hbd ? hbd.expiredOrders || 0 : 0, releasedSeats: hbd ? hbd.releasedSeats || 0 : 0,
+        stale: lastRunAt == null || t - lastRunAt > cfg.HEARTBEAT_STALE_MS,
+      },
+      stuck: { held, paying },
+      reservations: { today: resToday, total: resTotal },
+      freeTickets: { today: freeToday, total: freeTotal },
+      refundRequired: {
+        count: refundSnap.size,
+        orders: refundSnap.docs.map((d) => ({ orderId: d.id, total: d.data().total ?? null, paymentId: d.data().paymentId || null })),
+      },
+    };
+  }
+
   // ------------------------------------------------------------------ ödeme başlatma
   function checkReturnUrl(u) {
     if (typeof u !== 'string' || u.length > 500) throw err('invalid-argument', 'Geçersiz dönüş adresi.');
@@ -382,6 +603,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   async function startPayment(uid, data, ctx = {}) {
     const orderId = validateId(data && data.orderId, 'sipariş');
+    if ((await readSatis()).mode !== 'online') {
+      throw err('failed-precondition', 'Online ödeme şu anda çalışmıyor. Biletinizi rezervasyon olarak onaylayabilirsiniz.');
+    }
     const providerName = data && data.provider;
     if (typeof providerName !== 'string') throw err('invalid-argument', 'Ödeme sağlayıcısı geçersiz.');
     const returnUrl = checkReturnUrl(data.returnUrl);
@@ -531,7 +755,11 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     return { ok: r === 'paid' || r === 'already', orderId };
   }
 
-  return { holdSeats, releaseHold, startPayment, confirmFree, handleProviderCallback, expireHolds, settle, verify };
+  return {
+    holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket,
+    adminSetTicketStatus, adminCheckIn, adminHealth,
+    handleProviderCallback, expireHolds, settle, verify,
+  };
 }
 
-module.exports = { createService };
+module.exports = { createService, normalizeSatis };

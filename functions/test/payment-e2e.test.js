@@ -4,7 +4,7 @@
 // functions/.secret.local'dan okur. Gerçek iyzico sandbox'ı DEĞİLDİR.
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, clearDb, seedEvent, PROJECT } = require('./helpers');
+const { db, clearDb, seedEvent, setSatis, PROJECT } = require('./helpers');
 const { startMock } = require('./mock-iyzico/server');
 
 const FN = process.env.FUNCTIONS_EMULATOR_HOST || '127.0.0.1:5001';
@@ -52,7 +52,7 @@ before(async () => {
   throw new Error('functions emülatörü yanıt vermiyor');
 });
 after(async () => { await mock.close(); });
-beforeEach(async () => { await clearDb(); mock.sessions.clear(); mock.log.length = 0; });
+beforeEach(async () => { await clearDb(); await setSatis({ mode: 'online', rezervasyonLimit: 3, iptalSaat: 24 }); mock.sessions.clear(); mock.log.length = 0; });
 
 test('E2E mutlu yol: kayıt → holdSeats → startPayment → mock token → callback → Ticket + Notification, koltuklar sold', async () => {
   const { ev, u, orderId, hold, pay } = await start();

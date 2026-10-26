@@ -52,12 +52,14 @@ function fakeProvider() {
 
 const silent = { error() {}, info() {}, warn() {} };
 
-function makeService({ now, provider } = {}) {
+/** `satis`: sabit Config/satis (varsayılan: online -> mevcut ödeme testleri değişmez). `satis:'db'` -> gerçek belgeyi okur. */
+function makeService({ now, provider, satis = { mode: 'online' } } = {}) {
   const prov = provider || fakeProvider();
   const svc = createService({
     db, now: now || Date.now, getProvider: (n) => (n === 'iyzico' ? prov : null),
     callbackUrl: 'https://cb.test/iyzicoCallback', siteUrl: 'https://tiyatrol-web.web.app',
     allowedOrigins: ['https://tiyatrol.web.app'], log: silent,
+    ...(satis === 'db' ? {} : { settings: async () => satis }),
   });
   return { svc, prov };
 }
@@ -90,4 +92,7 @@ async function expectCode(promise, code) {
   throw new Error(`beklenen ${code} hatası oluşmadı`);
 }
 
-module.exports = { db, Timestamp, clearDb, clock, fakeProvider, makeService, seedEvent, eventDate, uidN, expectCode, PROJECT };
+async function setSatis(d) { await db.collection('Config').doc('satis').set(d); }
+async function makeAdmin(uid = 'admin1') { await db.collection('User').doc(uid).set({ role: 'admin', firstName: 'Yön', lastName: 'Etici' }); return uid; }
+
+module.exports = { setSatis, makeAdmin, db, Timestamp, clearDb, clock, fakeProvider, makeService, seedEvent, eventDate, uidN, expectCode, PROJECT };

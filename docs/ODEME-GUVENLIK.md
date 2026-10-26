@@ -205,3 +205,48 @@ Sahte sunucu: `functions/test/mock-iyzico/server.js` (imzayı YENİDEN hesaplar,
 
 ## 13. Mobil geçiş notu (gizlilik değişikliğinden etkilenen yerler)
 Koltukta `customerId` OKUNMAZ (yok). "Benim koltuğum" kullanıcının `Order` belgelerinden (`status in held/paying`, `where userId==uid`) ya da `Ticket`'tan (satılmış, `buySeats`) çıkarılır. `seats_provider.dart` (`cId == customerId` sayımı), `seat_plan.dart` (`ownerId`), `seat_info.dart`, admin bilet sekmesi ve `event_remote_data_source` blok/tohumlama kodu bu yüzden değişmeli; `blocked` durumu desteklenmeli (bölüm 9). `Notification` create kuralı mobil taşıma bitince kapatılabilir. Not: `site/tools/mock-functions/` eski (sunucusuz) geliştirme sahtesidir; artık gerçek functions emülatörü kullanın (`firebase emulators:start --only firestore,auth,functions` + `node site/tools/seed-emu.mjs`, tarayıcıda `localStorage['tiyatrol.emu']='1'` AYARLANIP SAYFA YENİLENDİKTEN SONRA giriş yapılmalı — yoksa gerçek Auth'a istek gider).
+
+## 14. Satış modları, rezervasyon, iptal, kapı kontrolü, sistem sağlığı (26.10.2026)
+
+iyzico canlı olana kadar varsayılan mod **rezervasyon**: bilet onaylanır, ödeme etkinlik günü sahnede alınır.
+
+### Modlar — `Config/satis` (herkes okur, yalnız admin yazar; kurallar şemayı doğrular)
+`{ mode: 'kapali' | 'rezervasyon' | 'online', rezervasyonLimit: 3, iptalSaat: 24 }`. Belge yoksa/bozuksa varsayılan `rezervasyon / 3 / 24`.
+Sunucu **her çağrıda** okur (önbellek yok); mod değişimi anında geçerlidir.
+
+| Mod | `holdSeats` | `confirmFree` | `confirmReservation` | `startPayment` |
+|---|---|---|---|---|
+| kapali | reddedilir ("Bilet satışı şu anda kapalı.") | açık (mevcut hold'lar için) | reddedilir | reddedilir |
+| rezervasyon | açık | açık | açık | reddedilir ("Online ödeme şu anda çalışmıyor…") |
+| online | açık | açık | reddedilir | açık (iyzico kodu aynen) |
+
+### Rezervasyon (`confirmReservation`)
+Yalnızca ücretli, `held`, süresi dolmamış, sahibi çağıran sipariş. Tek transaction: koltuklar `sold`, tek Ticket (id = orderId,
+`orderMethod: 'venue'`, `paymentStatus: 'pay_at_venue'`, tutar sunucudan), bildirim, `UserLimits.reservations` artar.
+Limit **koltuk** bazlıdır (ücretsiz bilet sayacı gibi): tüm etkinliklerde toplam aktif rezervasyon koltuğu ≤ `rezervasyonLimit`.
+`cancelled` ve `no_show` sayaçtan düşer; `paid` (sahnede ödendi) hâlâ aktif sayılır. Aynı sipariş tekrar onaylanırsa idempotent.
+Sayaç transaction içinde okunup yazıldığından eşzamanlı çağrılar limiti aşamaz (test: 5 eşzamanlı onay, tam 3 başarılı).
+
+### İptal (`cancelTicket`)
+Sahibi kendi `venue` veya `free` biletini, seansa en az `iptalSaat` saat varsa iptal eder: koltuklar `available` (yalnızca hâlâ bu bilete
+ait olanlar), `paymentStatus: 'cancelled'`, `cancelledAt`, ilgili sayaç (`reservations` / `freeTickets`) azalır; ücretsiz limit
+sayacının düşmemesi açığı kapandı. İptal edilen bilet "etkinlikte en fazla 3 koltuk" sayımına girmez. Kartla ödenmiş bilet
+kullanıcı tarafından **iptal edilemez** (`failed-precondition`, iade için iletişim); kapıdan geçmiş bilet de edilemez. Tekrar iptal idempotent.
+
+### Yönetici işlemleri (yalnız `User/{uid}.role == 'admin'`, sunucuda denetlenir)
+- `adminSetTicketStatus({ticketId, paymentStatus})`: `venue` biletinde `paid / pay_at_venue / no_show / cancelled`; `free`'de `no_show / cancelled`;
+  `card`'da yalnız `no_show` (iade ödeme panelinden). İptal edilen yeniden açılmaz. Sayaçlar tutarlı güncellenir.
+- `adminCheckIn({ticketId})`: QR'daki değer bilet kimliğidir. İlk okuma `{ok:true}` ve `usedAt` yazar; ikinci okuma `{ok:false, already:true}`;
+  iptal/gelmedi `{ok:false}` (+ `ticket.paymentStatus`); bilinmeyen kod `not-found`. Eşzamanlı okumalarda yalnız biri geçerli sayılır.
+  `pay_at_venue` bilet geçerlidir ama panel "ÖDEME ALINACAK" uyarısı gösterir.
+- Ticket yazımı yine yalnız sunucudadır; admin istemcisi `paymentStatus/usedAt` alanlarını **yazamaz** (kural testi var).
+
+### Sistem sağlığı (`adminHealth`, panelde "Biletler & Kapı")
+`expireHolds` her çalışmada `System/expireHolds` {lastRunAt, expiredOrders, settledPaid, releasedSeats} yazar (`System` yalnız admin okur).
+`adminHealth`: kalp atışı (15 dk'dan eskiyse `stale`, panel kırmızı), 10 dk'dan uzun süredir `held`/`paying` kalan siparişler,
+bugünkü/toplam rezervasyon ve ücretsiz bilet sayıları (İstanbul günü), `refundRequired` siparişler. Bugünkü sayı sorgusu için
+`Ticket(orderMethod, _createdAt)` bileşik dizini `firestore.indexes.json`'a eklendi; **deploy'da indexes de yayınlanmalı**.
+
+### Testler
+`npm --prefix functions run test:emulator`: 97 test (71 önceki + 26 yeni: `reservation.test.js`, `rules.test.js`, `callable.test.js`).
+Mevcut ödeme testleri `Config/satis = online` ile çalışır (`helpers.makeService({satis})`, `setSatis`).

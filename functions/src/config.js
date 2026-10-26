@@ -11,6 +11,12 @@ module.exports = {
   MAX_SEAT_ID_LENGTH: 16,
   ADMIN_BLOCK_CUSTOMER_ID: '__ADMIN_BLOCKED__',
   EXPIRE_BATCH: 200,
+  // Satış modu (Config/satis). 'kapali' | 'rezervasyon' (ödeme sahnede) | 'online' (iyzico). Belge yoksa varsayılan.
+  SATIS_MODES: ['kapali', 'rezervasyon', 'online'],
+  SATIS_DEFAULT: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 },
+  HEARTBEAT_STALE_MS: 15 * 60 * 1000, // expireHolds bu süredir çalışmadıysa panel kırmızı uyarır
+  STUCK_GRACE_MS: 10 * 60 * 1000, // süresi bu kadar önce dolmuş ama hâlâ held/paying -> "takılı"
+
   // Etkinlik tarihi "gg.aa.yyyy,ss:dd" yerel (Türkiye, UTC+3, DST yok) saat olarak yazılır.
   TZ_OFFSET_MIN: 180,
   ALLOWED_ORIGINS: [

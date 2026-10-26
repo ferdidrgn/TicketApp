@@ -273,6 +273,28 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // Config — herkese açık okunan ayarlar. Config/satis = satış modu:
+    //   { mode: 'kapali'|'rezervasyon'|'online', rezervasyonLimit: int, iptalSaat: sayı }
+    // Yazma yalnızca admin (ve satis belgesi için şema doğrulamalı). Sunucu her çağrıda okur.
+    // -------------------------------------------------------------------
+    match /Config/{docId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && (docId != 'satis' || (
+        request.resource.data.mode in ['kapali', 'rezervasyon', 'online'] &&
+        request.resource.data.rezervasyonLimit is int &&
+        request.resource.data.rezervasyonLimit >= 0 && request.resource.data.rezervasyonLimit <= 50 &&
+        request.resource.data.iptalSaat is number &&
+        request.resource.data.iptalSaat >= 0 && request.resource.data.iptalSaat <= 2160));
+      allow delete: if false;
+    }
+
+    // System — sistem sağlığı kalp atışı (expireHolds yazar, Admin SDK). Yalnızca admin okur.
+    match /System/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
     // Varsayılan: yukarıda AÇIKÇA tanımlanmamış her yol için tümüyle kapalı
     // (deny-by-default). Firestore rules zaten eşleşmeyen yollarda örtük
     // olarak reddeder; bu blok niyeti açıkça belgelemek için var.

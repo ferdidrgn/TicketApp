@@ -67,6 +67,12 @@ function guarded(fn) {
 exports.holdSeats = onCall(base, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data)));
 exports.releaseHold = onCall(base, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
 exports.confirmFree = onCall(base, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data)));
+exports.confirmReservation = onCall(base, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data)));
+exports.cancelTicket = onCall(base, guarded((req) => getService(false).cancelTicket(req.auth.uid, req.data)));
+// Yönetici callable'ları: yetki sunucuda User/{uid}.role == 'admin' ile denetlenir.
+exports.adminSetTicketStatus = onCall(base, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
+exports.adminCheckIn = onCall(base, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
+exports.adminHealth = onCall(base, guarded((req) => getService(false).adminHealth(req.auth.uid)));
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,
