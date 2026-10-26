@@ -58,7 +58,9 @@ function ciz(d) {
       : st.siralama === 'fiyat' ? (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9)
       : (a.next?.when ?? 8.64e15) - (b.next?.when ?? 8.64e15));
     say.innerHTML = `<b>${l.length}</b> oyun${il ? ` · ${esc(il)}` : ''}`;
-    out.innerHTML = l.length ? `<div class="grid">${l.map((s) => oyunKarti(s)).join('')}</div>` : '<div class="empty"><h3>Sonuç yok</h3><p>Süzgeçleri gevşetmeyi dene.</p></div>';
+    const oneri = !l.length && q.length >= 3 ? enYakinAd(q, d) : '';
+    out.innerHTML = l.length ? `<div class="grid">${l.map((s) => oyunKarti(s)).join('')}</div>` : `<div class="empty"><h3>Sonuç yok</h3>${oneri ? `<p>Bunu mu demek istedin: <button class="chip on" id="oneri-b">${esc(oneri)}</button></p>` : '<p>Süzgeçleri gevşetmeyi dene.</p>'}</div>`;
+    $('#oneri-b')?.addEventListener('click', () => { st.q = oneri; $('#f-q').value = oneri; gor(); yaz(); });
   };
   const yaz = () => history.replaceState(null, '', `/kesfet?${new URLSearchParams(Object.entries({ q: st.q, tur: st.tur, zaman: st.zaman }).filter(([, v]) => v))}`);
   $('#f-q').addEventListener('input', (e) => { st.q = e.target.value; gor(); yaz(); });
@@ -74,4 +76,22 @@ function ciz(d) {
   $('#f-f').addEventListener('input', (e) => { const v = +e.target.value; st.fiyat = v >= 1500 ? 0 : v; $('#f-fv').textContent = v >= 1500 ? 'Sınırsız' : `${v} ₺`; gor(); });
   $('#f-s').addEventListener('change', (e) => { st.siralama = e.target.value; gor(); });
   gor();
+}
+
+// "Bunu mu demek istedin": Türkçe karakterleri sadeleştirip Levenshtein uzaklığıyla en yakın adı bulur.
+const sade = (t) => String(t || '').toLocaleLowerCase('tr').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/[^a-z0-9 ]/g, '');
+function mesafe(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let onc = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const yeni = [i]; for (let j = 1; j <= n; j++) yeni[j] = Math.min(onc[j] + 1, yeni[j - 1] + 1, onc[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); onc = yeni; }
+  return onc[n];
+}
+function enYakinAd(q, d) {
+  const hedef = sade(q); let en = '', min = 1e9;
+  const adaylar = [...d.shows.map((s) => s.name), ...d.players.map((p) => p.fullName), ...d.stages.map((g) => g.name), ...d.teams.map((t) => t.name)].filter(Boolean);
+  for (const ad of adaylar) {
+    const s = sade(ad); const parcalar = [s, ...s.split(' ').filter((x) => x.length > 2)];
+    for (const p of parcalar) { const u = mesafe(hedef, p.slice(0, Math.max(hedef.length, 3) + 1)); if (u < min) { min = u; en = ad; } }
+  }
+  return min <= Math.max(2, Math.floor(hedef.length / 3)) ? en : '';
 }

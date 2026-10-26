@@ -9,6 +9,7 @@ import { cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ilBul } from '../js/iller.js';
+import { MAKALELER } from '../js/rehber-data.js';
 
 const KOK = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CIKTI = join(KOK, '..', 'site-dist');
@@ -180,6 +181,19 @@ for (const [il, mp] of ilShows) {
     .replace('<link rel="stylesheet" href="/css/theme.css">', `<script>try{localStorage.setItem('tiyatrol.il.v1',${JSON.stringify(il)})}catch(e){}</script>\n<link rel="stylesheet" href="/css/theme.css">`);
   await yazDosya(`${u}/index.html`, html);
   adresler.push({ u, p: 0.7 });
+}
+
+// ---------- Rehber yazıları: /rehber ve /rehber/<slug> ----------
+{
+  const rehberT = await readFile(join(KOK, 'rehber.html'), 'utf8');
+  const kart = (x) => `<li>${link(`/rehber/${x.slug}`, x.baslik)} — ${esc(x.ozet)}</li>`;
+  await yazDosya('rehber/index.html', sayfa(rehberT, { baslik: 'Tiyatro rehberi — TiyatRol', aciklama: 'Tiyatroya ilk kez gidenler, aileler ve tiyatro severler için özgün rehber yazıları.', adres: '/rehber', govde: `<article><h1>Tiyatro rehberi</h1><ul>${MAKALELER.map(kart).join('')}</ul></article>`, jsonld: null }));
+  adresler.push({ u: '/rehber', p: 0.6 });
+  for (const m of MAKALELER) {
+    const u = `/rehber/${m.slug}`;
+    await yazDosya(`${u}/index.html`, sayfa(rehberT, { baslik: `${m.baslik} — TiyatRol`, aciklama: m.ozet, adres: u, govde: `<article><h1>${esc(m.baslik)}</h1><p>${esc(m.ozet)}</p>${m.govde}</article>`, jsonld: { '@context': 'https://schema.org', '@type': 'Article', headline: m.baslik, description: m.ozet, inLanguage: 'tr', mainEntityOfPage: SITE + u, publisher: { '@type': 'Organization', name: 'TiyatRol', url: SITE } } }));
+    adresler.push({ u, p: 0.6 });
+  }
 }
 
 // ---------- Takvim aboneliği (.ics): tüm yaklaşan seanslar ----------

@@ -347,6 +347,14 @@
       ],
       "rewrites": [
         {
+          "source": "/rehber/**",
+          "destination": "/rehber.html"
+        },
+        {
+          "source": "/rehber",
+          "destination": "/rehber.html"
+        },
+        {
           "source": "/ayarlar",
           "destination": "/ayarlar.html"
         },
