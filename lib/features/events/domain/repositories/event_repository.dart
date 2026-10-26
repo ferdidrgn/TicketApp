@@ -11,9 +11,6 @@ import '../entities/event.dart';
 const String kAdminBlockCustomerId = '__ADMIN_BLOCKED__';
 
 abstract class EventRepository {
-  Future<Either<Failure, void>> initializeAndGetEventSeats(
-      final String eventId);
-
   /// ➕ Admin panelinden yeni bir seans (Event) oluşturur.
   Future<Either<Failure, bool>> addEvent(final Event event);
 
@@ -30,15 +27,6 @@ abstract class EventRepository {
 
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
-
-  Future<Either<Failure, bool>> attemptReservation(
-      final String eventId, final String seatId, final String customerId);
-
-  Future<Either<Failure, bool>> releaseReservation(
-      final String eventId, final String seatId, final String customerId);
-
-  Future<Either<Failure, bool>> confirmPurchase(final String eventId,
-      final List<String> seatIds, final String customerId);
 
   /// 🛠️ Admin koltuk denetimi (Phase 2): bir koltuğu operasyonel
   /// gerekçelerle (arızalı koltuk, kontenjan tutma vb.) elle

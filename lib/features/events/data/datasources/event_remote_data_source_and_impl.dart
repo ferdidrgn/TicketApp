@@ -1,11 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ticketapp/features/events/data/models/event_model.dart';
-import '../../../seat/data/datasources/seat_remote_data_source_and_impl.dart';
 import '../../domain/repositories/event_repository.dart' show kAdminBlockCustomerId;
 
 abstract class EventRemoteDataSource {
-  Future<void> initializeAndGetEventSeats(final String eventId);
-
   /// ➕ Admin panelinden yeni bir seans (Event) oluşturur — `showId`,
   /// `stageId`, `date`, `price` gerçek alanlardır; `seats` boş map olarak
   /// başlar ve ilk koltuk seçimi ekranı açıldığında
@@ -19,15 +16,6 @@ abstract class EventRemoteDataSource {
 
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
-
-  Future<bool> attemptReservation(
-      final String eventId, final String seatId, final String customerId);
-
-  Future<bool> releaseReservation(
-      final String eventId, final String seatId, final String customerId);
-
-  Future<bool> confirmPurchase(final String eventId, final List<String> seatIds,
-      final String customerId);
 
   /// 🛠️ Admin koltuk denetimi (Phase 2).
   Future<bool> adminSetSeatBlocked(
@@ -63,15 +51,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     return seatData;
   }
 
-  Future<Map<String, Map<String, dynamic>>> _ensureSeatsInitialized(
-      final String eventId) async {
-    await initializeAndGetEventSeats(eventId);
-    final doc = await _eventCollection.doc(eventId).get();
-    final data = doc.data();
-    if (data == null || data['seats'] == null) return {};
-    return _parseSeatStatus(Map<String, dynamic>.from(data['seats']));
-  }
-
   // ---------- Interface Methods ----------
 
   @override
@@ -85,50 +64,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return true;
     } catch (e) {
       throw Exception('Add event failed: $e');
-    }
-  }
-
-  @override
-  Future<void> initializeAndGetEventSeats(final String eventId) async {
-    _validateParams({'Event ID': eventId});
-
-    try {
-      final doc = await _eventCollection.doc(eventId).get();
-      if (!doc.exists) throw Exception('Event not found.');
-
-      final data = doc.data();
-      final existingSeats = data?['seats'] as Map<String, dynamic>?;
-
-      // Eğer koltuklar yoksa, sahneye göre yükle
-      if (existingSeats == null || existingSeats.isEmpty) {
-        final String stageId = (data?['stageId'] ?? '').toString();
-        final seatDs = SeatRemoteDataSourceImpl(firestore: firestore);
-        final stageSeats = await seatDs.getSeatsByStage(stageId);
-        if (stageSeats == null || stageSeats.isEmpty) return;
-
-        // `closedSeatsId`: balkon vb. — seans açılır açılmaz admin bloğu
-        // (satılmaz / Kapalı).
-        final Set<String> closed =
-            (await seatDs.getClosedSeatsByStage(stageId)).toSet();
-
-        final seatStatus = <String, Map<String, dynamic>>{};
-        for (final seats in stageSeats.values) {
-          for (final seat in (seats! as List).whereType<String>()) {
-            if (closed.contains(seat)) {
-              seatStatus[seat] = {
-                'status': 'sold',
-                'customerId': kAdminBlockCustomerId,
-              };
-            } else {
-              seatStatus[seat] = {'status': 'available', 'customerId': null};
-            }
-          }
-        }
-
-        await _eventCollection.doc(eventId).update({'seats': seatStatus});
-      }
-    } catch (e) {
-      throw Exception('initializeAndGetEventSeats failed: $e');
     }
   }
 
@@ -215,153 +150,14 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       if (!doc.exists) throw Exception('Event not found.');
       final data = doc.data();
 
+      // Koltuk haritası artık YALNIZCA sunucu (holdSeats Cloud Function)
+      // tarafından üretilir/yazılır; istemci yazamaz. Henüz üretilmediyse boş
+      // döner — ekran sahne planından (Seats/{stageId}) çizer.
       if (data == null || data['seats'] == null || data['seats'] is! Map)
-        return await _ensureSeatsInitialized(eventId);
+        return <String, Map<String, dynamic>>{};
 
       return _parseSeatStatus(Map<String, dynamic>.from(data['seats']));
     });
-  }
-
-  @override
-  Future<bool> attemptReservation(final String eventId, final String seatId,
-      final String customerId) async {
-    final ref = _eventCollection.doc(eventId);
-    try {
-      await firestore.runTransaction((final transaction) async {
-        final snapshot = await transaction.get(ref);
-        if (!snapshot.exists) throw Exception('Etkinlik bulunamadı.');
-
-        final data = snapshot.data();
-        final seats = Map<String, dynamic>.from(data?['seats'] ?? {});
-
-        // 🔥 3 BİLET KONTROLÜ (DB SEVİYESİNDE)
-        int userSeatCount = 0;
-        seats.forEach((final key, final value) {
-          final seatMap = value as Map<String, dynamic>;
-          if (seatMap['customerId'] == customerId &&
-              (seatMap['status'] == 'reserved' || seatMap['status'] == 'sold'))
-            userSeatCount++;
-        });
-
-        if (userSeatCount >= 3)
-          throw Exception('Maksimum 3 bilet sınırına ulaştınız.');
-
-        final seat = seats[seatId] as Map<String, dynamic>?;
-        if (seat == null) throw Exception('Koltuk bulunamadı.');
-
-        if (seat['status'] == 'available') {
-          transaction.update(ref, {
-            'seats.$seatId.status': 'reserved',
-            'seats.$seatId.customerId': customerId,
-            'seats.$seatId.reservedAt': FieldValue.serverTimestamp(),
-          });
-        } else {
-          throw Exception('Bu koltuk artık müsait değil.');
-        }
-      });
-      return true;
-    } catch (e) {
-      // 🔥 DÜZELTME: "Maksimum 3 bilet sınırına ulaştınız." veya "Bu koltuk
-      // artık müsait değil." gibi anlamlı hatalar önceden burada yutulup
-      // sadece konsola print ediliyordu; kullanıcıya `false` dönüyordu ve
-      // seat_details.dart bu dönüş değerini hiç kontrol etmiyordu — yani
-      // kullanıcı koltuğa dokunuyor, hiçbir şey olmuyor, NEDEN olmadığını
-      // asla göremiyordu. Artık hata yukarı fırlatılıyor ki UI'daki
-      // try/catch gerçek nedeni SnackBar ile gösterebilsin.
-      print('Reservation Error: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Future<bool> releaseReservation(final String eventId, final String seatId,
-      final String customerId) async {
-    _validateParams({
-      'Event ID': eventId,
-      'Seat ID': seatId,
-      'Customer ID': customerId,
-    });
-
-    final ref = _eventCollection.doc(eventId);
-
-    try {
-      await firestore.runTransaction((final transaction) async {
-        final snapshot = await transaction.get(ref);
-        if (!snapshot.exists) throw Exception('Event not found.');
-
-        final data = snapshot.data();
-        final seat = _getSeatData(data!, seatId);
-
-        if (seat['status'] == 'reserved' && seat['customerId'] == customerId)
-          transaction.update(ref, {
-            'seats.$seatId.status': 'available',
-            'seats.$seatId.customerId': null,
-            'seats.$seatId.reservedAt': null,
-          });
-      });
-      return true;
-    } catch (e) {
-      print('releaseReservation failed: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Future<bool> confirmPurchase(final String eventId, final List<String> seatIds,
-      final String customerId) async {
-    _validateParams({'Event ID': eventId, 'Customer ID': customerId});
-    if (seatIds.isEmpty) throw Exception('Seat IDs cannot be empty.');
-
-    final ref = _eventCollection.doc(eventId);
-
-    try {
-      // 🔥 GÜVENLİK DÜZELTMESİ:
-      // Önceki implementasyon, hangi koltukların gerçekten bu müşteri
-      // tarafından 'reserved' durumunda olduğunu HİÇ KONTROL ETMEDEN
-      // doğrudan 'sold' olarak yazıyordu (basit bir batch update).
-      // Bu; (a) başka bir kullanıcının koltuğunun üzerine yazılabilmesine,
-      // (b) süresi dolmuş/serbest kalmış bir koltuğun yine de "satılmış"
-      // gibi işaretlenebilmesine, (c) client tarafından gönderilen seatId
-      // listesine sunucu tarafında hiçbir doğrulama yapılmadan güvenilmesine
-      // açık kapı bırakıyordu. Artık tek bir transaction içinde önce her
-      // koltuğun durumu okunuyor, sadece bu müşteri tarafından 'reserved'
-      // durumundaki koltuklar 'sold' yapılıyor; aksi halde işlem tamamen
-      // geri alınıp (atomik) anlamlı bir hata fırlatılıyor.
-      await firestore.runTransaction((final transaction) async {
-        final snapshot = await transaction.get(ref);
-        if (!snapshot.exists) throw Exception('Etkinlik bulunamadı.');
-
-        final data = snapshot.data();
-        final seats = Map<String, dynamic>.from(data?['seats'] ?? {});
-
-        final List<String> invalidSeats = [];
-        for (final id in seatIds) {
-          final seat = seats[id] as Map<String, dynamic>?;
-          final bool isMineAndReserved = seat != null &&
-              seat['status'] == 'reserved' &&
-              seat['customerId'] == customerId;
-          if (!isMineAndReserved) invalidSeats.add(id);
-        }
-
-        if (invalidSeats.isNotEmpty)
-          throw Exception(
-              'Şu koltuklar artık sizin rezervasyonunuzda değil (süresi dolmuş '
-              'veya başka biri tarafından alınmış olabilir): '
-              '${invalidSeats.join(", ")}');
-
-        for (final id in seatIds) {
-          transaction.update(ref, {
-            'seats.$id.status': 'sold',
-            'seats.$id.customerId': customerId,
-            'seats.$id.soldAt': FieldValue.serverTimestamp(),
-          });
-        }
-      });
-      return true;
-    } catch (e) {
-      print('confirmPurchase failed: $e');
-      rethrow;
-    }
   }
 
   @override

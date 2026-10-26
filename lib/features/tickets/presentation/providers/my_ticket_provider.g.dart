@@ -113,49 +113,6 @@ final class GetTicketByCustomerIdUseCaseProvider extends $FunctionalProvider<
 String _$getTicketByCustomerIdUseCaseHash() =>
     r'd7ef730590fcac8b7c35adb8f47cd4ea80c69559';
 
-@ProviderFor(createTicketUseCase)
-const createTicketUseCaseProvider = CreateTicketUseCaseProvider._();
-
-final class CreateTicketUseCaseProvider extends $FunctionalProvider<
-    CreateTicketUseCase,
-    CreateTicketUseCase,
-    CreateTicketUseCase> with $Provider<CreateTicketUseCase> {
-  const CreateTicketUseCaseProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'createTicketUseCaseProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
-
-  @override
-  String debugGetCreateSourceHash() => _$createTicketUseCaseHash();
-
-  @$internal
-  @override
-  $ProviderElement<CreateTicketUseCase> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  CreateTicketUseCase create(Ref ref) {
-    return createTicketUseCase(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(CreateTicketUseCase value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<CreateTicketUseCase>(value),
-    );
-  }
-}
-
-String _$createTicketUseCaseHash() =>
-    r'7d2aac21435eec2b9eadd22a4b265e654f258ed9';
 
 /// ==============================================================================
 /// 3. COMPOSITE PROVIDER (MAIN LOGIC)

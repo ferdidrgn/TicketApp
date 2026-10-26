@@ -4,7 +4,6 @@ import '../models/ticket_model.dart';
 abstract class TicketRemoteDataSource {
   Future<List<TicketModel>> getTicketsByIds(final List<String> ticketIds);
   Future<List<TicketModel>> getTicketsByCustomerId(final String customerId);
-  Future<bool> createTicket(final TicketModel ticket);
 
   /// 🎫 Admin bilet/koltuk denetimi (Phase 2): `eventId` alanına göre
   /// doğrudan Firestore sorgusu.
@@ -61,25 +60,6 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       return _mapSnapshot(snapshot);
     } catch (e) {
       throw Exception('Failed to fetch tickets by customerId: $e');
-    }
-  }
-
-  @override
-  Future<bool> createTicket(final TicketModel ticket) async {
-    try {
-      // Yeni bir document ID oluştur
-      final docRef = _firestore.collection(_collection).doc();
-
-      final ticketMap = {
-        ...ticket.toFirestore(),
-        '_id': docRef.id,
-        '_createdAt': FieldValue.serverTimestamp(),
-      };
-
-      await docRef.set(ticketMap);
-      return true;
-    } catch (e) {
-      throw Exception('Failed to create ticket: $e');
     }
   }
 

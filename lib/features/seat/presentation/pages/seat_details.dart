@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:confetti/confetti.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -20,23 +22,33 @@ import '../../../../shared/widgets/ticket/seat_plan.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
+import '../../../purchase/domain/entities/purchase_entities.dart';
+import '../../../purchase/presentation/pages/payment_web_view_page.dart';
+import '../../../purchase/presentation/providers/seat_purchase_controller.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../../tickets/presentation/providers/my_ticket_provider.dart';
+import '../providers/seats_provider.dart';
 
 /// KOLTUK SEÇİMİ — "bilet dili"nin en gerçek hâli: salon, basılı bir
 /// oturma planıdır; seçim özeti biletin koçanıdır.
 ///
 /// - Mobil (<768): plan kağıdı üstte (iki parmakla yakınlaştırılır), altta
 ///   delik çizgisiyle bağlı yapışkan koçan: seçilen koltuklar + toplam +
-///   "Ödemeye geç".
+///   tek birincil aksiyon.
 /// - Tablet (768–1023): aynı dikey bilet, ortalanmış ve daha geniş koltuklar.
 /// - Masaüstü (≥1024): yatay bilet — solda plan (gövde), sağda koçan
 ///   (oyun, tarih, sahne, koltuklar, toplam). Ödemeye geçerken koçan
 ///   delikten yırtılır; ödeme vazgeçilirse geri yapışır.
 ///
-/// Koltuk/rezervasyon/satın alma mantığı önceki sürümle BİREBİR aynıdır.
+/// AKIŞ (hepsi sunucuda, bkz. `docs/ODEME-GUVENLIK.md`; istemci Firestore'a
+/// koltuk/bilet YAZMAZ):
+///   dokun → yerel seçim (en fazla 3) → "Koltukları tut" (`holdSeats`) →
+///   geri sayım (`expiresAt`) → ücretli: "Ödemeye geç" (`startPayment` →
+///   iyzico sayfası) / ücretsiz: `confirmFree` → sonuç `Order` belgesinden.
+/// Durum makinesi: `SeatPurchaseController`.
 class SeatSelectionPage extends ConsumerStatefulWidget {
   final String showId;
   final String eventId;
@@ -54,9 +66,7 @@ class SeatSelectionPage extends ConsumerStatefulWidget {
 }
 
 class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
-    with TickerProviderStateMixin {
-  final Set<String> _processingSeats = {};
-
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   // 🎉 Satın alma başarıyla tamamlandığında kısa bir kutlama patlaması için.
   late final ConfettiController _confettiController;
 
@@ -67,7 +77,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
 
   bool _reduceMotion = false;
-  bool _purchaseInFlight = false;
+  bool _verifyingOpen = false;
+
+  late final _purchaseProvider = seatPurchaseControllerProvider(widget.eventId);
 
   /// Liste parametreli provider ailelerine (`showsByIdsProvider`,
   /// `stagesByIdsProvider`) her build'de AYNI liste örneği verilir; aksi
@@ -79,12 +91,22 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   bool get _isGuest =>
       widget.customerId == 'guest' || widget.customerId.isEmpty;
 
+  SeatPurchaseController get _ctrl => ref.read(_purchaseProvider.notifier);
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _confettiController = ConfettiController(
       duration: const Duration(milliseconds: 800),
     );
+    // Uygulama kapanması/çökmesi sonrası: bu etkinlikte yarım kalmış
+    // (held/paying, süresi dolmamış) sipariş varsa devam ettir.
+    if (!_isGuest) {
+      WidgetsBinding.instance.addPostFrameCallback((final _) {
+        if (mounted) _ctrl.restore(widget.customerId);
+      });
+    }
   }
 
   @override
@@ -94,39 +116,18 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   }
 
   @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    // Arka plana alınınca zamanlayıcı durur; geri gelince kalan süre
+    // sunucunun `expiresAt` değerinden yeniden hesaplanır.
+    _ctrl.onLifecycle(state);
+  }
+
+  @override
   void dispose() {
-    // 🔥 EKSİK OLAN KOLTUK SERBEST BIRAKMA:
-    // Kullanıcı ödemeyi tamamlamadan bu ekrandan çıkarsa (geri tuşu, uygulamayı
-    // kapatma, başka bir sekmeye geçme vb.), önceden 'reserved' koltuklar
-    // SONSUZA KADAR kilitli kalıyordu — hiçbir yerde bu ekrandan çıkışta
-    // otomatik bir "serbest bırak" çağrısı yoktu ve backend'de de süre
-    // dolumu (TTL) mekanizması bulunmuyor. Bu, gerçek koltukların satışa
-    // kapanmasına yol açan ciddi bir envanter kilitlenmesi hatasıydı.
-    // Not: Bu sadece normal (dispose çağrılan) çıkışları kapsar; uygulama
-    // çökmesi veya sekmenin aniden kapatılması gibi durumlar için hâlâ
-    // sunucu tarafında bir TTL/temizlik mekanizması (örn. reservedAt alanına
-    // bakan zamanlanmış bir Cloud Function) eklenmesi gerekiyor.
-    if (!_isGuest) {
-      try {
-        final seats = ref.read(eventSeatsProvider(widget.eventId)).value ?? {};
-        for (final entry in seats.entries) {
-          if (entry.value['status'] == 'reserved' &&
-              entry.value['customerId'] == widget.customerId) {
-            ref
-                .read(toggleSeatSelectionProvider(
-              eventId: widget.eventId,
-              seatId: entry.key,
-              customerId: widget.customerId,
-              isAdding: false,
-            ).future)
-                .catchError((final _) {});
-          }
-        }
-      } catch (_) {
-        // Dispose sırasında provider erişimi güvenli değilse sessizce geç;
-        // koltuk her hâlükârda ana asenkron akış tamamlanınca serbest kalır.
-      }
-    }
+    // Ödemesi başlamamış tutma, controller dispose olurken otomatik
+    // bırakılır (SeatPurchaseController._onDispose) — burada elle koltuk
+    // yazımı YOK.
+    WidgetsBinding.instance.removeObserver(this);
     _confettiController.dispose();
     _tear.dispose();
     super.dispose();
@@ -136,23 +137,92 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   // Yardımcılar (sadece gösterim)
   // ───────────────────────────────────────────────────────────────────────
 
-  List<String> _mySelectedSeats(final Map<String, Map<String, dynamic>> seats) =>
-      seats.entries
-          .where((final e) =>
-              e.value['customerId'] == widget.customerId &&
-              e.value['status'] == 'reserved')
-          .map((final e) => e.key)
-          .toList();
-
-  static String _friendlyError(final Object e) =>
-      e.toString().replaceFirst('Exception: ', '');
-
   static T? _first<T>(final List<T>? list) =>
       (list == null || list.isEmpty) ? null : list.first;
+
+  /// Yalnızca GÖSTERİM: "150", "1.250,50" gibi Event.price metnini sayıya
+  /// çevirir. Sunucuya ASLA gönderilmez (tutarı sunucu hesaplar).
+  static double _displayPrice(final String raw) {
+    var s = raw.trim().replaceAll(RegExp(r'[^0-9.,]'), '');
+    if (s.isEmpty) return 0;
+    if (s.contains(',')) {
+      s = s.replaceAll('.', '').replaceAll(',', '.');
+    }
+    return double.tryParse(s) ?? 0;
+  }
 
   void _retry() {
     ref.invalidate(eventDetailProvider(widget.eventId));
     ref.invalidate(eventSeatsProvider(widget.eventId));
+  }
+
+  void _showNotice(final PurchaseNotice n) {
+    if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: n.isError ? cs.error : null,
+        content: Text(
+          n.text,
+          style: n.isError ? TextStyle(color: cs.onError) : null,
+        ),
+      ));
+  }
+
+  /// Controller durum geçişlerine tepki: bildirimler, "doğrulanıyor"
+  /// penceresi, başarı kutlaması.
+  void _onPurchaseChange(
+      final SeatPurchaseState? prev, final SeatPurchaseState next) {
+    if (next.notice != null && next.notice?.id != prev?.notice?.id) {
+      _showNotice(next.notice!);
+    }
+
+    // Masaüstü koçan yırtılması ödeme bitince geri yapışır.
+    if (_tear.value > 0 &&
+        next.phase != PurchasePhase.startingPayment &&
+        next.phase != PurchasePhase.completed) {
+      if (!_reduceMotion) _tear.reverse();
+    }
+
+    if (next.phase == PurchasePhase.verifying && !_verifyingOpen) {
+      _verifyingOpen = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (final _) => _VerifyingDialog(
+          onClose: () => Navigator.of(context, rootNavigator: true).pop(),
+        ),
+      ).whenComplete(() => _verifyingOpen = false);
+    } else if (next.phase != PurchasePhase.verifying && _verifyingOpen) {
+      _verifyingOpen = false;
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    if (next.phase == PurchasePhase.completed &&
+        prev?.phase != PurchasePhase.completed) {
+      _celebrate(next);
+    }
+  }
+
+  void _celebrate(final SeatPurchaseState s) {
+    // Biletler sunucuda kesildi; listeyi tazele.
+    if (!_isGuest) ref.invalidate(myTicketsProvider(widget.customerId));
+    if (!_reduceMotion) _confettiController.play();
+    HapticFeedback.mediumImpact();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (final context) => _TicketIssuedDialog(
+        seats: s.completedSeats,
+        total: s.completedTotal,
+        free: s.completedFree,
+        onMyTickets: () =>
+            NavigationHandler.goToMyTickets(context, widget.customerId),
+        onHome: () => NavigationHandler.goToHome(context),
+      ),
+    );
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -161,9 +231,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
   @override
   Widget build(final BuildContext context) {
+    ref.listen<SeatPurchaseState>(_purchaseProvider, _onPurchaseChange);
+    final purchase = ref.watch(_purchaseProvider);
     final seatsAsync = ref.watch(eventSeatsProvider(widget.eventId));
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
-    final timerStream = ref.watch(reservationTimerProvider);
 
     // Gösterim için oyun ve sahne adı (Event.showId doluysa tek doğruluk
     // kaynağı odur; boşsa URL'deki showId).
@@ -180,11 +251,25 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
     final bool desktop = ResponsiveUtils.isDesktop(context);
     final bool tablet = ResponsiveUtils.isTablet(context);
-    final int seconds = timerStream.value ?? 600;
-    final Map<String, Map<String, dynamic>> seats = seatsAsync.value ?? {};
-    final List<String> mine = _mySelectedSeats(seats);
-    final double unitPrice =
-        event == null ? 0 : (double.tryParse(event.price) ?? 0.0);
+    final List<String> mine = purchase.mySeats;
+    final double unitPrice = purchase.hold != null && purchase.hold!.seats.isNotEmpty
+        ? purchase.hold!.seats.first.price
+        : (event == null ? 0 : _displayPrice(event.price));
+    final bool free =
+        purchase.hold?.free ?? (event != null && unitPrice == 0);
+    final double total =
+        purchase.hold?.total ?? mine.length * unitPrice;
+
+    // Daha önce satın alınmış (bu kullanıcının biletinde olan) koltuklar.
+    final Set<String> owned = _isGuest
+        ? const {}
+        : {
+            for (final t in ref
+                    .watch(myTicketsProvider(widget.customerId))
+                    .value ??
+                const <DetailedTicket>[])
+              if (t.ticket.eventId == widget.eventId) ...t.ticket.buySeats,
+          };
 
     final _Schedule? schedule =
         event == null ? null : _Schedule.parse(event.date);
@@ -198,7 +283,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
               if (stage != null && stage.name.trim().isNotEmpty)
                 stage.name.trim(),
             ].join('  ·  '),
-      seconds: seconds,
+      expiresAt: purchase.phase == PurchasePhase.held ||
+              purchase.phase == PurchasePhase.startingPayment
+          ? purchase.hold?.expiresAt
+          : null,
       large: desktop,
     );
 
@@ -220,19 +308,29 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
           onRetry: _retry,
         ),
         data: (final live) => _buildHall(
-              ev,
-              live,
-              desktop: desktop,
-              stageNote: _stageSeatNote(stage),
-            ),
+          ev,
+          live,
+          purchase,
+          owned,
+          desktop: desktop,
+          stageNote: _stageSeatNote(stage),
+        ),
       ),
     );
 
-    final VoidCallback? primaryAction = _isGuest
-        ? () => NavigationHandler.goToLogin(context)
-        : (mine.isEmpty
-            ? null
-            : () => _openPayment(context, mine, animateTear: desktop));
+    final VoidCallback? primaryAction = _primaryAction(purchase);
+    final _StubModel stubModel = _StubModel(
+      phase: purchase.phase,
+      seats: mine,
+      unitPrice: unitPrice,
+      total: total,
+      free: free,
+      isGuest: _isGuest,
+      onPrimary: primaryAction,
+      onSecondary: purchase.phase == PurchasePhase.held
+          ? () => _ctrl.releaseHold()
+          : null,
+    );
 
     final Widget body = desktop
         ? _DesktopLayout(
@@ -243,11 +341,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
               show: show,
               stage: stage,
               schedule: schedule,
-              seats: mine,
-              unitPrice: unitPrice,
-              isGuest: _isGuest,
+              model: stubModel,
               seed: widget.eventId,
-              onPrimary: primaryAction,
             ),
           )
         : _MobileLayout(
@@ -255,12 +350,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             plan: plan,
             maxWidth: tablet ? 760 : double.infinity,
             horizontalPadding: tablet ? AppSpacing.xxl : AppSpacing.md,
-            stub: _MobileStub(
-              seats: mine,
-              unitPrice: unitPrice,
-              isGuest: _isGuest,
-              onPrimary: primaryAction,
-            ),
+            stub: _MobileStub(model: stubModel),
           );
 
     return Scaffold(
@@ -275,7 +365,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             if (PlatformChecker.isWeb && (desktop || tablet))
               Column(children: [
                 const WebSiteHeader(),
-                _CheckoutSteps(show: show, step: 1),
+                _CheckoutSteps(
+                    show: show,
+                    step: purchase.phase == PurchasePhase.selecting ||
+                            purchase.phase == PurchasePhase.holding
+                        ? 1
+                        : 2),
                 Expanded(child: body),
               ])
             else
@@ -286,6 +381,78 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         ),
       ),
     );
+  }
+
+  /// Faz → tek birincil aksiyon.
+  VoidCallback? _primaryAction(final SeatPurchaseState s) {
+    if (_isGuest) return () => NavigationHandler.goToLogin(context);
+    switch (s.phase) {
+      case PurchasePhase.selecting:
+        return s.selected.isEmpty
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                _ctrl.holdSelected();
+              };
+      case PurchasePhase.held:
+        if (s.hold?.free ?? false) return () => _ctrl.confirmFree();
+        return _beginPayment;
+      case PurchasePhase.awaitingPayment:
+        return _beginPayment;
+      case PurchasePhase.completed:
+        return () =>
+            NavigationHandler.goToMyTickets(context, widget.customerId);
+      case PurchasePhase.holding:
+      case PurchasePhase.startingPayment:
+      case PurchasePhase.verifying:
+        return null;
+    }
+  }
+
+  /// Sunucu cevaplı ödeme başlatma → iyzico sayfası.
+  Future<void> _beginPayment() async {
+    final bool tear = ResponsiveUtils.isDesktop(context) && !_reduceMotion;
+    if (tear) _tear.forward(from: 0);
+    final session = await _ctrl.startPayment();
+    if (!mounted) return;
+    if (session == null) {
+      if (tear) _tear.reverse();
+      return;
+    }
+    await _openPaymentSession(session);
+    if (mounted && tear) _tear.reverse();
+  }
+
+  Future<void> _openPaymentSession(final PaymentSession session) async {
+    if (PlatformChecker.isWeb) {
+      // Web: uygulama içi WebView yok; ödeme sayfası yeni sekmede açılır,
+      // sonuç yine `Order` belgesinden izlenir.
+      final url = session.paymentPageUrl;
+      final uri = url == null ? null : Uri.tryParse(url);
+      final bool opened = uri != null &&
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!mounted) return;
+      if (opened) {
+        _ctrl.paymentReturned();
+      } else {
+        _ctrl.paymentDismissed();
+        _showNotice(const PurchaseNotice(
+            -1, 'Ödeme sayfası açılamadı. Lütfen tekrar dene.'));
+      }
+      return;
+    }
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<PaymentReturn?>(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (final _) => PaymentWebViewPage(session: session),
+    ));
+    if (!mounted) return;
+    if (result == null) {
+      _ctrl.paymentDismissed();
+    } else {
+      // Karar `durum` parametresine değil Order belgesine göre verilir.
+      _ctrl.paymentReturned();
+    }
   }
 
   /// Sahne `description` içindeki koltuk düzeni notu (ÖNEMLİ …).
@@ -307,11 +474,21 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
   Widget _buildHall(
     final Event event,
-    final Map<String, Map<String, dynamic>> live, {
+    final Map<String, Map<String, dynamic>> live,
+    final SeatPurchaseState purchase,
+    final Set<String> owned, {
     required final bool desktop,
     final String? stageNote,
   }) {
-    final rows = groupSeatsByRow(event.seats.keys);
+    // Koltuk haritası sunucuda (holdSeats) ilk tutmada üretilir; o zamana
+    // dek planı sahne düzeninden (Seats/{stageId}) çiz.
+    Iterable<String> seatIds = live.keys;
+    if (seatIds.isEmpty) seatIds = event.seats.keys;
+    if (seatIds.isEmpty && event.stageId.isNotEmpty) {
+      final layout = ref.watch(stageLayoutProvider(event.stageId));
+      seatIds = [for (final row in layout.value?.values ?? const <List<String>>[]) ...row];
+    }
+    final rows = groupSeatsByRow(seatIds);
     if (rows.isEmpty) {
       return const _PlanError(
         title: 'Bu seansın koltuk planı henüz yayınlanmadı.',
@@ -320,16 +497,21 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       );
     }
 
-    final String me = _isGuest ? '' : widget.customerId;
+    final Set<String> mySeats = purchase.mySeats.toSet();
     final Set<SeatVisual> present = {};
 
     SeatVisual visualOf(final String id) {
+      // "Benim koltuğum" = yerel seçimim ya da kendi Order'ımdaki tutma;
+      // Event.seats içindeki customerId'ye BAKILMAZ.
+      if (mySeats.contains(id)) return SeatVisual.selected;
       final dynamic statusData = live[id] ?? event.seats[id] ?? const {};
-      return seatVisualOf(
+      final SeatVisual v = seatVisualOf(
         status: statusData['status']?.toString() ?? 'available',
         ownerId: statusData['customerId']?.toString(),
-        customerId: me,
+        customerId: '',
       );
+      if (v == SeatVisual.sold && owned.contains(id)) return SeatVisual.owned;
+      return v;
     }
 
     for (final row in rows.values) {
@@ -366,29 +548,18 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             minSeat: desktop ? 30 : 40,
             maxSeat: desktop ? 44 : 48,
             seatBuilder: (final context, final seatId, final size) {
-              final dynamic statusData =
-                  live[seatId] ?? event.seats[seatId] ?? const {};
-              final String status =
-                  statusData['status']?.toString() ?? 'available';
-              final String? ownerId = statusData['customerId']?.toString();
               final SeatVisual visual = visualOf(seatId);
-              final bool processing = _processingSeats.contains(seatId);
-              // Sadece müsait ya da kendi seçtiğin koltuk dokunulabilir.
-              // (Önceden başkasının tuttuğu koltuğa dokunmak, sunucuda
-              // sessizce hiçbir şey yapmayan bir "serbest bırak" isteği
-              // gönderiyordu.)
-              final bool tappable = !processing &&
+              // Yalnızca müsait ya da kendi seçtiğin koltuk dokunulabilir ve
+              // yalnızca henüz sunucuda tutulmamışken (seçim aşaması).
+              final bool tappable = purchase.canPick &&
                   (visual == SeatVisual.available ||
                       visual == SeatVisual.selected);
               return TicketSeat(
                 seatId: seatId,
                 visual: visual,
                 size: size,
-                busy: processing,
-                onTap: tappable
-                    ? () => _handleSeatTap(
-                        seatId, status, ownerId == widget.customerId)
-                    : null,
+                busy: false,
+                onTap: tappable ? () => _handleSeatTap(seatId) : null,
               );
             },
           ),
@@ -402,47 +573,15 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     );
   }
 
-  // 🔹 KOLTUK SEÇME MANTIĞI (GÜVENLİK EKLENDİ)
-  Future<void> _handleSeatTap(
-      final String seatId, final String status, final bool isMine) async {
-    // 1. GÜVENLİK KONTROLÜ: Misafir ise işlem yapma, Login'e yönlendir
+  // 🔹 KOLTUK SEÇME: yalnızca YEREL; sunucuya hiçbir şey yazılmaz.
+  void _handleSeatTap(final String seatId) {
+    // Misafir ise işlem yapma, giriş iste.
     if (_isGuest) {
       _showLoginDialog();
       return;
     }
-
-    if (_processingSeats.contains(seatId)) return;
-
     HapticFeedback.selectionClick();
-    setState(() => _processingSeats.add(seatId));
-    try {
-      await ref.read(toggleSeatSelectionProvider(
-        eventId: widget.eventId,
-        seatId: seatId,
-        customerId: widget.customerId,
-        isAdding: status == 'available',
-      ).future);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('$seatId seçilemedi: ${_friendlyError(e)}'),
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _processingSeats.remove(seatId));
-    }
-  }
-
-  /// "Ödemeye geç": (masaüstünde) koçanı yırt → ödeme yöntemi → vazgeçildiyse
-  /// koçanı geri yapıştır.
-  Future<void> _openPayment(final BuildContext context,
-      final List<String> seats, {required final bool animateTear}) async {
-    final bool tear = animateTear && !_reduceMotion;
-    if (tear) await _tear.forward(from: 0);
-    if (!mounted) return;
-    await _showPaymentModal(context, seats);
-    if (tear && mounted && !_purchaseInFlight) _tear.reverse();
+    _ctrl.toggleSeat(seatId);
   }
 
   // 🔹 MİSAFİR UYARI DİYALOGU
@@ -463,147 +602,6 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         onSecondary: () => Navigator.pop(ctx),
       ),
     );
-  }
-
-  Future<void> _showPaymentModal(
-      final BuildContext context, final List<String> selectedSeats) async {
-    final event = await ref.read(eventDetailProvider(widget.eventId).future);
-    final unitPrice = double.tryParse(event.price) ?? 0.0;
-    final totalPrice = selectedSeats.length * unitPrice;
-    if (!mounted) return;
-
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      constraints: const BoxConstraints(maxWidth: 560),
-      builder: (final ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-          child: TicketPiece(
-            perforated: TicketEdge.top,
-            shadows: AppShadows.level4(TicketInk.ink),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xxl,
-                  AppSpacing.xxl, AppSpacing.xxl, AppSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const TicketHeaderStrip(kind: 'ÖDEME'),
-                  const SizedBox(height: AppSpacing.xl),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TicketField(
-                          label: selectedSeats.length > 1
-                              ? 'KOLTUKLAR'
-                              : 'KOLTUK',
-                          value: selectedSeats.join(', '),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      TicketField(
-                        label: 'TOPLAM',
-                        value: ticketPriceTl(totalPrice),
-                        align: CrossAxisAlignment.end,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Semantics(
-                    header: true,
-                    child: Text('ÖDEME YÖNTEMİ', style: TicketInk.label()),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _paymentOption(
-                      icon: Icons.credit_card_rounded,
-                      title: "Kredi / Banka Kartı",
-                      subtitle: "Anında onay",
-                      onTap: () => _processPurchase(ctx, selectedSeats, "card",
-                          totalPrice, event.stageId, event.showId)),
-                  const SizedBox(height: AppSpacing.sm),
-                  _paymentOption(
-                      icon: Icons.account_balance_rounded,
-                      title: "Havale / EFT",
-                      subtitle: "IBAN ile ödeme",
-                      onTap: () => _processPurchase(ctx, selectedSeats, "iban",
-                          totalPrice, event.stageId, event.showId)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _paymentOption(
-          {required final IconData icon,
-          required final String title,
-          required final String subtitle,
-          required final VoidCallback onTap}) =>
-      _PaymentOptionRow(
-          icon: icon, title: title, subtitle: subtitle, onTap: onTap);
-
-  Future<void> _processPurchase(
-      final BuildContext ctx,
-      final List<String> seats,
-      final String method,
-      final double total,
-      final String stageId,
-      final String showId) async {
-    _purchaseInFlight = true;
-    Navigator.pop(ctx);
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (final _) => const _IssuingDialog());
-
-    try {
-      await ref.read(purchaseActionProvider(
-        eventId: widget.eventId,
-        showId: showId,
-        stageId: stageId,
-        seatIds: seats,
-        customerId: widget.customerId,
-        paymentMethod: method,
-        totalPrice: total,
-      ).future);
-
-      if (mounted) {
-        Navigator.pop(context);
-        // 🎉 Satın alma burada, mevcut kodun başarıyı onayladığı TEK anda
-        // kutlanıyor — hata yolunda asla tetiklenmez.
-        if (!_reduceMotion) _confettiController.play();
-        HapticFeedback.mediumImpact();
-        showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (final context) => _TicketIssuedDialog(
-                  seats: seats,
-                  total: total,
-                  onMyTickets: () => NavigationHandler.goToMyTickets(
-                      context, widget.customerId),
-                  onHome: () => NavigationHandler.goToHome(context),
-                ));
-      }
-    } catch (e) {
-      _purchaseInFlight = false;
-      if (mounted) {
-        Navigator.pop(context);
-        if (!_reduceMotion) _tear.reverse();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-          content: Text(
-            'Bilet alınamadı: ${_friendlyError(e)}',
-            style: TextStyle(color: Theme.of(context).colorScheme.onError),
-          ),
-        ));
-      }
-    }
   }
 
   // 🎉 Konfeti, sahnenin üst ortasından aşağı doğru kısa bir patlama —
@@ -860,13 +858,15 @@ class _DesktopLayout extends StatelessWidget {
 class _SeatTopBar extends StatelessWidget {
   final String title;
   final String? subtitle;
-  final int seconds;
+
+  /// Sunucunun verdiği tutma bitiş anı; null ise sayaç gösterilmez.
+  final DateTime? expiresAt;
   final bool large;
 
   const _SeatTopBar({
     required this.title,
     required this.subtitle,
-    required this.seconds,
+    required this.expiresAt,
     required this.large,
   });
 
@@ -924,12 +924,57 @@ class _SeatTopBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          _TimerChip(seconds: seconds),
+          if (expiresAt != null) ...[
+            const SizedBox(width: AppSpacing.md),
+            _HoldTimer(expiresAt: expiresAt!),
+          ],
         ],
       ),
     );
   }
+}
+
+/// Geri sayım: HER ZAMAN `expiresAt - şimdi` (duvar saati) — arka plana
+/// alma / uyku sayacı bozmaz, geri gelince doğru süreyi gösterir.
+class _HoldTimer extends StatefulWidget {
+  final DateTime expiresAt;
+  const _HoldTimer({required this.expiresAt});
+
+  @override
+  State<_HoldTimer> createState() => _HoldTimerState();
+}
+
+class _HoldTimerState extends State<_HoldTimer> with WidgetsBindingObserver {
+  Timer? _timer;
+
+  int get _seconds {
+    final int s = widget.expiresAt.difference(DateTime.now()).inSeconds;
+    return s < 0 ? 0 : s;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _timer = Timer.periodic(const Duration(seconds: 1), (final _) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => _TimerChip(seconds: _seconds);
 }
 
 class _TimerChip extends StatelessWidget {
@@ -984,9 +1029,68 @@ class _TimerChip extends StatelessWidget {
 // Koçanlar (seçim özeti + tek birincil aksiyon)
 // ─────────────────────────────────────────────────────────────────────────
 
-String _primaryLabel(final bool isGuest, final List<String> seats) {
-  if (isGuest) return 'Giriş yap';
-  return seats.isEmpty ? 'Koltuk seç' : 'Ödemeye geç';
+/// Koçan ekranlarının ortak girdisi (faz + gösterim değerleri).
+class _StubModel {
+  final PurchasePhase phase;
+  final List<String> seats;
+  final double unitPrice;
+  final double total;
+  final bool free;
+  final bool isGuest;
+  final VoidCallback? onPrimary;
+  final VoidCallback? onSecondary;
+
+  const _StubModel({
+    required this.phase,
+    required this.seats,
+    required this.unitPrice,
+    required this.total,
+    required this.free,
+    required this.isGuest,
+    required this.onPrimary,
+    required this.onSecondary,
+  });
+
+  bool get busy =>
+      phase == PurchasePhase.holding ||
+      phase == PurchasePhase.startingPayment ||
+      phase == PurchasePhase.verifying;
+
+  String get primaryLabel {
+    if (isGuest) return 'Giriş yap';
+    return switch (phase) {
+      PurchasePhase.selecting =>
+        seats.isEmpty ? 'Koltuk seç' : 'Koltukları tut',
+      PurchasePhase.holding => 'Koltuklar tutuluyor',
+      PurchasePhase.held => free ? 'Ücretsiz bileti al' : 'Ödemeye geç',
+      PurchasePhase.startingPayment => free ? 'Onaylanıyor' : 'Ödeme açılıyor',
+      PurchasePhase.awaitingPayment => 'Ödemeye devam et',
+      PurchasePhase.verifying => 'Ödeme doğrulanıyor',
+      PurchasePhase.completed => 'Biletlerime git',
+    };
+  }
+
+  String get totalText => free && seats.isNotEmpty
+      ? 'Ücretsiz'
+      : ticketPriceTl(total);
+
+  /// Fazına göre koçandaki yönlendirme metni.
+  String get hint {
+    if (isGuest) return 'Koltuk seçmek için önce giriş yapmalısın.';
+    return switch (phase) {
+      PurchasePhase.selecting =>
+        'Planda bir koltuğa dokun. En fazla $kMaxSeatsPerPurchase koltuk'
+            '${unitPrice > 0 ? ', koltuk başı ${ticketPriceTl(unitPrice)}' : ''}.',
+      PurchasePhase.holding => 'Koltukların senin için ayrılıyor…',
+      PurchasePhase.held =>
+        'Koltukların senin için ayrıldı. Süre dolmadan tamamla.',
+      PurchasePhase.startingPayment => 'Bir saniye…',
+      PurchasePhase.awaitingPayment =>
+        'Ödeme başladı. Tamamlamadıysan kaldığın yerden devam edebilirsin.',
+      PurchasePhase.verifying => 'Ödemen doğrulanıyor…',
+      PurchasePhase.completed => 'Biletin hazır.',
+    };
+  }
 }
 
 /// Birincil damga butonu; seçim yokken soluk ve etkisiz (kit'te devre dışı
@@ -994,45 +1098,36 @@ String _primaryLabel(final bool isGuest, final List<String> seats) {
 class _PrimaryStamp extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
-  const _PrimaryStamp({required this.label, required this.onTap});
+  final bool loading;
+  const _PrimaryStamp(
+      {required this.label, required this.onTap, this.loading = false});
 
   @override
   Widget build(final BuildContext context) => AnimatedOpacity(
-        opacity: onTap == null ? 0.4 : 1,
+        opacity: onTap == null && !loading ? 0.4 : 1,
         duration: AppMotion.fast,
         child: TicketStampButton(
           label: label,
-          onTap: onTap,
+          onTap: onTap ?? (loading ? () {} : null),
+          loading: loading,
           leading: const Icon(Icons.confirmation_number_outlined),
         ),
       );
 }
 
 class _MobileStub extends StatelessWidget {
-  final List<String> seats;
-  final double unitPrice;
-  final bool isGuest;
-  final VoidCallback? onPrimary;
+  final _StubModel model;
 
-  const _MobileStub({
-    required this.seats,
-    required this.unitPrice,
-    required this.isGuest,
-    required this.onPrimary,
-  });
+  const _MobileStub({required this.model});
 
   @override
   Widget build(final BuildContext context) {
-    final double total = seats.length * unitPrice;
-    final String hint = isGuest
-        ? 'Koltuk seçmek için önce giriş yapmalısın.'
-        : 'Planda bir koltuğa dokun. En fazla 3 koltuk'
-            '${unitPrice > 0 ? ', koltuk başı ${ticketPriceTl(unitPrice)}' : ''}.';
+    final seats = model.seats;
     return Semantics(
       container: true,
       label: seats.isEmpty
           ? 'Seçilen koltuk yok'
-          : 'Seçilen koltuklar: ${seats.join(", ")}, toplam ${ticketPriceTl(total)}',
+          : 'Seçilen koltuklar: ${seats.join(", ")}, toplam ${model.totalText}',
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.lg),
@@ -1044,7 +1139,7 @@ class _MobileStub extends StatelessWidget {
               duration: AppMotion.fast,
               child: seats.isEmpty
                   ? Text(
-                      hint,
+                      model.hint,
                       key: const ValueKey('hint'),
                       style: TextStyle(
                         color: TicketInk.inkSoft(0.7),
@@ -1052,31 +1147,62 @@ class _MobileStub extends StatelessWidget {
                         height: 1.4,
                       ),
                     )
-                  : ExcludeSemantics(
+                  : Column(
                       key: const ValueKey('fields'),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TicketField(
-                              label: seats.length > 1 ? 'KOLTUKLAR' : 'KOLTUK',
-                              value: seats.join(', '),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ExcludeSemantics(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TicketField(
+                                  label: seats.length > 1
+                                      ? 'KOLTUKLAR'
+                                      : 'KOLTUK',
+                                  value: seats.join(', '),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.lg),
+                              TicketField(
+                                label: 'TOPLAM',
+                                value: model.totalText,
+                                align: CrossAxisAlignment.end,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (model.phase != PurchasePhase.selecting) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              model.hint,
+                              style: TextStyle(
+                                color: TicketInk.inkSoft(0.7),
+                                fontSize: 12.5,
+                                height: 1.4,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.lg),
-                          TicketField(
-                            label: 'TOPLAM',
-                            value: ticketPriceTl(total),
-                            align: CrossAxisAlignment.end,
-                          ),
                         ],
-                      ),
+                      ],
                     ),
             ),
             const SizedBox(height: AppSpacing.md),
             _PrimaryStamp(
-              label: _primaryLabel(isGuest, seats),
-              onTap: onPrimary,
+              label: model.primaryLabel,
+              onTap: model.onPrimary,
+              loading: model.busy,
             ),
+            if (model.onSecondary != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Center(
+                child: TicketTextLink(
+                  label: 'Seçimi değiştir',
+                  onTap: model.onSecondary,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1088,26 +1214,20 @@ class _DesktopStub extends StatelessWidget {
   final Show? show;
   final Stage? stage;
   final _Schedule? schedule;
-  final List<String> seats;
-  final double unitPrice;
-  final bool isGuest;
+  final _StubModel model;
   final String seed;
-  final VoidCallback? onPrimary;
 
   const _DesktopStub({
     required this.show,
     required this.stage,
     required this.schedule,
-    required this.seats,
-    required this.unitPrice,
-    required this.isGuest,
+    required this.model,
     required this.seed,
-    required this.onPrimary,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final double total = seats.length * unitPrice;
+    final seats = model.seats;
     final String stageName = stage?.name.trim() ?? '';
     return CustomScrollView(
       slivers: [
@@ -1154,9 +1274,10 @@ class _DesktopStub extends StatelessWidget {
                   duration: AppMotion.fast,
                   child: seats.isEmpty
                       ? Text(
-                          isGuest
+                          model.isGuest
                               ? 'Koltuk seçmek için önce giriş yapmalısın.'
-                              : 'Plandan koltuğunu seç. En fazla 3 koltuk '
+                              : 'Plandan koltuğunu seç. En fazla '
+                                  '$kMaxSeatsPerPurchase koltuk '
                                   'ayırabilirsin.',
                           key: const ValueKey('empty'),
                           style: TextStyle(
@@ -1174,6 +1295,21 @@ class _DesktopStub extends StatelessWidget {
                           ],
                         ),
                 ),
+                if (seats.isNotEmpty &&
+                    model.phase != PurchasePhase.selecting) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      model.hint,
+                      style: TextStyle(
+                        color: TicketInk.inkSoft(0.7),
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
@@ -1182,7 +1318,11 @@ class _DesktopStub extends StatelessWidget {
                     Expanded(
                       child: TicketField(
                         label: 'KOLTUK BAŞI',
-                        value: unitPrice > 0 ? ticketPriceTl(unitPrice) : '—',
+                        value: model.free
+                            ? 'Ücretsiz'
+                            : (model.unitPrice > 0
+                                ? ticketPriceTl(model.unitPrice)
+                                : '—'),
                       ),
                     ),
                     Column(
@@ -1194,7 +1334,7 @@ class _DesktopStub extends StatelessWidget {
                         Semantics(
                           liveRegion: true,
                           child: Text(
-                            ticketPriceTl(total),
+                            model.totalText,
                             style: TicketInk.headline(26),
                           ),
                         ),
@@ -1204,9 +1344,19 @@ class _DesktopStub extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _PrimaryStamp(
-                  label: _primaryLabel(isGuest, seats),
-                  onTap: onPrimary,
+                  label: model.primaryLabel,
+                  onTap: model.onPrimary,
+                  loading: model.busy,
                 ),
+                if (model.onSecondary != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Center(
+                    child: TicketTextLink(
+                      label: 'Seçimi değiştir',
+                      onTap: model.onSecondary,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 TicketBarcode(seed: seed, height: 30),
               ],
@@ -1371,80 +1521,12 @@ class _PlanError extends StatelessWidget {
 // Ödeme ve diyaloglar
 // ─────────────────────────────────────────────────────────────────────────
 
-class _PaymentOptionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
+/// Ödeme sayfasından dönüldü; sonuç Order belgesinden (webhook gecikmesi
+/// olabilir) doğrulanıyor. Kapatılabilir: doğrulama arka planda sürer.
+class _VerifyingDialog extends StatelessWidget {
+  final VoidCallback onClose;
 
-  const _PaymentOptionRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final Color accent = TicketInk.accentOf(context);
-    return Semantics(
-      button: true,
-      label: '$title, $subtitle',
-      excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          side: BorderSide(color: TicketInk.inkSoft(0.35), width: 1.2),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          hoverColor: TicketInk.inkSoft(0.05),
-          focusColor: accent.withOpacity(0.16),
-          splashColor: accent.withOpacity(0.12),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 64),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-              child: Row(
-                children: [
-                  Icon(icon, color: accent, size: 24),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(title, style: TicketInk.value(size: 15)),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: TicketInk.inkSoft(0.6),
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right_rounded,
-                      color: TicketInk.inkSoft(0.45)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Satın alma sürerken: "biletin kesiliyor" — küçük kağıt kart, tam
-/// sayfa spinner değil.
-class _IssuingDialog extends StatelessWidget {
-  const _IssuingDialog();
+  const _VerifyingDialog({required this.onClose});
 
   @override
   Widget build(final BuildContext context) => PopScope(
@@ -1453,7 +1535,7 @@ class _IssuingDialog extends StatelessWidget {
           child: Material(
             type: MaterialType.transparency,
             child: SizedBox(
-              width: 300,
+              width: 320,
               child: TicketPiece(
                 perforated: TicketEdge.bottom,
                 shadows: AppShadows.level4(TicketInk.ink),
@@ -1463,11 +1545,11 @@ class _IssuingDialog extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const TicketHeaderStrip(kind: 'BİLET'),
+                      const TicketHeaderStrip(kind: 'ÖDEME'),
                       const SizedBox(height: AppSpacing.xl),
                       Semantics(
                         liveRegion: true,
-                        label: 'Biletin kesiliyor, lütfen bekle',
+                        label: 'Ödemen doğrulanıyor, lütfen bekle',
                         excludeSemantics: true,
                         child: Row(
                           children: [
@@ -1481,11 +1563,27 @@ class _IssuingDialog extends StatelessWidget {
                             ),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
-                              child: Text('Biletin kesiliyor…',
+                              child: Text('Ödemen doğrulanıyor…',
                                   style: TicketInk.value(size: 15)),
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Bankadan onay gelince biletin kesilecek. Bu birkaç '
+                        'saniye sürebilir; pencereyi kapatsan da doğrulama '
+                        'devam eder.',
+                        style: TextStyle(
+                          color: TicketInk.inkSoft(0.72),
+                          fontSize: 13,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Center(
+                        child: TicketTextLink(
+                            label: 'Arka planda bekle', onTap: onClose),
                       ),
                     ],
                   ),
@@ -1501,12 +1599,14 @@ class _IssuingDialog extends StatelessWidget {
 class _TicketIssuedDialog extends StatefulWidget {
   final List<String> seats;
   final double total;
+  final bool free;
   final VoidCallback onMyTickets;
   final VoidCallback onHome;
 
   const _TicketIssuedDialog({
     required this.seats,
     required this.total,
+    required this.free,
     required this.onMyTickets,
     required this.onHome,
   });
@@ -1607,8 +1707,10 @@ class _TicketIssuedDialogState extends State<_TicketIssuedDialog>
                             ),
                             const SizedBox(width: AppSpacing.lg),
                             TicketField(
-                              label: 'ÖDENEN',
-                              value: ticketPriceTl(widget.total),
+                              label: widget.free ? 'ÜCRET' : 'ÖDENEN',
+                              value: widget.free
+                                  ? 'Ücretsiz'
+                                  : ticketPriceTl(widget.total),
                               align: CrossAxisAlignment.end,
                             ),
                           ],

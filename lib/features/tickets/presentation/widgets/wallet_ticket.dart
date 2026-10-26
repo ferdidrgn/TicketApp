@@ -80,9 +80,10 @@ String ticketSeatsLabel(final DetailedTicket t) =>
 String ticketSeatsValue(final DetailedTicket t) =>
     t.ticket.buySeats.isEmpty ? '—' : t.ticket.buySeats.join(', ');
 
-/// Kayıtlı ödeme yöntemi kodunu okunur hâle getirir ("card", "iban").
+/// Kayıtlı ödeme yöntemi kodunu okunur hâle getirir ("card", "free", "iban").
 String ticketPaymentLabel(final String method) => switch (method) {
       'card' => 'Kart',
+      'free' => 'Ücretsiz',
       'iban' => 'Havale / EFT',
       '' => '—',
       _ => method,

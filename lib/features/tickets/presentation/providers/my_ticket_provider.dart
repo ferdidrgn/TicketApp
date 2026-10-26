@@ -9,7 +9,6 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../data/repositories/ticket_repository_provider.dart';
 import '../../domain/entities/ticket.dart';
-import '../../domain/usecases/create_ticket_use_case_impl.dart';
 import '../../domain/usecases/get_ticket_by_id_use_case.dart';
 import '../../domain/usecases/get_tickets_by_customer_id_use_case.dart';
 
@@ -65,10 +64,6 @@ GetTicketsByIdUseCase getTicketByIdUseCase(final Ref ref) =>
 @riverpod
 GetTicketsByCustomerIdUseCase getTicketByCustomerIdUseCase(final Ref ref) =>
     GetTicketByCustomerIdUseCaseImpl(ref.watch(ticketRepositoryProvider));
-
-@riverpod
-CreateTicketUseCase createTicketUseCase(final Ref ref) =>
-    CreateTicketUseCaseImpl(ref.watch(ticketRepositoryProvider));
 
 /// ==============================================================================
 /// 3. COMPOSITE PROVIDER (MAIN LOGIC)
