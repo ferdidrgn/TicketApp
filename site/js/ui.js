@@ -4,6 +4,7 @@ import './fx.js';
 import './ozellik.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme, favListe } from './fav.js';
+import { hesapDugmesi } from './auth.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt, ayniGun, tarihAyristir } from './util.js';
 
@@ -26,7 +27,7 @@ export function kabukCiz(aktif = '') {
   const nav = (id, href, ad, cls = '') => `<a href="${href}" class="${cls} ${aktif === id ? 'on' : ''}">${ad}</a>`;
   $('#hdr').outerHTML = `
   <div class="util"><div class="wrap"><span>Tiyatro bileti ve program rehberi</span>
-    <div class="util-r"><a href="/yardim">Yardım</a><a href="mailto:info@tiyatrol.com">info@tiyatrol.com</a><a href="/uygulama">Uygulamayı indir</a></div></div></div>
+    <div class="util-r"><a href="/biletlerim">Biletlerim</a><a href="/yardim">Yardım</a><a href="mailto:info@tiyatrol.com">info@tiyatrol.com</a><a href="/uygulama">Uygulamayı indir</a></div></div></div>
   <header class="hdr" id="hdr">
     <div class="wrap hdr-main">
       <a href="/" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
@@ -39,7 +40,7 @@ export function kabukCiz(aktif = '') {
       <div class="hdr-act">
         <button class="icon-btn" id="tema-ac" aria-label="Görünüm ayarları">${ICON.palette}</button>
         <a class="icon-btn fav-link" href="/favoriler" aria-label="Favorilerim">${ICON.heart}<i class="fav-n" id="fav-n"></i></a>
-        <a class="icon-btn" href="/uygulama" aria-label="Uygulama">${ICON.user}</a>
+        <div id="hesap"></div>
       </div>
     </div>
     <nav class="nav" aria-label="Ana menü"><div class="wrap" id="nav">
@@ -53,15 +54,16 @@ export function kabukCiz(aktif = '') {
     <div class="ftr-grid">
       <div><a href="/" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
-      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
+      <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/biletlerim">Biletlerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="/uygulama">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/yonetim">Yönetim</a></div>
     </div>
     <div class="ftr-ad" aria-hidden="true">TİYATROL</div>
-    <div class="ftr-bot"><span>© ${new Date().getFullYear()} TiyatRol</span><span>Bilet satın alma uygulamada ya da organizatör sitesinde yapılır.</span></div>
+    <div class="ftr-bot"><span>© ${new Date().getFullYear()} TiyatRol</span><span>Biletler sitede, uygulamada ya da organizatörün kendi sayfasında alınır.</span></div>
   </div></footer>`;
   temaPaneli();
   ilSecici();
+  hesapDugmesi($('#hesap'));
   const favSay = () => { const n = favListe().length; const e = $('#fav-n'); if (e) { e.textContent = n || ''; e.style.display = n ? '' : 'none'; } };
   favSay(); document.addEventListener('fav-degisti', favSay);
   aramaKur();

@@ -2,7 +2,7 @@
 // alanları (sıradaki seans, yaşam döngüsü, fiyat aralığı) hesaplar.
 // Mobil uygulamayla aynı kurallar: Event.showId tek doğruluk kaynağıdır,
 // Show.eventsId yalnızca yedektir; tarihi geçen kayıtlar silinmez, "bitti" sayılır.
-import { db, collection, getDocs } from './firebase.js';
+import { db, collection, getDocs, EMU } from './firebase.js';
 import { tarihAyristir, sayi, gunBasi } from './util.js';
 import { ilBul } from './iller.js';
 
@@ -10,7 +10,7 @@ let cache = null;
 // ---------- Ham veri: sessionStorage önbelleği ----------
 // İlk ziyarette Firestore'dan okunur; sonraki sayfa geçişlerinde önbellekten ANINDA açılır, arka planda tazelenir.
 // Koltuk planı (Event.seats) siteye gerekmediği için önbelleğe/belleğe alınmaz.
-const ONBELLEK = 'tiyatrol.ham.v2', OMUR = 45 * 60 * 1000;
+const ONBELLEK = EMU ? 'tiyatrol.ham.emu' : 'tiyatrol.ham.v2', OMUR = 45 * 60 * 1000;
 const KOLEKSIYONLAR = ['Show', 'Event', 'Stage', 'Team', 'Player', 'Campaign', 'Review'];
 async function tazele() {
   const sonuc = await Promise.all(KOLEKSIYONLAR.map((a) => oku(a).catch(() => [])));

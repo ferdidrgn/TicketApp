@@ -6,6 +6,7 @@ import { paylasMenusu } from '../ozellik.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
+const biletUrl = (e) => `/koltuk/${encodeURIComponent(e.docId || e.id)}`;
 yukle().then(ciz).catch(hata);
 
 const kalpB = (id) => `<button type="button" class="kalp-b ${favMi(id) ? 'on' : ''}" data-fav="${id}" aria-pressed="${favMi(id)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Favori</button>`;
@@ -25,7 +26,7 @@ function ciz(d) {
     const e = seanslar[st.i];
     const al = s.external
       ? `<div class="dis-banner"><b>${DIS_IKON}Biletler başka platformda</b><p>Bu oyunun biletleri <strong>${esc(alan || 'organizatörün sitesinde')}</strong> üzerinden satılır. TiyatRol seni doğru sayfaya götürür.</p><a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} sitesinden al</a></div>`
-      : (s.state === 'bitti' ? '' : `<a class="btn btn-primary" href="/uygulama">Bileti uygulamada al</a>`);
+      : (s.state === 'bitti' || !e ? '' : `<a class="btn btn-primary" href="${biletUrl(e)}">Bilet al${e.priceNum === 0 ? ' · Ücretsiz' : ''}</a>`);
     return `<div class="ticket"><div class="head"><span>TiyatRol</span><span>${s.state === 'bitti' ? 'Sezon bitti' : 'Seans bileti'}</span></div>
       <div class="body">
         ${e ? `<div class="fields"><div class="fld"><small>Tarih</small><b>${tarihUzun(e.when)}</b></div><div class="fld"><small>Saat</small><b>${saat(e.when)}</b></div>
@@ -45,7 +46,7 @@ function ciz(d) {
     const satir = ({ e, i }) => `<div class="sess ${i === st.i ? 'on' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${tarihUzun(e.when)} ${saat(e.when)} seansını seç"><div class="d"><b>${e.when.getDate()}</b><small>${AYLAR[e.when.getMonth()].slice(0, 3)}</small></div>
       <div><b>${esc(e.stage?.name || e.stageId || 'Sahne belirtilmedi')}</b><br><span class="muted">${gunKisa(e.when)} · ${saat(e.when)}</span></div>
       <div class="pr"><b>${e.priceNum ? tl(e.priceNum) : e.priceNum === 0 ? 'Ücretsiz' : ''}</b></div>
-      <span class="btn btn-sm ${i === st.i ? 'btn-primary' : 'btn-ghost'}">${i === st.i ? 'Seçili' : 'Seç'}</span></div>`;
+      ${s.external ? `<span class="btn btn-sm ${i === st.i ? 'btn-primary' : 'btn-ghost'}">${i === st.i ? 'Seçili' : 'Seç'}</span>` : `<a class="btn btn-sm btn-primary" href="${biletUrl(e)}" aria-label="${tarihUzun(e.when)} ${saat(e.when)} seansı için bilet al">Bilet al</a>`}</div>`;
     const gecmis = s.sessions.filter((e) => e.when < new Date());
     return `${aylar.length > 1 ? `<div class="months"><button class="chip ${st.ay === 'hepsi' ? 'on' : ''}" data-ay="hepsi">Tümü</button>${aylar.map((a) => { const [y, m] = a.split('-'); return `<button class="chip ${st.ay === a ? 'on' : ''}" data-ay="${a}">${AYLAR[+m]} ${y}</button>`; }).join('')}</div>` : ''}
       <div class="sessions">${liste.map(satir).join('') || '<div class="empty">Yaklaşan seans yok.</div>'}</div>
@@ -64,7 +65,7 @@ function ciz(d) {
   const bolumler = [
     { id: 'hikaye', ad: 'Hikâye', html: s.description ? `<p class="story">${esc(s.description)}</p>` : '' },
     { id: 'bilgi', ad: 'Bilmeniz gerekenler', html: (() => {
-      const satir = [['Süre', s.duration], ['Ara', s.interval], ['Yaş önerisi', s.ageLimit && `${s.ageLimit}`], ['İçerik uyarısı', s.contentNotes], ['Tür', s.cat], ['Mekân', (yer && yer.name) || s.externalVenueName], ['Ulaşım', yer && yer.transit], ['Erişim', yer && yer.accessNotes], ['Bilet', s.external ? `${alan} üzerinden` : 'TiyatRol uygulaması']].filter(([, v]) => v);
+      const satir = [['Süre', s.duration], ['Ara', s.interval], ['Yaş önerisi', s.ageLimit && `${s.ageLimit}`], ['İçerik uyarısı', s.contentNotes], ['Tür', s.cat], ['Mekân', (yer && yer.name) || s.externalVenueName], ['Ulaşım', yer && yer.transit], ['Erişim', yer && yer.accessNotes], ['Bilet', s.external ? `${alan} üzerinden` : 'TiyatRol (site ve uygulama)']].filter(([, v]) => v);
       const ERIS = { AD: 'Sesli betimleme', CAP: 'Altyazılı', BSL: 'İşaret dili', R: 'Rahat gösterim', TS: 'İşaret dili' };
       const er = (s.accessKodlari || []).filter((k) => ERIS[k]);
       return satir.length > 2 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
@@ -75,7 +76,7 @@ function ciz(d) {
       if (s.ageLimit) q.push([`${s.name} için yaş sınırı var mı?`, `Önerilen yaş: ${s.ageLimit}.${s.contentNotes ? ` İçerik uyarısı: ${s.contentNotes}.` : ''}`]);
       if (yer && yer.name) q.push([`${s.name} nerede oynanıyor?`, `${yer.name}${yer.address ? `, ${yer.address}` : ''}.`]);
       if (s.next) q.push([`${s.name} bir sonraki seansı ne zaman?`, `${tarihUzun(s.next.when)} saat ${saat(s.next.when)}${s.next.stage ? `, ${s.next.stage.name}` : ''}.`]);
-      q.push([`${s.name} biletini nereden alırım?`, s.external ? `Biletler ${alan || 'organizatörün sitesi'} üzerinden satılıyor; TiyatRol bilet satışı yapmaz, seni doğru sayfaya yönlendirir.` : 'Bilet satın alma TiyatRol mobil uygulamasından yapılır; web sitesi program rehberidir.']);
+      q.push([`${s.name} biletini nereden alırım?`, s.external ? `Biletler ${alan || 'organizatörün sitesi'} üzerinden satılıyor; TiyatRol seni doğru sayfaya yönlendirir.` : 'Bu sayfada bir seans seçip Bilet al diyerek koltuğunu seçebilirsin; biletlerin hesabındaki Biletlerim sayfasında ve uygulamada görünür.']);
       window.__sss = q;
       return `<div>${q.map(([a, b]) => `<details><summary>${esc(a)}</summary><p>${esc(b)}</p></details>`).join('')}</div>`;
     })() },
@@ -101,10 +102,10 @@ function ciz(d) {
         ${s.description ? `<p class="op-lead">${esc(kisalt(s.description, 210))}</p>` : ''}
         ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${(() => { const dk = dakikaOku(s.duration); if (!s.duration) return ''; const bt = new Date(n.when.getTime() + dk * 60000); return `<div class="f"><small>Tahmini bitiş</small><b>${saat(bt)}</b></div>`; })()}${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
         <div class="op-act">
-          ${s.external ? `<a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} al ${DIS_IKON.replace('<svg', '<svg width="16" height="16"')}</a>` : `<a class="btn btn-primary" href="#seanslar">Seansları gör</a>`}
+          ${s.external ? `<a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} al ${DIS_IKON.replace('<svg', '<svg width="16" height="16"')}</a>` : (n ? `<a class="btn btn-primary" href="${biletUrl(n)}">Bilet al</a>` : `<a class="btn btn-primary" href="#seanslar">Seansları gör</a>`)}
           ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button><button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
       </div></div></section>
-  <div class="mini-bar" id="mini"><div class="wrap">${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="">` : ''}<b>${esc(s.name)}</b>${s.external ? `<a class="btn btn-primary btn-sm" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti al</a>` : `<a class="btn btn-primary btn-sm" href="#seanslar">Seanslar</a>`}</div></div>
+  <div class="mini-bar" id="mini"><div class="wrap">${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="">` : ''}<b>${esc(s.name)}</b>${s.external ? `<a class="btn btn-primary btn-sm" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti al</a>` : (n ? `<a class="btn btn-primary btn-sm" href="${biletUrl(n)}">Bilet al</a>` : `<a class="btn btn-primary btn-sm" href="#seanslar">Seanslar</a>`)}</div></div>
   <div class="wrap"><nav class="bar-nav" id="bnav" aria-label="Sayfa bölümleri">${bolumler.map((b) => `<a href="#${b.id}">${esc(b.ad)}</a>`).join('')}</nav>
   <div class="op-body"><div class="op-main">${bolumler.map((b) => `<section class="block" id="${b.id}"><h2>${esc(b.ad)}</h2>${b.html}</section>`).join('')}</div>
   <aside class="op-side" id="panel">${panel()}<a class="tiny" style="text-align:center" href="mailto:info@tiyatrol.com?subject=${encodeURIComponent('Hata bildir: ' + s.name)}&body=${encodeURIComponent(location.href)}">Bilgi hatalı mı? Bize bildir</a></aside></div></div>`;

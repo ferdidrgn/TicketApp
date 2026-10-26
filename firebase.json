@@ -374,6 +374,18 @@
           "destination": "/rehber.html"
         },
         {
+          "source": "/koltuk/**",
+          "destination": "/koltuk.html"
+        },
+        {
+          "source": "/odeme-sonuc",
+          "destination": "/odeme-sonuc.html"
+        },
+        {
+          "source": "/biletlerim",
+          "destination": "/biletlerim.html"
+        },
+        {
           "source": "/ayarlar",
           "destination": "/ayarlar.html"
         },

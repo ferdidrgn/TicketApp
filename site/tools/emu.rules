@@ -1,0 +1,14 @@
+rules_version = '2';
+// SADECE EMÜLATÖR TESTİ: bilet alma istemcisini denemek için sadeleştirilmiş kurallar. Üretim kuralları ../../firestore.rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function girisli() { return request.auth != null; }
+    match /User/{uid} {
+      allow read, create: if girisli() && request.auth.uid == uid;
+      allow update: if girisli() && request.auth.uid == uid && request.resource.data.role == resource.data.role;
+    }
+    match /Order/{id} { allow read: if girisli() && resource.data.customerId == request.auth.uid; }
+    match /Ticket/{id} { allow read: if girisli() && resource.data.customerId == request.auth.uid; }
+    match /{koleksiyon}/{id} { allow read: if koleksiyon in ['Show', 'Event', 'Stage', 'Team', 'Player', 'Campaign', 'Review', 'Seats']; }
+  }
+}
