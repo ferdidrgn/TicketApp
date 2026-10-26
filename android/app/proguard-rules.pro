@@ -36,13 +36,10 @@
 # ⚙️ 3. FLUTTER ENGINE & ÇEKİRDEK MOTOR KORUMASI
 # ------------------------------------------------------------------------------
 # Flutter motorunun C++ katmanı ile Java/Kotlin katmanı arasındaki JNI köprülerini korur
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.** { *; }
--keep class io.flutter.util.** { *; }
--keep class io.flutter.view.** { *; }
--keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
--keep class io.flutter.plugin.editing.** { *; }
+# Blanket "io.flutter.**" keep'leri KALDIRILDI (kod karartma metriği için).
+# Flutter Gradle eklentisi ve eklentilerin AAR'ları kendi consumer kurallarını
+# taşır; burada yalnız JNI ile çağrılan sınıf korunur.
+-keep class io.flutter.embedding.engine.FlutterJNI { *; }
 
 # ------------------------------------------------------------------------------
 # 🔥 4. FIREBASE & GOOGLE SERVİSLERİ
@@ -60,7 +57,7 @@
 -dontwarn com.google.android.gms.**
 
 # Google Play Güvenlik Duvarı ve App Check bütünlük kontrolü (Play Integrity)
--keep class com.google.android.play.core.** { *; }
+# (play.core blanket keep kaldırıldı — SDK kendi kurallarını taşır)
 
 # ------------------------------------------------------------------------------
 # ☕ 5. KOTLIN STANDART KÜTÜPHANESİ VE LIFECYCLE KORUMALARI
@@ -83,8 +80,6 @@
 -keepclassmembers class * {
     javax.crypto.** *;
 }
--keep class javax.crypto.** { *; }
--keep class java.security.** { *; }
 
 # ------------------------------------------------------------------------------
 # ⚡ 7. R8 AGRESİF OPTİMİZASYON DÖNGÜSÜ
@@ -94,7 +89,7 @@
 -allowaccessmodification
 
 # Runtime'da güvensiz döngü oluşturabilecek mizanpaj ve aritmetik sadeleştirmeleri hariç tutuyoruz
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+-optimizations !code/simplification/arithmetic
 
 # ------------------------------------------------------------------------------
 # 📱 8. ANDROID MANIFEST & LOKAL SİSTEM BİLEŞENLERİ

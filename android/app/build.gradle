@@ -64,7 +64,7 @@ android {
             debuggable = false
 
             ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
+                debugSymbolLevel = "FULL"
             }
 
             buildConfigField "boolean", "IS_RELEASE", "true"

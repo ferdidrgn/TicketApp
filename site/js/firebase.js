@@ -11,6 +11,7 @@ import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup,
   GoogleAuthProvider, signOut, sendPasswordResetEmail,
   createUserWithEmailAndPassword, updateProfile, connectAuthEmulator,
+  RecaptchaVerifier, signInWithPhoneNumber,
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   getStorage, ref as sRef, uploadBytes, getDownloadURL,
@@ -55,5 +56,5 @@ export async function fonksiyon(ad) {
 export {
   collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, limit, orderBy, arrayUnion, arrayRemove, getCountFromServer,
   onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut,
-  sendPasswordResetEmail, createUserWithEmailAndPassword, updateProfile, onSnapshot, sRef, uploadBytes, getDownloadURL,
+  sendPasswordResetEmail, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, onSnapshot, sRef, uploadBytes, getDownloadURL,
 };

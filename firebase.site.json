@@ -181,6 +181,11 @@
       ],
       "redirects": [
         {
+          "source": "/uygulama",
+          "destination": "https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp",
+          "type": 302
+        },
+        {
           "source": "/privacy.html",
           "destination": "/gizlilik",
           "type": 301

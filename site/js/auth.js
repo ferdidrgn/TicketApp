@@ -1,4 +1,4 @@
-// Oturum: Firebase Auth (e-posta/şifre + Google), giriş/kayıt modalı, ilk girişte User/{uid} oluşturma,
+// Oturum: Firebase Auth (Google + telefon/SMS — mobil uygulamayla aynı yöntemler), giriş/kayıt modalı, ilk girişte User/{uid} oluşturma,
 // başlıktaki hesap menüsü. Giriş yalnızca satın alma / koltuk / Biletlerim adımında istenir; site genelinde zorunlu değil.
 // Güvenlik: şifre hiçbir yerde saklanmaz/loglanmaz; hata mesajları Türkçe ve teknik ayrıntı sızdırmaz.
 import {
@@ -40,7 +40,13 @@ export function hataMetni(e) {
     'auth/popup-closed-by-user': 'Google penceresi kapatıldı.',
     'auth/cancelled-popup-request': 'Google penceresi kapatıldı.',
     'auth/popup-blocked': 'Tarayıcı Google penceresini engelledi. Açılır pencerelere izin ver.',
-    'auth/unauthorized-domain': 'Bu adresten Google ile giriş şu an kullanılamıyor. E-posta ile devam edebilirsin.',
+    'auth/unauthorized-domain': 'Bu adres Firebase Authentication yetkili alanlarına eklenmemiş. Yönetici: Authentication > Ayarlar > Yetkili alanlar.',
+    'auth/invalid-phone-number': 'Telefon numarası geçersiz. Örnek: 5xx xxx xx xx',
+    'auth/missing-phone-number': 'Telefon numaranı yaz.',
+    'auth/invalid-verification-code': 'Kod hatalı. Tekrar dene.',
+    'auth/code-expired': 'Kodun süresi doldu. Yeni kod iste.',
+    'auth/quota-exceeded': 'SMS kotası doldu. Biraz sonra tekrar dene veya Google ile gir.',
+    'auth/captcha-check-failed': 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar dene.',
     'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
     'auth/operation-not-allowed': 'Bu giriş yöntemi şu an kapalı.',
   }[k];
@@ -71,8 +77,19 @@ export const cikis = () => signOut(auth);
 let acik = null;
 const IKON_G = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5Z"/><path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.2 13.6a6 6 0 0 1 0-3.8V7.1H2.7a10 10 0 0 0 0 9.2l3.5-2.7Z"/><path fill="#EA4335" d="M12 6c1.5 0 2.9.5 4 1.6l3-3A10 10 0 0 0 2.7 7.1l3.5 2.7C7 7.800 9.300 6 12 6Z"/></svg>';
 
+/** Türkiye numarasını E.164'e çevirir: "0532 123 45 67" / "532…" / "+90…" -> "+905321234567"; geçersizse ''. */
+export function telefonE164(v) {
+  let d = String(v || '').replace(/[^\d+]/g, '');
+  if (d.startsWith('+')) return /^\+\d{10,14}$/.test(d) ? d : '';
+  d = d.replace(/^00/, '');
+  if (d.startsWith('90') && d.length === 12) d = d.slice(2);
+  if (d.startsWith('0')) d = d.slice(1);
+  return /^5\d{9}$/.test(d) ? `+90${d}` : '';
+}
+
 /**
- * Oturum yoksa giriş/kayıt modalını açar. Giriş olursa kullanıcıyı, vazgeçilirse null döner.
+ * Oturum yoksa giriş modalını açar (Google veya telefon + SMS kodu — mobil uygulamayla aynı yöntemler).
+ * Giriş olursa kullanıcıyı, vazgeçilirse null döner.
  * neden: modalda gösterilen kısa açıklama (ör. "Koltuk seçmek için giriş yap").
  */
 export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
@@ -82,7 +99,8 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
   let coz;
   const promise = new Promise((r) => { coz = r; });
   const onceki = document.activeElement;
-  const st = { mod: 'giris', mesaj: '', yukleniyor: false };
+  const st = { mod: 'giris', mesaj: '', yukleniyor: false, tel: '', ad: '' };
+  let onay = null, recaptcha = null;
   const bg = document.createElement('div');
   bg.className = 'auth-bg';
   bg.innerHTML = '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-b" tabindex="-1"></div>';
@@ -94,6 +112,7 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
     bg.classList.add('kapaniyor');
     document.removeEventListener('keydown', tus, true);
     document.body.classList.remove('modal-acik');
+    try { recaptcha?.clear(); } catch {}
     setTimeout(() => bg.remove(), 160);
     acik = null;
     try { onceki?.focus?.(); } catch {}
@@ -112,27 +131,25 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
   bg.addEventListener('mousedown', (e) => { if (e.target === bg) bitir(null); });
 
   const ciz = () => {
-    const kayit = st.mod === 'kayit', sifirla = st.mod === 'sifirla';
+    const kod = st.mod === 'kod';
     kutu.innerHTML = `
       <button type="button" class="auth-x" aria-label="Kapat" data-x>×</button>
       <div class="auth-baslik"><span class="auth-kicker">TiyatRol</span>
-        <h2 id="auth-b">${sifirla ? 'Şifreni sıfırla' : kayit ? 'Hesap oluştur' : 'Giriş yap'}</h2>
-        <p class="muted">${sifirla ? 'E-posta adresine bir sıfırlama bağlantısı göndereceğiz.' : esc(neden)}</p></div>
-      ${sifirla ? '' : `<button type="button" class="btn btn-ghost auth-google" data-g ${st.yukleniyor ? 'disabled' : ''}>${IKON_G}<span>Google ile devam et</span></button>
-        <div class="auth-ayrac"><span>ya da e-posta ile</span></div>`}
+        <h2 id="auth-b">${kod ? 'Doğrulama kodu' : 'Giriş yap'}</h2>
+        <p class="muted">${kod ? esc(`${st.tel} numarasına 6 haneli bir kod gönderdik.`) : esc(neden)}</p></div>
+      ${kod ? '' : `<button type="button" class="btn btn-ghost auth-google" data-g ${st.yukleniyor ? 'disabled' : ''}>${IKON_G}<span>Google ile devam et</span></button>
+        <div class="auth-ayrac"><span>ya da telefon numarası ile</span></div>`}
       <form novalidate data-f>
-        ${kayit ? '<label>Ad soyad<input name="ad" type="text" autocomplete="name" maxlength="80" required></label>' : ''}
-        <label>E-posta<input name="eposta" type="email" inputmode="email" autocomplete="email" maxlength="120" required></label>
-        ${sifirla ? '' : `<label>Şifre<input name="sifre" type="password" autocomplete="${kayit ? 'new-password' : 'current-password'}" minlength="6" maxlength="128" required></label>`}
+        ${kod
+          ? '<label>SMS kodu<input name="kod" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required></label>'
+          : `<label>Telefon<input name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="5xx xxx xx xx" maxlength="20" value="${esc(st.tel)}" required></label>
+             <label>Ad soyad <small class="muted">(ilk kez giriyorsan)</small><input name="ad" type="text" autocomplete="name" maxlength="80" value="${esc(st.ad)}"></label>`}
         <div class="auth-mesaj ${st.mesajTur || ''}" role="status" aria-live="polite">${esc(st.mesaj)}</div>
-        <button class="btn btn-primary auth-gonder" type="submit" ${st.yukleniyor ? 'disabled' : ''}>${st.yukleniyor ? 'Bekle…' : sifirla ? 'Bağlantı gönder' : kayit ? 'Kayıt ol' : 'Giriş yap'}</button>
+        <div id="auth-recaptcha"></div>
+        <button class="btn btn-primary auth-gonder" type="submit" ${st.yukleniyor ? 'disabled' : ''}>${st.yukleniyor ? 'Bekle…' : kod ? 'Doğrula ve gir' : 'SMS kodu gönder'}</button>
       </form>
-      <div class="auth-alt">
-        ${sifirla ? '<button type="button" class="link-btn" data-mod="giris">Girişe dön</button>'
-          : kayit ? 'Zaten hesabın var mı? <button type="button" class="link-btn" data-mod="giris">Giriş yap</button>'
-          : '<button type="button" class="link-btn" data-mod="sifirla">Şifremi unuttum</button><span aria-hidden="true">·</span><button type="button" class="link-btn" data-mod="kayit">Hesap oluştur</button>'}
-      </div>
-      ${kayit ? '<p class="tiny auth-not">Kayıt olarak <a href="/sartlar" target="_blank" rel="noopener">kullanım şartlarını</a> ve <a href="/gizlilik" target="_blank" rel="noopener">gizlilik politikasını</a> kabul etmiş olursun.</p>' : ''}`;
+      ${kod ? '<div class="auth-alt"><button type="button" class="link-btn" data-mod="giris">Numarayı değiştir</button></div>'
+            : '<p class="tiny auth-not">Devam ederek <a href="/sartlar" target="_blank" rel="noopener">kullanım şartlarını</a> ve <a href="/gizlilik" target="_blank" rel="noopener">gizlilik politikasını</a> kabul etmiş olursun.</p>'}`;
   };
   const odak = () => (kutu.querySelector('input') || kutu.querySelector('button'))?.focus();
   ciz(); requestAnimationFrame(odak);
@@ -143,7 +160,7 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
   kutu.addEventListener('click', async (e) => {
     if (e.target.closest('[data-x]')) return bitir(null);
     const m = e.target.closest('[data-mod]');
-    if (m) { st.mod = m.dataset.mod; st.mesaj = ''; ciz(); return odak(); }
+    if (m) { st.mod = m.dataset.mod; st.mesaj = ''; onay = null; ciz(); return odak(); }
     if (e.target.closest('[data-g]')) {
       st.yukleniyor = true; mesaj(''); ciz();
       try {
@@ -156,28 +173,28 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
     e.preventDefault();
     if (st.yukleniyor) return;
     const f = new FormData(e.target);
-    const eposta = String(f.get('eposta') || '').trim();
-    const sifre = String(f.get('sifre') || '');
-    const ad = String(f.get('ad') || '').trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(eposta)) { mesaj('Geçerli bir e-posta adresi yaz.'); ciz(); return kutu.querySelector('[name=eposta]')?.focus(); }
-    if (st.mod === 'kayit' && ad.length < 2) { mesaj('Adını ve soyadını yaz.'); ciz(); return kutu.querySelector('[name=ad]')?.focus(); }
-    if (st.mod !== 'sifirla' && sifre.length < 6) { mesaj('Şifre en az 6 karakter olmalı.'); ciz(); return kutu.querySelector('[name=sifre]')?.focus(); }
-    st.yukleniyor = true; mesaj(''); ciz();
+    if (st.mod === 'kod') {
+      const kod = String(f.get('kod') || '').replace(/\D/g, '');
+      if (kod.length !== 6) { mesaj('6 haneli kodu yaz.'); ciz(); return kutu.querySelector('[name=kod]')?.focus(); }
+      st.yukleniyor = true; mesaj(''); ciz();
+      try {
+        const r = await onay.confirm(kod);
+        return await basari(r.user, st.ad);
+      } catch (err) { st.yukleniyor = false; mesaj(hataMetni(err)); ciz(); kutu.querySelector('[name=kod]')?.focus(); }
+      return;
+    }
+    const tel = telefonE164(f.get('tel'));
+    st.ad = String(f.get('ad') || '').trim();
+    if (!tel) { st.tel = String(f.get('tel') || ''); mesaj('Geçerli bir telefon numarası yaz. Örnek: 5xx xxx xx xx'); ciz(); return kutu.querySelector('[name=tel]')?.focus(); }
+    st.tel = tel; st.yukleniyor = true; mesaj(''); ciz();
     try {
-      if (st.mod === 'sifirla') {
-        await sendPasswordResetEmail(auth, eposta);
-        st.yukleniyor = false; mesaj('Bağlantıyı gönderdik. Gelen kutunu (ve gereksiz klasörünü) kontrol et.', 'ok'); ciz(); return;
-      }
-      if (st.mod === 'kayit') {
-        const r = await createUserWithEmailAndPassword(auth, eposta, sifre);
-        try { await updateProfile(r.user, { displayName: ad }); } catch {}
-        return await basari(r.user, ad);
-      }
-      const r = await signInWithEmailAndPassword(auth, eposta, sifre);
-      return await basari(r.user);
+      try { recaptcha?.clear(); } catch {}
+      recaptcha = new RecaptchaVerifier(auth, 'auth-recaptcha', { size: 'invisible' });
+      onay = await signInWithPhoneNumber(auth, tel, recaptcha);
+      st.mod = 'kod'; st.yukleniyor = false; mesaj(''); ciz(); odak();
     } catch (err) {
-      st.yukleniyor = false; mesaj(hataMetni(err)); ciz();
-      kutu.querySelector(st.mod === 'sifirla' ? '[name=eposta]' : '[name=sifre]')?.focus();
+      try { recaptcha?.clear(); } catch {}
+      recaptcha = null; st.yukleniyor = false; mesaj(hataMetni(err)); ciz(); kutu.querySelector('[name=tel]')?.focus();
     }
   });
   acik = { promise };
@@ -194,11 +211,11 @@ export function hesapDugmesi(kap) {
   const kapat = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
   const guncelle = (u) => {
     btn.classList.toggle('girisli', !!u);
-    const bas = u ? String(u.displayName || u.email || '?').trim()[0]?.toUpperCase() : '';
+    const bas = u ? String(u.displayName || u.email || u.phoneNumber || '?').trim()[0]?.toUpperCase() : '';
     btn.innerHTML = u ? `<span class="hesap-bas" aria-hidden="true">${esc(bas)}</span>` : IKON_K;
     btn.setAttribute('aria-label', u ? `Hesabım: ${u.displayName || u.email}` : 'Giriş yap');
     menu.innerHTML = u
-      ? `<div class="hesap-ust"><b>${esc(u.displayName || 'Hesabım')}</b><small>${esc(u.email || '')}</small></div>
+      ? `<div class="hesap-ust"><b>${esc(u.displayName || 'Hesabım')}</b><small>${esc(u.email || u.phoneNumber || '')}</small></div>
          <a role="menuitem" href="/biletlerim">Biletlerim</a><a role="menuitem" href="/favoriler">Favorilerim</a>
          <button type="button" role="menuitem" data-cikis>Çıkış yap</button>`
       : '';

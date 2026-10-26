@@ -10,8 +10,8 @@ body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-event
 [data-mode="light"] body::before { filter: invert(1); opacity: .07; }
 .hdr, main, .ftr, .util { position: relative; z-index: 1; } .hdr { z-index: 50; }
 .toz { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.toz i { position: absolute; bottom: -20px; width: var(--s); height: var(--s); border-radius: 50%; background: color-mix(in srgb, var(--paper) 70%, transparent); opacity: 0; animation: toz var(--d) linear var(--g) infinite; }
-@keyframes toz { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: .55; } 88% { opacity: .4; } 100% { transform: translate(var(--x), -108vh); opacity: 0; } }
+.toz i { position: absolute; bottom: -20px; width: var(--s); height: var(--s); border-radius: 50%; background: color-mix(in srgb, var(--ink-2) 80%, transparent); opacity: 0; animation: toz var(--d) linear var(--g) infinite; }
+@keyframes toz { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: .7; } 88% { opacity: .5; } 100% { transform: translate(var(--x), -108vh); opacity: 0; } }
 
 /* perde ornamanı */
 .perde-orta { position: relative; display: grid; justify-items: center; gap: 14px; }
