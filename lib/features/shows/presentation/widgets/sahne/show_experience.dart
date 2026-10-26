@@ -29,6 +29,8 @@ import '../../../domain/entities/show.dart';
 import '../../../domain/next_session.dart';
 import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
+import '../../../../purchase/domain/entities/purchase_entities.dart';
+import '../../../../purchase/presentation/providers/purchase_provider.dart';
 import '../detail/show_detail_actions.dart';
 import '../detail/show_detail_data.dart';
 import 'show_session_extras.dart';
@@ -678,7 +680,7 @@ class _SidePanel extends StatelessWidget {
 // ALT ÇUBUK — TEK BİRİNCİL AKSİYON
 // ═════════════════════════════════════════════════════════════════════════════
 
-class _BuyBar extends StatelessWidget {
+class _BuyBar extends ConsumerWidget {
   final ShowDetailData data;
   final ShowSession? session;
   final bool busy;
@@ -694,12 +696,16 @@ class _BuyBar extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final double bottom = MediaQuery.paddingOf(context).bottom;
     final bool external = data.isExternal;
     final bool hasSession = session != null;
-    final bool canBuy = external || hasSession;
+    final SalesConfig sales = ref.watch(salesConfigProvider);
+    final double? sessionPrice = session?.price ?? data.lowestPrice;
+    final bool paid = !external && sessionPrice != null && sessionPrice > 0;
+    final bool closed = sales.isClosedFor(paid: paid);
+    final bool canBuy = external || (hasSession && !closed);
 
     final String top = external
         ? 'Biletler başka platformda'
@@ -712,7 +718,9 @@ class _BuyBar extends StatelessWidget {
         : (price != null ? '${skPrice(price)}\'den' : 'Fiyat seansta');
     final String cta = external
         ? 'Biletini bul'
-        : (hasSession ? 'Koltuk seç' : 'Yakında');
+        : (hasSession
+            ? sales.ctaLabel(paid: paid, fallback: 'Koltuk seç')
+            : 'Yakında');
 
     final Widget row = Row(
       children: [

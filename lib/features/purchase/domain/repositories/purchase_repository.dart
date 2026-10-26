@@ -14,6 +14,16 @@ abstract class PurchaseRepository {
   /// Ücretsiz sipariş onayı; oluşan bilet kimliklerini döner.
   Future<Either<Failure, List<String>>> confirmFree(final String orderId);
 
+  /// Rezervasyonu onaylar (ödeme sahnede); oluşan bilet kimliklerini döner.
+  Future<Either<Failure, List<String>>> confirmReservation(
+      final String orderId);
+
+  /// Kendi biletini iptal eder (sunucu süre/yöntem kuralını denetler).
+  Future<Either<Failure, void>> cancelTicket(final String ticketId);
+
+  /// `Config/satis` canlı akışı; belge yoksa varsayılan.
+  Stream<SalesConfig> watchSalesConfig();
+
   /// Siparişi canlı izler (ödeme sonucu burada görünür). Belge yoksa `null`.
   Stream<PurchaseOrder?> watchOrder(final String orderId);
 

@@ -61,6 +61,76 @@ class PaymentSession extends Equatable {
       [provider, paymentPageUrl, checkoutFormContent, token];
 }
 
+/// Satış modu (`Config/satis.mode`).
+enum SalesMode {
+  /// Ücretli bilet satışı kapalı (ücretsiz etkinlikler çalışır).
+  kapali,
+
+  /// Koltuk tutulur, ücret sahnede ödenir.
+  rezervasyon,
+
+  /// Kartla online ödeme de açık.
+  online;
+
+  static SalesMode parse(final Object? raw) => switch (raw) {
+        'kapali' => kapali,
+        'online' => online,
+        _ => rezervasyon,
+      };
+}
+
+/// `Config/satis` belgesi. Belge yoksa/bozuksa [defaults].
+class SalesConfig extends Equatable {
+  final SalesMode mode;
+
+  /// Kişi başı toplam en fazla rezervasyon (kesin kontrol sunucuda).
+  final int rezervasyonLimit;
+
+  /// Başlangıca en az bu kadar saat varsa bilet iptal edilebilir.
+  final int iptalSaat;
+
+  const SalesConfig({
+    this.mode = SalesMode.rezervasyon,
+    this.rezervasyonLimit = 3,
+    this.iptalSaat = 24,
+  });
+
+  static const SalesConfig defaults = SalesConfig();
+
+  factory SalesConfig.fromMap(final Map<String, dynamic>? d) {
+    if (d == null) {
+      return defaults;
+    }
+    int intOr(final Object? v, final int fallback, final int min) =>
+        v is num && v >= min ? v.toInt() : fallback;
+    return SalesConfig(
+      mode: SalesMode.parse(d['mode']),
+      rezervasyonLimit: intOr(d['rezervasyonLimit'], 3, 1),
+      iptalSaat: intOr(d['iptalSaat'], 24, 0),
+    );
+  }
+
+  /// Ücretli etkinlikte satış kapalı mı (ücretsiz etkinlikler hep açık).
+  bool isClosedFor({required final bool paid}) =>
+      paid && mode == SalesMode.kapali;
+
+  /// Oyun detayındaki satın alma düğmesi etiketi. [fallback] satış
+  /// açık/ücretsiz durumdaki mevcut etiket ("Bilet al" / "Koltuk seç").
+  String ctaLabel({required final bool paid, final String fallback = 'Bilet al'}) {
+    if (!paid) {
+      return fallback;
+    }
+    return switch (mode) {
+      SalesMode.kapali => 'Satış kapalı',
+      SalesMode.rezervasyon => 'Rezervasyon yap',
+      SalesMode.online => fallback,
+    };
+  }
+
+  @override
+  List<Object?> get props => [mode, rezervasyonLimit, iptalSaat];
+}
+
 enum OrderStatus {
   held,
   paying,

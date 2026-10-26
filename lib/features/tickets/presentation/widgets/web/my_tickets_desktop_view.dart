@@ -91,7 +91,7 @@ class _MyTicketsDesktopBodyState extends ConsumerState<_MyTicketsDesktopBody>
 
     String? summary;
     if (tickets != null && tickets.isNotEmpty) {
-      final int up = tickets.upcoming.length, past = tickets.past.length;
+      final int up = tickets.upcoming.length, past = tickets.history.length;
       summary = up == 0
           ? 'Yaklaşan biletin yok; $past geçmiş bilet.'
           : '$up yaklaşan, $past geçmiş bilet.';
@@ -163,7 +163,7 @@ class _MyTicketsDesktopBodyState extends ConsumerState<_MyTicketsDesktopBody>
           );
         }
         final upcoming = tickets.upcoming;
-        final past = tickets.past;
+        final past = tickets.history;
         return _DesktopColumns(
           upcoming: [
             if (upcoming.isEmpty)

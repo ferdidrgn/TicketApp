@@ -40,6 +40,19 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
       _run(() => remoteDataSource.confirmFree(orderId));
 
   @override
+  Future<Either<Failure, List<String>>> confirmReservation(
+          final String orderId) =>
+      _run(() => remoteDataSource.confirmReservation(orderId));
+
+  @override
+  Future<Either<Failure, void>> cancelTicket(final String ticketId) =>
+      _run(() => remoteDataSource.cancelTicket(ticketId));
+
+  @override
+  Stream<SalesConfig> watchSalesConfig() =>
+      remoteDataSource.watchSalesConfig();
+
+  @override
   Stream<PurchaseOrder?> watchOrder(final String orderId) =>
       remoteDataSource.watchOrder(orderId);
 

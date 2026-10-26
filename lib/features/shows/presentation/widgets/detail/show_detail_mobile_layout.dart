@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../purchase/domain/entities/purchase_entities.dart';
+import '../../../../purchase/presentation/providers/purchase_provider.dart';
 
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_motion.dart';
@@ -305,13 +308,16 @@ class _ShowDetailMobileLayoutState extends State<ShowDetailMobileLayout> {
   }
 }
 
-class _BuyBar extends StatelessWidget {
+class _BuyBar extends ConsumerWidget {
   final ShowDetailViewArgs args;
   const _BuyBar({required this.args});
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final ShowDetailData data = args.data;
+    final SalesConfig sales = ref.watch(salesConfigProvider);
+    final bool paid = (data.lowestPrice ?? 0) > 0;
+    final bool closed = sales.isClosedFor(paid: paid);
     final ColorScheme colors = Theme.of(context).colorScheme;
     final double? lowest = data.lowestPrice;
     final String? priceLabel =
@@ -371,13 +377,15 @@ class _BuyBar extends StatelessWidget {
         ],
         Expanded(
           child: FilledButton(
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              args.onBuy();
-            },
+            onPressed: closed
+                ? null
+                : () {
+                    HapticFeedback.mediumImpact();
+                    args.onBuy();
+                  },
             style: pill,
             child: Text(
-              'Bilet al',
+              sales.ctaLabel(paid: paid),
               style: listingUi(
                 color: colors.onPrimary,
                 size: 15,

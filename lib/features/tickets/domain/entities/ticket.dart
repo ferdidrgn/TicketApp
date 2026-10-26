@@ -14,6 +14,10 @@ class Ticket extends Equatable {
   /// okunabilir kalır. Eski biletlerde boş olabilir.
   final String showName, showImageUrl, stageName, eventDate;
 
+  /// Ödeme durumu: `pay_at_venue` | `paid` | `no_show` | `cancelled`.
+  /// Eski biletlerde boş. `usedAt` (girişte okutuldu) ve `cancelledAt` ISO metin.
+  final String paymentStatus, usedAt, cancelledAt;
+
   const Ticket({
     required this.id,
     required this.createdAt,
@@ -30,7 +34,15 @@ class Ticket extends Equatable {
     this.showImageUrl = '',
     this.stageName = '',
     this.eventDate = '',
+    this.paymentStatus = '',
+    this.usedAt = '',
+    this.cancelledAt = '',
   });
+
+  bool get isCancelled => paymentStatus == 'cancelled' || cancelledAt.isNotEmpty;
+  bool get isNoShow => paymentStatus == 'no_show';
+  bool get isPayAtVenue => paymentStatus == 'pay_at_venue';
+
 
   @override
   List<Object?> get props => [
@@ -49,5 +61,8 @@ class Ticket extends Equatable {
         showImageUrl,
         stageName,
         eventDate,
+        paymentStatus,
+        usedAt,
+        cancelledAt,
       ];
 }

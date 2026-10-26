@@ -14,6 +14,7 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../providers/my_ticket_provider.dart';
+import '../widgets/ticket_status.dart';
 import '../widgets/wallet_ticket.dart';
 
 /// BİLET ANI — satın alınmış bilet, karanlık sahnede gerçek bir giriş
@@ -321,7 +322,9 @@ class _MomentBody extends StatelessWidget {
             Expanded(
               flex: 3,
               child: TicketField(
-                label: 'ÖDENEN',
+                label: ticketPayState(t) == TicketPayState.venue
+                    ? 'SAHNEDE ÖDENECEK'
+                    : 'ÖDENEN',
                 value: ticketPaidLabel(t.ticket.orderPrice),
               ),
             ),
@@ -334,6 +337,24 @@ class _MomentBody extends StatelessWidget {
             ),
           ],
         ),
+        if (ticketPayState(t) != TicketPayState.unknown) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TicketStatusBadge(state: ticketPayState(t)),
+          ),
+          if (ticketPayState(t) == TicketPayState.venue) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Ödeme etkinlik günü sahnede alınır. Biletini girişte QR ile göster.',
+              style: TextStyle(
+                color: TicketInk.inkSoft(0.7),
+                fontSize: 12.5,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
       ],
     );
 
@@ -400,13 +421,15 @@ class _TicketLinks extends StatelessWidget {
     final bool canAddToCalendar =
         !ticket.isPast && show != null && eventDate != null;
 
-    if (show == null && stage == null) return const SizedBox.shrink();
-
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: 0,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        TicketCancelLink(
+          ticket: ticket,
+          onCancelled: () => Navigator.of(context).maybePop(),
+        ),
         if (show != null)
           TicketTextLink(
             label: 'Oyunu gör',
@@ -468,7 +491,8 @@ class _MomentStub extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final bool past = ticket.isPast;
+    final bool voided = ticket.isVoided;
+    final bool past = ticket.isPast || voided;
     final String id = ticket.ticket.id;
     final String serial =
         id.length > 10 ? id.substring(0, 10).toUpperCase() : id.toUpperCase();
@@ -505,7 +529,9 @@ class _MomentStub extends StatelessWidget {
       ),
       child: Semantics(
         image: true,
-        label: past
+        label: voided
+            ? 'Bilet QR kodu. Bu bilet geçersiz.'
+            : past
             ? 'Bilet QR kodu. Bu seans geçti.'
             : 'Bilet QR kodu, girişte görevliye göster',
         child: Stack(
@@ -513,10 +539,12 @@ class _MomentStub extends StatelessWidget {
           children: [
             Opacity(opacity: past ? 0.3 : 1, child: qr),
             if (past)
-              const ExcludeSemantics(
+              ExcludeSemantics(
                 child: TicketInkStamp(
-                  text: 'OYNANDI',
-                  appear: AlwaysStoppedAnimation<double>(1),
+                  text: voided
+                      ? (ticket.isCancelled ? 'İPTAL' : 'GELMEDİ')
+                      : 'OYNANDI',
+                  appear: const AlwaysStoppedAnimation<double>(1),
                 ),
               ),
           ],
@@ -528,13 +556,15 @@ class _MomentStub extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(past ? 'SEANS GEÇTİ' : 'GİRİŞTE GÖSTER',
+          Text(voided ? 'BİLET GEÇERSİZ' : past ? 'SEANS GEÇTİ' : 'GİRİŞTE GÖSTER',
               style: TicketInk.label()),
           const SizedBox(height: AppSpacing.md),
           revealedQr,
           const SizedBox(height: AppSpacing.md),
           Text(
-            past
+            voided
+                ? 'Bu bilet ile giriş yapılamaz.'
+                : past
                 ? 'Bu bilet artık bir hatıra.'
                 : 'Görevli bu kodu okutur; ekran parlaklığını açık tut.',
             textAlign: TextAlign.center,
