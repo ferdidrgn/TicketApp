@@ -1,6 +1,7 @@
 // Ortak arayüz: üst başlık + arama önerileri, altbilgi, tema paneli, kartlar, raylar.
 import { yukle } from './store.js';
 import './fx.js';
+import './izle.js';
 import './ozellik.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme, favListe } from './fav.js';
