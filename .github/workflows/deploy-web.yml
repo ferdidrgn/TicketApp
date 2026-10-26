@@ -1,89 +1,62 @@
-# ─────────────────────────────────────────────────────────────────────────
-# Deploy Web — Firebase Hosting (TicketApp / TiyatRol)
+# Deploy Web — yeni site (site/: saf HTML + CSS + ES modülleri) -> Firebase Hosting
 #
-# SADECE `main` dalına push'ta tetiklenir (repo'nun gerçek varsayılan
-# dalı `main` — `git remote show origin` ile doğrulandı). Flutter web'i
-# release modda derler, `scripts/deploy.sh` ile landing sitesini (landing/)
-# ve Flutter build çıktısını (build/web) tek bir `deploy/` klasöründe
-# birleştirir, sonra bu klasörü Firebase Hosting'e (proje: "ticketappflutter",
-# .firebaserc'ten okundu — hem "ana" hem "ekip" hosting target'ları
-# firebase.json'da tanımlı) yayınlar.
+# Flutter web artık yayınlanmıyor. `site/tools/build.mjs` siteyi ön-işler
+# (sitemap, JSON-LD, il/rehber sayfaları) ve `site-dist/` üretir; bu klasör
+# `firebase.site.json` (hedef: web -> .firebaserc'te "tiyatrol" sitesi) ile yayınlanır.
 #
-# GEREKLİ SECRET: FIREBASE_SERVICE_ACCOUNT
-# Bu workflow'da GERÇEK bir kimlik bilgisi YOK — sadece
-# `${{ secrets.FIREBASE_SERVICE_ACCOUNT }}` referansı var. Kullanıcı bunu
-# repo'ya KENDİSİ eklemeli. İki yöntem:
+# GEREKLİ SECRET: FIREBASE_SERVICE_ACCOUNT (servis hesabı JSON'u, ham).
+# Servis hesabında şu roller olmalı: Firebase Hosting Admin, Service Usage Consumer,
+# API Keys Viewer. (Eksik rol "403 Permission denied to get service
+# firebasehosting.googleapis.com" hatası verir.)
 #
-#   Yöntem 1 — Otomatik (önerilen):
-#     Yerel makinende, Firebase CLI kurulu ve `firebase login` yapılmış
-#     durumdayken repo kökünde şunu çalıştır:
-#
-#         firebase init hosting:github
-#
-#     Bu komut GitHub ile entegre olur, bir servis hesabı oluşturur ve
-#     `FIREBASE_SERVICE_ACCOUNT_<PROJE_ADI>` adıyla otomatik olarak bu
-#     repo'nun GitHub Actions secret'larına ekler. (Secret adı otomatik
-#     eklenen isimle bu dosyadakini eşleştirmen gerekir — ya secret'ı
-#     `FIREBASE_SERVICE_ACCOUNT` olarak yeniden adlandır ya da aşağıdaki
-#     `firebaseServiceAccount:` satırını CLI'nin oluşturduğu isimle
-#     güncelle.)
-#
-#   Yöntem 2 — Manuel:
-#     1. Firebase Console > Project Settings > Service Accounts.
-#     2. "Generate new private key" ile bir JSON dosyası indir
-#        (Firebase Hosting Admin rolüne sahip bir servis hesabı olmalı).
-#     3. GitHub repo > Settings > Secrets and variables > Actions >
-#        "New repository secret".
-#     4. Name: FIREBASE_SERVICE_ACCOUNT
-#        Value: indirilen JSON dosyasının TÜM içeriği (ham JSON, olduğu
-#        gibi yapıştır).
-# ─────────────────────────────────────────────────────────────────────────
+# Backend (functions/rules) BURADA deploy EDİLMEZ — sırası önemli, bkz. deploy-backend.yml.
 name: Deploy Web
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - "site/**"
+      - "firebase.site.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
 
 concurrency:
-  group: deploy-web-${{ github.ref }}
+  group: deploy-web
   cancel-in-progress: false
 
 jobs:
   deploy-web:
-    name: Build & Deploy (Firebase Hosting)
+    name: Build & Deploy (site/ -> Firebase Hosting)
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/setup-node@v4
         with:
-          # 🔥 DÜZELTME: Sabit "3.24.5" (Dart 3.5.4) artık pubspec.yaml'daki
-          # riverpod_generator ^3.0.3'ün gerektirdiği Dart ^3.7.0'ı
-          # karşılamıyor — "stable" kanalının güncelini kullanıyoruz.
-          channel: "stable"
-          cache: true
+          node-version: "20"
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Build site (prerender)
+        run: node site/tools/build.mjs
 
-      # scripts/deploy.sh landing/ + `flutter build web --release
-      # --base-href /app/` çıktısını deploy/ klasöründe birleştirir
-      # (firebase.json'daki "**/app/**" -> /app/index.html rewrite'ı
-      # bunu bekliyor). `--publish` GEÇİLMİYOR; asıl deploy bir sonraki
-      # adımda resmi Firebase Hosting action'ı ile yapılıyor.
-      - name: Build (flutter web + landing -> deploy/)
-        run: ./scripts/deploy.sh
+      - name: Sanity check
+        run: |
+          for f in index.html oyun.html sitemap.xml robots.txt app-ads.txt .well-known/assetlinks.json yonetim/index.html; do
+            test -s "site-dist/$f" || { echo "::error::site-dist/$f eksik"; exit 1; }
+          done
+          echo "site-dist: $(find site-dist -type f | wc -l) dosya"
+
+      - name: Write service account
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "::error::FIREBASE_SERVICE_ACCOUNT secret'ı tanımlı değil"; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
 
       - name: Deploy to Firebase Hosting (live)
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-          projectId: ticketappflutter
-          channelId: live
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx -y firebase-tools@14 deploy --only hosting:web --config firebase.site.json --project ticketappflutter --non-interactive

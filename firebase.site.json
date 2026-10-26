@@ -6,6 +6,7 @@
       "ignore": [
         "firebase.json",
         "**/.*",
+        "!**/.well-known/**",
         "**/node_modules/**"
       ],
       "cleanUrls": true,
@@ -47,6 +48,24 @@
             {
               "key": "Cache-Control",
               "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        },
+        {
+          "source": "/.well-known/apple-app-site-association",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
             }
           ]
         }
@@ -159,6 +178,58 @@
       ],
       "predeploy": [
         "node site/tools/build.mjs"
+      ],
+      "redirects": [
+        {
+          "source": "/privacy.html",
+          "destination": "/gizlilik",
+          "type": 301
+        },
+        {
+          "source": "/terms.html",
+          "destination": "/sartlar",
+          "type": 301
+        },
+        {
+          "source": "/app",
+          "destination": "/",
+          "type": 301
+        },
+        {
+          "source": "/app/**",
+          "destination": "/",
+          "type": 301
+        },
+        {
+          "source": "/discover",
+          "destination": "/kesfet",
+          "type": 301
+        },
+        {
+          "source": "/search",
+          "destination": "/kesfet",
+          "type": 301
+        },
+        {
+          "source": "/nearby",
+          "destination": "/harita",
+          "type": 301
+        },
+        {
+          "source": "/profile",
+          "destination": "/ayarlar",
+          "type": 301
+        },
+        {
+          "source": "/settings",
+          "destination": "/ayarlar",
+          "type": 301
+        },
+        {
+          "source": "/notifications",
+          "destination": "/",
+          "type": 301
+        }
       ]
     }
   ]

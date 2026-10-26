@@ -1,0 +1,35 @@
+# Deploy Backend (MANUEL) — Cloud Functions ve Firestore kuralları/dizinleri.
+# SIRA ÖNEMLİ: önce "functions", mobil sürüm yayınlandıktan sonra "rules".
+# Rules'u fonksiyonlardan ÖNCE deploy etme (satın alma bozulur).
+name: Deploy Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Ne deploy edilsin?"
+        type: choice
+        options: [functions, rules-and-indexes]
+        default: functions
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install functions deps
+        if: ${{ inputs.target == 'functions' }}
+        run: npm ci --prefix functions
+      - name: Write service account
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          if [ "${{ inputs.target }}" = "functions" ]; then ONLY=functions; else ONLY=firestore; fi
+          npx -y firebase-tools@14 deploy --only $ONLY --project ticketappflutter --non-interactive

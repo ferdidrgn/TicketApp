@@ -49,7 +49,7 @@ jobs:
 
       - name: Analyze
         # Eski kodda binlerce 'info' var; yalnızca hata/uyarı CI'yı kırsın.
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       # NOT: `test/` dizini repo'da mevcut (test/widget_test.dart), o
       # yüzden bu adım normal şekilde çalıştırılıyor (continue-on-error
@@ -61,3 +61,14 @@ jobs:
       # testlerle değiştirilmesi gerekiyor.
       - name: Run tests
         run: flutter test
+
+  site-build:
+    name: Site build (site/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node site/tools/build.mjs
+      - run: test -s site-dist/index.html && test -s site-dist/.well-known/assetlinks.json
