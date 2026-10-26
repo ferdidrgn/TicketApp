@@ -124,3 +124,11 @@ Sahibi Flutter web'i bıraktırdı: **web sitesi artık `site/` klasöründe saf
 harici link). Giriş sadece mobilde + web yönetim paneli (`/yonetim`, Firebase Auth + `User.role == admin`,
 asıl güvenlik `firestore.rules`). Tema: `site/js/theme.js` (mod × palet × özel renk, ayar paneli başlıkta).
 Ayrıntı: `docs/WEB-SITESI.md`. Web tasarımı yaparken önce bu klasörü genişlet; Flutter `*_web.dart` sayfalarına yeni iş yazma.
+
+## Satış / ödeme (26.10.2026)
+Bilet satışı **güvenli Cloud Functions** üzerinden (`functions/`, `docs/ODEME-GUVENLIK.md`): holdSeats / confirmReservation / confirmFree / cancelTicket /
+startPayment (iyzico) / iyzicoCallback / expireHolds + admin callable'ları. Satış modu `Config/satis` (kapali | rezervasyon | online; varsayılan **rezervasyon**,
+ödeme sahnede; iyzico "çalışmıyor" gösterilir). İstemci `Event.seats` / `Ticket` / `Order` YAZAMAZ (rules). **`firestore.rules` ve functions deploy edilmeden
+mobil/web satın alma çalışmaz; rules'u fonksiyonlardan ÖNCE deploy etme.** Yeni site hosting'i ayrı config: `firebase.site.json`
+(`firebase deploy --only hosting:web --config firebase.site.json`); `firebase.json` hosting'i (ana/ekip) CI için değişmedi.
+

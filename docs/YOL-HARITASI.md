@@ -51,7 +51,7 @@ Bunlar Flutter dalı (`sahne-ui-v3`) için ayrı bir tur olarak yapılır.
 
 ## Güvenlik / yayın
 - `firestore.rules` yayınla; Auth yetkili alan adı; Storage `images/**` yalnızca admin
-- Hosting sitesi aç (`tiyatrol-web`), `firebase deploy --only hosting:web`
+- Hosting sitesi aç (`tiyatrol-web`), `firebase deploy --only hosting:web --config firebase.site.json`
 - Search Console: sitemap gönder; AdSense için gizlilik metnindeki `[Ad Soyad]`/`[Adres]` doldur
 
 

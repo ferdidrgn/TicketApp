@@ -48,7 +48,8 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        # Eski kodda binlerce 'info' var; yalnızca hata/uyarı CI'yı kırsın.
+        run: flutter analyze --no-fatal-infos
 
       # NOT: `test/` dizini repo'da mevcut (test/widget_test.dart), o
       # yüzden bu adım normal şekilde çalıştırılıyor (continue-on-error

@@ -11,14 +11,14 @@ python -m http.server 8200
 ```
 Sadece ana sayfa/Keşfet için yeterli. `/oyun/...` gibi temiz adresler için Firebase emülatörü kullan:
 ```bash
-firebase emulators:start --only hosting
+firebase emulators:start --only hosting:web --config firebase.site.json
 ```
 (`firebase.json` içindeki `web` hedefi `site/` klasörünü yayınlar.)
 
 ## Yayınlama
 1. Firebase Console → Hosting → "Başka site ekle" (ör. `tiyatrol-web`).
 2. `firebase target:apply hosting web tiyatrol-web`
-3. `firebase deploy --only hosting:web`
+3. `firebase deploy --only hosting:web --config firebase.site.json`
 Sonra istediğin alan adını bu siteye bağla (Hosting → Özel alan adı).
 
 ## Sayfalar
@@ -59,7 +59,7 @@ ekrana sabit renk gömülmez (bilet kâğıdı hariç).
 Sayfalar tarayıcıda JS ile çizilir; Google'ın boş HTML görmemesi için yayın öncesi
 `node site/tools/build.mjs` her oyun/sahne/oyuncu/topluluk için içeriği HTML'de olan sayfa
 (başlık, açıklama, Open Graph, JSON-LD `TheaterEvent`/`Person`/`PerformingArtsTheater`, iç bağlantılar),
-`sitemap.xml` ve `robots.txt` üretir (`site-dist/`). `firebase deploy --only hosting:web` bunu otomatik çalıştırır (`predeploy`).
+`sitemap.xml` ve `robots.txt` üretir (`site-dist/`). `firebase deploy --only hosting:web --config firebase.site.json` bunu otomatik çalıştırır (`predeploy`).
 Alan adı: `SITE_URL=https://alanadin.com node site/tools/build.mjs` (varsayılan https://tiyatrol.com).
 Kontrol: `curl https://adres/oyun/...` çıktısında oyun adı ve açıklama görünmeli; Search Console → Site Haritaları → `sitemap.xml` ekle.
 AdSense ayrıca özgün içerik, gizlilik/iletişim sayfası ve kendi alan adı ister.
