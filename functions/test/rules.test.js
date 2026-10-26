@@ -128,3 +128,38 @@ test('Ticket: admin durum/kullanım alanlarını istemciden değiştiremez (yaln
   await assertFails(updateDoc(doc(as('alice'), 'Ticket/t1'), { paymentStatus: 'cancelled' }));
   await assertSucceeds(getDoc(doc(as('admin1'), 'Ticket/t1')));
 });
+
+test('Stats ve NotificationLog: yalnızca admin okur; kimse (admin dahil) istemciden yazamaz', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'Stats/views/months/2026-10'), { total: 3, show_total: 3, show_s1: 3 });
+    await setDoc(doc(d, 'Stats/views/days/2026-10-26'), { total: 3 });
+    await setDoc(doc(d, 'NotificationLog/l1'), { sentBy: 'admin1', title: 'x', recipients: 2 });
+  });
+  for (const p of ['Stats/views/months/2026-10', 'Stats/views/days/2026-10-26', 'NotificationLog/l1']) {
+    await assertSucceeds(getDoc(doc(as('admin1'), p)));
+    await assertFails(getDoc(doc(as('alice'), p)));
+    await assertFails(getDoc(doc(anon(), p)));
+  }
+  await assertFails(setDoc(doc(as('admin1'), 'Stats/views/months/2026-10'), { total: 999 }));
+  await assertFails(updateDoc(doc(as('admin1'), 'Stats/views/days/2026-10-26'), { total: 999 }));
+  await assertFails(setDoc(doc(as('alice'), 'Stats/views/days/2026-10-27'), { total: 1 }));
+  await assertFails(setDoc(doc(anon(), 'Stats/views/days/2026-10-27'), { total: 1 }));
+  await assertFails(setDoc(doc(as('admin1'), 'NotificationLog/l2'), { sentBy: 'admin1' }));
+  await assertFails(deleteDoc(doc(as('admin1'), 'NotificationLog/l1')));
+  await assertFails(getDocs(collection(as('alice'), 'NotificationLog')));
+  await assertSucceeds(getDocs(collection(as('admin1'), 'NotificationLog')));
+});
+
+test('Config/bildirim: herkes okur; yalnızca admin yazar ve autoReminders mantıksal olmalı', async () => {
+  await assertSucceeds(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: false }));
+  await assertSucceeds(getDoc(doc(as('alice'), 'Config/bildirim')));
+  await assertFails(setDoc(doc(as('alice'), 'Config/bildirim'), { autoReminders: false }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: 'hayır' }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { baska: 1 }));
+});
+
+test('Notification: yönetici bile başkası adına uygulama içi bildirim yazamaz (duyuru yalnızca sunucudan)', async () => {
+  await assertFails(setDoc(doc(as('admin1'), 'Notification/n1'), { userId: 'alice', title: 'x', body: 'y', isRead: false }));
+  await assertFails(setDoc(doc(as('bob'), 'Notification/n2'), { userId: 'alice', title: 'x', body: 'y', isRead: false }));
+});

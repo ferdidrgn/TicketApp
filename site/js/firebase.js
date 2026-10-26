@@ -4,7 +4,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
   getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc,
-  serverTimestamp, query, where, limit, arrayUnion, arrayRemove, getCountFromServer,
+  serverTimestamp, query, where, limit, orderBy, arrayUnion, arrayRemove, getCountFromServer,
   onSnapshot, connectFirestoreEmulator,
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {
@@ -53,7 +53,7 @@ export async function fonksiyon(ad) {
   return fnModul.m.httpsCallable(fnModul.f, ad);
 }
 export {
-  collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, limit, arrayUnion, arrayRemove, getCountFromServer,
+  collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, limit, orderBy, arrayUnion, arrayRemove, getCountFromServer,
   onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut,
   sendPasswordResetEmail, createUserWithEmailAndPassword, updateProfile, onSnapshot, sRef, uploadBytes, getDownloadURL,
 };

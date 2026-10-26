@@ -57,4 +57,12 @@ function validateSeatIds(v) {
   return v;
 }
 
-module.exports = { err, parsePriceKurus, parseEventDateMs, kurusToTl, kurusStr, validateId, validateSeatIds };
+/** Sunucuda yönetici denetimi: User/{uid}.role == 'admin'. İstemci kontrolü güvenlik sayılmaz. */
+function makeAssertAdmin(db) {
+  return async (uid) => {
+    const u = await db.collection('User').doc(uid).get();
+    if (!u.exists || u.data().role !== 'admin') throw err('permission-denied', 'Bu işlem için yönetici yetkisi gerekir.');
+  };
+}
+
+module.exports = { makeAssertAdmin, err, parsePriceKurus, parseEventDateMs, kurusToTl, kurusStr, validateId, validateSeatIds };

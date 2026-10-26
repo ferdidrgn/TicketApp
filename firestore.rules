@@ -279,7 +279,8 @@ service cloud.firestore {
     // -------------------------------------------------------------------
     match /Config/{docId} {
       allow read: if true;
-      allow create, update: if isAdmin() && (docId != 'satis' || (
+      allow create, update: if isAdmin() && (docId != 'bildirim' || (
+        request.resource.data.autoReminders is bool)) && (docId != 'satis' || (
         request.resource.data.mode in ['kapali', 'rezervasyon', 'online'] &&
         request.resource.data.rezervasyonLimit is int &&
         request.resource.data.rezervasyonLimit >= 0 && request.resource.data.rezervasyonLimit <= 50 &&
@@ -288,7 +289,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // System — sistem sağlığı kalp atışı (expireHolds yazar, Admin SDK). Yalnızca admin okur.
+    // Stats — görüntülenme sayaçları (trackView yazar, Admin SDK). Yalnız admin okur; istemci yazamaz. Kişisel veri YOK.
+    match /Stats/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // NotificationLog — gönderilen bildirimlerin kaydı (adminSendNotification yazar). Yalnız admin okur.
+    match /NotificationLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // System — sistem sağlığı kalp atışı (expireHolds / eventReminders yazar, Admin SDK). Yalnızca admin okur.
     match /System/{docId} {
       allow read: if isAdmin();
       allow write: if false;

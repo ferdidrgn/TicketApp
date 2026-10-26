@@ -17,6 +17,16 @@ module.exports = {
   HEARTBEAT_STALE_MS: 15 * 60 * 1000, // expireHolds bu süredir çalışmadıysa panel kırmızı uyarır
   STUCK_GRACE_MS: 10 * 60 * 1000, // süresi bu kadar önce dolmuş ama hâlâ held/paying -> "takılı"
 
+  // Bildirim (docs/BILDIRIM-ISTATISTIK.md)
+  NOTIFY: {
+    TOPIC_ALL: 'all_users', ALARM_CHANNEL: 'tiyatrol_alarm', TITLE_MAX: 60, BODY_MAX: 240,
+    RATE: { max: 30, windowMs: 60 * 60 * 1000 }, // yönetici başına saatlik gönderim
+    TIMED_WINDOW_MS: 24 * 60 * 60 * 1000, // sahne şablonları yalnızca seanstan ±24 saat
+    MULTICAST_CHUNK: 500, MAX_INAPP_ALL: 5000, MAX_TICKETS_SCAN: 20000,
+    ALARM_TTL_MS: 2 * 60 * 1000, // alarm gecikirse anlamsız: 2 dk sonra düşer
+    REMINDER_STALE_MS: 45 * 60 * 1000, // eventReminders bu süredir çalışmadıysa panel uyarır (zamanlama: 15 dk)
+  },
+
   // Etkinlik tarihi "gg.aa.yyyy,ss:dd" yerel (Türkiye, UTC+3, DST yok) saat olarak yazılır.
   TZ_OFFSET_MIN: 180,
   ALLOWED_ORIGINS: [

@@ -244,8 +244,12 @@ kullanıcı tarafından **iptal edilemez** (`failed-precondition`, iade için il
 ### Sistem sağlığı (`adminHealth`, panelde "Biletler & Kapı")
 `expireHolds` her çalışmada `System/expireHolds` {lastRunAt, expiredOrders, settledPaid, releasedSeats} yazar (`System` yalnız admin okur).
 `adminHealth`: kalp atışı (15 dk'dan eskiyse `stale`, panel kırmızı), 10 dk'dan uzun süredir `held`/`paying` kalan siparişler,
-bugünkü/toplam rezervasyon ve ücretsiz bilet sayıları (İstanbul günü), `refundRequired` siparişler. Bugünkü sayı sorgusu için
+bugünkü/toplam rezervasyon ve ücretsiz bilet sayıları (İstanbul günü; **iptal edilenler sayılmaz**, ayrıca `cancelled:{today,total}`), hatırlatma görevi sağlığı (`reminders`), `refundRequired` siparişler. Bugünkü sayı sorgusu için
 `Ticket(orderMethod, _createdAt)` bileşik dizini `firestore.indexes.json`'a eklendi; **deploy'da indexes de yayınlanmalı**.
+
+### Bildirim, istatistik, sahne kumandası
+Görüntülenme sayacı (`trackView`), yönetim dashboard'u (`adminStats`), bildirim gönderme (`adminSendNotification`, alarm türü, şablonlar), otomatik hatırlatma (`eventReminders`) ve
+iptal edilenler listesi (`adminCancelled`): ayrıntı, kurulum, maliyet ve sınırlar **`docs/BILDIRIM-ISTATISTIK.md`**'de.
 
 ### Testler
 `npm --prefix functions run test:emulator`: 97 test (71 önceki + 26 yeni: `reservation.test.js`, `rules.test.js`, `callable.test.js`).

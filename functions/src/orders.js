@@ -433,7 +433,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   }
 
   /** Bileti iptal edip koltukları bırakır, sayacı düşürür. Transaction içinde, okumalar bitmiş olmalı. */
-  function applyCancel(tx, { ticketRef, ticketId, t, evRef, ev, limitsRef, limits, counterField, orderSnap, dec }) {
+  function applyCancel(tx, { ticketRef, ticketId, t, evRef, ev, limitsRef, limits, counterField, orderSnap, dec, by = 'customer', byUid = null }) {
     const seats = (ev && ev.seats) || {};
     const args = [];
     for (const sid of t.buySeats || []) {
@@ -441,7 +441,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (s && s.status === 'sold' && s.orderId === ticketId) args.push(...releaseArgs(sid));
     }
     if (args.length) tx.update(evRef, ...args);
-    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt: Timestamp.fromMillis(now()), _updatedAt: new Date(now()).toISOString() });
+    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt: Timestamp.fromMillis(now()), cancelledBy: by, ...(byUid ? { cancelledByUid: byUid } : {}), _updatedAt: new Date(now()).toISOString() });
     if (counterField && dec > 0) {
       tx.set(limitsRef, { [counterField]: Math.max(0, (limits[counterField] || 0) - dec) }, { merge: true });
     }
@@ -511,7 +511,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (target === 'cancelled') {
         applyCancel(tx, {
           ticketRef, ticketId, t, evRef, ev: evSnap.exists ? evSnap.data() : null, limitsRef, limits, orderSnap: null,
-          counterField: method === 'free' ? 'freeTickets' : method === 'venue' ? 'reservations' : null, dec: n,
+          counterField: method === 'free' ? 'freeTickets' : method === 'venue' ? 'reservations' : null, dec: n, by: 'admin', byUid: uid,
         });
         return { ok: true, paymentStatus: 'cancelled' };
       }
@@ -565,15 +565,28 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const lastRunAt = hbd && hbd.lastRunAt && typeof hbd.lastRunAt.toMillis === 'function' ? hbd.lastRunAt.toMillis() : null;
     const stuck = async (status) => (await orders().where('status', '==', status).where('expiresAt', '<=', grace).count().get()).data().count;
     const dayStart = new Date(Math.floor((t + cfg.TZ_OFFSET_MIN * 60000) / 864e5) * 864e5 - cfg.TZ_OFFSET_MIN * 60000).toISOString();
-    const cnt = async (method, today) => {
-      let q = db.collection('Ticket').where('orderMethod', '==', method);
-      if (today) q = q.where('_createdAt', '>=', dayStart);
-      return (await q.count().get()).data().count;
+    // İptal edilenler SAYILMAZ: aktif = oluşturulan - iptal edilen (aynı yöntem). Bugünkü "iptal edilen" sorgusu
+    // (orderMethod, paymentStatus, _createdAt) bileşik dizinini ister (firestore.indexes.json).
+    const base = (method) => db.collection('Ticket').where('orderMethod', '==', method);
+    const active = async (method, today) => {
+      const mk = (q) => (today ? q.where('_createdAt', '>=', dayStart) : q);
+      const [made, cx] = await Promise.all([
+        mk(base(method)).count().get(), mk(base(method).where('paymentStatus', '==', 'cancelled')).count().get(),
+      ]);
+      return Math.max(0, made.data().count - cx.data().count);
     };
-    const [held, paying, resToday, resTotal, freeToday, freeTotal, refundSnap, satis] = await Promise.all([
-      stuck('held'), stuck('paying'), cnt('venue', true), cnt('venue', false), cnt('free', true), cnt('free', false),
+    const cancelledTotal = async () => (await db.collection('Ticket').where('paymentStatus', '==', 'cancelled').count().get()).data().count;
+    // "Bugün iptal edilen" = iptal ANI bugün olan biletler (cancelledAt tek alan aralığı; yalnız iptal edilmişlerde bulunur).
+    const cancelledToday = async () => (await db.collection('Ticket').where('cancelledAt', '>=', Timestamp.fromMillis(Date.parse(dayStart))).count().get()).data().count;
+    const [held, paying, resToday, resTotal, freeToday, freeTotal, cxToday, cxTotal, refundSnap, satis, remHb, remConf] = await Promise.all([
+      stuck('held'), stuck('paying'), active('venue', true), active('venue', false), active('free', true), active('free', false),
+      cancelledToday(), cancelledTotal(),
       orders().where('refundRequired', '==', true).limit(50).get(), readSatis(),
+      db.collection('System').doc('eventReminders').get(), db.collection('Config').doc('bildirim').get(),
     ]);
+    const rh = remHb.exists ? remHb.data() : null;
+    const rLast = rh && rh.lastRunAt && typeof rh.lastRunAt.toMillis === 'function' ? rh.lastRunAt.toMillis() : null;
+    const rEnabled = !(remConf.exists && remConf.data().autoReminders === false);
     return {
       now: t, mode: satis.mode,
       heartbeat: {
@@ -584,6 +597,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       stuck: { held, paying },
       reservations: { today: resToday, total: resTotal },
       freeTickets: { today: freeToday, total: freeTotal },
+      cancelled: { today: cxToday, total: cxTotal },
+      reminders: {
+        enabled: rEnabled, lastRunAt: rLast, ageMinutes: rLast == null ? null : Math.max(0, Math.round((t - rLast) / 60000)),
+        sent24: rh ? rh.sent24 || 0 : 0, sent2: rh ? rh.sent2 || 0 : 0,
+        stale: rEnabled && (rLast == null || t - rLast > cfg.NOTIFY.REMINDER_STALE_MS),
+      },
       refundRequired: {
         count: refundSnap.size,
         orders: refundSnap.docs.map((d) => ({ orderId: d.id, total: d.data().total ?? null, paymentId: d.data().paymentId || null })),

@@ -9,10 +9,13 @@ const { defineSecret, defineString, defineBoolean } = require('firebase-function
 const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
 
 const cfg = require('./src/config');
-const { err } = require('./src/util');
+const { err, makeAssertAdmin } = require('./src/util');
 const { createService } = require('./src/orders');
+const { createStats } = require('./src/stats');
+const { createNotifier } = require('./src/notify');
 const { createProvider } = require('./providers');
 
 if (!getApps().length) initializeApp();
@@ -49,6 +52,12 @@ function getService(withSecrets) {
   });
 }
 
+function getStats() { return createStats({ db: getFirestore(), log: logger }); }
+function getNotifier() {
+  const db = getFirestore();
+  return createNotifier({ db, messaging: getMessaging(), assertAdmin: makeAssertAdmin(db), log: logger });
+}
+
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
   return async (request) => {
@@ -73,6 +82,12 @@ exports.cancelTicket = onCall(base, guarded((req) => getService(false).cancelTic
 exports.adminSetTicketStatus = onCall(base, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
 exports.adminCheckIn = onCall(base, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
 exports.adminHealth = onCall(base, guarded((req) => getService(false).adminHealth(req.auth.uid)));
+// İstatistik + bildirim (yönetici; yetki sunucuda). Ayrıntı: docs/BILDIRIM-ISTATISTIK.md
+exports.adminStats = onCall({ ...base, timeoutSeconds: 120, memory: '512MiB' },
+  guarded((req) => getStats().adminStats(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
+exports.adminCancelled = onCall(base, guarded((req) => getStats().adminCancelled(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
+exports.adminNotifyPreview = onCall(base, guarded((req) => getNotifier().adminNotifyPreview(req.auth.uid, req.data)));
+exports.adminSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getNotifier().adminSendNotification(req.auth.uid, req.data)));
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,
@@ -105,4 +120,28 @@ exports.expireHolds = onSchedule(
   async () => {
     const r = await getService(true).expireHolds();
     logger.info('expireHolds', r);
+  });
+
+/**
+ * Görüntülenme sayacı. Herkese açık ama: yalnız POST, izinli origin, bot UA'sı yok sayılır, IP hız sınırı (instance başına),
+ * yalnız var olan Show/Player/Stage/Team kimliği sayılır. Çerez/IP/UA SAKLANMAZ. Yanıt her zaman gövdesiz (204) -> bilgi sızdırmaz.
+ */
+exports.trackView = onRequest({ region: cfg.REGION, cors: origins, maxInstances: 5, memory: '256MiB', timeoutSeconds: 10 }, async (req, res) => {
+  try {
+    const r = await getStats().trackView({
+      method: req.method, body: req.body, ip: req.ip, ua: req.get('user-agent'), origin: req.get('origin'), allowedOrigins: origins,
+    });
+    res.status(r.status).end();
+  } catch (e) {
+    logger.error('trackView hata', { name: e && e.name, code: e && e.code });
+    res.status(204).end(); // sayaç hatası ziyaretçiyi etkilemez
+  }
+});
+
+/** Seansa ~24 saat ve ~2 saat kala biletlilere hatırlatma. Config/bildirim.autoReminders=false ile kapanır. Production'da Cloud Scheduler gerekir. */
+exports.eventReminders = onSchedule(
+  { region: cfg.REGION, schedule: 'every 15 minutes', timeZone: 'Europe/Istanbul', timeoutSeconds: 300 },
+  async () => {
+    const r = await getNotifier().eventReminders();
+    logger.info('eventReminders', r);
   });

@@ -35,8 +35,8 @@ before(async () => {
 });
 beforeEach(async () => { await clearDb(); });
 
-test('yetkisiz çağrı reddedilir (hepsi UNAUTHENTICATED)', async () => {
-  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree', 'confirmReservation', 'cancelTicket', 'adminSetTicketStatus', 'adminCheckIn', 'adminHealth']) {
+test('yetkisiz çağrı reddedilir (hepsi UNAUTHENTICATED)', { timeout: 240000 }, async () => {
+  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree', 'confirmReservation', 'cancelTicket', 'adminSetTicketStatus', 'adminCheckIn', 'adminHealth', 'adminStats', 'adminCancelled', 'adminNotifyPreview', 'adminSendNotification']) {
     const r = await call(n, { eventId: 'e', seatIds: ['A1'], orderId: 'o', provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app' });
     assert.equal(r.status, 401, n);
     assert.equal(r.body.error.status, 'UNAUTHENTICATED', n);
@@ -94,7 +94,7 @@ test('uçtan uca (gerçek index.js): varsayılan mod rezervasyon -> startPayment
   assert.equal(t.paymentStatus, 'pay_at_venue'); assert.equal(t.customerId, uid);
 
   // admin olmayan yönetici işlevlerini çağıramaz
-  for (const [n, d] of [['adminHealth', {}], ['adminCheckIn', { ticketId: t._id }], ['adminSetTicketStatus', { ticketId: t._id, paymentStatus: 'paid' }]]) {
+  for (const [n, d] of [['adminHealth', {}], ['adminStats', {}], ['adminNotifyPreview', { target: { type: 'all' } }], ['adminSendNotification', { target: { type: 'all' }, title: 'a', body: 'b', confirm: true }], ['adminCheckIn', { ticketId: t._id }], ['adminSetTicketStatus', { ticketId: t._id, paymentStatus: 'paid' }]]) {
     const r = await call(n, d, token);
     assert.equal(r.body.error.status, 'PERMISSION_DENIED', n);
   }
@@ -106,4 +106,38 @@ test('uçtan uca (gerçek index.js): varsayılan mod rezervasyon -> startPayment
   const hl = await call('adminHealth', {}, token);
   assert.equal(hl.status, 200);
   assert.equal(hl.body.result.reservations.total, 1);
+});
+
+test('trackView (gerçek index.js, HTTP): POST+izinli origin sayar; GET 405; kötü gövde 400; origin yok/bot/izinsiz sessiz 204 ve sayaç artmaz', async () => {
+  await db.collection('Show').doc('show1').set({ name: 'x' });
+  const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36';
+  const post = (body, headers = {}) => fetch(url('trackView'), { method: 'POST', headers: { 'Content-Type': 'text/plain', 'User-Agent': UA, Origin: 'https://tiyatrol-web.web.app', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+  const total = async () => { const d = (await db.collection('Stats').doc('views').collection('months').get()).docs[0]; return d ? d.data().total : 0; };
+  const r1 = await post({ k: 'show', id: 'show1' });
+  assert.equal(r1.status, 204);
+  assert.equal(await total(), 1);
+  assert.equal((await fetch(url('trackView'), { method: 'GET', headers: { Origin: 'https://tiyatrol-web.web.app' } })).status, 405);
+  assert.equal((await post('{bozuk')).status, 400);
+  assert.equal((await post({ k: 'show', id: '../x' })).status, 400);
+  assert.equal((await post({ k: 'show', id: 'show1' }, { Origin: 'https://evil.example' })).status, 204);
+  assert.equal((await post({ k: 'show', id: 'show1' }, { 'User-Agent': 'Googlebot/2.1' })).status, 204);
+  assert.equal((await fetch(url('trackView'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': UA }, body: JSON.stringify({ k: 'show', id: 'show1' }) })).status, 204); // origin yok
+  assert.equal(await total(), 1);
+  const pre = await fetch(url('trackView'), { method: 'OPTIONS', headers: { Origin: 'https://tiyatrol-web.web.app', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
+  assert.ok(pre.status < 300); assert.equal(pre.headers.get('access-control-allow-origin'), 'https://tiyatrol-web.web.app');
+});
+
+test('adminSendNotification (gerçek index.js, HTTP): yönetici olmayan reddedilir; yönetici kişiye gönderir (FCM yoksa başarısız sayılır, uygulama içi yazılır)', async () => {
+  const { token, uid } = await signUp('nf1@example.com');
+  const denied = await call('adminSendNotification', { target: { type: 'user', id: uid }, title: 'a', body: 'b' }, token);
+  assert.equal(denied.body.error.status, 'PERMISSION_DENIED');
+  await db.collection('User').doc(uid).set({ role: 'admin' });
+  const ok = await call('adminSendNotification', { target: { type: 'user', id: uid }, title: 'Test', body: 'Merhaba', requestId: 'e2e_istek_0001' }, token);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.result.recipients, 1); assert.equal(ok.body.result.withToken, 0); // token yok -> FCM'e hiç gidilmez
+  assert.equal((await db.collection('Notification').where('userId', '==', uid).get()).size, 1);
+  const again = await call('adminSendNotification', { target: { type: 'user', id: uid }, title: 'Test', body: 'Merhaba', requestId: 'e2e_istek_0001' }, token);
+  assert.equal(again.body.result.duplicate, true);
+  const st = await call('adminStats', {}, token);
+  assert.equal(st.status, 200); assert.equal(st.body.result.trend.months.length, 12);
 });

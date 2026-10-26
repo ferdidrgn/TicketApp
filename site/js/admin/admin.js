@@ -11,6 +11,8 @@ import { KOLEKSIYONLAR, SUTUN_ADI } from './schema.js';
 import { temaOku, temaYaz, temaSecenekleri } from '../theme.js';
 import { $, $$, esc, tarihAyristir, debounce } from '../util.js';
 import { biletKapi } from './kapi.js';
+import { dashboard } from './dashboard.js';
+import { sahneKumandasi } from './sahne.js';
 
 const app = $('#app');
 let kullanici = null;
@@ -98,6 +100,7 @@ function iskeletCiz() {
     <button class="nv" data-g="ozet">📊 Genel bakış</button>
     ${Object.entries(KOLEKSIYONLAR).map(([k, c]) => `<button class="nv" data-g="${k}">${c.ikon} ${c.ad}</button>`).join('')}
     <button class="nv" data-g="biletler">🎟️ Biletler &amp; Kapı</button>
+    <button class="nv" data-g="sahne">🎭 Sahne kumandası</button>
     <span class="sp"></span>
     <button class="nv" data-g="gorunum">🎨 Görünüm</button><button class="nv" data-g="yardim">❓ Yardım</button>
     <a class="nv btn" href="/" style="justify-content:flex-start;color:var(--ink-2)">↗ Siteyi aç</a>
@@ -112,22 +115,26 @@ function goster() {
   const m = $('#ana');
   if (gorunum === 'ozet') return ozet(m);
   if (gorunum === 'biletler') return biletKapi(m, { veri, bildir, hataMesaji });
+  if (gorunum === 'sahne') return sahneKumandasi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'gorunum') return gorunumAyari(m);
   if (gorunum === 'yardim') return yardim(m);
   return liste(m, gorunum);
 }
 
 // ---------- genel bakış ----------
+// Üstte DASHBOARD (istatistik, dashboard.js); altta içerik sayıları + hızlı işlemler.
 async function ozet(m) {
   const now = new Date();
   const yaklasan = veri.Event.filter((e) => { const d = tarihAyristir(e.date); return d && d >= now; }).length;
   const eksik = veri.Show.filter((s) => !s.imageUrl || !s.description).length;
-  m.innerHTML = `<div class="adm-top"><h1>Genel bakış</h1><button class="btn btn-ghost btn-sm" id="yenile">Yenile</button></div>
+  m.innerHTML = `<div id="dash"></div>
+    <div class="adm-top" style="margin-top:34px"><h2 style="font-size:24px;margin:0">İçerik</h2><button class="btn btn-ghost btn-sm" id="yenile">İçeriği yenile</button></div>
     <div class="stats">${Object.entries(KOLEKSIYONLAR).map(([k, c]) => `<button class="stat" data-g="${k}"><b>${veri[k].length}</b><span>${c.ikon} ${c.ad}</span></button>`).join('')}
     <button class="stat" data-g="Event"><b>${yaklasan}</b><span>⏳ Yaklaşan seans</span></button>
     <button class="stat" data-g="Show"><b>${eksik}</b><span>⚠️ Afişi/açıklaması eksik oyun</span></button></div>
     <h2 style="margin:34px 0 14px;font-size:24px">Hızlı işlemler</h2>
     <div class="tools"><button class="btn btn-primary" data-yeni="Show">+ Oyun ekle</button><button class="btn btn-ghost" data-yeni="Event">+ Seans ekle</button><button class="btn btn-ghost" data-yeni="Stage">+ Sahne ekle</button><button class="btn btn-ghost" data-yeni="Campaign">+ Kampanya ekle</button></div>`;
+  dashboard($('#dash', m), { veri, bildir, hataMesaji });
   $$('.stat', m).forEach((b) => b.addEventListener('click', () => { gorunum = b.dataset.g; goster(); }));
   $$('[data-yeni]', m).forEach((b) => b.addEventListener('click', () => form(b.dataset.yeni)));
   $('#yenile').addEventListener('click', async () => { await hepsiniYukle(); goster(); bildir('Güncellendi'); });
