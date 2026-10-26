@@ -59,4 +59,4 @@ jobs:
       - name: Deploy to Firebase Hosting (live)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx -y firebase-tools@14 deploy --only hosting:web --config firebase.site.json --project ticketappflutter --non-interactive
+        run: npx -y firebase-tools@14 deploy --only hosting:web,hosting:ekip --config firebase.site.json --project ticketappflutter --non-interactive
