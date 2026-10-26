@@ -9,6 +9,7 @@ class TicketModel {
   final List<String>? buySeats;
   final bool? isPast;
   final String? showName, showImageUrl, stageName, eventDate;
+  final String? paymentStatus, usedAt, cancelledAt;
 
   const TicketModel({
     this.id,
@@ -26,7 +27,14 @@ class TicketModel {
     this.showImageUrl,
     this.stageName,
     this.eventDate,
+    this.paymentStatus,
+    this.usedAt,
+    this.cancelledAt,
   });
+
+  static String? _ts(final Object? v) => v is Timestamp
+      ? v.toDate().toIso8601String()
+      : v?.toString();
 
   /// 🔥 Firestore'dan güvenli okuma
   factory TicketModel.fromFirestore(final Map<String, dynamic> data) =>
@@ -51,5 +59,8 @@ class TicketModel {
         showImageUrl: data['showImageUrl'] as String?,
         stageName: data['stageName'] as String?,
         eventDate: data['eventDate'] as String?,
+        paymentStatus: data['paymentStatus'] as String?,
+        usedAt: _ts(data['usedAt']),
+        cancelledAt: _ts(data['cancelledAt']),
       );
 }

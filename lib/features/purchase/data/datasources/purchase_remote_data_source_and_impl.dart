@@ -48,6 +48,9 @@ abstract class PurchaseRemoteDataSource {
   Future<PaymentSession> startPayment(
       final String orderId, final String returnUrl);
   Future<List<String>> confirmFree(final String orderId);
+  Future<List<String>> confirmReservation(final String orderId);
+  Future<void> cancelTicket(final String ticketId);
+  Stream<SalesConfig> watchSalesConfig();
   Stream<PurchaseOrder?> watchOrder(final String orderId);
   Future<List<PurchaseOrder>> getOpenOrders(final String userId);
 }
@@ -186,6 +189,24 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
     final r = await _call('confirmFree', {'orderId': orderId});
     return _strings(r['ticketIds']);
   }
+
+  @override
+  Future<List<String>> confirmReservation(final String orderId) async {
+    final r = await _call('confirmReservation', {'orderId': orderId});
+    return _strings(r['ticketIds']);
+  }
+
+  @override
+  Future<void> cancelTicket(final String ticketId) async {
+    await _call('cancelTicket', {'ticketId': ticketId});
+  }
+
+  @override
+  Stream<SalesConfig> watchSalesConfig() => firestore
+      .collection('Config')
+      .doc('satis')
+      .snapshots()
+      .map((final d) => SalesConfig.fromMap(d.data()));
 
   PurchaseOrder? _orderFrom(
       final DocumentSnapshot<Map<String, dynamic>> doc) {

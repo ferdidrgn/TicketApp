@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/purchase_entities.dart';
 import '../../domain/usecases/confirm_free_use_case_impl.dart';
+import '../../domain/usecases/confirm_reservation_use_case_impl.dart';
 import '../../domain/usecases/get_open_orders_use_case_impl.dart';
 import '../../domain/usecases/hold_seats_use_case_impl.dart';
 import '../../domain/usecases/release_hold_use_case_impl.dart';
@@ -68,6 +69,9 @@ class SeatPurchaseState {
 
   /// `completed` için: ücretsiz mi, koltuklar, tutar.
   final bool completedFree;
+
+  /// `completed` için: rezervasyon (ücret sahnede ödenecek) mi.
+  final bool completedReservation;
   final List<String> completedSeats;
   final double completedTotal;
 
@@ -77,6 +81,7 @@ class SeatPurchaseState {
     this.hold,
     this.notice,
     this.completedFree = false,
+    this.completedReservation = false,
     this.completedSeats = const [],
     this.completedTotal = 0,
   });
@@ -104,6 +109,7 @@ class SeatPurchaseState {
     final PurchaseNotice? notice,
     final bool clearNotice = false,
     final bool? completedFree,
+    final bool? completedReservation,
     final List<String>? completedSeats,
     final double? completedTotal,
   }) =>
@@ -113,6 +119,8 @@ class SeatPurchaseState {
         hold: clearHold ? null : (hold ?? this.hold),
         notice: clearNotice ? null : (notice ?? this.notice),
         completedFree: completedFree ?? this.completedFree,
+        completedReservation:
+            completedReservation ?? this.completedReservation,
         completedSeats: completedSeats ?? this.completedSeats,
         completedTotal: completedTotal ?? this.completedTotal,
       );
@@ -135,6 +143,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
   late ReleaseHoldUseCase _release;
   late StartPaymentUseCase _startPayment;
   late ConfirmFreeUseCase _confirmFree;
+  late ConfirmReservationUseCase _confirmReservation;
   late WatchOrderUseCase _watchOrder;
   late GetOpenOrdersUseCase _getOpenOrders;
   late DateTime Function() _now;
@@ -153,6 +162,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     _release = ref.read(releaseHoldUseCaseProvider);
     _startPayment = ref.read(startPaymentUseCaseProvider);
     _confirmFree = ref.read(confirmFreeUseCaseProvider);
+    _confirmReservation = ref.read(confirmReservationUseCaseProvider);
     _watchOrder = ref.read(watchOrderUseCaseProvider);
     _getOpenOrders = ref.read(getOpenOrdersUseCaseProvider);
     _now = ref.read(purchaseClockProvider);
@@ -429,15 +439,56 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     );
   }
 
+  /// Ücretli, sahnede ödemeli: `confirmReservation`. Koltuklar bilete
+  /// dönüşür; tutar etkinlik günü gişede ödenir.
+  Future<bool> confirmReservation() async {
+    final hold = state.hold;
+    if (hold == null || hold.free || state.phase != PurchasePhase.held) {
+      return false;
+    }
+    _set(state.copyWith(
+        phase: PurchasePhase.startingPayment, clearNotice: true));
+    final result = await _confirmReservation(hold.orderId);
+    if (_disposed) {
+      return false;
+    }
+    return result.fold(
+      (final f) {
+        if (f is PurchaseFailure && f.code == 'resource-exhausted') {
+          // Rezervasyon sınırı: koltukları boşuna tutma.
+          unawaited(_release(hold.orderId));
+          _resetToSelecting(message: f.message);
+        } else if (f is PurchaseFailure && f.isStale) {
+          _resetToSelecting(message: f.message);
+        } else {
+          _set(state.copyWith(
+              phase: PurchasePhase.held,
+              notice: PurchaseNotice(++_noticeSeq, f.message)));
+        }
+        return false;
+      },
+      (final _) {
+        _complete(
+            seats: hold.seatIds,
+            total: hold.total,
+            free: false,
+            reservation: true);
+        return true;
+      },
+    );
+  }
+
   void _complete(
       {required final List<String> seats,
       required final double total,
-      required final bool free}) {
+      required final bool free,
+      final bool reservation = false}) {
     _cancelTimers();
     unawaited(_stopTracking());
     _set(SeatPurchaseState(
       phase: PurchasePhase.completed,
       completedFree: free,
+      completedReservation: reservation,
       completedSeats: seats,
       completedTotal: total,
     ));

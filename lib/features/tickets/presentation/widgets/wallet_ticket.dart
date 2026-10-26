@@ -12,6 +12,7 @@ import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/seat_plan.dart' show ticketPriceTl;
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../providers/my_ticket_provider.dart';
+import 'ticket_status.dart';
 
 /// "BİLET DİLİ" — Biletlerim. Satın alınmış her bilet gerçek bir bilettir:
 /// solda gövde (afiş, oyun, sahne, saat, koltuk), delik çizgisinin sağında
@@ -84,6 +85,7 @@ String ticketSeatsValue(final DetailedTicket t) =>
 String ticketPaymentLabel(final String method) => switch (method) {
       'card' => 'Kart',
       'free' => 'Ücretsiz',
+      'venue' => 'Sahnede ödeme',
       'iban' => 'Havale / EFT',
       '' => '—',
       _ => method,
@@ -136,8 +138,15 @@ class _WalletTicketState extends State<WalletTicket> {
         : AppShadows.level1(shadowTint);
     final bool reduce = MediaQuery.of(context).disableAnimations;
 
+    final TicketPayState payState = ticketPayState(t);
+    final bool voided = t.isVoided;
+    final String payLabel = ticketPayStateLabel(payState);
+
     final String semantic = [
-      past ? 'Geçmiş bilet' : 'Yaklaşan bilet',
+      voided
+          ? (t.isCancelled ? 'İptal edilmiş bilet' : 'Gelmedi olarak işaretli bilet')
+          : (past ? 'Geçmiş bilet' : 'Yaklaşan bilet'),
+      if (payLabel.isNotEmpty && !voided) payLabel,
       ticketShowName(t),
       if (s.at != null) '${s.day} ${s.month} ${s.weekday}, saat ${s.time}',
       if (t.stageTitle.isNotEmpty) t.stageTitle,
@@ -189,14 +198,16 @@ class _WalletTicketState extends State<WalletTicket> {
           width: 2,
           child: const TicketPerforation(axis: Axis.vertical),
         ),
-        if (past)
+        if (past || voided)
           Positioned(
             right: stubW + AppSpacing.lg,
             bottom: AppSpacing.md,
-            child: const ExcludeSemantics(
+            child: ExcludeSemantics(
               child: TicketInkStamp(
-                text: 'OYNANDI',
-                appear: AlwaysStoppedAnimation<double>(1),
+                text: voided
+                    ? (t.isCancelled ? 'İPTAL' : 'GELMEDİ')
+                    : 'OYNANDI',
+                appear: const AlwaysStoppedAnimation<double>(1),
               ),
             ),
           ),
@@ -237,7 +248,7 @@ class _WalletTicketState extends State<WalletTicket> {
             offset: active && !reduce ? const Offset(0, -0.02) : Offset.zero,
             duration: AppMotion.fast,
             curve: AppMotion.standard,
-            child: ticket,
+            child: voided ? Opacity(opacity: 0.55, child: ticket) : ticket,
           ),
         ),
       ),
@@ -355,6 +366,14 @@ class _Body extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (ticketPayState(ticket) != TicketPayState.unknown) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child:
+                        TicketStatusBadge(state: ticketPayState(ticket)),
+                  ),
+                ],
               ],
             ),
           ),

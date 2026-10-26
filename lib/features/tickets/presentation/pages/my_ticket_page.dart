@@ -110,7 +110,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                   child: _TabSelector(
                     controller: _tabController,
                     upcomingCount: tickets?.upcoming.length,
-                    pastCount: tickets?.past.length,
+                    pastCount: tickets?.history.length,
                   ),
                 ),
               Expanded(
@@ -164,7 +164,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                             ),
                           ),
                           _TicketList(
-                            tickets: tickets.past,
+                            tickets: tickets.history,
                             gutter: gutter,
                             large: tablet,
                             onTicketTap: _showTicketDetails,

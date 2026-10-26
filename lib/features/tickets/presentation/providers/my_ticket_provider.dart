@@ -48,6 +48,11 @@ class DetailedTicket {
       ? show!.imageUrl.trim()
       : ticket.showImageUrl.trim();
 
+  bool get isCancelled => ticket.isCancelled;
+
+  /// Gelmedi (no_show) ya da iptal: izlenmiş sayılmaz.
+  bool get isVoided => ticket.isCancelled || ticket.isNoShow;
+
   /// Bilet arşivlenmiş mi: bağlı oyun/seans kaydı artık yok.
   bool get isArchived => show == null || event == null;
 }
@@ -154,8 +159,17 @@ Future<List<DetailedTicket>> myTickets(
 /// ==============================================================================
 extension DetailedTicketListX on List<DetailedTicket> {
   /// Gelecek biletler
-  List<DetailedTicket> get upcoming => where((final t) => !t.isPast).toList();
+  List<DetailedTicket> get upcoming =>
+      where((final t) => !t.isPast && !t.isCancelled).toList();
 
   /// Geçmiş biletler
-  List<DetailedTicket> get past => where((final t) => t.isPast).toList();
+  /// İzlenmiş sayılanlar: iptal / gelmedi HARİÇ (rozet, yorum bunu kullanır).
+  List<DetailedTicket> get past =>
+      where((final t) => t.isPast && !t.isVoided).toList();
+
+  /// "Geçmiş" sekmesi: izlenenler + iptal / gelmedi (soluk gösterilir).
+  List<DetailedTicket> get history => [
+        ...past,
+        ...where((final t) => t.isVoided && (t.isPast || t.isCancelled)),
+      ];
 }

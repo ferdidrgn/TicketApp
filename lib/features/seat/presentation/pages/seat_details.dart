@@ -24,6 +24,7 @@ import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../purchase/domain/entities/purchase_entities.dart';
 import '../../../purchase/presentation/pages/payment_web_view_page.dart';
+import '../../../purchase/presentation/providers/purchase_provider.dart';
 import '../../../purchase/presentation/providers/seat_purchase_controller.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -78,6 +79,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
   bool _reduceMotion = false;
   bool _verifyingOpen = false;
+
+  /// Online modda kullanıcının yöntem seçimi (`null` = varsayılan: kart).
+  bool? _cardChoice;
 
   late final _purchaseProvider = seatPurchaseControllerProvider(widget.eventId);
 
@@ -218,6 +222,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         seats: s.completedSeats,
         total: s.completedTotal,
         free: s.completedFree,
+        reservation: s.completedReservation,
         onMyTickets: () =>
             NavigationHandler.goToMyTickets(context, widget.customerId),
         onHome: () => NavigationHandler.goToHome(context),
@@ -259,6 +264,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         purchase.hold?.free ?? (event != null && unitPrice == 0);
     final double total =
         purchase.hold?.total ?? mine.length * unitPrice;
+    final SalesConfig sales = ref.watch(salesConfigProvider);
+    final bool payByCard =
+        sales.mode == SalesMode.online && (_cardChoice ?? true);
+    final bool salesClosed = !free && sales.mode == SalesMode.kapali;
 
     // Daha önce satın alınmış (bu kullanıcının biletinde olan) koltuklar.
     final Set<String> owned = _isGuest
@@ -318,7 +327,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       ),
     );
 
-    final VoidCallback? primaryAction = _primaryAction(purchase);
+    final VoidCallback? primaryAction = _primaryAction(purchase,
+        salesClosed: salesClosed, payByCard: payByCard);
     final _StubModel stubModel = _StubModel(
       phase: purchase.phase,
       seats: mine,
@@ -326,6 +336,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       total: total,
       free: free,
       isGuest: _isGuest,
+      sales: sales,
+      payByCard: payByCard,
+      salesClosed: salesClosed,
+      onMethod: sales.mode == SalesMode.online
+          ? (final card) => setState(() => _cardChoice = card)
+          : null,
       onPrimary: primaryAction,
       onSecondary: purchase.phase == PurchasePhase.held
           ? () => _ctrl.releaseHold()
@@ -384,11 +400,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   }
 
   /// Faz → tek birincil aksiyon.
-  VoidCallback? _primaryAction(final SeatPurchaseState s) {
+  VoidCallback? _primaryAction(final SeatPurchaseState s,
+      {required final bool salesClosed, required final bool payByCard}) {
     if (_isGuest) return () => NavigationHandler.goToLogin(context);
     switch (s.phase) {
       case PurchasePhase.selecting:
-        return s.selected.isEmpty
+        return s.selected.isEmpty || salesClosed
             ? null
             : () {
                 HapticFeedback.selectionClick();
@@ -396,7 +413,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
               };
       case PurchasePhase.held:
         if (s.hold?.free ?? false) return () => _ctrl.confirmFree();
-        return _beginPayment;
+        if (salesClosed) return null;
+        if (payByCard) return _beginPayment;
+        return () {
+          HapticFeedback.selectionClick();
+          _ctrl.confirmReservation();
+        };
       case PurchasePhase.awaitingPayment:
         return _beginPayment;
       case PurchasePhase.completed:
@@ -1037,6 +1059,10 @@ class _StubModel {
   final double total;
   final bool free;
   final bool isGuest;
+  final SalesConfig sales;
+  final bool payByCard;
+  final bool salesClosed;
+  final ValueChanged<bool>? onMethod;
   final VoidCallback? onPrimary;
   final VoidCallback? onSecondary;
 
@@ -1047,9 +1073,17 @@ class _StubModel {
     required this.total,
     required this.free,
     required this.isGuest,
+    required this.sales,
+    required this.payByCard,
+    required this.salesClosed,
+    required this.onMethod,
     required this.onPrimary,
     required this.onSecondary,
   });
+
+  /// Ödeme yöntemi seçici: ücretli, koltuklar tutulmuş, satış açık.
+  bool get showPicker =>
+      !isGuest && phase == PurchasePhase.held && !free && !salesClosed;
 
   bool get busy =>
       phase == PurchasePhase.holding ||
@@ -1059,11 +1093,17 @@ class _StubModel {
   String get primaryLabel {
     if (isGuest) return 'Giriş yap';
     return switch (phase) {
-      PurchasePhase.selecting =>
-        seats.isEmpty ? 'Koltuk seç' : 'Koltukları tut',
+      PurchasePhase.selecting => salesClosed
+          ? 'Satış kapalı'
+          : (seats.isEmpty ? 'Koltuk seç' : 'Koltukları tut'),
       PurchasePhase.holding => 'Koltuklar tutuluyor',
-      PurchasePhase.held => free ? 'Ücretsiz bileti al' : 'Ödemeye geç',
-      PurchasePhase.startingPayment => free ? 'Onaylanıyor' : 'Ödeme açılıyor',
+      PurchasePhase.held => free
+          ? 'Ücretsiz bileti al'
+          : (salesClosed
+              ? 'Satış kapalı'
+              : (payByCard ? 'Ödemeye geç' : 'Rezervasyonu onayla')),
+      PurchasePhase.startingPayment =>
+        free || !payByCard ? 'Onaylanıyor' : 'Ödeme açılıyor',
       PurchasePhase.awaitingPayment => 'Ödemeye devam et',
       PurchasePhase.verifying => 'Ödeme doğrulanıyor',
       PurchasePhase.completed => 'Biletlerime git',
@@ -1077,13 +1117,17 @@ class _StubModel {
   /// Fazına göre koçandaki yönlendirme metni.
   String get hint {
     if (isGuest) return 'Koltuk seçmek için önce giriş yapmalısın.';
+    if (salesClosed && phase == PurchasePhase.selecting) {
+      return 'Bilet satışı şu an kapalı.';
+    }
     return switch (phase) {
       PurchasePhase.selecting =>
         'Planda bir koltuğa dokun. En fazla $kMaxSeatsPerPurchase koltuk'
             '${unitPrice > 0 ? ', koltuk başı ${ticketPriceTl(unitPrice)}' : ''}.',
       PurchasePhase.holding => 'Koltukların senin için ayrılıyor…',
-      PurchasePhase.held =>
-        'Koltukların senin için ayrıldı. Süre dolmadan tamamla.',
+      PurchasePhase.held => salesClosed
+          ? 'Bilet satışı şu an kapalı.'
+          : 'Koltukların senin için ayrıldı. Süre dolmadan tamamla.',
       PurchasePhase.startingPayment => 'Bir saniye…',
       PurchasePhase.awaitingPayment =>
         'Ödeme başladı. Tamamlamadıysan kaldığın yerden devam edebilirsin.',
@@ -1131,7 +1175,11 @@ class _MobileStub extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.lg),
-        child: Column(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.55),
+          child: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1185,6 +1233,10 @@ class _MobileStub extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (model.showPicker) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          _PaymentMethodPicker(model: model),
+                        ],
                       ],
                     ),
             ),
@@ -1204,6 +1256,8 @@ class _MobileStub extends StatelessWidget {
               ),
             ],
           ],
+        ),
+          ),
         ),
       ),
     );
@@ -1310,6 +1364,10 @@ class _DesktopStub extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (model.showPicker) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _PaymentMethodPicker(model: model),
+                ],
                 const Spacer(),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
@@ -1364,6 +1422,161 @@ class _DesktopStub extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Ödeme yöntemi seçici: "Sahnede öde (rezervasyon)" ve "Kart ile öde
+/// (iyzico)". Satış moduna göre kart etkin ya da "Yakında" ile devre dışı.
+class _PaymentMethodPicker extends StatelessWidget {
+  final _StubModel model;
+
+  const _PaymentMethodPicker({required this.model});
+
+  @override
+  Widget build(final BuildContext context) {
+    final bool online = model.sales.mode == SalesMode.online;
+    final int limit = model.sales.rezervasyonLimit;
+    final int hours = model.sales.iptalSaat;
+    return Semantics(
+      container: true,
+      label: 'Ödeme yöntemi',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _MethodTile(
+            icon: Icons.storefront_outlined,
+            title: 'Sahnede öde (rezervasyon)',
+            body: 'Koltuk adına ayrılır, tutar gişede ödenir. Kişi başı '
+                'toplam en fazla $limit rezervasyon; etkinliğe $hours saat '
+                'kalana kadar iptal edebilirsin.',
+            selected: !model.payByCard,
+            enabled: true,
+            onTap: model.onMethod == null ? null : () => model.onMethod!(false),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _MethodTile(
+            icon: Icons.credit_card_outlined,
+            title: 'Kart ile öde (iyzico)',
+            body: online
+                ? 'Kartınla şimdi öde.'
+                : 'Şu anda ödeme sistemi çalışmıyor.',
+            badge: online ? null : 'Yakında',
+            selected: online && model.payByCard,
+            enabled: online,
+            onTap: online && model.onMethod != null
+                ? () => model.onMethod!(true)
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MethodTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final String? badge;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _MethodTile({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+    this.badge,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final Color accent = TicketInk.accentOf(context);
+    final Color line = selected ? accent : TicketInk.inkSoft(0.25);
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      label: '$title${badge == null ? "" : ", $badge"}. $body',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.6,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              border: Border.all(color: line, width: selected ? 2 : 1),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: 20,
+                  color: selected ? accent : TicketInk.inkSoft(0.5),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Icon(icon, size: 20, color: TicketInk.ink),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(title,
+                                style: const TextStyle(
+                                    color: TicketInk.ink,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14)),
+                          ),
+                          if (badge != null) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm, vertical: 2),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: TicketInk.inkSoft(0.5)),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(badge!,
+                                  style: TextStyle(
+                                      color: TicketInk.inkSoft(0.8),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(body,
+                          style: TextStyle(
+                              color: TicketInk.inkSoft(0.7),
+                              fontSize: 12,
+                              height: 1.35)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1600,6 +1813,7 @@ class _TicketIssuedDialog extends StatefulWidget {
   final List<String> seats;
   final double total;
   final bool free;
+  final bool reservation;
   final VoidCallback onMyTickets;
   final VoidCallback onHome;
 
@@ -1607,6 +1821,7 @@ class _TicketIssuedDialog extends StatefulWidget {
     required this.seats,
     required this.total,
     required this.free,
+    this.reservation = false,
     required this.onMyTickets,
     required this.onHome,
   });
@@ -1671,7 +1886,10 @@ class _TicketIssuedDialogState extends State<_TicketIssuedDialog>
                             Semantics(
                               liveRegion: true,
                               header: true,
-                              child: Text('Biletin alındı.',
+                              child: Text(
+                                  widget.reservation
+                                      ? 'Rezervasyonun alındı.'
+                                      : 'Biletin alındı.',
                                   style: TicketInk.headline(30)),
                             ),
                             Positioned(
@@ -1679,15 +1897,21 @@ class _TicketIssuedDialogState extends State<_TicketIssuedDialog>
                               top: -AppSpacing.xs,
                               child: ExcludeSemantics(
                                 child: TicketInkStamp(
-                                    text: 'ALINDI', appear: _thud),
+                                    text: widget.reservation
+                                        ? 'AYRILDI'
+                                        : 'ALINDI',
+                                    appear: _thud),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
-                          'Biletin "Biletlerim" sayfanda. Girişte QR kodunu '
-                          'göstermen yeterli.',
+                          widget.reservation
+                              ? 'Biletin "Biletlerim" sayfanda. Ödemeyi etkinlik '
+                                  'günü sahnede yaparsın; girişte QR kodunu göster.'
+                              : 'Biletin "Biletlerim" sayfanda. Girişte QR kodunu '
+                                  'göstermen yeterli.',
                           style: TextStyle(
                             color: TicketInk.inkSoft(0.72),
                             fontSize: 14,
@@ -1707,7 +1931,11 @@ class _TicketIssuedDialogState extends State<_TicketIssuedDialog>
                             ),
                             const SizedBox(width: AppSpacing.lg),
                             TicketField(
-                              label: widget.free ? 'ÜCRET' : 'ÖDENEN',
+                              label: widget.free
+                                  ? 'ÜCRET'
+                                  : (widget.reservation
+                                      ? 'SAHNEDE ÖDENECEK'
+                                      : 'ÖDENEN'),
                               value: widget.free
                                   ? 'Ücretsiz'
                                   : ticketPriceTl(widget.total),

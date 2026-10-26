@@ -19,5 +19,8 @@ extension TicketModelMapper on TicketModel {
         showImageUrl: showImageUrl ?? '',
         stageName: stageName ?? '',
         eventDate: eventDate ?? '',
+        paymentStatus: paymentStatus ?? '',
+        usedAt: usedAt ?? '',
+        cancelledAt: cancelledAt ?? '',
       );
 }
