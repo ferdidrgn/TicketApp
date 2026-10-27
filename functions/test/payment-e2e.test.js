@@ -4,7 +4,7 @@
 // functions/.secret.local'dan okur. Gerçek iyzico sandbox'ı DEĞİLDİR.
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, clearDb, seedEvent, setSatis, PROJECT } = require('./helpers');
+const { db, clearDb, seedEvent, setSatis, PROJECT, signInPhone, phoneFor } = require('./helpers');
 const { startMock } = require('./mock-iyzico/server');
 
 const FN = process.env.FUNCTIONS_EMULATOR_HOST || '127.0.0.1:5001';
@@ -19,7 +19,7 @@ async function signUp() {
     body: JSON.stringify({ email: `e2e${++n}_${Date.now()}@example.com`, password: 'Test1234!', returnSecureToken: true }),
   });
   const j = await r.json();
-  return { token: j.idToken, uid: j.localId };
+  return signInPhone(phoneFor(`e2e${n}`), j.idToken); // satış callable'ları doğrulanmış telefon ister (SMS akışı emülatörde)
 }
 async function call(name, data, token) {
   const r = await fetch(url(name), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ data }) });

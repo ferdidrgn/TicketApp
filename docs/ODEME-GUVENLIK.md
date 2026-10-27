@@ -254,3 +254,77 @@ iptal edilenler listesi (`adminCancelled`): ayrıntı, kurulum, maliyet ve sın�
 ### Testler
 `npm --prefix functions run test:emulator`: 97 test (71 önceki + 26 yeni: `reservation.test.js`, `rules.test.js`, `callable.test.js`).
 Mevcut ödeme testleri `Config/satis = online` ile çalışır (`helpers.makeService({satis})`, `setSatis`).
+
+## 15. Telefon doğrulamalı kimlik (27.10.2026)
+
+> İstemci geliştiricileri için kısa API özeti: **`docs/TELEFON-DOGRULAMA.md`**. Bu bölüm sunucu tasarımı ve güvenlik analizidir.
+
+**Amaç:** ücretsiz bilet (kişi başı toplam `FREE_TICKET_LIMIT = 3`) ve rezervasyon (`Config/satis.rezervasyonLimit`) hakları e-posta/Google
+hesabına değil **SMS ile doğrulanmış telefon numarasına** bağlıdır. Yeni e-posta açmak hak yenilemez; telefon doğrulaması olmadan hiçbir
+bilet/rezervasyon/koltuk tutma yapılamaz. Sınırlar (3 / rezervasyonLimit) ve `Config/satis` aynen kalır, yalnızca sayım anahtarı değişti.
+
+### Sözleşme
+- **Kaynak doğruluk:** callable'a gelen ID token'ındaki `phone_number` (E.164, `^\+[1-9]\d{6,14}$`). `User` belgesi, istemci gövdesi, e-posta bu amaçla ASLA kullanılmaz.
+- **Kapı:** `holdSeats`, `confirmFree`, `confirmReservation`, `startPayment`. Token'da geçerli `phone_number` yoksa (anonim, e-posta, Google, telefon bağlanmamış, eski token):
+  `HttpsError('failed-precondition', 'PHONE_REQUIRED', { code: 'PHONE_REQUIRED' })` — hiçbir yazım yapılmadan, diğer doğrulamalardan ÖNCE.
+  Kapı `index.js`'te token'dan `ctx.phone` olarak servise iletilir ve **servis katmanında** (`orders.js: who(ctx)`) denetlenir (testler servisi doğrudan çağırır).
+  `releaseHold`, `cancelTicket` ve `admin*` etkilenmez (iptal/bırakma telefonsuz da çalışır; telefon sonradan kalksa bile kullanıcı biletini iptal edebilir).
+- **`syncPhoneVerification`** (yeni callable, giriş yeterli, telefon gerekmez): token'da telefon varsa `User/{uid}` belgesine
+  `{phoneNumber, isPhoneActive:true, phoneKey, phoneVerifiedAt:serverTimestamp}` merge yazar (belge yoksa bu alanlarla oluşur; **`role`'e dokunmaz**) ve
+  `{isPhoneActive:true, phoneNumber}` döner. Telefon yoksa hata atmaz, `{isPhoneActive:false}` döner; belgede daha önce `true` ise `false`'a çeker
+  (telefon sonradan kaldırılmış olabilir). Aynı numarayı taşıyan, başka uid'lere ait `isPhoneActive:true` belgeler pasifleştirilir (savunma).
+- **İstemci yükümlülüğü:** telefon doğrulama/bağlama sonrası `getIdToken(true)` ve ardından `syncPhoneVerification`; `PHONE_REQUIRED` alınırsa SMS akışı -> token tazele -> tekrar dene.
+  Sunucu claim'e güvenir (aşağıya bakın): token tazelenmezse hata devam eder.
+
+### Limit anahtarı ve veri modeli
+- `UserLimits/ph_<sha256(e164 + tuz)>` **yetkili** sayaçtır: `freeTickets`, `reservations`, hold hız sınırı (`holdWindowStart/holdCount`).
+  Hesap silinip yeniden açılsa, yeni e-posta ile girilse de aynı numara = aynı belge. Hız sınırı da telefon anahtarlıdır (yeni hesaplarla dolaşılamaz).
+- `UserLimits/{uid}` artık **ayna + eski sayaç**: `{phoneKey (son kullanılan telefon), freeTickets, reservations}`. İstemci hâlâ kendi uid belgesini okuyabilir (kural değişmedi); telefon belgesini OKUYAMAZ.
+- `Order.phoneKey` (hold'da yazılır, onayda güncellenir): iptal/yönetici yolları sayacı doğru anahtara iade etmek için buradan okur. **Düz telefon numarası Limits/Order/Ticket/Notification'a yazılmaz**, yalnızca hash (test: `phone-gate.test.js`).
+  Ticket şeması değişmedi (anahtar, bilet kimliğiyle aynı kimlikli Order'da).
+- **Tuz:** `PHONE_HASH_SALT` (Functions string param). Boşsa depoda görünen türetim (`tiyatrol-phone-v1:<projectId>`) kullanılır: **zayıf** — 10 haneli TR GSM uzayı küçük olduğundan
+  tuz bilinirse hash'ler kaba kuvvetle geri çözülebilir. Üretimde rastgele uzun bir değer verin (örn. `PHONE_HASH_SALT=<openssl rand -hex 32>` ile `functions/.env.<projectId>` veya deploy sihirbazı).
+  **Yayın öncesi bir kez ayarlanır; sonradan DEĞİŞTİRMEYİN** (anahtarlar değişir, telefon sayaçları fiilen sıfırlanır; uid aynası kısmen telafi eder ama tam güvence değildir).
+  Daha sıkı istenirse `defineSecret`'e çevrilebilir.
+
+### Geçiş (mevcut uid-anahtarlı sayaçlar kaybolmaz) — seçilen yöntem ve gerekçe
+"İkisini birlikte say" yerine **"ilk telefonlu işlemde telefon sayacına tek seferlik taşı (max)"** seçildi:
+etkin sayaç = `max(telefon sayacı, uid aynası)`; uid aynası yalnızca **aynadaki `phoneKey` bu telefondan farklıysa** (ya da hiç yoksa = eski kayıt) dikkate alınır.
+Her başarılı sayaç artışında yeni değer iki yere de yazılır (telefon belgesi + uid aynası, aynaya bu `phoneKey` işlenir); taşıma böylece bir kez olur, sonrasında yalnızca telefon belgesi geçerlidir.
+Gerekçe: (1) iki sayacı toplamak aynı bileti iki kez sayardı (taşınanlar hem uid hem telefonda); (2) iptal iadesinin tek hedefi telefon belgesidir, uid aynası yalnızca taşıma köprüsüdür;
+(3) aynı uid telefon değiştirirse (`updatePhoneNumber`) önceki telefondaki sayaç yeni telefona taşınır -> numara değiştirerek limit kaçırılamaz.
+Eski (Order.phoneKey'i olmayan) biletlerin iptali, uid aynasında `phoneKey` yoksa yalnızca uid sayacını düşürür.
+
+### Güvenlik incelemesi (kapatılanlar ve kalanlar)
+| Yol | Durum |
+|---|---|
+| Yeni e-posta/Google hesabı ile 3 hak daha | **Kapatıldı:** sayaç telefon anahtarlı. |
+| Hesabı silip aynı numarayla yeniden açma | **Kapatıldı:** anahtar uid değil telefon; test var. |
+| Aynı uid'de `updatePhoneNumber` ile numara değiştirme | **Kapatıldı:** önceki numaradaki sayaç uid aynası üzerinden yeni numaraya taşınır; test var. |
+| Yeni SIM / yeni numara = yeni 3 hak | **Kalan risk (SMS doğrulamanın doğası):** başka bir numaraya erişen kişi yeni kişi sayılır, sunucu ayırt edemez. Önlem: SMS maliyeti/kotası, App Check (`ENFORCE_APP_CHECK`), Identity Platform SMS bölge sınırı (+90), yayında izleme. |
+| Aynı numarayı iki hesaba bağlama | Firebase Auth engeller (credential-already-in-use). Savunma: `syncPhoneVerification` eski sahibi pasifleştirir; limitler zaten numaraya bağlı. |
+| Numara başka kişiye geçti (operatör geri dönüşümü) | **Kalan risk (düşük):** yeni sahip önceki sahibin kullandığı hakları devralmış görünür; yönetici `UserLimits/ph_*` belgesini elle düzeltebilir. |
+| Eski token claim'i (telefon kaldırıldı, token ≤1 saat geçerli) | **Kabul edilen risk:** sunucu claim'e güvenir; kalan token süresi boyunca satış mümkün olabilir ama sayaç yine o numaraya yazılır (kaçış yok). İstemci `getIdToken(true)` yapar; `syncPhoneVerification` telefon yoksa `isPhoneActive:false` yazar. Gerekirse `revokeRefreshTokens` ile sertleştirilebilir. |
+| Token'da telefon yok / taklit | `phone_number` claim'ini yalnızca Firebase Auth imzalar; istemci üretemez. Telefonsuz token -> `PHONE_REQUIRED` (emülatör SMS akışıyla uçtan uca test). |
+| İstemcinin User.isPhoneActive/phoneNumber'ı kurcalaması | **Kapatıldı:** rules `true`/`phoneVerifiedAt`/`phoneKey` yazımını reddeder; `phoneNumber` yalnızca token'daki numarayla aynı olabilir. Sunucu `User.isPhoneActive`'e **güvenmez** (kapı token'dır); alan arayüz/rapor içindir. |
+| Eşzamanlı `confirmFree` (iki cihaz/iki uid, aynı numara) | **Kapatıldı:** limit kontrolü ve yazımı aynı transaction'da, aynı telefon belgesini okur/yazar -> Firestore çakışmada yeniden dener, biri `resource-exhausted` alır (test var). Not: `holdSeats` yalnızca KONTROL eder, sayaç artırmaz; limit asıl `confirm*` anında zorlanır (eski davranış). |
+| Sayaç belgesini istemciden sıfırlama | `UserLimits` yazımı kapalı (kural + test); telefon belgesi hiç okunamaz. |
+
+### Telefon numarası ve KVKK
+Numara kişisel veridir. Düz olarak yalnızca `User/{uid}.phoneNumber` içinde (kullanıcının kendi hesabı; zaten Firebase Auth'ta da kayıtlı) bulunur;
+limit/sipariş/bilet/bildirim belgelerine **yalnızca tuzlu hash** yazılır. Hash küçük numara uzayında geri çözülebilir olabilir -> tuzu gizli tutun, yedekleri/dışa aktarımları koruyun.
+Hesap silme talebinde `User/{uid}` ve uid ayna belgesi silinebilir; telefon sayaç belgesi (`ph_*`) **kasıtlı olarak** silinmez (suistimal önleme, meşru menfaat) — aydınlatma metnine eklenmeli:
+"ücretsiz bilet/rezervasyon hakkı sınırı için telefon numaranızın tuzlu özeti saklanır". SMS maliyeti Firebase Authentication (Identity Platform) tarafından faturalanır.
+
+### Sahibinin yapacakları (deploy öncesi)
+1. Firebase Authentication > Sign-in method > **Telefon** sağlayıcısını etkinleştir (SMS bölge politikası: Türkiye; kota/fatura; web için reCAPTCHA, Android için SHA-1/Play Integrity, iOS için APNs).
+2. `PHONE_HASH_SALT` param'ını rastgele uzun değerle ayarla (sonradan değiştirme).
+3. Sıra: functions (telefon kapısı + yeni callable) -> **istemciler (mobil + web) telefon akışıyla yayımlanır** -> `firestore.rules`. Functions yayımlandığı anda telefonsuz eski istemciler satış yapamaz (`PHONE_REQUIRED`);
+   rules'u istemciden önce yayımlarsanız `isPhoneActive:true` / doğrulanmamış `phoneNumber` yazan eski mobil sürüm kayıt/güncellemede reddedilir.
+4. Aydınlatma metni/gizlilik politikasına telefon doğrulaması + sayaç özeti maddesi.
+5. Yeni dizin gerekmedi (`firestore.indexes.json` değişmedi): `syncPhoneVerification` tek alan eşitliği (`User.phoneKey`) sorgular.
+
+### Testler
+`functions/test/phone-gate.test.js` (PHONE_REQUIRED, ortak limit, silme/yeniden açma, geçiş, telefon değişimi, iptal/admin iadesi, yarış, hız sınırı, KVKK taraması, sync, uçtan uca SMS akışı)
+ve `rules.test.js` (User telefon alanları). `helpers.js`: `phoneFor(uid)` servis testlerinde `ctx.phone` verilmezse otomatik sahte doğrulanmış telefon ekler;
+`signInPhone(phone, linkIdToken?)` Auth emülatöründe gerçek SMS akışını (`sendVerificationCode` -> `verificationCodes` -> `signInWithPhoneNumber`) yürütür.

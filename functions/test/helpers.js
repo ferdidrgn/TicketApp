@@ -7,7 +7,9 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
 }
 const { initializeApp, getApps } = require('firebase-admin/app');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
+const crypto = require('crypto');
 const { createService } = require('../src/orders');
+const { phoneKeyOf } = require('../src/phone');
 
 if (!getApps().length) initializeApp({ projectId: PROJECT });
 const db = getFirestore();
@@ -52,16 +54,30 @@ function fakeProvider() {
 
 const silent = { error() {}, info() {}, warn() {} };
 
+const TEST_SALT = 'test-salt';
+/** Her uid için deterministik, geçerli E.164 sahte telefon (testlerde 'doğrulanmış token' yerine geçer). */
+const phoneFor = (uid) => '+90555' + String(parseInt(crypto.createHash('md5').update(String(uid)).digest('hex').slice(0, 7), 16) % 10000000).padStart(7, '0');
+const keyFor = (phone) => phoneKeyOf(phone, TEST_SALT);
+const PHONE_METHODS = ['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment'];
+/** Servisi sarar: telefon bağlamı verilmezse uid'den türetilen sahte DOĞRULANMIŞ telefon eklenir. ctx içinde `phone` anahtarı varsa (null dahil) aynen geçer. */
+function withDefaultPhone(raw) {
+  const svc = { ...raw };
+  for (const m of PHONE_METHODS) {
+    svc[m] = (uid, data, ctx) => raw[m](uid, data, ctx && 'phone' in ctx ? ctx : { ...(ctx || {}), phone: phoneFor(uid) });
+  }
+  return svc;
+}
+
 /** `satis`: sabit Config/satis (varsayılan: online -> mevcut ödeme testleri değişmez). `satis:'db'` -> gerçek belgeyi okur. */
 function makeService({ now, provider, satis = { mode: 'online' } } = {}) {
   const prov = provider || fakeProvider();
   const svc = createService({
     db, now: now || Date.now, getProvider: (n) => (n === 'iyzico' ? prov : null),
     callbackUrl: 'https://cb.test/iyzicoCallback', siteUrl: 'https://tiyatrol-web.web.app',
-    allowedOrigins: ['https://tiyatrol.web.app'], log: silent,
+    allowedOrigins: ['https://tiyatrol.web.app'], log: silent, phoneSalt: TEST_SALT,
     ...(satis === 'db' ? {} : { settings: async () => satis }),
   });
-  return { svc, prov };
+  return { svc: withDefaultPhone(svc), raw: svc, prov };
 }
 
 /** İstanbul yerel "gg.aa.yyyy,ss:dd" biçimi: şimdiden `deltaMs` sonrası. */
@@ -95,4 +111,17 @@ async function expectCode(promise, code) {
 async function setSatis(d) { await db.collection('Config').doc('satis').set(d); }
 async function makeAdmin(uid = 'admin1') { await db.collection('User').doc(uid).set({ role: 'admin', firstName: 'Yön', lastName: 'Etici' }); return uid; }
 
-module.exports = { setSatis, makeAdmin, db, Timestamp, clearDb, clock, fakeProvider, makeService, seedEvent, eventDate, uidN, expectCode, PROJECT };
+const AUTH_HOST = () => process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+/** Auth emülatöründe SMS doğrulamasıyla telefonlu oturum açar (linkIdToken verilirse mevcut oturuma telefon bağlar). -> { token, uid } */
+async function signInPhone(phone, linkIdToken) {
+  const base = `http://${AUTH_HOST()}/identitytoolkit.googleapis.com/v1/accounts`;
+  const post = async (path, body) => (await fetch(`${base}:${path}?key=fake`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+  const sent = await post('sendVerificationCode', { phoneNumber: phone, recaptchaToken: 'fake' });
+  const codes = await (await fetch(`http://${AUTH_HOST()}/emulator/v1/projects/${PROJECT}/verificationCodes`)).json();
+  const code = codes.verificationCodes.filter((c) => c.sessionInfo === sent.sessionInfo).pop().code;
+  const j = await post('signInWithPhoneNumber', { sessionInfo: sent.sessionInfo, code, ...(linkIdToken ? { idToken: linkIdToken } : {}) });
+  if (!j.idToken) throw new Error('telefon girişi başarısız: ' + JSON.stringify(j));
+  return { token: j.idToken, uid: j.localId };
+}
+
+module.exports = { signInPhone, phoneFor, keyFor, TEST_SALT, setSatis, makeAdmin, db, Timestamp, clearDb, clock, fakeProvider, makeService, seedEvent, eventDate, uidN, expectCode, PROJECT };

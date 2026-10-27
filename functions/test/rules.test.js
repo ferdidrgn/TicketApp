@@ -163,3 +163,49 @@ test('Notification: yönetici bile başkası adına uygulama içi bildirim yazam
   await assertFails(setDoc(doc(as('admin1'), 'Notification/n1'), { userId: 'alice', title: 'x', body: 'y', isRead: false }));
   await assertFails(setDoc(doc(as('bob'), 'Notification/n2'), { userId: 'alice', title: 'x', body: 'y', isRead: false }));
 });
+
+// ---- Telefon doğrulama alanları (docs/TELEFON-DOGRULAMA.md): isPhoneActive / phoneVerifiedAt / phoneKey / phoneNumber
+const asPhone = (uid, phone) => env.authenticatedContext(uid, phone ? { phone_number: phone } : {}).firestore();
+
+test('User create: isPhoneActive yalnızca false/null/yok; true, phoneVerifiedAt, phoneKey istemciden YAZILAMAZ', async () => {
+  const n = (u) => doc(as(u), `User/${u}`);
+  await assertSucceeds(setDoc(n('c1'), { role: 'user', firstName: 'A', isPhoneActive: false, phoneNumber: '', fcmToken: 'x', favorites: [] }));
+  await assertSucceeds(setDoc(n('c2'), { firstName: 'A' })); // alan yok
+  await assertSucceeds(setDoc(n('c3'), { firstName: 'A', isPhoneActive: null, phoneNumber: null }));
+  await assertFails(setDoc(n('c4'), { firstName: 'A', isPhoneActive: true }));
+  await assertFails(setDoc(n('c5'), { firstName: 'A', isPhoneActive: 'true' }));
+  await assertFails(setDoc(n('c6'), { firstName: 'A', phoneVerifiedAt: 1 }));
+  await assertFails(setDoc(n('c7'), { firstName: 'A', phoneKey: 'ph_x' }));
+  await assertFails(setDoc(n('c8'), { role: 'admin', isPhoneActive: false }));
+  await assertFails(setDoc(doc(as('c9'), 'User/baskasi'), { firstName: 'A' }));
+});
+
+test('User create: phoneNumber yalnızca boş ya da token\'daki phone_number ile birebir aynı olabilir', async () => {
+  await assertFails(setDoc(doc(as('d1'), 'User/d1'), { phoneNumber: '+905551234567' })); // telefon doğrulanmamış
+  await assertFails(setDoc(doc(asPhone('d2', '+905551234567'), 'User/d2'), { phoneNumber: '+905559999999' })); // başkasının/uydurma numara
+  await assertSucceeds(setDoc(doc(asPhone('d3', '+905551234567'), 'User/d3'), { phoneNumber: '+905551234567', isPhoneActive: false }));
+  await assertSucceeds(setDoc(doc(as('d4'), 'User/d4'), { phoneNumber: '' }));
+});
+
+test('User update: isPhoneActive true\'ya çekilemez; sunucunun yazdığı alanlar korunur; ad/fcmToken/favori güncellemesi serbest', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/p1'), { role: 'user', isPhoneActive: false, phoneNumber: '' });
+    await setDoc(doc(d, 'User/p2'), { role: 'user', isPhoneActive: true, phoneNumber: '+905551234567', phoneKey: 'ph_abc', phoneVerifiedAt: 111 });
+  });
+  const p1 = as('p1'), p2 = as('p2');
+  await assertFails(updateDoc(doc(p1, 'User/p1'), { isPhoneActive: true }));
+  await assertFails(updateDoc(doc(p1, 'User/p1'), { phoneVerifiedAt: 5 }));
+  await assertFails(updateDoc(doc(p1, 'User/p1'), { phoneKey: 'ph_x' }));
+  await assertFails(updateDoc(doc(p1, 'User/p1'), { phoneNumber: '+905551234567' })); // token'da telefon yok
+  await assertFails(updateDoc(doc(asPhone('p1', '+905551234567'), 'User/p1'), { phoneNumber: '+905550000000' })); // token ile uyuşmuyor
+  await assertSucceeds(updateDoc(doc(asPhone('p1', '+905551234567'), 'User/p1'), { phoneNumber: '+905551234567' }));
+  await assertSucceeds(updateDoc(doc(p1, 'User/p1'), { firstName: 'Ada', fcmToken: 't', favorites: ['s1'], isPhoneActive: false }));
+  // doğrulanmış kullanıcı: tam-belge güncellemesi (aynı değerler) geçer; sunucu alanlarını bozamaz
+  await assertSucceeds(updateDoc(doc(p2, 'User/p2'), { firstName: 'Ada', isPhoneActive: true, phoneNumber: '+905551234567', phoneKey: 'ph_abc', phoneVerifiedAt: 111 }));
+  await assertFails(updateDoc(doc(p2, 'User/p2'), { phoneVerifiedAt: 999 }));
+  await assertFails(updateDoc(doc(p2, 'User/p2'), { phoneKey: 'ph_zzz' }));
+  await assertFails(updateDoc(doc(p2, 'User/p2'), { phoneNumber: '+905550000000' }));
+  await assertSucceeds(updateDoc(doc(p2, 'User/p2'), { isPhoneActive: false })); // düşürmek zararsız; sunucu yeniden doğrular
+  await assertFails(updateDoc(doc(p1, 'User/p1'), { role: 'admin' }));
+});

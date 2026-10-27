@@ -2,19 +2,21 @@
 // Functions EMÜLATÖRÜ üzerinden uçtan uca: gerçek index.js, Auth emülatörü, HTTP.
 const { test, before, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { db, clearDb, seedEvent, PROJECT } = require('./helpers');
+const { db, clearDb, seedEvent, PROJECT, signInPhone, phoneFor } = require('./helpers');
 
 const FN = process.env.FUNCTIONS_EMULATOR_HOST || '127.0.0.1:5001';
 const AUTH = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
 const url = (name) => `http://${FN}/${PROJECT}/europe-west1/${name}`;
 
-async function signUp(email) {
+async function signUp(email, { phone = true } = {}) {
   const r = await fetch(`http://${AUTH}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: 'Test1234!', returnSecureToken: true }),
   });
   const j = await r.json();
-  return { token: j.idToken, uid: j.localId };
+  if (!phone) return { token: j.idToken, uid: j.localId };
+  // Satış callable'ları doğrulanmış telefon ister: e-posta hesabına SMS doğrulamasıyla telefon bağla (token'da phone_number olur).
+  return signInPhone(phoneFor(email), j.idToken);
 }
 async function call(name, data, token) {
   const r = await fetch(url(name), {

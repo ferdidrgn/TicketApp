@@ -43,6 +43,14 @@ service cloud.firestore {
         get(/databases/$(database)/documents/User/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // User.phoneNumber yazımı: değişmemiş (mevcutla aynı), boş/null, ya da ID token'daki doğrulanmış phone_number ile birebir aynı.
+    // `existing` create'te null verilir.
+    function phoneNumberWriteOk(existing) {
+      let v = request.resource.data.get('phoneNumber', null);
+      return v == existing || v == null || v == '' ||
+        (request.auth.token.get('phone_number', null) != null && v == request.auth.token.get('phone_number', null));
+    }
+
     // -------------------------------------------------------------------
     // User — lib/features/users/domain/entities/user.dart
     // Koleksiyon adı: 'User' (bkz. user_remote_data_source_and_impl.dart,
@@ -56,8 +64,15 @@ service cloud.firestore {
       // false dalı — zaten var olan bir dokümanın üzerine yazmıyor).
       // GÜVENLİK (26.10.2026): create SIRASINDA da role denetlenir; aksi hâlde yeni kullanıcı
       // User/{uid} belgesini role:'admin' ile oluşturup kendini yönetici yapabilirdi.
+      // TELEFON (docs/TELEFON-DOGRULAMA.md): isPhoneActive / phoneVerifiedAt / phoneKey YALNIZCA sunucu (syncPhoneVerification)
+      // yazar. İstemci create'te isPhoneActive'i yalnızca false/null/yok, phoneVerifiedAt/phoneKey'i hiç yazamaz; phoneNumber
+      // yalnızca boş ya da token'daki doğrulanmış phone_number ile birebir aynı olabilir.
       allow create: if isOwner(userId) &&
-        request.resource.data.get('role', 'user') in ['user', 'guest', 'unknown'];
+        request.resource.data.get('role', 'user') in ['user', 'guest', 'unknown'] &&
+        request.resource.data.get('isPhoneActive', false) in [false, null] &&
+        !('phoneVerifiedAt' in request.resource.data) &&
+        !('phoneKey' in request.resource.data) &&
+        phoneNumberWriteOk(null);
 
       // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
       // ASLA kendi kendine değiştiremez — aksi halde herhangi bir kullanıcı
@@ -67,8 +82,15 @@ service cloud.firestore {
       // BİLİNÇLİ OLARAK hiçbir client yoluna açılmadı — bu işlem Firebase
       // Console / Admin SDK (custom claim veya doğrudan doküman düzenleme)
       // üzerinden, geliştirici tarafından elle yapılmalı.
+      // Update'te de: isPhoneActive değişmedi YA DA false/null'a çekiliyor (true'ya ASLA); phoneVerifiedAt/phoneKey değişmez;
+      // phoneNumber değişmedi, boşaltılıyor ya da token'daki doğrulanmış numarayla aynı.
       allow update: if isOwner(userId) &&
-        request.resource.data.get('role', null) == resource.data.get('role', null);
+        request.resource.data.get('role', null) == resource.data.get('role', null) &&
+        (request.resource.data.get('isPhoneActive', null) == resource.data.get('isPhoneActive', null) ||
+          request.resource.data.get('isPhoneActive', null) in [false, null]) &&
+        request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null) &&
+        request.resource.data.get('phoneKey', null) == resource.data.get('phoneKey', null) &&
+        phoneNumberWriteOk(resource.data.get('phoneNumber', null));
 
       // Delete: hesap silme akışı var (bkz. delete_user_use_case_impl.dart
       // -> UserRemoteDataSourceImpl.deleteUser) — sadece kendi hesabı.

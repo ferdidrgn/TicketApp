@@ -16,6 +16,7 @@ const { err, makeAssertAdmin } = require('./src/util');
 const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
+const { createPhoneSync } = require('./src/phone');
 const { createProvider } = require('./providers');
 
 if (!getApps().length) initializeApp();
@@ -25,7 +26,9 @@ const IYZICO_API_KEY = defineSecret('IYZICO_API_KEY');
 const IYZICO_SECRET_KEY = defineSecret('IYZICO_SECRET_KEY');
 const IYZICO_BASE_URL = defineString('IYZICO_BASE_URL', { default: 'https://sandbox-api.iyzipay.com' });
 const SITE_URL = defineString('SITE_URL', { default: 'https://tiyatrol-web.web.app' });
-const ENFORCE_APP_CHECK = defineBoolean('ENFORCE_APP_CHECK', { default: false });
+// Telefon limit anahtarı tuzu. ÜRETİMDE MUTLAKA ayarlayın (docs/ODEME-GUVENLIK.md); sonradan DEĞİŞTİRİLİRSE tüm telefon sayaçları sıfırlanır.
+const PHONE_HASH_SALT = defineString('PHONE_HASH_SALT', { default: '' });
+const ENFORCE_APP_CHECK =defineBoolean('ENFORCE_APP_CHECK', { default: false });
 
 const emulator = process.env.FUNCTIONS_EMULATOR === 'true';
 const origins = emulator ? [...cfg.ALLOWED_ORIGINS, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/] : cfg.ALLOWED_ORIGINS;
@@ -36,8 +39,18 @@ function callbackUrl() {
   return `https://${cfg.REGION}-${project}.cloudfunctions.net/iyzicoCallback`;
 }
 
+/** Tuz yoksa depoda görünen sabit türetim (zayıf: yalnızca geliştirme). Üretimde PHONE_HASH_SALT param'ı ayarlanmalı. */
+function phoneSalt() {
+  const v = PHONE_HASH_SALT.value();
+  return v || `tiyatrol-phone-v1:${process.env.GCLOUD_PROJECT || 'ticketappflutter'}`;
+}
+
+/** Token'daki doğrulanmış telefon (E.164) — sunucunun TEK telefon kaynağı. */
+const phoneCtx = (req) => ({ phone: req.auth && req.auth.token && req.auth.token.phone_number });
+
 function getService(withSecrets) {
   return createService({
+    phoneSalt: phoneSalt(),
     db: getFirestore(),
     callbackUrl: callbackUrl(),
     siteUrl: SITE_URL.value(),
@@ -73,11 +86,14 @@ function guarded(fn) {
   };
 }
 
-exports.holdSeats = onCall(base, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data)));
+exports.holdSeats = onCall(base, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data, phoneCtx(req))));
 exports.releaseHold = onCall(base, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
-exports.confirmFree = onCall(base, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data)));
-exports.confirmReservation = onCall(base, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data)));
+exports.confirmFree = onCall(base, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data, phoneCtx(req))));
+exports.confirmReservation = onCall(base, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data, phoneCtx(req))));
 exports.cancelTicket = onCall(base, guarded((req) => getService(false).cancelTicket(req.auth.uid, req.data)));
+// Telefon doğrulama senkronu: istemci giriş/telefon bağlama sonrası (getIdToken(true) ardından) çağırır. docs/TELEFON-DOGRULAMA.md
+exports.syncPhoneVerification = onCall(base, guarded((req) =>
+  createPhoneSync({ db: getFirestore(), salt: phoneSalt(), log: logger }).syncPhoneVerification(req.auth.uid, phoneCtx(req))));
 // Yönetici callable'ları: yetki sunucuda User/{uid}.role == 'admin' ile denetlenir.
 exports.adminSetTicketStatus = onCall(base, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
 exports.adminCheckIn = onCall(base, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
@@ -91,6 +107,7 @@ exports.adminSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,
+    ...phoneCtx(req),
     ip: req.rawRequest && req.rawRequest.ip,
   })));
 
