@@ -1,6 +1,6 @@
-/* ═══════════════ Gizlilik Politikası / Kullanım Şartları sayfaları
-   Flutter uygulamasıyla AYNI Firestore dokümanından ("AppTools" koleksiyonu,
-   tek doküman) okuyor — tek kaynak, iki yerde de güncel içerik. ── */
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• Gizlilik PolitikasÄ± / KullanÄ±m ÅartlarÄ± sayfalarÄ±
+   Flutter uygulamasÄ±yla AYNI Firestore dokÃ¼manÄ±ndan ("AppTools" koleksiyonu,
+   tek dokÃ¼man) okuyor â€” tek kaynak, iki yerde de gÃ¼ncel iÃ§erik. â”€â”€ */
 const FIREBASE_PROJECT_ID = 'ticketappflutter';
 const FIREBASE_API_KEY = 'AIzaSyDTszWHMEMHY1Ed2ZftOcNUlvXl03S7g-k';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
@@ -37,10 +37,10 @@ async function loadLegalContent() {
     const html = data[field];
     container.innerHTML = html
       ? html
-      : `<p class="legal__empty">Bu içerik şu anda güncelleniyor. Sorularınız için bizimle <a href="index.html#iletisim">iletişime geçebilirsiniz</a>.</p>`;
+      : `<p class="legal__empty">Bu iÃ§erik ÅŸu anda gÃ¼ncelleniyor. SorularÄ±nÄ±z iÃ§in bizimle <a href="/#iletisim">iletiÅŸime geÃ§ebilirsiniz</a>.</p>`;
   } catch (err) {
-    console.error('Legal içerik okunamadı:', err);
-    container.innerHTML = `<p class="legal__empty">İçerik yüklenirken bir sorun oluştu. Lütfen sayfayı yenileyin ya da bizimle <a href="index.html#iletisim">iletişime geçin</a>.</p>`;
+    console.error('Legal iÃ§erik okunamadÄ±:', err);
+    container.innerHTML = `<p class="legal__empty">Ä°Ã§erik yÃ¼klenirken bir sorun oluÅŸtu. LÃ¼tfen sayfayÄ± yenileyin ya da bizimle <a href="/#iletisim">iletiÅŸime geÃ§in</a>.</p>`;
   }
 }
 
