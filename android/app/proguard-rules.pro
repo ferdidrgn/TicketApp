@@ -159,3 +159,6 @@
 -printmapping mapping.txt
 -printseeds seeds.txt
 -printusage unused.txt
+# R8: androidx.window opsiyonel (cihaz uzantısı) sınıfları — çalışma zamanında yoksa sorun değil
+-dontwarn androidx.window.extensions.**
+-dontwarn androidx.window.sidecar.**
