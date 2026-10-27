@@ -207,7 +207,7 @@ body.is-locked{overflow:hidden;}
    geçiyor — seyirci koltuğundan izliyormuş hissi. */
 .team{background:var(--pine); color:var(--ivory); padding:clamp(70px,9vw,110px) 0; position:relative; overflow:hidden;}
 .team::before{content:''; position:absolute; top:-14%; left:50%; width:150%; height:65%; transform:translateX(-50%); background:radial-gradient(ellipse at center, rgba(240,135,111,.12), transparent 68%); pointer-events:none;}
-.team__rail{position:relative; z-index:1; display:flex; gap:28px; overflow-x:auto; scroll-snap-type:x proximity; padding:6px clamp(20px,4vw,56px) 14px; scrollbar-width:thin;}
+.team__rail{position:relative; z-index:1; display:flex; gap:28px; overflow-x:auto; scroll-snap-type:x proximity; padding:6px clamp(20px,4vw,56px) 14px; scrollbar-width:thin; scrollbar-color:var(--pine-line-strong) transparent;}
 .team__rail>.player:first-child{margin-left:auto;}
 .team__rail>.player:last-child{margin-right:auto;}
 .player{flex:0 0 160px; text-align:center; scroll-snap-align:center; border-radius:14px;}
@@ -665,3 +665,15 @@ button.mediashow__btn{position:absolute; inset:0; width:100%; height:100%; backg
 .ticket.is-suggested .ticket__img{opacity:.85; filter:saturate(.75);}
 .timeline__item.is-suggested .timeline__card{background:transparent; border-style:dashed; border-color:var(--ink-dim);}
 .timeline__item.is-suggested .timeline__dot{background:transparent; border:2px solid var(--ink-dim);}
+
+/* "Ana siteye git": ekip sayfasından büyük siteye (/app) geçiş — bilet (coral) düğmesinden ayrı, fildişi renk */
+.nav__site{font-size:11.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; background:var(--ivory); color:var(--ink); padding:10px 18px; border-radius:10px 2px 10px 2px; white-space:nowrap; transition:transform .2s var(--ease), background .2s;}
+.nav__site:hover{background:#fff; transform:translateY(-1px);}
+.nav__site-kisa{display:none;}
+.btn--site{background:var(--ivory); color:var(--ink);}
+.btn--site:hover{background:#fff; transform:translateY(-2px);}
+.mnav__site{margin-top:10px; background:var(--ivory); color:var(--ink); padding:12px 26px; border-radius:10px 2px 10px 2px; font-family:var(--sans); font-weight:700; font-size:13px;}
+@media (max-width:920px){ .nav__site{margin-left:auto; margin-right:10px; padding:9px 13px;} .nav__site-uzun{display:none;} .nav__site-kisa{display:inline;} }
+
+.nav__links a, .nav__cta, .nav__site{white-space:nowrap;}
+@media (max-width:1100px){ .nav__cta{display:none;} }
