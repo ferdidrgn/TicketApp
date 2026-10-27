@@ -218,7 +218,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final currentUser = _auth.currentUser;
       if (currentUser != null && currentUser.isAnonymous) {
-        await currentUser.linkWithCredential(credential);
+        try {
+          // Misafir hesabı telefona BAĞLANIR (misafir verisi korunur).
+          await currentUser.linkWithCredential(credential);
+        } on FirebaseAuthException catch (e) {
+          // Bu telefon zaten bir hesapta: telefonla giriş yapan kişi o
+          // hesabına girmek istiyordur; boş misafir hesabından geçilir.
+          final c = e.credential;
+          if (e.code == 'credential-already-in-use' &&
+              c is PhoneAuthCredential) {
+            await _auth.signInWithCredential(c);
+          } else {
+            rethrow;
+          }
+        }
       } else {
         await _auth.signInWithCredential(credential);
       }

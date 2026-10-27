@@ -222,6 +222,9 @@ class PurchaseFailure extends Failure {
   /// durumunu sıfırlamak gerekir.
   bool get isStale => code == 'failed-precondition' || code == 'not-found';
 
+  /// Doğrulanmış telefon gerekli (`PHONE_REQUIRED`): telefon kapısı açılır.
+  bool get isPhoneRequired => code == 'phone-required';
+
   @override
   List<Object?> get props => [message, code];
 }

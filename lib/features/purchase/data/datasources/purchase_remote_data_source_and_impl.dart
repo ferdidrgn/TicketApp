@@ -5,6 +5,12 @@ import '../../domain/entities/purchase_entities.dart';
 /// Cloud Functions bölgesi (functions/src/config.js > REGION).
 const String kPurchaseFunctionsRegion = 'europe-west1';
 
+/// Sunucu `HttpsError(failed-precondition, details.code = PHONE_REQUIRED)`
+/// döndüğünde kullanılan istemci hata kodu/metni.
+const String kPhoneRequiredCode = 'phone-required';
+const String kPhoneRequiredMessage =
+    'Devam etmek için telefon numaranı doğrulaman gerekiyor.';
+
 /// Callable çağrısını soyutlar: üretimde `FirebaseFunctions`, testte sahte.
 abstract class PurchaseCallableClient {
   /// [name] callable adı; dönen değer her zaman `Map` (sunucu sözleşmesi).
@@ -87,6 +93,12 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
     if (e is FirebaseFunctionsException) {
       final code = e.code;
       final msg = (e.message ?? '').trim();
+      // Sunucu: doğrulanmış telefon yok / token'da claim eski.
+      final details = e.details;
+      if (details is Map && details['code'] == 'PHONE_REQUIRED') {
+        return const PurchaseException(
+            kPhoneRequiredCode, kPhoneRequiredMessage);
+      }
       if (code == 'unauthenticated') {
         return const PurchaseException(
             'unauthenticated', 'Devam etmek için giriş yapmalısın.');

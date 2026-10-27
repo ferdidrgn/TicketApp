@@ -8,6 +8,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/services/fcm_manager_service.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../users/domain/entities/user.dart' as entity;
+import '../../data/phone_link_service.dart';
 import '../../../users/presentation/providers/user_provider.dart';
 import 'auth_provider.dart' hide currentUserProvider;
 
@@ -206,6 +207,32 @@ class AuthMutation extends _$AuthMutation {
     ref.invalidate(authFirebaseUserProvider);
     ref.invalidate(currentUserIdProvider);
     ref.invalidate(isLoggedInProvider);
+    ref.invalidate(userProfileProvider);
+
+    // 📱 Telefonla girilmişse (ya da hesapta telefon bağlıysa) sunucuya
+    // `syncPhoneVerification` bildir: isPhoneActive/phoneNumber'ı yalnız
+    // sunucu yazar. Hata yutulur, giriş akışını engellemez.
+    if ((firebaseUser?.phoneNumber ?? '').isNotEmpty) {
+      unawaited(FirebasePhoneLinkService().refreshAndSync());
+    }
+  }
+
+  /// Telefon bağlama ekranı başka hesaba geçtikten sonra (ör. "O hesapla
+  /// telefonla giriş yap"): kullanıcı belgesi/yerel kayıt/provider'lar
+  /// normal girişteki gibi tazelenir.
+  Future<void> finishPhoneAccountSwitch() async {
+    final uid = firebase_auth.FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      return;
+    }
+    await _handlePostLogin(uid, UserRole.user);
+  }
+
+  /// Telefon hesaba bağlandı (UID aynı): profil ve oturum provider'larını
+  /// tazele ki "Telefon doğrulandı" durumu hemen görünsün.
+  void refreshAfterPhoneLink() {
+    ref.invalidate(authStateProvider);
+    ref.invalidate(authFirebaseUserProvider);
     ref.invalidate(userProfileProvider);
   }
 }

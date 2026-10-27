@@ -3,6 +3,11 @@ import 'dart:async';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:dartz/dartz.dart' show Either;
+
+import '../../../../core/errors/failures.dart';
+import '../../../auth/data/phone_link_service.dart';
+import '../../../auth/presentation/providers/phone_link_provider.dart';
 import '../../domain/entities/purchase_entities.dart';
 import '../../domain/usecases/confirm_free_use_case_impl.dart';
 import '../../domain/usecases/confirm_reservation_use_case_impl.dart';
@@ -75,6 +80,11 @@ class SeatPurchaseState {
   final List<String> completedSeats;
   final double completedTotal;
 
+  /// Doğrulanmış telefon gerekli: arayüz "Telefonunu doğrula" ekranını
+  /// açar; bitince [SeatPurchaseController.phoneVerified] ya da
+  /// [SeatPurchaseController.phoneGateDismissed] çağrılır.
+  final bool phoneRequired;
+
   const SeatPurchaseState({
     this.selected = const {},
     this.phase = PurchasePhase.selecting,
@@ -84,6 +94,7 @@ class SeatPurchaseState {
     this.completedReservation = false,
     this.completedSeats = const [],
     this.completedTotal = 0,
+    this.phoneRequired = false,
   });
 
   /// Sunucuda tutulan koltuklar var mı (ödeme akışı dahil).
@@ -112,6 +123,7 @@ class SeatPurchaseState {
     final bool? completedReservation,
     final List<String>? completedSeats,
     final double? completedTotal,
+    final bool? phoneRequired,
   }) =>
       SeatPurchaseState(
         selected: selected ?? this.selected,
@@ -123,8 +135,12 @@ class SeatPurchaseState {
             completedReservation ?? this.completedReservation,
         completedSeats: completedSeats ?? this.completedSeats,
         completedTotal: completedTotal ?? this.completedTotal,
+        phoneRequired: phoneRequired ?? this.phoneRequired,
       );
 }
+
+/// Telefon kapısı açılınca, doğrulama bitince sürdürülecek işlem.
+enum _PendingAction { hold, confirmFree, confirmReservation }
 
 /// Bir etkinliğin koltuk seçimi → tutma → ödeme akışı.
 ///
@@ -147,6 +163,8 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
   late WatchOrderUseCase _watchOrder;
   late GetOpenOrdersUseCase _getOpenOrders;
   late DateTime Function() _now;
+  late PhoneLinkService _phone;
+  _PendingAction? _pending;
 
   Timer? _expiryTimer;
   Timer? _verifyTimer;
@@ -166,6 +184,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     _watchOrder = ref.read(watchOrderUseCaseProvider);
     _getOpenOrders = ref.read(getOpenOrdersUseCaseProvider);
     _now = ref.read(purchaseClockProvider);
+    _phone = ref.read(phoneLinkServiceProvider);
     ref.onDispose(_onDispose);
     return const SeatPurchaseState();
   }
@@ -263,19 +282,85 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
 
   // ───────────────────────────── tutma
 
-  /// "Koltukları tut": tek `holdSeats` çağrısı.
+  // ───────────────────────────── telefon kapısı
+
+  /// Sunucu PHONE_REQUIRED derse ve yerelde telefon doğrulanmışsa (token
+  /// eski olabilir) token'ı yenileyip çağrıyı BİR kez daha dener.
+  Future<Either<Failure, T>> _retryStalePhone<T>(
+      final Future<Either<Failure, T>> Function() call) async {
+    var result = await call();
+    final f = result.fold((final f) => f, (final _) => null);
+    if (f is PurchaseFailure && f.isPhoneRequired && _phone.isVerified) {
+      await _phone.refreshAndSync();
+      if (!_disposed) {
+        result = await call();
+      }
+    }
+    return result;
+  }
+
+  void _requirePhone(final _PendingAction action) {
+    if (_disposed) {
+      return;
+    }
+    _pending = action;
+    _set(state.copyWith(phoneRequired: true, clearNotice: true));
+  }
+
+  /// Arayüz telefonu doğruladı/bağladı: kapıyı kapat ve kalınan işleme
+  /// devam et. Dönen değer devam eden işlemin sonucudur.
+  Future<bool> phoneVerified() async {
+    final action = _pending;
+    _pending = null;
+    if (_disposed || !state.phoneRequired) {
+      return false;
+    }
+    _set(state.copyWith(phoneRequired: false));
+    switch (action) {
+      case _PendingAction.hold:
+        return holdSelected();
+      case _PendingAction.confirmFree:
+        return confirmFree();
+      case _PendingAction.confirmReservation:
+        return confirmReservation();
+      case null:
+        return false;
+    }
+  }
+
+  /// Kullanıcı telefon doğrulamadan vazgeçti: bekleyen işlem düşer.
+  void phoneGateDismissed() {
+    _pending = null;
+    if (_disposed || !state.phoneRequired) {
+      return;
+    }
+    _set(state.copyWith(phoneRequired: false));
+  }
+
+  /// "Koltukları tut": tek `holdSeats` çağrısı. Doğrulanmış telefon yoksa
+  /// çağrı YAPILMAZ; telefon kapısı açılır ([SeatPurchaseState.phoneRequired]).
   Future<bool> holdSelected() async {
     if (state.phase != PurchasePhase.selecting || state.selected.isEmpty) {
       return false;
     }
+    if (!_phone.isVerified) {
+      _requirePhone(_PendingAction.hold);
+      return false;
+    }
     final ids = state.selected.toList();
     _set(state.copyWith(phase: PurchasePhase.holding, clearNotice: true));
-    final result = await _hold(eventId, ids);
+    final result = await _retryStalePhone(() => _hold(eventId, ids));
     return result.fold(
       (final f) {
-        _set(state.copyWith(
-            phase: PurchasePhase.selecting,
-            notice: PurchaseNotice(++_noticeSeq, f.message)));
+        if (_disposed) {
+          return false;
+        }
+        _set(state.copyWith(phase: PurchasePhase.selecting));
+        if (f is PurchaseFailure && f.isPhoneRequired) {
+          _requirePhone(_PendingAction.hold);
+          return false;
+        }
+        _set(state.copyWith(notice: PurchaseNotice(++_noticeSeq, f.message)));
         return false;
       },
       (final hold) {
@@ -411,15 +496,22 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (hold == null || !hold.free || state.phase != PurchasePhase.held) {
       return false;
     }
+    if (!_phone.isVerified) {
+      _requirePhone(_PendingAction.confirmFree);
+      return false;
+    }
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
-    final result = await _confirmFree(hold.orderId);
+    final result = await _retryStalePhone(() => _confirmFree(hold.orderId));
     if (_disposed) {
       return false;
     }
     return result.fold(
       (final f) {
-        if (f is PurchaseFailure && f.code == 'resource-exhausted') {
+        if (f is PurchaseFailure && f.isPhoneRequired) {
+          _set(state.copyWith(phase: PurchasePhase.held));
+          _requirePhone(_PendingAction.confirmFree);
+        } else if (f is PurchaseFailure && f.code == 'resource-exhausted') {
           // Ücretsiz bilet sınırı: koltukları boşuna tutma.
           unawaited(_release(hold.orderId));
           _resetToSelecting(message: f.message);
@@ -446,15 +538,23 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (hold == null || hold.free || state.phase != PurchasePhase.held) {
       return false;
     }
+    if (!_phone.isVerified) {
+      _requirePhone(_PendingAction.confirmReservation);
+      return false;
+    }
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
-    final result = await _confirmReservation(hold.orderId);
+    final result =
+        await _retryStalePhone(() => _confirmReservation(hold.orderId));
     if (_disposed) {
       return false;
     }
     return result.fold(
       (final f) {
-        if (f is PurchaseFailure && f.code == 'resource-exhausted') {
+        if (f is PurchaseFailure && f.isPhoneRequired) {
+          _set(state.copyWith(phase: PurchasePhase.held));
+          _requirePhone(_PendingAction.confirmReservation);
+        } else if (f is PurchaseFailure && f.code == 'resource-exhausted') {
           // Rezervasyon sınırı: koltukları boşuna tutma.
           unawaited(_release(hold.orderId));
           _resetToSelecting(message: f.message);

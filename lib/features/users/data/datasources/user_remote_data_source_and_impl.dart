@@ -45,6 +45,12 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         // Güncelleme işleminde merge: true veya sadece update kullanmak güvenlidir
         // _updatedAt alanını server timestamp ile güncellemek iyi pratiktir
         userMap['_updatedAt'] = FieldValue.serverTimestamp();
+        // Doğrulanmış telefon alanlarını YALNIZCA sunucu
+        // (syncPhoneVerification) yazar; istemci güncellemeleri bunlara
+        // dokunmaz (eski bir değerle ezmesin diye).
+        userMap
+          ..remove('isPhoneActive')
+          ..remove('phoneNumber');
         await docRef.update(userMap);
       } else
         await docRef.set(userMap);

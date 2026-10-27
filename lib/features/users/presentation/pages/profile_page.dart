@@ -17,6 +17,11 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
+import '../../../auth/data/phone_link_service.dart' show maskPhone;
+import '../../../auth/presentation/providers/auth_provider.dart'
+    show authStateProvider;
+import '../../../auth/presentation/providers/phone_link_provider.dart';
+import '../../../auth/presentation/widgets/phone_verify_sheet.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
@@ -283,6 +288,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               ? () => NavigationHandler.goToFavorites(context)
               : login,
         ),
+        if (loggedIn) _phoneRow(),
         if (loggedIn)
           PreferenceRow(
             icon: Icons.edit_outlined,
@@ -315,6 +321,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           onTap: () => NavigationHandler.goToContracts(context),
         ),
       ],
+    );
+  }
+
+  /// Telefon durumu (maskeli) ve "Telefonu doğrula" eylemi. Bilet ve
+  /// rezervasyon doğrulanmış telefona bağlıdır.
+  Widget _phoneRow() {
+    // authStateProvider (userChanges) bağlama sonrası yeniden çizdirir.
+    ref.watch(authStateProvider);
+    final phone = ref.read(phoneLinkServiceProvider).phoneNumber;
+    final verified = phone != null;
+    return PreferenceRow(
+      icon: verified ? Icons.verified_user_outlined : Icons.phone_android_rounded,
+      title: verified ? 'Telefon doğrulandı' : 'Telefonu doğrula',
+      subtitle: verified
+          ? '${maskPhone(phone)} · biletlerin bu numaraya bağlı'
+          : 'Bilet ve rezervasyon için SMS ile doğrula',
+      trailing: verified ? const SizedBox.shrink() : null,
+      onTap: verified
+          ? null
+          : () async {
+              final r = await showPhoneVerifySheet(context);
+              if (r == PhoneVerifyResult.verified && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Telefonun doğrulandı.')));
+              }
+            },
     );
   }
 

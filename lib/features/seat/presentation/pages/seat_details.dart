@@ -24,6 +24,7 @@ import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../purchase/domain/entities/purchase_entities.dart';
 import '../../../purchase/presentation/pages/payment_web_view_page.dart';
+import '../../../auth/presentation/widgets/phone_verify_sheet.dart';
 import '../../../purchase/presentation/providers/purchase_provider.dart';
 import '../../../purchase/presentation/providers/seat_purchase_controller.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -183,6 +184,13 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       _showNotice(next.notice!);
     }
 
+    // Doğrulanmış telefon kapısı: koltuk tutma / onay öncesi.
+    if (next.phoneRequired && !(prev?.phoneRequired ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((final _) {
+        if (mounted) _openPhoneGate();
+      });
+    }
+
     // Masaüstü koçan yırtılması ödeme bitince geri yapışır.
     if (_tear.value > 0 &&
         next.phase != PurchasePhase.startingPayment &&
@@ -207,6 +215,28 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     if (next.phase == PurchasePhase.completed &&
         prev?.phase != PurchasePhase.completed) {
       _celebrate(next);
+    }
+  }
+
+  bool _phoneGateOpen = false;
+
+  /// "Telefonunu doğrula": SMS ile telefon mevcut hesaba bağlanır, sonra
+  /// kalınan işlem (koltuk tutma / onay) kendiliğinden sürer.
+  Future<void> _openPhoneGate() async {
+    if (_phoneGateOpen) return;
+    _phoneGateOpen = true;
+    final result = await showPhoneVerifySheet(context);
+    _phoneGateOpen = false;
+    if (!mounted) return;
+    switch (result) {
+      case PhoneVerifyResult.verified:
+        await _ctrl.phoneVerified();
+      case PhoneVerifyResult.switchedAccount:
+        // Hesap değişti: bu ekran eski kullanıcıya göre kurulmuştu.
+        _ctrl.phoneGateDismissed();
+        NavigationHandler.goToHome(context);
+      case PhoneVerifyResult.cancelled:
+        _ctrl.phoneGateDismissed();
     }
   }
 

@@ -15,6 +15,10 @@ import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
+import '../../../auth/data/phone_link_service.dart' show maskPhone;
+import '../../../auth/presentation/providers/auth_provider.dart'
+    show authStateProvider;
+import '../../../auth/presentation/providers/phone_link_provider.dart';
 import '../../../auth/presentation/providers/storage_service.dart';
 import '../../../settings/presentation/widgets/preference_widgets.dart';
 import '../../domain/entities/user.dart';
@@ -101,7 +105,6 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     if (_isInitialized) return;
     _firstNameController.text = user.firstName;
     _lastNameController.text = user.lastName;
-    _phoneController.text = user.phoneNumber;
     _emailController.text = user.eMail;
     _cityController.text = user.city;
     _profileImageUrl = user.imageUrl;
@@ -409,16 +412,20 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         ),
         const SizedBox(height: AppSpacing.xxl),
         const PreferenceSectionTitle('İletişim'),
-        Semantics(
-          textField: true,
-          label: 'Telefon numarası',
-          child: CustomTextField(
-            controller: _phoneController,
-            label: 'Telefon numarası',
-            isRequired: false,
-            keyboardType: TextInputType.phone,
-          ),
-        ),
+        // Telefon doğrulanmış numaradır: yalnız sunucu yazar, buradan
+        // düzenlenmez (KVKK: numara maskeli gösterilir).
+        Builder(builder: (final context) {
+          final masked = maskPhone(ref.watch(authStateProvider).value == null
+              ? null
+              : ref.read(phoneLinkServiceProvider).phoneNumber);
+          return _ReadOnlyField(
+            label: 'Telefon',
+            value: masked.isEmpty ? 'Doğrulanmadı' : masked,
+            note: masked.isEmpty
+                ? 'Bilet almak için Profil > Telefon bölümünden doğrula.'
+                : 'SMS ile doğrulandı; buradan değiştirilemez.',
+          );
+        }),
         if (user.eMail.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           _ReadOnlyField(
@@ -519,7 +526,6 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       city: _cityController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
     );
 
     // 2. ⚡ TEK SATIRDA GÜNCELLEME:

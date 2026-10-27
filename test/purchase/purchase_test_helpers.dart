@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/firestore_provider.dart';
+import 'package:ticketapp/features/auth/presentation/providers/phone_link_provider.dart';
+import 'fake_phone_link.dart';
 import 'package:ticketapp/features/purchase/data/datasources/purchase_remote_data_source_and_impl.dart';
 import 'package:ticketapp/features/purchase/presentation/providers/purchase_provider.dart';
 
@@ -34,7 +36,11 @@ class PurchaseHarness {
   final FakeFirebaseFirestore firestore = FakeFirebaseFirestore();
   DateTime now = DateTime(2026, 11, 1, 20, 0, 0);
 
+  /// Varsayılan: telefonu doğrulanmış kullanıcı.
+  final FakePhoneLink phone = FakePhoneLink();
+
   late final ProviderContainer container = ProviderContainer(overrides: [
+    phoneLinkServiceProvider.overrideWithValue(phone),
     purchaseCallableClientProvider.overrideWithValue(client),
     firestoreProvider.overrideWithValue(firestore),
     purchaseClockProvider.overrideWithValue(() => now),
