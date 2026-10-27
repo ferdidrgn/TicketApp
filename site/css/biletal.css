@@ -45,6 +45,11 @@ body.modal-acik { overflow: hidden; }
 .hesap-ust small { color: var(--ink-3); overflow-wrap: anywhere; }
 .hesap-menu a, .hesap-menu button { display: block; width: 100%; text-align: left; padding: 11px 12px; border-radius: 10px; font-size: 15px; transition: background .15s; }
 .hesap-menu a:hover, .hesap-menu button:hover, .hesap-menu a:focus-visible { background: var(--accent-soft); }
+.hesap-tel { padding: 8px 12px; font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 2px 6px; }
+.hesap-tel.ok { color: var(--ok); }
+.hesap-tel span { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.hesap-tel-btn { color: var(--accent); font-weight: 600; }
+.auth-alt .link-btn[data-telgiris] { text-align: center; }
 
 /* ---------- Koltuk seçimi ---------- */
 .k-sayfa { padding-block: 28px 120px; }

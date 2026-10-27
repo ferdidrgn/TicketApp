@@ -11,7 +11,7 @@ import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup,
   GoogleAuthProvider, signOut, sendPasswordResetEmail,
   createUserWithEmailAndPassword, updateProfile, connectAuthEmulator,
-  RecaptchaVerifier, signInWithPhoneNumber,
+  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider,
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   getStorage, ref as sRef, uploadBytes, getDownloadURL,
@@ -38,8 +38,10 @@ export const EMU = (() => {
   } catch { return false; }
 })();
 if (EMU) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  const EP = (k, v) => { try { return Number(localStorage.getItem('tiyatrol.emu.' + k)) || v; } catch { return v; } }; // yalnız test: alternatif port
+  connectAuthEmulator(auth, `http://127.0.0.1:${EP('auth', 9099)}`, { disableWarnings: true });
+  auth.settings.appVerificationDisabledForTesting = true; // yalnız emülatör: reCAPTCHA yerine sahte doğrulayıcı (gerçek SMS yok)
+  connectFirestoreEmulator(db, '127.0.0.1', EP('fs', 8080));
   console.warn('[TiyatRol] Emülatör modu AÇIK (auth 9099, firestore 8080, functions 5001).');
 }
 // Cloud Functions (europe-west1) yalnızca gerektiğinde yüklenir.
@@ -48,7 +50,7 @@ export async function fonksiyon(ad) {
   if (!fnModul) {
     const m = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js');
     const f = m.getFunctions(app, 'europe-west1');
-    if (EMU) m.connectFunctionsEmulator(f, '127.0.0.1', 5001);
+    if (EMU) m.connectFunctionsEmulator(f, '127.0.0.1', Number(localStorage.getItem('tiyatrol.emu.fn')) || 5001);
     fnModul = { m, f };
   }
   return fnModul.m.httpsCallable(fnModul.f, ad);
@@ -56,5 +58,5 @@ export async function fonksiyon(ad) {
 export {
   collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, limit, orderBy, arrayUnion, arrayRemove, getCountFromServer,
   onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut,
-  sendPasswordResetEmail, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, onSnapshot, sRef, uploadBytes, getDownloadURL,
+  sendPasswordResetEmail, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider, onSnapshot, sRef, uploadBytes, getDownloadURL,
 };

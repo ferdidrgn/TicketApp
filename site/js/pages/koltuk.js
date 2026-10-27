@@ -5,11 +5,14 @@
 import { kabukCiz, resim } from '../ui.js';
 import { yukle } from '../store.js';
 import { db, doc, onSnapshot, getDoc, collection, query, where } from '../firebase.js';
-import { girisGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
+import { girisGerekli, telefonGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
 import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl, rezervasyonOnayla, satisAyari } from '../bilet-api.js';
 import { $, $$, esc, tl, sayi, tarihUzun, saat, tarihAyristir, linkOf } from '../util.js';
 
-const EID = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
+// Event belge kimliği Firestore'da serbesttir: eski kayıtlarda boşluk ve Türkçe harf olabilir
+// ("Gözlerimi Kaparım Vazifemi Yaparım Event1"). Bu yüzden yalnızca Firestore'un yasakladığı biçimler reddedilir.
+const EID = (() => { try { return decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || ''); } catch { return ''; } })();
+const EID_GECERLI = !!EID && EID.length <= 500 && ![...EID].some((c) => c === '/' || c === '\\' || c.charCodeAt(0) < 32) && EID !== '.' && EID !== '..' && !/^__.*__$/.test(EID);
 const LIMIT = 3;
 const ADMIN_BLOK = '__ADMIN_BLOCKED__'; // ESKİ yönetici bloğu işareti (kimlik değil); yeni biçim status:'blocked'
 const HOLD_MS = 10 * 60 * 1000;
@@ -47,6 +50,16 @@ const para = (n) => (n === 0 ? 'Ücretsiz' : tl(n));
 const benimUid = () => mevcut()?.uid || '';
 const zamanMs = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : Date.parse(v) || 0);
 const seansGecti = () => !!(S.when && S.when < new Date());
+
+/** Satış callable'ı PHONE_REQUIRED dönerse (ya da istemci telefonu yok görürse) telefon doğrulama adımını açar, bitince işlemi sürdürür. */
+async function telefonluDene(islem) {
+  try { return await islem(); } catch (e) {
+    if (e?.kod !== 'PHONE_REQUIRED') throw e;
+    const u = await telefonGerekli('Bilet ve rezervasyon için telefonunu doğrula.');
+    if (!u) throw e;
+    return await islem();
+  }
+}
 
 function canli(m) { const e = $('#canli'); if (e) { e.textContent = ''; setTimeout(() => { e.textContent = m; }, 30); } }
 let toastT;
@@ -184,7 +197,7 @@ function sigdir() {
 // ---------- Seçim ----------
 async function sec(id) {
   if (S.adim !== 'sec' || S.bekliyor || seansGecti()) return;
-  if (!mevcut()) { const u = await girisGerekli('Koltuk seçmek için giriş yap.'); if (!u) return; boya(); }
+  if (!mevcut()?.phoneNumber) { const u = await telefonGerekli('Koltuk seçmek için giriş yap ve telefonunu doğrula.'); if (!u) return; boya(); }
   const d = durum(id);
   const varMi = S.secili.includes(id);
   if (!varMi && d !== 'bos') { bildir(`${koltukAdi(id)} ${DURUM_METNI[d]}.`, 'bilgi'); return; }
@@ -237,12 +250,13 @@ function tutmaTemizle() {
 
 async function tut() {
   if (S.bekliyor || S.adim !== 'sec') return;
-  const u = await girisGerekli('Koltuk tutmak için giriş yap.');
+  const u = await telefonGerekli('Koltuk tutmak için giriş yap ve telefonunu doğrula.');
   if (!u) return;
   if (!S.secili.length) return bildir('Önce en az bir koltuk seç.', 'bilgi');
   S.bekliyor = true; S.mesaj = ''; panelCiz();
   try {
-    const r = await koltukTut(EID, S.secili);
+    const secim = [...S.secili];
+    const r = await telefonluDene(() => koltukTut(EID, secim));
     tutmaKur({
       orderId: r.orderId, expiresAt: Number(r.expiresAt), total: r.total, currency: r.currency, free: r.free,
       seatIds: (r.seats || []).map((x) => x.id), seats: r.seats,
@@ -269,7 +283,7 @@ async function ode() {
   if (S.bekliyor || !S.hold) return;
   S.bekliyor = true; S.mesaj = ''; panelCiz();
   try {
-    const r = await odemeBaslat(S.hold.orderId);
+    const r = await telefonluDene(() => odemeBaslat(S.hold.orderId));
     if (r.paymentPageUrl) {
       const u = guvenliUrl(r.paymentPageUrl);
       if (!u) throw new Error('Ödeme sayfası doğrulanamadı. Biraz sonra tekrar dene.');
@@ -298,7 +312,7 @@ async function onayla() {
   if (S.bekliyor || !S.hold) return;
   S.bekliyor = true; S.mesaj = ''; panelCiz();
   try {
-    await ucretsizOnayla(S.hold.orderId);
+    await telefonluDene(() => ucretsizOnayla(S.hold.orderId));
     const id = S.hold.orderId; tutmaTemizle();
     location.assign(`/odeme-sonuc?order=${encodeURIComponent(id)}&durum=basarili`);
   } catch (e) { bildir(e.message); S.bekliyor = false; panelCiz(); }
@@ -308,7 +322,7 @@ async function rezerve() {
   if (S.bekliyor || !S.hold || !sahneAcik()) return;
   S.bekliyor = true; S.mesaj = ''; panelCiz();
   try {
-    await rezervasyonOnayla(S.hold.orderId);
+    await telefonluDene(() => rezervasyonOnayla(S.hold.orderId));
     const id = S.hold.orderId; tutmaTemizle();
     location.assign(`/odeme-sonuc?order=${encodeURIComponent(id)}&durum=rezervasyon`);
   } catch (e) {
@@ -531,7 +545,7 @@ function seansBilgisi(veri, d) {
 }
 
 async function baslat() {
-  if (!/^[\w.-]{1,128}$/.test(EID)) return bosEkran('Geçersiz bağlantı', 'Bu koltuk seçimi adresi tanınmadı.');
+  if (!EID_GECERLI) return bosEkran('Geçersiz bağlantı', 'Bu koltuk seçimi adresi tanınmadı.');
 await oturumBekle();
   S.satis = await satisAyari(); // hata olursa varsayılan (rezervasyon)
   let d = null; try { d = await yukle(); } catch {}
@@ -561,7 +575,7 @@ await oturumBekle();
         panelCiz();
       }, () => { S.duzen = duzenKur(null, S.koltuklar); S.duzen.satirlar.length ? planCiz() : planYok(); });
       if (mevcut()) siparisleriDinle(mevcut().uid);
-      else girisGerekli('Koltuk seçmek için giriş yap.').then((u) => { if (u) boya(); });
+      else girisGerekli('Koltuk seçmek için giriş yap.', { telefonSart: true }).then((u) => { if (u) boya(); });
     } else {
       S.when = tarihAyristir(veri.date) || S.when;
       if (S.duzen && !S.duzen.satirlar.length) { S.duzen = duzenKur(null, S.koltuklar); if (S.duzen.satirlar.length) planCiz(); }

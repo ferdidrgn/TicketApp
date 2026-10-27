@@ -1,6 +1,6 @@
 // Bilet satın alma API'si (Cloud Functions, europe-west1). İstemci ASLA fiyat/tutar göndermez; sunucu hesaplar.
 // Hata kodları: unauthenticated, failed-precondition, resource-exhausted, invalid-argument, permission-denied, not-found.
-import { fonksiyon, db, doc, getDoc } from './firebase.js';
+import { fonksiyon, auth, db, doc, getDoc } from './firebase.js';
 
 const VARSAYILAN = {
   unauthenticated: 'Oturumun kapanmış. Devam etmek için tekrar giriş yap.',
@@ -9,6 +9,7 @@ const VARSAYILAN = {
   'invalid-argument': 'Seçimin geçersiz görünüyor. Sayfayı yenileyip tekrar dene.',
   'permission-denied': 'Bu işlem için yetkin yok.',
   'not-found': 'Kayıt bulunamadı. Süre dolmuş olabilir.',
+  PHONE_REQUIRED: 'Bilet ve rezervasyon için telefon numaranı doğrulaman gerekiyor.',
   unavailable: 'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.',
 };
 const SUNUCU_MESAJI = new Set(['failed-precondition', 'resource-exhausted', 'invalid-argument', 'permission-denied', 'not-found']);
@@ -17,6 +18,10 @@ const SUNUCU_MESAJI = new Set(['failed-precondition', 'resource-exhausted', 'inv
 export function apiHata(e) {
   const kod = String(e?.code || '').replace('functions/', '');
   let msg = '';
+  // Sunucu sözleşmesi: failed-precondition + details.code === 'PHONE_REQUIRED' (doğrulanmış telefon yok).
+  if (kod === 'failed-precondition' && (e?.details?.code === 'PHONE_REQUIRED' || e?.details === 'PHONE_REQUIRED')) {
+    const h = new Error(VARSAYILAN.PHONE_REQUIRED); h.kod = 'PHONE_REQUIRED'; return h;
+  }
   // Sunucunun yazdığı Türkçe mesaj yalnızca bilinen iş hatalarında gösterilir; "internal" vb. genel mesaja düşer.
   if (SUNUCU_MESAJI.has(kod)) {
     const m = String(e?.message || '').trim();
@@ -27,7 +32,12 @@ export function apiHata(e) {
   return hata;
 }
 
+// Telefon doğrulaması isteyen satış callable'ları. İstemci kontrolü yalnızca UX içindir; asıl güvenlik sunucudadır.
+const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
 async function cagir(ad, veri) {
+  if (TELEFONLU.has(ad) && auth.currentUser && !auth.currentUser.phoneNumber) {
+    const h = new Error(VARSAYILAN.PHONE_REQUIRED); h.kod = 'PHONE_REQUIRED'; throw h;
+  }
   try {
     const f = await fonksiyon(ad);
     return (await f(veri)).data;

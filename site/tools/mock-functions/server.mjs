@@ -15,9 +15,21 @@ const LIMIT = 3;
 const REZ_LIMIT = +(process.env.REZ_LIMIT || 3);
 const IPTAL_SAAT = +(process.env.IPTAL_SAAT || 24);
 
-class Hata extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+class Hata extends Error { constructor(status, msg, details) { super(msg); this.status = status; this.details = details; } }
 const HTTP = { INVALID_ARGUMENT: 400, FAILED_PRECONDITION: 400, UNAUTHENTICATED: 401, PERMISSION_DENIED: 403, NOT_FOUND: 404, RESOURCE_EXHAUSTED: 429, INTERNAL: 500 };
 
+// Telefon doğrulaması (docs/TELEFON-DOGRULAMA.md): token'da phone_number yoksa failed-precondition + details.code PHONE_REQUIRED.
+const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
+function telefonAl(req) {
+  const t = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  try { return JSON.parse(Buffer.from(t.split('.')[1], 'base64url').toString()).phone_number || ''; } catch { return ''; }
+}
+async function syncPhoneVerification(uid, _d, req) {
+  const tel = telefonAl(req);
+  if (!tel) return { isPhoneActive: false };
+  await guncelle(`User/${uid}`, { phoneNumber: tel, isPhoneActive: true }).catch(() => {});
+  return { isPhoneActive: true, phoneNumber: tel };
+}
 function uidAl(req) {
   const t = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   try { const j = JSON.parse(Buffer.from(t.split('.')[1], 'base64url').toString()); const uid = j.user_id || j.sub; if (uid) return uid; } catch {}
@@ -148,7 +160,7 @@ setInterval(async () => {
   } catch {}
 }, 2000);
 
-const ISLEVLER = { holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket };
+const ISLEVLER = { syncPhoneVerification, holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket };
 if (process.env.SATIS_MODE) yaz('Config/satis', { mode: process.env.SATIS_MODE, rezervasyonLimit: REZ_LIMIT, iptalSaat: IPTAL_SAAT }).then(() => console.log('Config/satis =', process.env.SATIS_MODE)).catch((e) => console.error(e.message));
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization,content-type,firebase-instance-id-token,x-firebase-appcheck', 'access-control-allow-methods': 'POST,OPTIONS' };
 http.createServer(async (req, res) => {
@@ -159,11 +171,13 @@ http.createServer(async (req, res) => {
     if (!ISLEVLER[ad]) throw new Hata('NOT_FOUND', 'Fonksiyon yok.');
     let govde = ''; for await (const c of req) govde += c;
     const { data } = JSON.parse(govde || '{}');
-    const sonuc = await ISLEVLER[ad](uidAl(req), data || {});
+    const uid = uidAl(req);
+    if (TELEFONLU.has(ad) && !telefonAl(req)) throw new Hata('FAILED_PRECONDITION', 'PHONE_REQUIRED', { code: 'PHONE_REQUIRED' });
+    const sonuc = await ISLEVLER[ad](uid, data || {}, req);
     yanit(200, { result: sonuc });
   } catch (e) {
     const st = e instanceof Hata ? e.status : 'INTERNAL';
     if (!(e instanceof Hata)) console.error(e);
-    yanit(HTTP[st] || 500, { error: { message: e instanceof Hata ? e.message : 'INTERNAL', status: st } });
+    yanit(HTTP[st] || 500, { error: { message: e instanceof Hata ? e.message : 'INTERNAL', status: st, ...(e.details ? { details: e.details } : {}) } });
   }
 }).listen(PORT, '127.0.0.1', () => console.log(`Sahte callable sunucusu http://127.0.0.1:${PORT} (HOLD_SECONDS=${HOLD}, PAY_MODE=${PAY_MODE})`));

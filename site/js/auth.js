@@ -4,6 +4,7 @@
 import {
   auth, db, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup,
   GoogleAuthProvider, signOut, sendPasswordResetEmail, updateProfile, doc, getDoc, setDoc,
+  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, fonksiyon,
 } from './firebase.js';
 import { $, esc } from './util.js';
 
@@ -12,14 +13,40 @@ let hazir = false;
 const bekleyen = [];
 const dinleyiciler = new Set();
 
-onAuthStateChanged(auth, (u) => {
-  kullanici = u;
-  if (!hazir) { hazir = true; bekleyen.splice(0).forEach((f) => f(u)); }
+// Telefon doğrulaması: sunucu ID token'daki phone_number claim'ini ister. Giriş / bağlama sonrası token tazelenir ve
+// syncPhoneVerification callable'ı çağrılır (yalnız sunucu User.isPhoneActive'i true yapar; istemci ASLA yazmaz).
+// Hata yutulur, kullanıcı engellenmez. Telefon numarası log'lanmaz.
+const senkronlanan = new Set();
+export async function telefonSenkronla(u, zorla = false) {
+  if (!u?.phoneNumber) return;
+  if (!zorla && senkronlanan.has(u.uid)) return;
+  senkronlanan.add(u.uid);
+  try {
+    await u.getIdToken(true);
+    const f = await fonksiyon('syncPhoneVerification');
+    await Promise.race([f({}), new Promise((_, r) => setTimeout(() => r(new Error('zaman')), 8000))]);
+  } catch (e) { console.warn('syncPhoneVerification', e?.code || ''); }
+}
+
+function duyur(u) {
   dinleyiciler.forEach((f) => { try { f(u); } catch (e) { console.error(e); } });
   document.dispatchEvent(new CustomEvent('oturum-degisti', { detail: u }));
+}
+
+onAuthStateChanged(auth, (u) => {
+  kullanici = u;
+  if (u?.phoneNumber) telefonSenkronla(u);
+  if (!hazir) { hazir = true; bekleyen.splice(0).forEach((f) => f(u)); }
+  duyur(u);
 });
 
 export const mevcut = () => kullanici;
+/** "+905321234567" -> "+90 5** *** ** 67" (ekranda numaranın tamamı gösterilmez). */
+export function telefonMaske(t) {
+  const d = String(t || '').replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('90')) return `+90 ${d[2]}** *** ** ${d.slice(-2)}`;
+  return d.length > 4 ? `+${d.slice(0, 1)}** *** ${d.slice(-2)}` : '';
+}
 /** İlk oturum durumu çözülene kadar bekler; sonra kullanıcıyı (ya da null) döner. */
 export const oturumBekle = () => (hazir ? Promise.resolve(kullanici) : new Promise((r) => bekleyen.push(r)));
 export const oturumDinle = (f) => { dinleyiciler.add(f); if (hazir) f(kullanici); return () => dinleyiciler.delete(f); };
@@ -45,6 +72,14 @@ export function hataMetni(e) {
     'auth/missing-phone-number': 'Telefon numaranı yaz.',
     'auth/invalid-verification-code': 'Kod hatalı. Tekrar dene.',
     'auth/code-expired': 'Kodun süresi doldu. Yeni kod iste.',
+    'auth/credential-already-in-use': 'Bu numara başka bir hesaba bağlı. O hesapla telefonla giriş yapabilirsin.',
+    'auth/account-exists-with-different-credential': 'Bu numara başka bir hesaba bağlı. O hesapla telefonla giriş yapabilirsin.',
+    'auth/phone-number-already-exists': 'Bu numara başka bir hesaba bağlı. O hesapla telefonla giriş yapabilirsin.',
+    'auth/provider-already-linked': 'Bu hesaba zaten bir telefon numarası bağlı.',
+    'auth/session-expired': 'Kodun süresi doldu. Yeni kod iste.',
+    'auth/missing-verification-code': '6 haneli kodu yaz.',
+    'auth/invalid-app-credential': 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar dene.',
+    'auth/requires-recent-login': 'Güvenlik için oturumunu yenilemen gerekiyor. Çıkış yapıp tekrar giriş yap.',
     'auth/quota-exceeded': 'SMS kotası doldu. Biraz sonra tekrar dene veya Google ile gir.',
     'auth/captcha-check-failed': 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar dene.',
     'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
@@ -91,15 +126,21 @@ export function telefonE164(v) {
  * Oturum yoksa giriş modalını açar (Google veya telefon + SMS kodu — mobil uygulamayla aynı yöntemler).
  * Giriş olursa kullanıcıyı, vazgeçilirse null döner.
  * neden: modalda gösterilen kısa açıklama (ör. "Koltuk seçmek için giriş yap").
+ * ayar.telefonSart: true ise (bilet adımı) DOĞRULANMIŞ TELEFON da şarttır. Google ile girmiş ama telefonu olmayan kullanıcıya
+ * aynı modalda "Telefonunu doğrula" adımı gösterilir (linkWithPhoneNumber ile Google hesabı telefona bağlanır).
+ * Telefonla girmiş kullanıcı zaten doğrulanmış sayılır.
  */
-export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
+const BASKA_HESAP = ['auth/credential-already-in-use', 'auth/account-exists-with-different-credential', 'auth/phone-number-already-exists'];
+export async function girisGerekli(neden = 'Devam etmek için giriş yap.', ayar = {}) {
+  const telefonSart = !!ayar.telefonSart;
   await oturumBekle();
-  if (kullanici) return kullanici;
+  if (kullanici && (!telefonSart || kullanici.phoneNumber)) return kullanici;
   if (acik) return acik.promise;
   let coz;
   const promise = new Promise((r) => { coz = r; });
   const onceki = document.activeElement;
-  const st = { mod: 'giris', mesaj: '', yukleniyor: false, tel: '', ad: '' };
+  // mod: giris (Google/telefon) | kod (giriş SMS kodu) | bagla (telefon yaz) | baglakod (bağlama SMS kodu)
+  const st = { mod: kullanici ? 'bagla' : 'giris', mesaj: '', mesajTur: '', yukleniyor: false, tel: '', ad: '', baskaHesap: false };
   let onay = null, recaptcha = null;
   const bg = document.createElement('div');
   bg.className = 'auth-bg';
@@ -131,36 +172,60 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
   bg.addEventListener('mousedown', (e) => { if (e.target === bg) bitir(null); });
 
   const ciz = () => {
-    const kod = st.mod === 'kod';
+    const kodAdimi = st.mod === 'kod' || st.mod === 'baglakod';
+    const baglaAdimi = st.mod === 'bagla' || st.mod === 'baglakod';
+    const baslik = kodAdimi ? 'Doğrulama kodu' : baglaAdimi ? 'Telefonunu doğrula' : 'Giriş yap';
+    const aciklama = kodAdimi ? `${st.tel} numarasına 6 haneli bir kod gönderdik.`
+      : baglaAdimi ? 'Bilet ve rezervasyon için telefon numaranı SMS koduyla doğrulaman gerekiyor. Numaran yalnızca hesabını doğrulamak için kullanılır.'
+      : neden;
+    const dugme = st.yukleniyor ? 'Bekle…' : kodAdimi ? (baglaAdimi ? 'Doğrula' : 'Doğrula ve gir') : 'SMS kodu gönder';
     kutu.innerHTML = `
       <button type="button" class="auth-x" aria-label="Kapat" data-x>×</button>
       <div class="auth-baslik"><span class="auth-kicker">TiyatRol</span>
-        <h2 id="auth-b">${kod ? 'Doğrulama kodu' : 'Giriş yap'}</h2>
-        <p class="muted">${kod ? esc(`${st.tel} numarasına 6 haneli bir kod gönderdik.`) : esc(neden)}</p></div>
-      ${kod ? '' : `<button type="button" class="btn btn-ghost auth-google" data-g ${st.yukleniyor ? 'disabled' : ''}>${IKON_G}<span>Google ile devam et</span></button>
-        <div class="auth-ayrac"><span>ya da telefon numarası ile</span></div>`}
+        <h2 id="auth-b">${baslik}</h2>
+        <p class="muted">${esc(aciklama)}</p></div>
+      ${st.mod === 'giris' ? `<button type="button" class="btn btn-ghost auth-google" data-g ${st.yukleniyor ? 'disabled' : ''}>${IKON_G}<span>Google ile devam et</span></button>
+        <div class="auth-ayrac"><span>ya da telefon numarası ile</span></div>` : ''}
       <form novalidate data-f>
-        ${kod
+        ${kodAdimi
           ? '<label>SMS kodu<input name="kod" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required></label>'
           : `<label>Telefon<input name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="5xx xxx xx xx" maxlength="20" value="${esc(st.tel)}" required></label>
-             <label>Ad soyad <small class="muted">(ilk kez giriyorsan)</small><input name="ad" type="text" autocomplete="name" maxlength="80" value="${esc(st.ad)}"></label>`}
+             ${baglaAdimi ? '' : `<label>Ad soyad <small class="muted">(isteğe bağlı, profilin için)</small><input name="ad" type="text" autocomplete="name" maxlength="80" value="${esc(st.ad)}"></label>`}`}
         <div class="auth-mesaj ${st.mesajTur || ''}" role="status" aria-live="polite">${esc(st.mesaj)}</div>
+        ${st.baskaHesap ? '<div class="auth-alt"><button type="button" class="link-btn" data-telgiris>Bu numarayla telefonla giriş yap</button></div>' : ''}
         <div id="auth-recaptcha"></div>
-        <button class="btn btn-primary auth-gonder" type="submit" ${st.yukleniyor ? 'disabled' : ''}>${st.yukleniyor ? 'Bekle…' : kod ? 'Doğrula ve gir' : 'SMS kodu gönder'}</button>
+        <button class="btn btn-primary auth-gonder" type="submit" ${st.yukleniyor ? 'disabled' : ''}>${dugme}</button>
       </form>
-      ${kod ? '<div class="auth-alt"><button type="button" class="link-btn" data-mod="giris">Numarayı değiştir</button></div>'
-            : '<p class="tiny auth-not">Devam ederek <a href="/sartlar" target="_blank" rel="noopener">kullanım şartlarını</a> ve <a href="/gizlilik" target="_blank" rel="noopener">gizlilik politikasını</a> kabul etmiş olursun.</p>'}`;
+      ${kodAdimi ? `<div class="auth-alt"><button type="button" class="link-btn" data-mod="${baglaAdimi ? 'bagla' : 'giris'}">Numarayı değiştir</button></div>`
+        : `<p class="tiny auth-not">Devam ederek <a href="/sartlar" target="_blank" rel="noopener">kullanım şartlarını</a> ve <a href="/gizlilik" target="_blank" rel="noopener">gizlilik politikasını</a> kabul etmiş olursun.</p>`}`;
   };
   const odak = () => (kutu.querySelector('input') || kutu.querySelector('button'))?.focus();
   ciz(); requestAnimationFrame(odak);
 
   const mesaj = (m, tur = 'hata') => { st.mesaj = m; st.mesajTur = tur; };
-  const basari = async (u, ad) => { await kullaniciBelgesi(u, ad); bitir(u); };
+  const basari = async (u, ad) => {
+    await kullaniciBelgesi(u, ad);
+    await telefonSenkronla(u, true);
+    // Bilet adımında telefon yoksa (ör. Google ile giriş) modalı kapatma: telefon bağlama adımına geç.
+    if (telefonSart && !u.phoneNumber) {
+      st.mod = 'bagla'; st.yukleniyor = false; mesaj(''); ciz(); odak();
+      return;
+    }
+    bitir(u);
+  };
+  // Telefon bağlandı: aynı kullanıcı nesnesi güncellenir; dinleyicilere haber ver, token'ı tazele, sunucuyla eşitle.
+  const baglandi = async (u) => {
+    await telefonSenkronla(u, true);
+    kullanici = auth.currentUser || u;
+    duyur(kullanici);
+    bitir(kullanici);
+  };
 
   kutu.addEventListener('click', async (e) => {
     if (e.target.closest('[data-x]')) return bitir(null);
     const m = e.target.closest('[data-mod]');
-    if (m) { st.mod = m.dataset.mod; st.mesaj = ''; onay = null; ciz(); return odak(); }
+    if (m) { st.mod = m.dataset.mod; st.mesaj = ''; st.baskaHesap = false; onay = null; ciz(); return odak(); }
+    if (e.target.closest('[data-telgiris]')) { st.mod = 'giris'; st.mesaj = ''; st.baskaHesap = false; onay = null; ciz(); return odak(); }
     if (e.target.closest('[data-g]')) {
       st.yukleniyor = true; mesaj(''); ciz();
       try {
@@ -173,33 +238,50 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.') {
     e.preventDefault();
     if (st.yukleniyor) return;
     const f = new FormData(e.target);
-    if (st.mod === 'kod') {
+    if (st.mod === 'kod' || st.mod === 'baglakod') {
       const kod = String(f.get('kod') || '').replace(/\D/g, '');
       if (kod.length !== 6) { mesaj('6 haneli kodu yaz.'); ciz(); return kutu.querySelector('[name=kod]')?.focus(); }
       st.yukleniyor = true; mesaj(''); ciz();
       try {
         const r = await onay.confirm(kod);
+        if (st.mod === 'baglakod') return await baglandi(r?.user || auth.currentUser);
         return await basari(r.user, st.ad);
-      } catch (err) { st.yukleniyor = false; mesaj(hataMetni(err)); ciz(); kutu.querySelector('[name=kod]')?.focus(); }
+      } catch (err) {
+        st.yukleniyor = false; mesaj(hataMetni(err));
+        st.baskaHesap = st.mod === 'baglakod' && BASKA_HESAP.includes(err?.code);
+        ciz(); kutu.querySelector(st.baskaHesap ? '[data-telgiris]' : '[name=kod]')?.focus();
+      }
       return;
     }
     const tel = telefonE164(f.get('tel'));
-    st.ad = String(f.get('ad') || '').trim();
+    if (st.mod === 'giris') st.ad = String(f.get('ad') || '').trim();
     if (!tel) { st.tel = String(f.get('tel') || ''); mesaj('Geçerli bir telefon numarası yaz. Örnek: 5xx xxx xx xx'); ciz(); return kutu.querySelector('[name=tel]')?.focus(); }
-    st.tel = tel; st.yukleniyor = true; mesaj(''); ciz();
+    st.tel = tel; st.yukleniyor = true; mesaj(''); st.baskaHesap = false; ciz();
     try {
       try { recaptcha?.clear(); } catch {}
       recaptcha = new RecaptchaVerifier(auth, 'auth-recaptcha', { size: 'invisible' });
-      onay = await signInWithPhoneNumber(auth, tel, recaptcha);
-      st.mod = 'kod'; st.yukleniyor = false; mesaj(''); ciz(); odak();
+      if (st.mod === 'bagla') {
+        if (!auth.currentUser) throw Object.assign(new Error('oturum'), { code: 'auth/requires-recent-login' });
+        onay = await linkWithPhoneNumber(auth.currentUser, tel, recaptcha);
+        st.mod = 'baglakod';
+      } else {
+        onay = await signInWithPhoneNumber(auth, tel, recaptcha);
+        st.mod = 'kod';
+      }
+      st.yukleniyor = false; mesaj(''); ciz(); odak();
     } catch (err) {
       try { recaptcha?.clear(); } catch {}
-      recaptcha = null; st.yukleniyor = false; mesaj(hataMetni(err)); ciz(); kutu.querySelector('[name=tel]')?.focus();
+      recaptcha = null; st.yukleniyor = false; mesaj(hataMetni(err));
+      st.baskaHesap = st.mod === 'bagla' && BASKA_HESAP.includes(err?.code);
+      ciz(); kutu.querySelector('[name=tel]')?.focus();
     }
   });
   acik = { promise };
   return promise;
 }
+
+/** Bilet adımı için: giriş + doğrulanmış telefon şart. Tamamlanırsa kullanıcıyı, vazgeçilirse null döner. */
+export const telefonGerekli = (neden = 'Bilet işlemleri için giriş yap ve telefonunu doğrula.') => girisGerekli(neden, { telefonSart: true });
 
 // ---------- Başlık: hesap düğmesi ve menüsü ----------
 const IKON_K = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>';
@@ -216,6 +298,9 @@ export function hesapDugmesi(kap) {
     btn.setAttribute('aria-label', u ? `Hesabım: ${u.displayName || u.email}` : 'Giriş yap');
     menu.innerHTML = u
       ? `<div class="hesap-ust"><b>${esc(u.displayName || 'Hesabım')}</b><small>${esc(u.email || u.phoneNumber || '')}</small></div>
+         ${u.phoneNumber
+           ? `<div class="hesap-tel ok" role="note">Telefon doğrulandı ✓ <span>${esc(telefonMaske(u.phoneNumber))}</span></div>`
+           : '<button type="button" role="menuitem" class="hesap-tel-btn" data-telefon>Telefonu doğrula</button>'}
          <a role="menuitem" href="/biletlerim">Biletlerim</a><a role="menuitem" href="/favoriler">Favorilerim</a>
          <button type="button" role="menuitem" data-cikis>Çıkış yap</button>`
       : '';
@@ -226,7 +311,10 @@ export function hesapDugmesi(kap) {
     menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden));
     if (!menu.hidden) menu.querySelector('a')?.focus();
   });
-  menu.addEventListener('click', async (e) => { if (e.target.closest('[data-cikis]')) { kapat(); await cikis(); if (/^\/(biletlerim|koltuk|odeme-sonuc)/.test(location.pathname)) location.href = '/vitrin'; } });
+  menu.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-telefon]')) { kapat(); await telefonGerekli('Bilet ve rezervasyon için telefonunu doğrula.'); return; }
+    if (e.target.closest('[data-cikis]')) { kapat(); await cikis(); if (/^\/(biletlerim|koltuk|odeme-sonuc)/.test(location.pathname)) location.href = '/vitrin'; }
+  });
   document.addEventListener('click', (e) => { if (!kap.contains(e.target)) kapat(); });
   kap.addEventListener('keydown', (e) => { if (e.key === 'Escape') { kapat(); btn.focus(); } });
 }
