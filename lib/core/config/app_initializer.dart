@@ -43,11 +43,6 @@ abstract final class AppInitializer {
     if (!kIsWeb) {
       // Android 15 Edge-to-Edge için şeffaf mod
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-      ));
     }
   }
 

@@ -129,12 +129,9 @@ class _MobileSystemUIWrapper extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: child,
     );
