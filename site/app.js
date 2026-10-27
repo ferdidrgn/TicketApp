@@ -410,7 +410,9 @@ function renderCalendar(M) {
     drawCalendar();
   }));
   drawCalendar();
-  wrap.querySelector('.is-active')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  // Sayfayı kaydırma: yalnız ay sekmelerinin kendi yatay kaydırmasında aktif ayı ortala.
+  const act = wrap.querySelector('.is-active');
+  if (act) wrap.scrollLeft += act.getBoundingClientRect().left - wrap.getBoundingClientRect().left - (wrap.clientWidth - act.offsetWidth) / 2;
 }
 function drawCalendar() {
   const { M, key } = CAL;
