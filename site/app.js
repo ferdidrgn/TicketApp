@@ -172,12 +172,36 @@ function filterAllowed(showsRaw, teams, players, stages, events) {
   return { shows, players: pl, stages: stages.filter((st) => st.name && stageIds.has(st.id)), events: evs };
 }
 
+/** "Önerdiğimiz oyun": ekip dışı bir oyunun oyuncu listesinde, izinli ekiplerin oyunlarında oynayan bir oyuncu varsa
+ * (oyuncu id'siyle eşleşir) o oyunun seansları YALNIZ takvim ve kronolojide görünür. Başka hiçbir yerde sayılmaz. */
+function buildSuggested(showsRaw, F, playersRaw, stagesRaw, eventsRaw) {
+  const ours = new Set(F.shows.map((s) => s.id));
+  const castOurs = new Set(F.players.map((p) => p.id));
+  const playerById = Object.fromEntries(playersRaw.map((p) => [p.id, p]));
+  const stageById = Object.fromEntries(stagesRaw.map((st) => [st.id, st]));
+  const out = [];
+  showsRaw.filter((s) => !ours.has(s.id)).forEach((show) => {
+    const who = [...new Set([...(show.nowPlayersId || []), ...(show.oldPlayersId || [])].filter((id) => id && castOurs.has(id)))]
+      .map((id) => playerName(playerById[id] || {})).filter(Boolean);
+    if (!who.length) return;
+    const evIds = new Set((show.eventsId || []).filter(Boolean));
+    eventsRaw.filter((e) => (e.showId ? e.showId === show.id : evIds.has(e.id))).forEach((e) => {
+      const d = parseEventDate(e.date);
+      if (d) out.push({ ...e, _date: d, _show: show, _stage: stageById[e.stageId] || null, _suggested: true, _who: who });
+    });
+  });
+  return out;
+}
+
 async function boot() {
   const [showsRaw, playersRaw, stagesRaw, eventsRaw, teams] = await Promise.all([
     fetchCollection('Show'), fetchCollection('Player'), fetchCollection('Stage'), fetchCollection('Event'), fetchCollection('Team'),
   ]);
   const F = filterAllowed(showsRaw, teams, playersRaw, stagesRaw, eventsRaw);
   const M = buildModel(sortRepertoire(F.shows), F.players, F.stages, F.events);
+  // Takvim + kronoloji: bizim seanslar ve önerilenler tarih sırasına göre karışık
+  M.calEvents = [...M.events, ...buildSuggested(showsRaw, F, playersRaw, stagesRaw, eventsRaw)].sort((a, b) => a._date - b._date);
+  M.calUpcoming = M.calEvents.filter((e) => e._date >= M.now);
 
   renderHero(M);
   renderMarquee(M);
@@ -370,10 +394,10 @@ function renderCalendar(M) {
   CAL.M = M;
   const base = new Date(M.now.getFullYear(), M.now.getMonth(), 1);
   const months = Array.from({ length: 12 }, (_, i) => new Date(base.getFullYear(), base.getMonth() + i, 1));
-  const first = M.upcoming[0]?._date || M.now;
+  const first = M.calUpcoming[0]?._date || M.now;
   CAL.key = `${first.getFullYear()}-${first.getMonth()}`;
   const keyOf = (d) => `${d.getFullYear()}-${d.getMonth()}`;
-  const has = new Set(M.events.map((e) => keyOf(e._date)));
+  const has = new Set(M.calEvents.map((e) => keyOf(e._date)));
   const wrap = $('calTabs');
   wrap.innerHTML = months.map((d) => {
     const k = keyOf(d);
@@ -393,7 +417,7 @@ function drawCalendar() {
   const [y, mo] = key.split('-').map(Number);
   $('calMonth').textContent = `${MONTHS_TR[mo]} ${y}`;
   const row = $('calRow');
-  const list = M.events.filter((e) => e._date.getFullYear() === y && e._date.getMonth() === mo);
+  const list = M.calEvents.filter((e) => e._date.getFullYear() === y && e._date.getMonth() === mo);
   if (!list.length) { row.innerHTML = `<div class="empty">Bu ayda planlanmış bir seans yok.</div>`; return; }
   row.innerHTML = list.map((e) => {
     const s = e._show;
@@ -402,12 +426,14 @@ function drawCalendar() {
     const past = e._date < M.now;
     const price = priceLabel(e.price);
     const tag = s ? 'a' : 'div';
-    return `<${tag} class="ticket reveal${past ? ' is-past' : ''}"${s ? ` href="${showHref(s)}" aria-label="${name}, ${esc(formatDateTr(e._date))}" data-cursor-hover` : ''}>
+    return `<${tag} class="ticket reveal${past ? ' is-past' : ''}${e._suggested ? ' is-suggested' : ''}"${s ? ` href="${showHref(s)}" aria-label="${name}, ${esc(formatDateTr(e._date))}" data-cursor-hover` : ''}>
       ${img}
       <div class="ticket__notch"></div>
       <div class="ticket__body">
         <div class="ticket__date"><span class="ticket__day">${e._date.getDate()}</span><span class="ticket__rest">${MONTHS_TR[e._date.getMonth()]}<br>${timeOf(e._date)}</span></div>
+        ${e._suggested ? `<span class="sug-badge">Önerdiğimiz oyun</span>` : ''}
         <p class="ticket__name">${name}</p>
+        ${e._suggested ? `<p class="sug-note">${esc(suggestNote(e))}</p>` : ''}
         ${e._stage?.name ? `<p class="ticket__stage">${esc(e._stage.name)}</p>` : ''}
         ${past ? `<span class="ticket__tag">Oynandı</span>` : price ? `<span class="ticket__tag ticket__tag--price">${esc(price)}</span>` : ''}
       </div>
@@ -416,9 +442,11 @@ function drawCalendar() {
   observeReveals(row);
 }
 
+const suggestNote = (e) => `Ekibimizden ${e._who.join(', ')} sahnede — ekibimiz dışında bir yapım, gitmenizi öneririz.`;
+
 function renderTimeline(M) {
   const rail = $('timelineRail');
-  const list = M.upcoming.slice(0, 10);
+  const list = M.calUpcoming.slice(0, 10);
   if (!list.length) { hideSection('kronoloji'); return; }
   rail.innerHTML = list.map((e) => {
     const s = e._show;
@@ -426,12 +454,12 @@ function renderTimeline(M) {
     const img = s?.imageUrl ? `<img class="timeline__img" src="${esc(s.imageUrl)}" alt="" loading="lazy" />` : `<div class="timeline__img--ph">${name}</div>`;
     const meta = [s?.category, e._stage?.name, priceLabel(e.price)].filter(Boolean).join(' · ');
     const tag = s ? 'a' : 'div';
-    return `<div class="timeline__item reveal">
+    return `<div class="timeline__item reveal${e._suggested ? ' is-suggested' : ''}">
       <span class="timeline__dot"></span>
       <div class="timeline__date">${esc(formatDateTr(e._date))}</div>
       <${tag} class="timeline__card"${s ? ` href="${showHref(s)}" data-cursor-hover` : ''}>
         ${img}
-        <div class="timeline__body"><p class="timeline__name">${name}</p>${meta ? `<p class="timeline__meta">${esc(meta)}</p>` : ''}</div>
+        <div class="timeline__body">${e._suggested ? `<span class="sug-badge">Önerdiğimiz oyun</span>` : ''}<p class="timeline__name">${name}</p>${e._suggested ? `<p class="sug-note">${esc(suggestNote(e))}</p>` : ''}${meta ? `<p class="timeline__meta">${esc(meta)}</p>` : ''}</div>
       </${tag}>
     </div>`;
   }).join('');
