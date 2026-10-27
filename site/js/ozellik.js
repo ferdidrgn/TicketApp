@@ -50,7 +50,7 @@ addEventListener('keydown', (e) => {
   if (e.key === '?') { e.preventDefault(); const m = document.createElement('div'); m.className = 'ks-bg'; m.innerHTML = `<div class="ks"><header><b>Klavye kısayolları</b><button class="btn btn-ghost btn-sm" data-k>Kapat</button></header><dl>${SK.map(([k, a]) => `<dt>${k.split(' ').map((x) => `<kbd>${x}</kbd>`).join(' ')}</dt><dd>${a}</dd>`).join('')}</dl></div>`; document.body.append(m); m.addEventListener('click', (ev) => { if (ev.target === m || ev.target.closest('[data-k]')) m.remove(); }); return; }
   if (e.key === 'Escape') document.querySelector('.ks-bg')?.remove();
   clearTimeout(zaman); zaman = setTimeout(() => { onceki = ''; }, 900);
-  if (onceki === 'g') { const y = { h: '/app', k: '/kesfet', m: '/harita', t: '/takvim', f: '/favoriler' }[e.key]; onceki = ''; if (y) location.href = y; return; }
+  if (onceki === 'g') { const y = { h: '/vitrin', k: '/kesfet', m: '/harita', t: '/takvim', f: '/favoriler' }[e.key]; onceki = ''; if (y) location.href = y; return; }
   if (e.key === 'g') onceki = 'g';
 });
 

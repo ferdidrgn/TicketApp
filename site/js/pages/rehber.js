@@ -16,7 +16,7 @@ if (!slug || !m) {
 } else {
   baslikYaz(m.baslik, m.ozet);
   const diger = MAKALELER.filter((x) => x.slug !== m.slug).slice(0, 3);
-  ic.innerHTML = `<article class="makale"><div class="crumbs"><a href="/app">Vitrin</a> / <a href="/rehber">Rehber</a></div><span class="durum aktif">${esc(m.etiket)}</span><h1>${esc(m.baslik)}</h1><p class="makale-ozet">${esc(m.ozet)}</p><div class="makale-govde">${m.govde}</div>
+  ic.innerHTML = `<article class="makale"><div class="crumbs"><a href="/vitrin">Vitrin</a> / <a href="/rehber">Rehber</a></div><span class="durum aktif">${esc(m.etiket)}</span><h1>${esc(m.baslik)}</h1><p class="makale-ozet">${esc(m.ozet)}</p><div class="makale-govde">${m.govde}</div>
     <div class="makale-alt"><a class="btn btn-primary" href="/kesfet">Oyunlara göz at</a><a class="btn btn-ghost" href="/harita">Haritada gör</a></div></article>
     <section class="sec"><h2 style="font-size:28px;margin-bottom:16px">Diğer yazılar</h2><div class="rehber-izgara">${diger.map((x) => `<a class="rehber-kart" href="/rehber/${x.slug}"><span class="durum aktif">${esc(x.etiket)}</span><h2>${esc(x.baslik)}</h2><p>${esc(x.ozet)}</p><small>${x.dk} dk okuma →</small></a>`).join('')}</div></section>`;
 }

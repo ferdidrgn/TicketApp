@@ -102,7 +102,7 @@ function ciz(d) {
 
   const chips = [s.cat, s.duration, s.ageLimit && `Yaş sınırı ${s.ageLimit}`, s.type].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join('');
   const n = s.next;
-  const kirinti = `<a href="/app">Vitrin</a> / <a href="/kesfet?tur=${encodeURIComponent(s.cat)}">${esc(s.cat)}</a>${s.team ? ` / <a href="${linkOf('topluluk', s.team)}">${esc(s.team.name)}</a>` : ''}`;
+  const kirinti = `<a href="/vitrin">Vitrin</a> / <a href="/kesfet?tur=${encodeURIComponent(s.cat)}">${esc(s.cat)}</a>${s.team ? ` / <a href="${linkOf('topluluk', s.team)}">${esc(s.team.name)}</a>` : ''}`;
 
   $('#icerik').innerHTML = `
   <section class="op-hero" id="ust"><div class="op-bg">${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="">` : ''}</div>

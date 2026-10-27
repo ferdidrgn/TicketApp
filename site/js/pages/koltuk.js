@@ -440,7 +440,7 @@ function panelCiz() {
 
 function iskeleCiz() {
   const s = S.show, e = S.ev;
-  const kirinti = `<a href="/app">Vitrin</a> / ${s ? `<a href="${linkOf('oyun', s)}">${esc(s.name)}</a>` : 'Oyun'} / Koltuk seçimi`;
+  const kirinti = `<a href="/vitrin">Vitrin</a> / ${s ? `<a href="${linkOf('oyun', s)}">${esc(s.name)}</a>` : 'Oyun'} / Koltuk seçimi`;
   const sahneAd = S.stage?.name || e.stageId || '';
   yaz(`<section class="k-sayfa">
     <div class="crumbs">${kirinti}</div>

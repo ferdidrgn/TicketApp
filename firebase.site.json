@@ -72,10 +72,6 @@
       ],
       "rewrites": [
         {
-          "source": "/app",
-          "destination": "/vitrin.html"
-        },
-        {
           "source": "/guvenli-odeme",
           "destination": "/guvenli-odeme.html"
         },
@@ -184,6 +180,11 @@
         "node site/tools/build.mjs"
       ],
       "redirects": [
+        {
+          "source": "/app",
+          "destination": "/vitrin",
+          "type": 302
+        },
         {
           "source": "/uygulama",
           "destination": "https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp",
@@ -323,10 +324,6 @@
       ],
       "rewrites": [
         {
-          "source": "/app",
-          "destination": "/vitrin.html"
-        },
-        {
           "source": "/guvenli-odeme",
           "destination": "/guvenli-odeme.html"
         },
@@ -432,6 +429,11 @@
         }
       ],
       "redirects": [
+        {
+          "source": "/app",
+          "destination": "/vitrin",
+          "type": 302
+        },
         {
           "source": "/uygulama",
           "destination": "https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp",

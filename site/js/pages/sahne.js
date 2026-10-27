@@ -28,7 +28,7 @@ yukle().then((d) => {
   $('#icerik').innerHTML = `
   <section class="pf-hero"><div class="wrap pf-grid">
     <div class="pf-foto kare">${g.imageUrl ? `<img src="${esc(g.imageUrl)}" alt="${esc(g.name)}">` : `<div class="yok">${esc(baslangic(g.name))}</div>`}</div>
-    <div class="pf-info"><div class="crumbs"><a href="/app">Vitrin</a> / <a href="/kesfet?tur=sahneler">Sahneler</a></div><h1>${kelimeKelime(g.name)}</h1>
+    <div class="pf-info"><div class="crumbs"><a href="/vitrin">Vitrin</a> / <a href="/kesfet?tur=sahneler">Sahneler</a></div><h1>${kelimeKelime(g.name)}</h1>
       ${g.address ? `<p class="op-lead">${esc(g.address)}</p>` : ''}
       <div class="pf-sayilar"><div><b data-say="${g.upcoming.length}">0</b><span>Yaklaşan seans</span></div><div><b data-say="${oynayan.length}">0</b><span>Oyun</span></div>${g.capacity ? `<div><b>${esc(g.capacity)}</b><span>Kapasite</span></div>` : ''}</div>
       <div class="op-act">${n?.show ? `<a class="btn btn-primary" href="${linkOf('oyun', n.show)}">Sıradaki: ${esc(kisalt(n.show.name, 28))}</a>` : (yol ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${yol}">Yol tarifi al</a>` : '')}${kalpB}<button class="btn btn-ghost" id="paylas">Paylaş</button></div></div>

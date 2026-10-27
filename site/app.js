@@ -586,7 +586,7 @@ function renderNextUp(M) {
       <div class="stub__date"><span class="stub__day">${d.getDate()}</span><span>${esc(MONTHS_TR[d.getMonth()])}<br>${timeOf(d)}</span></div>
     </div>
     <div class="stub__actions">
-      <a class="btn btn--fill" href="${s ? showHref(s) : '/app'}" data-cursor-hover>Bilet Al</a>
+      <a class="btn btn--fill" href="${s ? showHref(s) : '/vitrin'}" data-cursor-hover>Bilet Al</a>
       ${s ? `<a class="link-arrow" href="${showHref(s)}" data-cursor-hover>Oyunu incele</a>` : ''}
     </div>`;
 }
