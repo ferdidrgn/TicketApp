@@ -28,7 +28,7 @@ yukle().then((d) => {
   $('#icerik').innerHTML = `
   <section class="pf-hero"><div class="wrap pf-grid">
     <div class="pf-foto kare">${t.imageUrl ? `<img src="${esc(t.imageUrl)}" alt="${esc(t.name)}">` : `<div class="yok">${esc(baslangic(t.name))}</div>`}</div>
-    <div class="pf-info"><div class="crumbs"><a href="/">Vitrin</a> / <a href="/kesfet?tur=topluluklar">Topluluklar</a></div><h1>${kelimeKelime(t.name)}</h1>
+    <div class="pf-info"><div class="crumbs"><a href="/app">Vitrin</a> / <a href="/kesfet?tur=topluluklar">Topluluklar</a></div><h1>${kelimeKelime(t.name)}</h1>
       <div class="pf-sayilar"><div><b data-say="${sahnede.length}">0</b><span>Sahnede</span></div><div><b data-say="${t.shows.length}">0</b><span>Toplam oyun</span></div><div><b data-say="${kadro.length}">0</b><span>Oyuncu</span></div></div>
       <div class="op-act">${sonraki ? `<a class="btn btn-primary" href="${linkOf('oyun', sonraki.show)}">Sıradaki oyuna git</a>` : ''}${kalpB}<button class="btn btn-ghost" id="paylas">Paylaş</button></div></div>
   </div></section>

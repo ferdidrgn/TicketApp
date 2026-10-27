@@ -226,7 +226,7 @@ export function hesapDugmesi(kap) {
     menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden));
     if (!menu.hidden) menu.querySelector('a')?.focus();
   });
-  menu.addEventListener('click', async (e) => { if (e.target.closest('[data-cikis]')) { kapat(); await cikis(); if (/^\/(biletlerim|koltuk|odeme-sonuc)/.test(location.pathname)) location.href = '/'; } });
+  menu.addEventListener('click', async (e) => { if (e.target.closest('[data-cikis]')) { kapat(); await cikis(); if (/^\/(biletlerim|koltuk|odeme-sonuc)/.test(location.pathname)) location.href = '/app'; } });
   document.addEventListener('click', (e) => { if (!kap.contains(e.target)) kapat(); });
   kap.addEventListener('keydown', (e) => { if (e.key === 'Escape') { kapat(); btn.focus(); } });
 }

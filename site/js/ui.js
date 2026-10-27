@@ -31,7 +31,7 @@ export function kabukCiz(aktif = '') {
     <div class="util-r"><a href="/biletlerim">Biletlerim</a><a href="/yardim">Yardım</a><a href="mailto:info@tiyatrol.com">info@tiyatrol.com</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Uygulamayı indir</a></div></div></div>
   <header class="hdr" id="hdr">
     <div class="wrap hdr-main">
-      <a href="/" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
+      <a href="/app" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
       <button type="button" class="il-btn" id="il-btn" aria-label="İl seç"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.2A7 7 0 0 1 19 9.8C19 14.800 12 21 12 21Z"/><circle cx="12" cy="9.8" r="2.5"/></svg><span id="il-ad">${ilOku() || 'Tüm Türkiye'}</span></button>
       <form class="search" role="search" action="/kesfet" autocomplete="off">
         <input id="q" name="q" type="search" placeholder="Oyun, oyuncu, sahne ya da topluluk ara" aria-label="Ara">
@@ -45,7 +45,7 @@ export function kabukCiz(aktif = '') {
       </div>
     </div>
     <nav class="nav" aria-label="Ana menü"><div class="wrap" id="nav">
-      ${nav('ana', '/', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('harita', '/harita', 'Harita')}${nav('takvim', '/takvim', 'Takvim')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
+      ${nav('ana', '/app', 'Vitrin')}${nav('kesfet', '/kesfet', 'Tüm oyunlar')}${nav('harita', '/harita', 'Harita')}${nav('takvim', '/takvim', 'Takvim')}${nav('bugun', '/kesfet?zaman=bugun', 'Bu akşam', 'hot')}
       <span id="nav-turler"></span><span class="sp"></span>
       ${nav('sahneler', '/kesfet?tur=sahneler', 'Sahneler')}${nav('toplulukler', '/kesfet?tur=topluluklar', 'Topluluklar')}
     </div></nav>
@@ -53,7 +53,7 @@ export function kabukCiz(aktif = '') {
   $('#ftr').outerHTML = `
   <footer class="ftr" id="ftr"><div class="wrap">
     <div class="ftr-grid">
-      <div><a href="/" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
+      <div><a href="/app" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
       <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/biletlerim">Biletlerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
       <div><h4>Destek</h4><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>

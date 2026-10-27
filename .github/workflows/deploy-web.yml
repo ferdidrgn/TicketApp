@@ -41,6 +41,8 @@ jobs:
 
       - name: Build site (prerender)
         run: node site/tools/build.mjs
+        env:
+          SITE_URL: https://tiyatrol.web.app
 
       - name: Sanity check
         run: |

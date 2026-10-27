@@ -77,7 +77,7 @@ function sayfa(sablon, { baslik, aciklama, adres, gorsel, govde, jsonld }) {
   // #icerik / #home yer tutucusunu gerçek içerikle doldur (site.js tarayıcıda yeniden çizer)
   h = h.replace(/<div id="icerik">([\s\S]*?)<\/div>\s*<\/main>/, (m, ic) => { const sk = (ic.match(/<div class="sk-sayfa"[\s\S]*$/) || [''])[0]; return `<div id="icerik">${sk}<div class="onyuz">${govde}</div></div></main>`; });
   h = h.replace(/(<div class="wrap" id="home">)([\s\S]*?)(<\/div>\s*<\/main>)/, (m, a, ic, z) => `${a}${(ic.match(/<div class="sk-sat"[\s\S]*$/) || [''])[0]}<div class="onyuz">${govde}</div>${z}`);
-  h = h.replace('<div id="hdr"></div>', `<div id="hdr"><nav aria-label="Ana menü"><a href="/">Vitrin</a> <a href="/kesfet">Tüm oyunlar</a> <a href="/kesfet?tur=sahneler">Sahneler</a> <a href="/kesfet?tur=topluluklar">Topluluklar</a> <a href="/yardim">Yardım</a></nav></div>`);
+  h = h.replace('<div id="hdr"></div>', `<div id="hdr"><nav aria-label="Ana menü"><a href="/app">Vitrin</a> <a href="/kesfet">Tüm oyunlar</a> <a href="/kesfet?tur=sahneler">Sahneler</a> <a href="/kesfet?tur=topluluklar">Topluluklar</a> <a href="/yardim">Yardım</a></nav></div>`);
   return h;
 }
 const link = (u, t) => `<a href="${u}">${esc(t)}</a>`;
@@ -102,9 +102,9 @@ await cp(KOK, CIKTI, { recursive: true, filter: (s) => !s.includes('tools') });
 const sh = new Map(shows.map((s) => [s.id, s])), sg = new Map(stages.map((s) => [s.id, s])), tm = new Map(teams.map((t) => [t.id, t])), pl = new Map(players.map((p) => [p.id, p]));
 const stageOf = (e) => sg.get(e.stageId) || stages.find((x) => x.name === e.stageId) || null;
 const simdi = Date.now();
-const adresler = [{ u: '/', p: 1 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/kampanyalar', p: 0.5 }, { u: '/takvim', p: 0.7 }, { u: '/mesafeli-satis', p: 0.3 }, { u: '/iade-iptal', p: 0.3 }, { u: '/on-bilgilendirme', p: 0.3 }, { u: '/iletisim', p: 0.3 }, { u: '/hakkimizda', p: 0.3 }, { u: '/guvenli-odeme', p: 0.3 },  { u: '/favoriler', p: 0.3 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
+const adresler = [{ u: '/', p: 1 }, { u: '/app', p: 0.95 }, { u: '/kesfet', p: 0.9 }, { u: '/harita', p: 0.8 }, { u: '/kampanyalar', p: 0.5 }, { u: '/takvim', p: 0.7 }, { u: '/mesafeli-satis', p: 0.3 }, { u: '/iade-iptal', p: 0.3 }, { u: '/on-bilgilendirme', p: 0.3 }, { u: '/iletisim', p: 0.3 }, { u: '/hakkimizda', p: 0.3 }, { u: '/guvenli-odeme', p: 0.3 },  { u: '/favoriler', p: 0.3 }, { u: '/yardim', p: 0.4 }, { u: '/uygulama', p: 0.4 }, { u: '/gizlilik', p: 0.2 }, { u: '/sartlar', p: 0.2 }];
 const sablon = async (ad) => readFile(join(KOK, ad), 'utf8');
-const oyunT = await sablon('oyun.html'), oyuncuT = await sablon('oyuncu.html'), sahneT = await sablon('sahne.html'), toplulukT = await sablon('topluluk.html'), anaT = await sablon('index.html'), kesfetT = await sablon('kesfet.html');
+const oyunT = await sablon('oyun.html'), oyuncuT = await sablon('oyuncu.html'), sahneT = await sablon('sahne.html'), toplulukT = await sablon('topluluk.html'), anaT = await sablon('vitrin.html'), kesfetT = await sablon('kesfet.html');
 
 for (const s of shows) {
   const ev = events.filter((e) => (e.showId || shows.find((x) => (x.eventsId || []).includes(e.id))?.id) === s.id).map((e) => ({ ...e, t: tarih(e.date) })).filter((e) => e.t).sort((a, b) => a.t.dt - b.t.dt);
@@ -157,7 +157,7 @@ for (const t of teams) {
 // Ana sayfa ve Keşfet: tüm oyunlara iç bağlantı listesi
 const oyunListesi = `<section><h1>TiyatRol — tiyatro oyunları, sahneler ve seanslar</h1><p>Tiyatro oyunlarını, sahneleri, oyuncuları ve toplulukları keşfet; seans saatlerini ve bilet bilgilerini gör.</p><h2>Oyunlar</h2><ul>${shows.map((s) => `<li>${link(yol('oyun', s, s.name), s.name)}${s.category ? ` — ${esc(s.category)}` : ''}</li>`).join('')}</ul><h2>Sahneler</h2><ul>${stages.map((g) => `<li>${link(yol('sahne', g, g.name), g.name)}</li>`).join('')}</ul><h2>Topluluklar</h2><ul>${teams.map((t) => `<li>${link(yol('topluluk', t, t.name), t.name)}</li>`).join('')}</ul></section>`;
 const siteLd = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'TiyatRol', url: SITE, potentialAction: { '@type': 'SearchAction', target: `${SITE}/kesfet?q={q}`, 'query-input': 'required name=q' } };
-await writeFile(join(CIKTI, 'index.html'), sayfa(anaT, { baslik: 'TiyatRol — Tiyatro oyunları, sahneler ve seanslar', aciklama: "Bu hafta hangi tiyatro oyunu var? Oyunları, sahneleri, oyuncuları ve seans saatlerini tek yerde keşfet.", adres: '/', govde: oyunListesi, jsonld: siteLd }), 'utf8');
+await writeFile(join(CIKTI, 'vitrin.html'), sayfa(anaT, { baslik: 'TiyatRol — Tiyatro oyunları, sahneler ve seanslar', aciklama: "Bu hafta hangi tiyatro oyunu var? Oyunları, sahneleri, oyuncuları ve seans saatlerini tek yerde keşfet.", adres: '/app', govde: oyunListesi, jsonld: siteLd }), 'utf8');
 await writeFile(join(CIKTI, 'kesfet.html'), sayfa(kesfetT, { baslik: 'Tüm oyunlar — TiyatRol', aciklama: 'Tiyatro oyunlarını türe, tarihe ve bütçeye göre süz; oyuncuları, sahneleri ve toplulukları keşfet.', adres: '/kesfet', govde: oyunListesi, jsonld: null }), 'utf8');
 
 // ---------- İl sayfaları: /il/<il> (içerikli, JSON-LD ItemList) ----------

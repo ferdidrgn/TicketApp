@@ -72,6 +72,10 @@
       ],
       "rewrites": [
         {
+          "source": "/app",
+          "destination": "/vitrin.html"
+        },
+        {
           "source": "/guvenli-odeme",
           "destination": "/guvenli-odeme.html"
         },
@@ -196,16 +200,6 @@
           "type": 301
         },
         {
-          "source": "/app",
-          "destination": "/",
-          "type": 301
-        },
-        {
-          "source": "/app/**",
-          "destination": "/",
-          "type": 301
-        },
-        {
           "source": "/discover",
           "destination": "/kesfet",
           "type": 301
@@ -308,6 +302,10 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/app",
+          "destination": "/vitrin.html"
+        },
         {
           "source": "/guvenli-odeme",
           "destination": "/guvenli-odeme.html"
@@ -427,16 +425,6 @@
         {
           "source": "/terms.html",
           "destination": "/sartlar",
-          "type": 301
-        },
-        {
-          "source": "/app",
-          "destination": "/",
-          "type": 301
-        },
-        {
-          "source": "/app/**",
-          "destination": "/",
           "type": 301
         },
         {

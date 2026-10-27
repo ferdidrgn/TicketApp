@@ -23,13 +23,23 @@ erisimUygula();
   b.addEventListener('click', (e) => { const c = e.target.closest('[data-c]'); if (!c) return; try { localStorage.setItem('tiyatrol.cerez', c.dataset.c); } catch {} b.classList.add('git'); setTimeout(() => b.remove(), 400); });
 })();
 
-// ---------- Başa dön (bilet koçanı) ----------
+// ---------- Başa dön (perde ipi: püskülü çek, perde açılsın) ----------
 (() => {
-  const b = document.createElement('button'); b.className = 'basa'; b.setAttribute('aria-label', 'Sayfanın başına dön'); b.innerHTML = '<span>BAŞA</span>';
+  const b = document.createElement('button'); b.className = 'basa'; b.type = 'button'; b.setAttribute('aria-label', 'Sayfanın başına dön'); b.title = 'Perdeyi aç — başa dön';
+  b.innerHTML = '<svg viewBox="0 0 64 92" width="100%" height="100%" aria-hidden="true">'
+    + '<rect x="2" y="2" width="60" height="7" rx="3.5" class="b-rod"/>'
+    + '<path class="b-perde" d="M5 9h54v6c0 16-7 26-14 31-3 2-5 5-5 9H24c0-4-2-7-5-9C12 41 5 31 5 15Z"/>'
+    + '<path class="b-kat" d="M17 9v37M27 9v46M37 9v46M47 9v37"/>'
+    + '<g class="b-ip"><path class="b-ipcizgi" d="M32 55v14"/><rect x="28.5" y="68" width="7" height="6" rx="2" class="b-altin"/>'
+    + '<path class="b-altin" d="M26 74h12l3 14H23Z"/><path class="b-puskul" d="M27 80v8M32 80v8M37 80v8"/></g></svg>';
   document.body.append(b);
   const g = () => b.classList.toggle('on', scrollY > 900);
   addEventListener('scroll', () => requestAnimationFrame(g), { passive: true });
-  b.addEventListener('click', () => scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+  b.addEventListener('click', () => {
+    const az = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    b.classList.remove('cek'); void b.offsetWidth; if (!az) b.classList.add('cek');
+    setTimeout(() => scrollTo({ top: 0, behavior: az ? 'auto' : 'smooth' }), az ? 0 : 180);
+  });
 })();
 
 // ---------- Klavye kısayolları ----------
@@ -40,7 +50,7 @@ addEventListener('keydown', (e) => {
   if (e.key === '?') { e.preventDefault(); const m = document.createElement('div'); m.className = 'ks-bg'; m.innerHTML = `<div class="ks"><header><b>Klavye kısayolları</b><button class="btn btn-ghost btn-sm" data-k>Kapat</button></header><dl>${SK.map(([k, a]) => `<dt>${k.split(' ').map((x) => `<kbd>${x}</kbd>`).join(' ')}</dt><dd>${a}</dd>`).join('')}</dl></div>`; document.body.append(m); m.addEventListener('click', (ev) => { if (ev.target === m || ev.target.closest('[data-k]')) m.remove(); }); return; }
   if (e.key === 'Escape') document.querySelector('.ks-bg')?.remove();
   clearTimeout(zaman); zaman = setTimeout(() => { onceki = ''; }, 900);
-  if (onceki === 'g') { const y = { h: '/', k: '/kesfet', m: '/harita', t: '/takvim', f: '/favoriler' }[e.key]; onceki = ''; if (y) location.href = y; return; }
+  if (onceki === 'g') { const y = { h: '/app', k: '/kesfet', m: '/harita', t: '/takvim', f: '/favoriler' }[e.key]; onceki = ''; if (y) location.href = y; return; }
   if (e.key === 'g') onceki = 'g';
 });
 

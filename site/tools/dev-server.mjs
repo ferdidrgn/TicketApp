@@ -6,7 +6,7 @@ import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const KOK = join(dirname(fileURLToPath(import.meta.url)), '..');
-const cfg = JSON.parse(await readFile(join(KOK, '..', 'firebase.json'), 'utf8'));
+const cfg = JSON.parse(await readFile(join(KOK, '..', 'firebase.site.json'), 'utf8'));
 const web = cfg.hosting.find((h) => h.target === 'web');
 const kurallar = web.rewrites.map((r) => ({ re: new RegExp(`^${r.source.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace('/**', '(?:/.*)?')}$`), hedef: r.destination }));
 const TUR = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.webp': 'image/webp', '.ico': 'image/x-icon' };
