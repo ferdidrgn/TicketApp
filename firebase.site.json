@@ -228,6 +228,26 @@
           "source": "/notifications",
           "destination": "/",
           "type": 301
+        },
+        {
+          "source": "/show/:slug",
+          "destination": "/oyun/:slug",
+          "type": 301
+        },
+        {
+          "source": "/player/:slug",
+          "destination": "/oyuncu/:slug",
+          "type": 301
+        },
+        {
+          "source": "/stage/:slug",
+          "destination": "/sahne/:slug",
+          "type": 301
+        },
+        {
+          "source": "/team/:slug",
+          "destination": "/topluluk/:slug",
+          "type": 301
         }
       ]
     },
@@ -455,6 +475,26 @@
         {
           "source": "/notifications",
           "destination": "/",
+          "type": 301
+        },
+        {
+          "source": "/show/:slug",
+          "destination": "/oyun/:slug",
+          "type": 301
+        },
+        {
+          "source": "/player/:slug",
+          "destination": "/oyuncu/:slug",
+          "type": 301
+        },
+        {
+          "source": "/stage/:slug",
+          "destination": "/sahne/:slug",
+          "type": 301
+        },
+        {
+          "source": "/team/:slug",
+          "destination": "/topluluk/:slug",
           "type": 301
         }
       ]
