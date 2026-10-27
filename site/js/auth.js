@@ -22,6 +22,9 @@ export async function telefonSenkronla(u, zorla = false) {
   if (!zorla && senkronlanan.has(u.uid)) return;
   senkronlanan.add(u.uid);
   try {
+    // Önce User belgesini istemci oluşturur (ad/profil alanları); sunucu eşitlemesi onu tamamlar. Böylece sunucu yalnızca-telefon
+    // alanlı eksik bir belge yaratıp web/mobil profil yazımını bozamaz.
+    await kullaniciBelgesi(u);
     await u.getIdToken(true);
     const f = await fonksiyon('syncPhoneVerification');
     await Promise.race([f({}), new Promise((_, r) => setTimeout(() => r(new Error('zaman')), 8000))]);
@@ -89,17 +92,24 @@ export function hataMetni(e) {
 }
 
 // Web'de ilk girişte User/{uid} yoksa oluşturur (rules: yalnızca kendi uid'siyle create). role daima 'user'.
-async function kullaniciBelgesi(u, ad = '') {
+// phoneNumber/isPhoneActive BOŞ/false yazılır: doğrulanmış numarayı yalnız sunucu (syncPhoneVerification) yazar (token'ı henüz taze olmayan kullanıcıda rules reddetmesin).
+let adIpucu = ''; // modalda yazılan ad (onAuthStateChanged eşitlemesi belgeyi bu yazımdan önce açarsa kaybolmasın)
+const belgeSoz = new Map(); // uid -> sürmekte olan oluşturma (eşzamanlı çağrılar tek yazım yapar)
+function kullaniciBelgesi(u, ad = '') {
+  if (!belgeSoz.has(u.uid)) belgeSoz.set(u.uid, kullaniciBelgesiYaz(u, ad).finally(() => belgeSoz.delete(u.uid)));
+  return belgeSoz.get(u.uid);
+}
+async function kullaniciBelgesiYaz(u, ad = '') {
   try {
     const r = doc(db, 'User', u.uid);
     const s = await getDoc(r);
     if (s.exists()) return;
-    const parca = String(ad || u.displayName || '').trim().split(/\s+/).filter(Boolean);
+    const parca = String(ad || adIpucu || u.displayName || '').trim().split(/\s+/).filter(Boolean);
     const simdi = new Date().toISOString();
     await setDoc(r, {
       _id: u.uid, _createdAt: simdi, _updatedAt: simdi,
       firstName: parca[0] || '', lastName: parca.slice(1).join(' '),
-      imageUrl: u.photoURL || '', phoneNumber: u.phoneNumber || '', eMail: u.email || '', city: '',
+      imageUrl: u.photoURL || '', phoneNumber: '', eMail: u.email || '', city: '',
       isPhoneActive: false, fcmToken: '', role: 'user',
       favoriteShows: [], favoriteStages: [], favoritePlayers: [], ticketsId: [],
     });
@@ -254,7 +264,7 @@ export async function girisGerekli(neden = 'Devam etmek için giriş yap.', ayar
       return;
     }
     const tel = telefonE164(f.get('tel'));
-    if (st.mod === 'giris') st.ad = String(f.get('ad') || '').trim();
+    if (st.mod === 'giris') { st.ad = String(f.get('ad') || '').trim(); adIpucu = st.ad; }
     if (!tel) { st.tel = String(f.get('tel') || ''); mesaj('Geçerli bir telefon numarası yaz. Örnek: 5xx xxx xx xx'); ciz(); return kutu.querySelector('[name=tel]')?.focus(); }
     st.tel = tel; st.yukleniyor = true; mesaj(''); st.baskaHesap = false; ciz();
     try {

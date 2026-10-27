@@ -270,7 +270,7 @@ bilet/rezervasyon/koltuk tutma yapılamaz. Sınırlar (3 / rezervasyonLimit) ve 
   Kapı `index.js`'te token'dan `ctx.phone` olarak servise iletilir ve **servis katmanında** (`orders.js: who(ctx)`) denetlenir (testler servisi doğrudan çağırır).
   `releaseHold`, `cancelTicket` ve `admin*` etkilenmez (iptal/bırakma telefonsuz da çalışır; telefon sonradan kalksa bile kullanıcı biletini iptal edebilir).
 - **`syncPhoneVerification`** (yeni callable, giriş yeterli, telefon gerekmez): token'da telefon varsa `User/{uid}` belgesine
-  `{phoneNumber, isPhoneActive:true, phoneKey, phoneVerifiedAt:serverTimestamp}` merge yazar (belge yoksa bu alanlarla oluşur; **`role`'e dokunmaz**) ve
+  `{phoneNumber, isPhoneActive:true, phoneKey, phoneVerifiedAt:serverTimestamp}` merge yazar (belge yoksa **tam varsayılan User** oluşur: `_id`, `role:'user'`, boş listeler vb. — eksik `role`/`_id` mobil güncellemesini ve rules'u kırardı, denetimde bulundu; var olan belgede **`role`'e dokunmaz**) ve
   `{isPhoneActive:true, phoneNumber}` döner. Telefon yoksa hata atmaz, `{isPhoneActive:false}` döner; belgede daha önce `true` ise `false`'a çeker
   (telefon sonradan kaldırılmış olabilir). Aynı numarayı taşıyan, başka uid'lere ait `isPhoneActive:true` belgeler pasifleştirilir (savunma).
 - **İstemci yükümlülüğü:** telefon doğrulama/bağlama sonrası `getIdToken(true)` ve ardından `syncPhoneVerification`; `PHONE_REQUIRED` alınırsa SMS akışı -> token tazele -> tekrar dene.
@@ -282,8 +282,10 @@ bilet/rezervasyon/koltuk tutma yapılamaz. Sınırlar (3 / rezervasyonLimit) ve 
 - `UserLimits/{uid}` artık **ayna + eski sayaç**: `{phoneKey (son kullanılan telefon), freeTickets, reservations}`. İstemci hâlâ kendi uid belgesini okuyabilir (kural değişmedi); telefon belgesini OKUYAMAZ.
 - `Order.phoneKey` (hold'da yazılır, onayda güncellenir): iptal/yönetici yolları sayacı doğru anahtara iade etmek için buradan okur. **Düz telefon numarası Limits/Order/Ticket/Notification'a yazılmaz**, yalnızca hash (test: `phone-gate.test.js`).
   Ticket şeması değişmedi (anahtar, bilet kimliğiyle aynı kimlikli Order'da).
-- **Tuz:** `PHONE_HASH_SALT` (Functions string param). Boşsa depoda görünen türetim (`tiyatrol-phone-v1:<projectId>`) kullanılır: **zayıf** — 10 haneli TR GSM uzayı küçük olduğundan
-  tuz bilinirse hash'ler kaba kuvvetle geri çözülebilir. Üretimde rastgele uzun bir değer verin (örn. `PHONE_HASH_SALT=<openssl rand -hex 32>` ile `functions/.env.<projectId>` veya deploy sihirbazı).
+- **Tuz (FAIL-CLOSED, 27.10.2026 denetimi):** `PHONE_HASH_SALT` (Functions string param, **en az 16 karakter**). Üretimde tanımsız/kısaysa telefon gerektiren
+  HER işlem (`holdSeats`, `confirmFree`, `confirmReservation`, `startPayment`, `syncPhoneVerification`) `unavailable` (`details.code = SALT_MISSING`) ile reddedilir ve log'a
+  `PHONE_HASH_SALT tanımsız...` hatası düşer; iptal/bırakma/yönetici işlemleri etkilenmez. Depoda görünen sabit tuz YALNIZCA emülatörde (`FUNCTIONS_EMULATOR=true`) kullanılır
+  (10 haneli TR GSM uzayı küçük olduğundan bilinen tuzla hash'ler kaba kuvvetle çözülebilirdi). Üretimde rastgele uzun bir değer verin (örn. `PHONE_HASH_SALT=<openssl rand -hex 32>` ile `functions/.env.<projectId>` veya deploy sihirbazı).
   **Yayın öncesi bir kez ayarlanır; sonradan DEĞİŞTİRMEYİN** (anahtarlar değişir, telefon sayaçları fiilen sıfırlanır; uid aynası kısmen telafi eder ama tam güvence değildir).
   Daha sıkı istenirse `defineSecret`'e çevrilebilir.
 

@@ -84,7 +84,7 @@ function normalizeSatis(d) {
 const INACTIVE_RES = new Set(['cancelled', 'no_show']);
 const ticketStatusOf = (t) => t.paymentStatus || (t.orderMethod === 'venue' ? 'pay_at_venue' : t.orderMethod === 'free' ? 'free' : 'paid');
 
-function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console, settings = null, phoneSalt = '' }) {
+function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console, settings = null, phoneSalt = null }) {
   const orders = () => db.collection('Order');
   const satisRef = () => db.collection('Config').doc('satis');
   /** Sunucu her çağrıda Config/satis'i okur. `settings` yalnızca testlerde sabitlemek içindir. */

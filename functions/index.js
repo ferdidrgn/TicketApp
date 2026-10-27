@@ -16,7 +16,7 @@ const { err, makeAssertAdmin } = require('./src/util');
 const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
-const { createPhoneSync } = require('./src/phone');
+const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createProvider } = require('./providers');
 
 if (!getApps().length) initializeApp();
@@ -39,10 +39,19 @@ function callbackUrl() {
   return `https://${cfg.REGION}-${project}.cloudfunctions.net/iyzicoCallback`;
 }
 
-/** Tuz yoksa depoda görünen sabit türetim (zayıf: yalnızca geliştirme). Üretimde PHONE_HASH_SALT param'ı ayarlanmalı. */
+/**
+ * Telefon limit tuzu. ÜRETİMDE PHONE_HASH_SALT (>=16 karakter) ZORUNLU: yoksa null döner ve telefon gerektiren tüm işlemler
+ * FAIL-CLOSED reddedilir (depoda görünen zayıf tuzla sessizce çalışmaz; log'da yüksek sesle uyarılır). Sabit geliştirme tuzu
+ * yalnızca emülatörde kullanılır.
+ */
+let saltUyarildi = false;
 function phoneSalt() {
-  const v = PHONE_HASH_SALT.value();
-  return v || `tiyatrol-phone-v1:${process.env.GCLOUD_PROJECT || 'ticketappflutter'}`;
+  const s = resolvePhoneSalt({ value: PHONE_HASH_SALT.value(), emulator, project: process.env.GCLOUD_PROJECT });
+  if (s == null && !saltUyarildi) {
+    saltUyarildi = true;
+    logger.error('PHONE_HASH_SALT tanımsız ya da 16 karakterden kısa: bilet satışı ve telefon senkronu KAPALI. docs/ODEME-GUVENLIK.md "Telefon tuzu".');
+  }
+  return s;
 }
 
 /** Token'daki doğrulanmış telefon (E.164) — sunucunun TEK telefon kaynağı. */

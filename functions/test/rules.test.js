@@ -209,3 +209,48 @@ test('User update: isPhoneActive true\'ya çekilemez; sunucunun yazdığı alanl
   await assertSucceeds(updateDoc(doc(p2, 'User/p2'), { isPhoneActive: false })); // düşürmek zararsız; sunucu yeniden doğrular
   await assertFails(updateDoc(doc(p1, 'User/p1'), { role: 'admin' }));
 });
+
+// ---- GERÇEK istemci yük örnekleri (çapraz denetim): mobil UserModel.toFirestore + datasource, web kullaniciBelgesi, sunucu taslağı
+const MOBIL_CREATE = (uid) => ({ // auth_mutation_provider._handlePostLogin: User.empty(uid).copyWith(...) -> UserModel.toFirestore()
+  _createdAt: '', _updatedAt: '', _id: uid, firstName: 'Yeni', lastName: 'Kullanıcı', imageUrl: '', phoneNumber: '', eMail: 'a@b.co',
+  city: '', isPhoneActive: false, fcmToken: 'tok', role: 'user', favoriteShows: [], favoriteStages: [], favoritePlayers: [], ticketsId: [],
+});
+const WEB_CREATE = (uid) => ({ // site/js/auth.js kullaniciBelgesiYaz
+  _id: uid, _createdAt: 'x', _updatedAt: 'x', firstName: 'Ada', lastName: 'L', imageUrl: '', phoneNumber: '', eMail: 'a@b.co', city: '',
+  isPhoneActive: false, fcmToken: '', role: 'user', favoriteShows: [], favoriteStages: [], favoritePlayers: [], ticketsId: [],
+});
+// sunucunun (syncPhoneVerification) yazdığı belge
+const SUNUCU_BELGESI = (uid) => ({ ...WEB_CREATE(uid), phoneNumber: '+905551234567', isPhoneActive: true, phoneKey: 'ph_abc', phoneVerifiedAt: 111 });
+
+test('gerçek istemci yükleri: mobil/web KAYIT (create) rules\'tan geçer, telefon alanı yazımı geçmez', async () => {
+  await assertSucceeds(setDoc(doc(as('m1'), 'User/m1'), MOBIL_CREATE('m1')));
+  await assertSucceeds(setDoc(doc(as('w1'), 'User/w1'), WEB_CREATE('w1'))); // Google (telefonsuz token)
+  await assertSucceeds(setDoc(doc(asPhone('w2', '+905551234567'), 'User/w2'), WEB_CREATE('w2'))); // telefonla giriş, numara boş yazılır
+  // eski/kötü istemci: kullanıcı yazısı numara ya da true
+  await assertFails(setDoc(doc(as('m2'), 'User/m2'), { ...MOBIL_CREATE('m2'), phoneNumber: '+905551234567' }));
+  await assertFails(setDoc(doc(as('m3'), 'User/m3'), { ...MOBIL_CREATE('m3'), isPhoneActive: true }));
+  await assertFails(setDoc(doc(as('m4'), 'User/m4'), { ...MOBIL_CREATE('m4'), role: 'admin' }));
+});
+
+test('gerçek istemci yükleri: mobil GÜNCELLEME (isPhoneActive/phoneNumber çıkarılmış) sunucunun yazdığı belgede geçer; eski istemci (numara ezme) reddedilir', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'User/s1'), SUNUCU_BELGESI('s1')); });
+  const d = doc(asPhone('s1', '+905551234567'), 'User/s1');
+  const { phoneNumber, isPhoneActive, ...guncelleme } = { ...MOBIL_CREATE('s1'), fcmToken: 'yeni', firstName: 'Ada', _updatedAt: 'y' };
+  await assertSucceeds(updateDoc(d, guncelleme));
+  // telefon çıkarılmamış eski istemci: boş numara/false ile ezmeye çalışır
+  await assertSucceeds(updateDoc(d, { phoneNumber: '' })); // boşaltmak zararsız; sunucu sonraki girişte yeniden yazar
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'User/s2'), SUNUCU_BELGESI('s2')); });
+  await assertFails(updateDoc(doc(as('s2'), 'User/s2'), { phoneNumber: '+905550000000' })); // uydurma numara
+  await assertFails(updateDoc(doc(as('s2'), 'User/s2'), { phoneKey: 'ph_baska', phoneVerifiedAt: 5 }));
+});
+
+test('sunucu taslağı (role:user, _id, listeler) mobil güncelleme yüküyle UYUMLU; role\'süz taslak mobil güncellemeyi KIRARDI (regresyon kanıtı)', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/t1'), SUNUCU_BELGESI('t1'));
+    await setDoc(doc(d, 'User/t2'), { phoneNumber: '+905551234567', isPhoneActive: true, phoneKey: 'ph_abc', phoneVerifiedAt: 111 }); // eski (eksik) taslak
+  });
+  const { phoneNumber, isPhoneActive, ...upd } = MOBIL_CREATE('t1');
+  await assertSucceeds(updateDoc(doc(asPhone('t1', '+905551234567'), 'User/t1'), upd));
+  await assertFails(updateDoc(doc(asPhone('t2', '+905551234567'), 'User/t2'), { ...upd, _id: 't2' })); // role null -> 'user' reddedilir
+});

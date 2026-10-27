@@ -218,7 +218,7 @@ test('syncPhoneVerification: telefon varsa User yazılır (role dokunulmaz); yok
   const n = uidN();
   await sync.syncPhoneVerification(n, { phone: P2 });
   const nd = await get('User', n);
-  assert.equal(nd.isPhoneActive, true); assert.equal(nd.role, undefined);
+  assert.equal(nd.isPhoneActive, true); assert.equal(nd.role, 'user'); // yeni taslak: güvenli varsayılan, asla yönetici
 
   // telefonsuz: hata yok, belge yoksa oluşturulmaz
   const z = uidN();
@@ -289,7 +289,7 @@ test('E2E: SMS doğrulanmış telefon bağlanınca (token tazelenir) satış ge�
   const s1 = await call('syncPhoneVerification', {}, ph.token);
   assert.deepEqual(s1.body.result, { isPhoneActive: true, phoneNumber: '+905553334455' });
   const u = await get('User', ph.uid);
-  assert.equal(u.isPhoneActive, true); assert.ok(u.phoneVerifiedAt); assert.equal(u.role, undefined);
+  assert.equal(u.isPhoneActive, true); assert.ok(u.phoneVerifiedAt); assert.equal(u.role, 'user');
   const h = await call('holdSeats', { eventId: ev, seatIds: ['A1', 'A2'] }, ph.token);
   assert.equal(h.status, 200);
   const c = await call('confirmFree', { orderId: h.body.result.orderId }, ph.token);
@@ -298,4 +298,61 @@ test('E2E: SMS doğrulanmış telefon bağlanınca (token tazelenir) satış ge�
   assert.equal((await get('UserLimits', key)).freeTickets, 2);
   // giriş yoksa sync de reddedilir
   assert.equal((await call('syncPhoneVerification', {})).body.error.status, 'UNAUTHENTICATED');
+});
+
+// ------------------------------------------------------------------ denetim eklemeleri (çapraz doğrulama)
+const { resolvePhoneSalt, requirePhone } = require('../src/phone');
+
+test('sync: User belgesi yoksa istemcilerin beklediği TAM varsayılan belge (role:user, _id, listeler) oluşur; var olan role/ad bozulmaz', async () => {
+  const sync = createPhoneSync({ db, salt: H.TEST_SALT, log: { error() {} } });
+  const u = uidN();
+  await sync.syncPhoneVerification(u, { phone: P1 });
+  const d = await get('User', u);
+  assert.equal(d.role, 'user'); assert.equal(d._id, u);
+  assert.deepEqual(d.favoriteShows, []); assert.deepEqual(d.ticketsId, []);
+  assert.equal(d.isPhoneActive, true); assert.equal(d.phoneNumber, P1);
+  assert.equal(typeof d._createdAt, 'string'); // mobil modelle uyumlu (ISO metin)
+  // var olan belge (yönetici + ad) korunur
+  const a = uidN();
+  await db.collection('User').doc(a).set({ role: 'admin', firstName: 'Ada', _id: a });
+  await sync.syncPhoneVerification(a, { phone: P2 });
+  const da = await get('User', a);
+  assert.equal(da.role, 'admin'); assert.equal(da.firstName, 'Ada'); assert.equal(da.isPhoneActive, true);
+});
+
+test('tuz: üretimde tanımsız/kısa tuz FAIL-CLOSED (null); emülatörde geliştirme tuzu; yeterli uzunlukta tuz aynen', () => {
+  assert.equal(resolvePhoneSalt({ value: '', emulator: false, project: 'p' }), null);
+  assert.equal(resolvePhoneSalt({ value: undefined, emulator: false, project: 'p' }), null);
+  assert.equal(resolvePhoneSalt({ value: 'kisa', emulator: false, project: 'p' }), null);
+  assert.equal(resolvePhoneSalt({ value: 'x'.repeat(16), emulator: false, project: 'p' }), 'x'.repeat(16));
+  assert.equal(resolvePhoneSalt({ value: '', emulator: true, project: 'p' }), 'tiyatrol-phone-v1:p');
+  assert.equal(resolvePhoneSalt({ value: 'kisa', emulator: true, project: 'p' }), 'kisa');
+});
+
+test('tuz yoksa (null) satış ve senkron reddedilir: Order/UserLimits yazılmaz; önce telefon kontrolü (PHONE_REQUIRED), sonra unavailable', async () => {
+  assert.throws(() => requirePhone({ phone: P1 }, null), (e) => e.code === 'unavailable' && e.details.code === 'SALT_MISSING');
+  assert.throws(() => requirePhone({ phone: null }, null), (e) => e.details.code === 'PHONE_REQUIRED');
+  const { createService } = require('../src/orders');
+  const svc = createService({ db, getProvider: () => null, log: { error() {}, info() {}, warn() {} }, settings: async () => ({ mode: 'online' }), phoneSalt: null });
+  const ev = await seedEvent({ price: '0' });
+  await expectCode(svc.holdSeats(uidN(), { eventId: ev, seatIds: ['A1'] }, { phone: P1 }), 'unavailable');
+  await expectCode(createPhoneSync({ db, salt: null, log: { error() {} } }).syncPhoneVerification(uidN(), { phone: P1 }), 'unavailable');
+  assert.equal((await db.collection('Order').get()).size, 0);
+  assert.equal((await db.collection('UserLimits').get()).size, 0);
+});
+
+test('E2E anonim (misafir) hesap: PHONE_REQUIRED; telefon BAĞLANINCA (aynı uid) satış geçer; eski tazelenmemiş token hâlâ reddedilir', { timeout: 120000 }, async () => {
+  const ev = await seedEvent({ price: '0' });
+  const r = await fetch(`http://${AUTH}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }),
+  });
+  const anon = await r.json();
+  assert.ok(anon.idToken);
+  assert.equal((await call('holdSeats', { eventId: ev, seatIds: ['A1'] }, anon.idToken)).body.error.message, 'PHONE_REQUIRED');
+  const ph = await signInPhone('+905557770001', anon.idToken);
+  assert.equal(ph.uid, anon.localId); // hesap değişmedi: misafir verisi korunur
+  const h = await call('holdSeats', { eventId: ev, seatIds: ['A1'] }, ph.token);
+  assert.equal(h.status, 200);
+  assert.equal((await call('confirmFree', { orderId: h.body.result.orderId }, ph.token)).status, 200);
+  assert.equal((await call('holdSeats', { eventId: ev, seatIds: ['A2'] }, anon.idToken)).body.error.message, 'PHONE_REQUIRED');
 });
