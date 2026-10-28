@@ -213,6 +213,51 @@ class PurchaseOrder extends Equatable {
       ];
 }
 
+/// Bir etkinlikteki bilet hakkı (sunucu `getEventQuota`): kişi (doğrulanmış
+/// telefon) başına etkinlik başına en fazla [limit] koltuk. Kesin kontrol
+/// sunucudadır; bu yalnızca arayüzü önceden uyarmak içindir.
+class EventQuota extends Equatable {
+  final int limit;
+  final int used;
+  final int remaining;
+  final int held;
+
+  const EventQuota({
+    required this.limit,
+    required this.used,
+    required this.remaining,
+    this.held = 0,
+  });
+
+  /// Sunucu cevabından; eksik/bozuksa `null` (arayüz varsayılana düşer).
+  static EventQuota? tryParse(final Map<String, dynamic>? m) {
+    if (m == null) return null;
+    int? n(final Object? v) => v is num ? v.toInt() : null;
+    final limit = n(m['limit']);
+    final used = n(m['used']);
+    if (limit == null || used == null || limit < 1) return null;
+    final remaining = n(m['remaining']) ?? (limit - used);
+    return EventQuota(
+      limit: limit,
+      used: used < 0 ? 0 : used,
+      remaining: remaining < 0 ? 0 : remaining,
+      held: n(m['held']) ?? 0,
+    );
+  }
+
+  /// Hak doldu: koltuk seçimi kapalı.
+  bool get isFull => remaining <= 0;
+
+  /// "Bu etkinlikte 1/3 biletin var. 2 bilet daha alabilirsin."
+  String get summary => isFull
+      ? 'Bu etkinlik için bilet hakkını doldurdun ($used/$limit).'
+      : 'Bu etkinlikte $used/$limit biletin var. $remaining bilet daha '
+          'alabilirsin.';
+
+  @override
+  List<Object?> get props => [limit, used, remaining, held];
+}
+
 /// Kullanıcıya gösterilebilir satın alma hatası. [message] her zaman
 /// Türkçe ve teknik ayrıntı içermez.
 class PurchaseFailure extends Failure {
@@ -232,6 +277,13 @@ class PurchaseFailure extends Failure {
   /// Hesap silinmek üzere (`ACCOUNT_DELETION_PENDING`): satın alma yapılamaz;
   /// arayüz "Silmeyi iptal et" eylemi sunar.
   bool get isDeletionPending => code == 'account-deletion-pending';
+
+  /// Etkinlik başına bilet sınırı (`EVENT_LIMIT`): koltuklar boşuna tutulmaz,
+  /// kota yeniden okunur.
+  bool get isEventLimit => code == 'event-limit';
+
+  /// Sunucu sınırı (etkinlik / ücretsiz toplam / rezervasyon toplam).
+  bool get isLimit => code == 'resource-exhausted' || isEventLimit;
 
   @override
   List<Object?> get props => [message, code];

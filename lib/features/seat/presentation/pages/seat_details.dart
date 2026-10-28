@@ -110,7 +110,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     // (held/paying, süresi dolmamış) sipariş varsa devam ettir.
     if (!_isGuest) {
       WidgetsBinding.instance.addPostFrameCallback((final _) {
-        if (mounted) _ctrl.restore(widget.customerId);
+        if (mounted) {
+          _ctrl.restore(widget.customerId);
+          unawaited(ref.read(eventQuotaProvider(widget.eventId).notifier).refresh());
+        }
       });
     }
   }
@@ -243,6 +246,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     if (!mounted) return;
     switch (result) {
       case PhoneVerifyResult.verified:
+        unawaited(ref.read(eventQuotaProvider(widget.eventId).notifier).refresh());
         await _ctrl.phoneVerified();
       case PhoneVerifyResult.switchedAccount:
         // Hesap değişti: bu ekran eski kullanıcıya göre kurulmuştu.
@@ -250,6 +254,26 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
         NavigationHandler.goToHome(context);
       case PhoneVerifyResult.cancelled:
         _ctrl.phoneGateDismissed();
+    }
+  }
+
+  bool _leftAfterPurchase = false;
+
+  /// Onaydan sonra koltuk seçim sayfasından ÇIKAR. `go` (pop değil): yığın
+  /// Biletlerim'e/ana sayfaya DEĞİŞTİRİLİR, böylece geri tuşu bu (artık
+  /// anlamsız) koltuk sayfasına dönmez. Bir kez çalışır; hata satın almayı bozmaz.
+  void _leaveAfterPurchase({required final bool home}) {
+    if (_leftAfterPurchase) return;
+    _leftAfterPurchase = true;
+    try {
+      if (!mounted) return;
+      if (home) {
+        NavigationHandler.goToHome(context);
+      } else {
+        NavigationHandler.goToMyTickets(context, widget.customerId);
+      }
+    } catch (e) {
+      debugPrint('Satın alma sonrası yönlendirme hatası: ${e.runtimeType}');
     }
   }
 
@@ -267,16 +291,23 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (final context) => _TicketIssuedDialog(
+      builder: (final dialogContext) => _TicketIssuedDialog(
         seats: s.completedSeats,
         total: s.completedTotal,
         free: s.completedFree,
         reservation: s.completedReservation,
-        onMyTickets: () =>
-            NavigationHandler.goToMyTickets(context, widget.customerId),
-        onHome: () => NavigationHandler.goToHome(context),
+        onMyTickets: () {
+          _leaveAfterPurchase(home: false);
+          Navigator.of(dialogContext, rootNavigator: true).maybePop();
+        },
+        onHome: () {
+          _leaveAfterPurchase(home: true);
+          Navigator.of(dialogContext, rootNavigator: true).maybePop();
+        },
       ),
     ).whenComplete(() {
+      // Diyalog başka yolla kapansa da bu sayfada KALINMAZ.
+      _leaveAfterPurchase(home: false);
       // İlk bilet sonrası bir kez: "sessizde de sesli hatırlat" izni sorulur
       // (varsayılan kapalı; telefonun sessiz ayarı değiştirilmez).
       if (!_isGuest) unawaited(LoudAlarmSheet.maybePromptAfterPurchase());
@@ -318,6 +349,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
     final double total =
         purchase.hold?.total ?? mine.length * unitPrice;
     final SalesConfig sales = ref.watch(salesConfigProvider);
+    final EventQuota? quota =
+        _isGuest ? null : ref.watch(eventQuotaProvider(widget.eventId));
     final bool payByCard =
         sales.mode == SalesMode.online && (_cardChoice ?? true);
     final bool salesClosed = !free && sales.mode == SalesMode.kapali;
@@ -392,6 +425,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       sales: sales,
       payByCard: payByCard,
       salesClosed: salesClosed,
+      quota: quota,
       onMethod: sales.mode == SalesMode.online
           ? (final card) => setState(() => _cardChoice = card)
           : null,
@@ -475,8 +509,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       case PurchasePhase.awaitingPayment:
         return _beginPayment;
       case PurchasePhase.completed:
-        return () =>
-            NavigationHandler.goToMyTickets(context, widget.customerId);
+        return () => _leaveAfterPurchase(home: false);
       case PurchasePhase.holding:
       case PurchasePhase.startingPayment:
       case PurchasePhase.verifying:
@@ -1115,6 +1148,9 @@ class _StubModel {
   final SalesConfig sales;
   final bool payByCard;
   final bool salesClosed;
+
+  /// Sunucudan gelen etkinlik bilet hakkı (yoksa varsayılan sınır).
+  final EventQuota? quota;
   final ValueChanged<bool>? onMethod;
   final VoidCallback? onPrimary;
   final VoidCallback? onSecondary;
@@ -1129,10 +1165,14 @@ class _StubModel {
     required this.sales,
     required this.payByCard,
     required this.salesClosed,
+    this.quota,
     required this.onMethod,
     required this.onPrimary,
     required this.onSecondary,
   });
+
+  /// Bu seçimde en fazla kaç koltuk seçilebilir.
+  int get maxPick => quota?.remaining ?? kMaxSeatsPerPurchase;
 
   /// Ödeme yöntemi seçici: ücretli, koltuklar tutulmuş, satış açık.
   bool get showPicker =>
@@ -1174,9 +1214,11 @@ class _StubModel {
       return 'Bilet satışı şu an kapalı.';
     }
     return switch (phase) {
-      PurchasePhase.selecting =>
-        'Planda bir koltuğa dokun. En fazla $kMaxSeatsPerPurchase koltuk'
-            '${unitPrice > 0 ? ', koltuk başı ${ticketPriceTl(unitPrice)}' : ''}.',
+      PurchasePhase.selecting => quota?.isFull == true
+          ? quota!.summary
+          : '${quota != null ? '${quota!.summary} ' : ''}'
+              'Planda bir koltuğa dokun. En fazla $maxPick koltuk'
+              '${unitPrice > 0 ? ', koltuk başı ${ticketPriceTl(unitPrice)}' : ''}.',
       PurchasePhase.holding => 'Koltukların senin için ayrılıyor…',
       PurchasePhase.held => salesClosed
           ? 'Bilet satışı şu an kapalı.'
@@ -1383,9 +1425,11 @@ class _DesktopStub extends StatelessWidget {
                       ? Text(
                           model.isGuest
                               ? 'Koltuk seçmek için önce giriş yapmalısın.'
-                              : 'Plandan koltuğunu seç. En fazla '
-                                  '$kMaxSeatsPerPurchase koltuk '
-                                  'ayırabilirsin.',
+                              : model.quota?.isFull == true
+                                  ? model.quota!.summary
+                                  : '${model.quota != null ? '${model.quota!.summary} ' : ''}'
+                                      'Plandan koltuğunu seç. En fazla '
+                                      '${model.maxPick} koltuk ayırabilirsin.',
                           key: const ValueKey('empty'),
                           style: TextStyle(
                             color: TicketInk.inkSoft(0.7),

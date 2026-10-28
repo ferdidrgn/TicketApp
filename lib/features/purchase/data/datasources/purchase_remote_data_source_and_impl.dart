@@ -17,6 +17,119 @@ const String kDeletionPendingPurchaseMessage =
     'Hesabınız silinmek üzere işaretli. Bilet alabilmek için önce silme '
     'talebinizi iptal edin.';
 
+/// Sunucu `resource-exhausted` + `details.code = EVENT_LIMIT`.
+const String kEventLimitCode = 'event-limit';
+
+/// Fonksiyonlar yok / sunucu kapalı / yapılandırma eksik: tek, teknik
+/// ayrıntısız mesaj.
+const String kServiceUnavailableCode = 'service-unavailable';
+const String kServiceUnavailableMessage =
+    'Bilet işlemleri şu an kullanılamıyor, lütfen daha sonra dene.';
+
+const String kNetworkMessage =
+    'Sunucuya şu an ulaşılamıyor. Bağlantını kontrol edip tekrar dene.';
+
+const String kGenericPurchaseMessage =
+    'İşlem şu anda tamamlanamadı. Lütfen biraz sonra tekrar dene.';
+
+/// Ham/teknik görünen metin (functions/..., NOT_FOUND, URL, istisna adı...).
+/// Bu tür metinler kullanıcıya ASLA gösterilmez.
+bool looksTechnical(final String msg) =>
+    RegExp(r'functions/|https?:|exception|error|firebase|stack',
+            caseSensitive: false)
+        .hasMatch(msg) ||
+    RegExp(r'[A-Z]{2,}_[A-Z]{2,}').hasMatch(msg) ||
+    RegExp(r'^[A-Z][A-Z ]{3,}$').hasMatch(msg) ||
+    RegExp(r'null').hasMatch(msg);
+
+/// Tek hata-eşleme tablosu (Türkçe, teknik ayrıntı sızmaz). Test edilir.
+///
+/// | kaynak                                              | kod                | mesaj                         |
+/// |-----------------------------------------------------|--------------------|-------------------------------|
+/// | details PHONE_REQUIRED                              | phone-required     | telefon doğrula               |
+/// | details ACCOUNT_DELETION_PENDING                    | account-deletion-pending | silmeyi iptal et        |
+/// | details EVENT_LIMIT                                 | event-limit        | sunucu/biçimli Türkçe         |
+/// | details SALT_MISSING, unimplemented, teknik not-found | service-unavailable | kullanılamıyor               |
+/// | unauthenticated                                     | unauthenticated    | giriş yap                     |
+/// | unavailable / deadline-exceeded / ağ istisnası      | network            | bağlantı                      |
+/// | failed-precondition/resource-exhausted/invalid-argument/permission-denied/not-found + temiz Türkçe mesaj | aynı kod | sunucu mesajı |
+/// | aynı kodlar + teknik mesaj                          | aynı kod           | sabit Türkçe karşılık         |
+/// | internal / diğer                                    | kod                | genel                         |
+PurchaseException mapPurchaseError(final Object e) {
+  if (e is PurchaseException) return e;
+  if (e is FirebaseFunctionsException) {
+    final code = e.code;
+    final msg = (e.message ?? '').trim();
+    final details = e.details;
+    final dcode = details is Map ? details['code'] : null;
+    if (dcode == 'PHONE_REQUIRED') {
+      return const PurchaseException(kPhoneRequiredCode, kPhoneRequiredMessage);
+    }
+    if (dcode == 'ACCOUNT_DELETION_PENDING') {
+      return const PurchaseException(
+          kDeletionPendingPurchaseCode, kDeletionPendingPurchaseMessage);
+    }
+    if (dcode == 'EVENT_LIMIT') {
+      int? n(final Object? v) => v is num ? v.toInt() : null;
+      final d = details as Map;
+      final limit = n(d['limit']), used = n(d['used']);
+      final text = (msg.startsWith('Bu etkinlik') && msg.length <= 240 && !looksTechnical(msg))
+          ? msg
+          : (limit != null && used != null
+              ? 'Bu etkinlik için en fazla $limit bilet alabilirsin. Şu an '
+                  '$used biletin var; ${(limit - used).clamp(0, limit)} '
+                  'bilet daha alabilirsin.'
+              : 'Bu etkinlik için bilet sınırına ulaştın.');
+      return PurchaseException(kEventLimitCode, text);
+    }
+    if (dcode == 'SALT_MISSING' || code == 'unimplemented') {
+      return const PurchaseException(
+          kServiceUnavailableCode, kServiceUnavailableMessage);
+    }
+    if (code == 'unauthenticated') {
+      return const PurchaseException(
+          'unauthenticated', 'Devam etmek için giriş yapmalısın.');
+    }
+    if (code == 'unavailable' || code == 'deadline-exceeded') {
+      return const PurchaseException('network', kNetworkMessage);
+    }
+    const trusted = {
+      'failed-precondition',
+      'resource-exhausted',
+      'invalid-argument',
+      'permission-denied',
+      'not-found',
+    };
+    if (trusted.contains(code)) {
+      if (msg.isNotEmpty && msg.length <= 240 && !looksTechnical(msg)) {
+        return PurchaseException(code, msg);
+      }
+      // Teknik/boş metin: sabit karşılık. Ham "NOT_FOUND" genelde fonksiyonun
+      // hiç yayımlanmadığı anlamına gelir.
+      return switch (code) {
+        'not-found' => const PurchaseException(
+            kServiceUnavailableCode, kServiceUnavailableMessage),
+        'permission-denied' =>
+          PurchaseException(code, 'Bu işlem için yetkin yok.'),
+        'failed-precondition' => PurchaseException(code,
+            'Koltuk ya da sipariş artık geçerli değil. Lütfen yeniden seç.'),
+        'resource-exhausted' =>
+          PurchaseException(code, 'Bilet sınırına ulaştın.'),
+        _ => PurchaseException(code, 'Seçimin geçersiz görünüyor. Lütfen yeniden dene.'),
+      };
+    }
+    return PurchaseException(code, kGenericPurchaseMessage);
+  }
+  final text = e.toString();
+  if (e is FirebaseException) {
+    return const PurchaseException('unknown', kGenericPurchaseMessage);
+  }
+  if (text.contains('SocketException') || text.contains('ClientException')) {
+    return const PurchaseException('network', kNetworkMessage);
+  }
+  return const PurchaseException('unknown', kGenericPurchaseMessage);
+}
+
 /// Callable çağrısını soyutlar: üretimde `FirebaseFunctions`, testte sahte.
 abstract class PurchaseCallableClient {
   /// [name] callable adı; dönen değer her zaman `Map` (sunucu sözleşmesi).
@@ -62,6 +175,10 @@ abstract class PurchaseRemoteDataSource {
   Future<List<String>> confirmFree(final String orderId);
   Future<List<String>> confirmReservation(final String orderId);
   Future<void> cancelTicket(final String ticketId);
+
+  /// Etkinlik başına bilet hakkı. Hata/eksik cevapta `null` (arayüz
+  /// bilgi şeridini göstermez; sunucu yine de denetler).
+  Future<EventQuota?> getEventQuota(final String eventId);
   Stream<SalesConfig> watchSalesConfig();
   Stream<PurchaseOrder?> watchOrder(final String orderId);
   Future<List<PurchaseOrder>> getOpenOrders(final String userId);
@@ -77,59 +194,9 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _orders =>
       firestore.collection('Order');
 
-  /// Sunucu mesajının (Türkçe, kullanıcıya yönelik) olduğu gibi gösterilebildiği
-  /// kodlar. Diğer kodlarda (internal/unavailable/unknown…) sunucu ya da SDK
-  /// metni gösterilmez; sabit genel mesaj kullanılır.
-  static const _trustedMessageCodes = {
-    'failed-precondition',
-    'resource-exhausted',
-    'invalid-argument',
-    'permission-denied',
-    'not-found',
-  };
-
-  static const String _generic =
-      'İşlem şu anda tamamlanamadı. Lütfen biraz sonra tekrar dene.';
-
-  /// FirebaseFunctionsException ve diğer hataları [PurchaseException]'a çevirir.
-  static PurchaseException mapError(final Object e) {
-    if (e is PurchaseException) {
-      return e;
-    }
-    if (e is FirebaseFunctionsException) {
-      final code = e.code;
-      final msg = (e.message ?? '').trim();
-      // Sunucu: doğrulanmış telefon yok / token'da claim eski.
-      final details = e.details;
-      if (details is Map && details['code'] == 'PHONE_REQUIRED') {
-        return const PurchaseException(
-            kPhoneRequiredCode, kPhoneRequiredMessage);
-      }
-      // Hesap silinmek üzere (30 gün bekleme): yeni satın alma yapılamaz.
-      if (details is Map && details['code'] == 'ACCOUNT_DELETION_PENDING') {
-        return const PurchaseException(
-            kDeletionPendingPurchaseCode, kDeletionPendingPurchaseMessage);
-      }
-      if (code == 'unauthenticated') {
-        return const PurchaseException(
-            'unauthenticated', 'Devam etmek için giriş yapmalısın.');
-      }
-      if (_trustedMessageCodes.contains(code) &&
-          msg.isNotEmpty &&
-          msg.length <= 240) {
-        return PurchaseException(code, msg);
-      }
-      if (code == 'unavailable' || code == 'deadline-exceeded') {
-        return const PurchaseException('network',
-            'Sunucuya şu an ulaşılamıyor. Bağlantını kontrol edip tekrar dene.');
-      }
-      return PurchaseException(code, _generic);
-    }
-    if (e is FirebaseException) {
-      return const PurchaseException('unknown', _generic);
-    }
-    return const PurchaseException('unknown', _generic);
-  }
+  /// FirebaseFunctionsException ve diğer hataları [PurchaseException]'a çevirir
+  /// (tek tablo: [mapPurchaseError]).
+  static PurchaseException mapError(final Object e) => mapPurchaseError(e);
 
   Future<Map<String, dynamic>> _call(
       final String name, final Map<String, dynamic> data) async {
@@ -166,7 +233,7 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
     final orderId = _str(r['orderId']);
     final expires = _date(r['expiresAt']);
     if (orderId.isEmpty || expires == null) {
-      throw const PurchaseException('unknown', _generic);
+      throw const PurchaseException('unknown', kGenericPurchaseMessage);
     }
     final seats = r['seats'];
     return SeatHold(
@@ -197,7 +264,7 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
     final url = _str(r['paymentPageUrl']);
     final html = _str(r['checkoutFormContent']);
     if (url.isEmpty && html.isEmpty) {
-      throw const PurchaseException('unknown', _generic);
+      throw const PurchaseException('unknown', kGenericPurchaseMessage);
     }
     return PaymentSession(
       provider: _str(r['provider']).isEmpty ? 'iyzico' : _str(r['provider']),
@@ -217,6 +284,16 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
   Future<List<String>> confirmReservation(final String orderId) async {
     final r = await _call('confirmReservation', {'orderId': orderId});
     return _strings(r['ticketIds']);
+  }
+
+  @override
+  Future<EventQuota?> getEventQuota(final String eventId) async {
+    try {
+      return EventQuota.tryParse(
+          await client.call('getEventQuota', {'eventId': eventId}));
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

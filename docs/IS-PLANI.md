@@ -66,6 +66,7 @@ Canlı herkese açık sohbet (24 saat moderasyon sorumlusu gerekir), LLM botu, h
 | G-1 | Gizlilik/şartlar metinleri: telefon doğrulama, hesap silme (30 gün, anonimleştirme), bildirim tercihi, UGC/moderasyon, yurt dışı aktarım | — | BLOCKED (sahip+avukat) | taslaklar docs'ta |
 | G-2 | Mağaza formları: Play Data Safety/UGC, Apple App Privacy/inceleme notu | — | BLOCKED (sahip) | |
 | H-1 | Eksik sahip adımları listesi: Authorized domains, Phone provider, SHA, Blaze, bütçe (TL), PHONE_HASH_SALT, Storage kuralı kontrolü, 2FA | — | BLOCKED (sahip) | docs/GUVENLIK-DENETIMI.md (S-1) |
+| L-1 | Etkinlik başına bilet limiti (telefon bazlı, Config/satis.etkinlikBasinaLimit), getEventQuota, web+mobil uyarı şeridi, mobil onay sonrası çıkış, mobil hata eşleme tablosu | 2 | DONE (dalda; deploy yok) | docs/ODEME-GUVENLIK.md §16. KARAR BEKLİYOR: global toplam limitler (ücretsiz 3 / rezervasyon 3) etkinlik başına limitle birlikte mi? Tarayıcıda uçtan uca doğrulanmadı. |
 
 ## DURUM TABLOSU (ajan başına)
 Tamamlandı ve dalda: telefon kimliği (backend+web+mobil+denetim), hesap silme (backend+web+mobil+denetim), web favorileri hesaba bağlı (main'de), sessizde sesli hatırlatma (izinli, 869a9e2b), maliyet/güvenlik/UX/otomasyon araştırmaları.
