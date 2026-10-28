@@ -53,3 +53,20 @@ Canlı herkese açık sohbet (24 saat moderasyon sorumlusu gerekir), LLM botu, h
 3. Yeni kullanıcı içeriği: şikâyet/engel/filtre olmadan yayına çıkmaz.
 4. Yeni zamanlanmış iş açılmaz (3 ücretsiz iş dolu); mevcut işe görev eklenir.
 5. Deploy sırası bozulmaz: functions → istemciler → rules.
+
+## EK İŞLER (sohbette önerilen, plana sonradan eklenen)
+| ID | İş | Dalga | Durum | Not |
+|---|---|---|---|---|
+| AD-1 | Yönetim paneli formları: "Erişilebilir performans" kısaltma kutusu → Türkçe onay kutuları (Sesli betimleme/Altyazılı/İşaret dili/Rahat gösterim; AD,CAP,BSL,R saklanır), "Haftanın oyunu" → onay kutusu | 2 | TODO | admin.js/schema.js; T-1 sonrası |
+| AD-2 | Panelde sessiz-alarm tercihi göstergesi (`loudAlarm.optedIn/of`, `loudCount`) ve hesap silme sağlık kutusu cilası | 2 | TODO | admin; T-1 sonrası |
+| N-3 | Çoklu cihaz: `fcmTokens` dizisi (mobil yazım + notify.js alıcı çözümü + ölü token temizliği + eski `fcmToken` geçişi) | 1b | DOING | lib/ + notify.js (minimal) |
+| N-4 | 2 saatlik otomatik hatırlatmayı `loudAlarm` tercihine bağlama (karar: sahibi onaylayınca) | 2 | BLOCKED (karar) | |
+| M-3 | Mobil: misafir (anonim) kullanıcı koltuk ekranında doğrudan telefon doğrulama sheet'i (anonim hesabı telefona bağla); Firebase'de Anonymous kapalıysa misafir girişi davranışı | 1b | DOING | lib/ |
+| F-9 | Biletlere telefon özeti (`phoneKey`) alanı: destek/arama kolaylığı (KVKK notuyla; sahibi onayı) | 3 | BLOCKED (karar) | |
+| G-1 | Gizlilik/şartlar metinleri: telefon doğrulama, hesap silme (30 gün, anonimleştirme), bildirim tercihi, UGC/moderasyon, yurt dışı aktarım | — | BLOCKED (sahip+avukat) | taslaklar docs'ta |
+| G-2 | Mağaza formları: Play Data Safety/UGC, Apple App Privacy/inceleme notu | — | BLOCKED (sahip) | |
+| H-1 | Eksik sahip adımları listesi: Authorized domains, Phone provider, SHA, Blaze, bütçe (TL), PHONE_HASH_SALT, Storage kuralı kontrolü, 2FA | — | BLOCKED (sahip) | docs/GUVENLIK-DENETIMI.md (S-1) |
+
+## DURUM TABLOSU (ajan başına)
+Tamamlandı ve dalda: telefon kimliği (backend+web+mobil+denetim), hesap silme (backend+web+mobil+denetim), web favorileri hesaba bağlı (main'de), sessizde sesli hatırlatma (izinli, 869a9e2b), maliyet/güvenlik/UX/otomasyon araştırmaları.
+Çalışıyor (Dalga 1): S-1, T-1, O-1, U-1; (1b): N-3 + M-3.
