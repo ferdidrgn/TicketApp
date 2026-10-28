@@ -3,7 +3,9 @@
 module.exports = {
   REGION: 'europe-west1',
   CURRENCY: 'TRY',
-  SEAT_LIMIT_PER_EVENT: 3, // bir kullanıcı bir etkinlikte en fazla (reserved+sold) koltuk
+  SEAT_LIMIT_PER_EVENT: 3, // VARSAYILAN: bir kişi (doğrulanmış telefon) bir etkinlikte en fazla (aktif bilet + tutulan) koltuk; Config/satis.etkinlikBasinaLimit ile 1-20 ayarlanır
+  EVENT_LIMIT_MIN: 1, EVENT_LIMIT_MAX: 20,
+  QUOTA_RATE: { max: 30, windowMs: 60 * 1000 }, // getEventQuota: telefon başına dakikada sorgu
   FREE_TICKET_LIMIT: 3, // TÜM ücretsiz etkinliklerde toplam bilet
   HOLD_MS: 10 * 60 * 1000, // koltuk tutma süresi
   PAYMENT_WINDOW_MS: 30 * 60 * 1000, // ödeme başlayınca tutma süresi (iyzico token ömrü)
@@ -13,7 +15,7 @@ module.exports = {
   EXPIRE_BATCH: 200,
   // Satış modu (Config/satis). 'kapali' | 'rezervasyon' (ödeme sahnede) | 'online' (iyzico). Belge yoksa varsayılan.
   SATIS_MODES: ['kapali', 'rezervasyon', 'online'],
-  SATIS_DEFAULT: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 },
+  SATIS_DEFAULT: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24, etkinlikBasinaLimit: 3, ucretsizToplamLimit: 3 },
   HEARTBEAT_STALE_MS: 15 * 60 * 1000, // expireHolds bu süredir çalışmadıysa panel kırmızı uyarır
   STUCK_GRACE_MS: 10 * 60 * 1000, // süresi bu kadar önce dolmuş ama hâlâ held/paying -> "takılı"
 

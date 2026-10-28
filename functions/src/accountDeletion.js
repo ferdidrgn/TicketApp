@@ -17,7 +17,7 @@ const { recomputeShowRating } = require('./reviewStats');
 
 const CFG = cfg.ACCOUNT_DELETION;
 // Eski/olası kişisel alanlar (şemada yok ama eski istemci kayıtlarında olabilir): anonimleştirmede silinir.
-const PERSONAL_KEYS = ['customerName', 'customerEmail', 'customerPhone', 'buyerName', 'buyerEmail', 'buyerPhone', 'name', 'firstName', 'lastName', 'email', 'eMail', 'phone', 'phoneNumber', 'userName'];
+const PERSONAL_KEYS = ['customerName', 'customerEmail', 'customerPhone', 'buyerName', 'buyerEmail', 'buyerPhone', 'name', 'firstName', 'lastName', 'email', 'eMail', 'phone', 'phoneNumber', 'phoneKey', 'userName'];
 const BLOCKING = new Set(['pending', 'deleting']);
 
 const iso = (ms) => new Date(ms).toISOString();

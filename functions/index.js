@@ -130,6 +130,7 @@ function guarded(fn) {
 }
 
 exports.holdSeats = onCall(salted, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data, phoneCtx(req))));
+exports.getEventQuota = onCall(salted, guarded((req) => getService(false).getEventQuota(req.auth.uid, req.data, phoneCtx(req))));
 exports.releaseHold = onCall(salted, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
 exports.confirmFree = onCall(salted, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data, phoneCtx(req))));
 exports.confirmReservation = onCall(salted, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data, phoneCtx(req))));

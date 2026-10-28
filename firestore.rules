@@ -351,7 +351,8 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------
     // Config — herkese açık okunan ayarlar. Config/satis = satış modu:
-    //   { mode: 'kapali'|'rezervasyon'|'online', rezervasyonLimit: int, iptalSaat: sayı }
+    //   { mode: 'kapali'|'rezervasyon'|'online', rezervasyonLimit: int (0 = global limit kapalı), iptalSaat: sayı,
+    //     etkinlikBasinaLimit?: int 1-20 (varsayılan 3), ucretsizToplamLimit?: int 0-50 (0 = kapalı, varsayılan 3) }
     // Yazma yalnızca admin (ve satis belgesi için şema doğrulamalı). Sunucu her çağrıda okur.
     // -------------------------------------------------------------------
     match /Config/{docId} {
@@ -364,7 +365,11 @@ service cloud.firestore {
         request.resource.data.rezervasyonLimit is int &&
         request.resource.data.rezervasyonLimit >= 0 && request.resource.data.rezervasyonLimit <= 50 &&
         request.resource.data.iptalSaat is number &&
-        request.resource.data.iptalSaat >= 0 && request.resource.data.iptalSaat <= 2160));
+        request.resource.data.iptalSaat >= 0 && request.resource.data.iptalSaat <= 2160 &&
+        (!('etkinlikBasinaLimit' in request.resource.data) || (request.resource.data.etkinlikBasinaLimit is int &&
+          request.resource.data.etkinlikBasinaLimit >= 1 && request.resource.data.etkinlikBasinaLimit <= 20)) &&
+        (!('ucretsizToplamLimit' in request.resource.data) || (request.resource.data.ucretsizToplamLimit is int &&
+          request.resource.data.ucretsizToplamLimit >= 0 && request.resource.data.ucretsizToplamLimit <= 50))));
       allow delete: if false;
     }
 
