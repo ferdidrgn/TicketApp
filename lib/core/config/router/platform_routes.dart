@@ -50,6 +50,9 @@ class PlatformRoutes {
 
   static String myTickets(final String userId) => '/my-tickets/$userId';
 
+  /// Tiyatro Pasaportu (yalnız sahibi; korumalı rota).
+  static String passport(final String userId) => '/passport/$userId';
+
   static String campaigns({final int? index}) =>
       index != null ? '/campaign-details?index=$index' : '/campaign-details';
 }

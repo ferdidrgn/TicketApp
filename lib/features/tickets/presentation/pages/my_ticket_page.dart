@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/config/router/platform_routes.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -103,6 +105,23 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
           constraints: BoxConstraints(maxWidth: tablet ? 760 : double.infinity),
           child: Column(
             children: [
+              if (tickets != null && tickets.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                    child: Semantics(
+                      button: true,
+                      label: 'Tiyatro pasaportumu aç',
+                      child: TextButton.icon(
+                        onPressed: () => context
+                            .push(PlatformRoutes.passport(widget.userId)),
+                        icon: const Icon(Icons.verified_outlined, size: 18),
+                        label: const Text('Pasaportum'),
+                      ),
+                    ),
+                  ),
+                ),
               if (tickets == null || tickets.isNotEmpty)
                 Padding(
                   padding: EdgeInsets.fromLTRB(
