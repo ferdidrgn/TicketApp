@@ -9,7 +9,7 @@ kok.classList.add('js');
 if (azHareket) kok.classList.add('az-hareket');
 
 // ---------- Giriş animasyonları (parça parça) ----------
-const HEDEFLER = '.sec-head, .cats .cat, .rail > .card, .top10 .t10, .day, .ag-row, .venue, .person, .guide, .sess, .budget-box, .mood, .gal img, .grid > .card, .block > h2, .story, .info-row, .band';
+const HEDEFLER = '.sec-head, .cats .cat, .rail > .card, .top10 .t10, .day, .ag-row, .venue, .person, .guide, .sess, .budget-box, .mood, .gal img, .grid > .card, .block > h2, .story, .info-row, .band, .nv, .ekip-kart';
 const io = 'IntersectionObserver' in window ? new IntersectionObserver((ent) => {
   for (const e of ent) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
 }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 }) : null;
@@ -143,3 +143,17 @@ const rvTara = () => {
 };
 addEventListener('scroll', () => { if (!rvBekle) rvBekle = requestAnimationFrame(rvTara); }, { passive: true });
 setInterval(rvTara, 700);
+
+// ---------- Kalp (favori) kutlaması: eklenince halka yayılır (fav.js sınıfı değiştirdikten sonra) ----------
+if (!azHareket) {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-fav]');
+    if (!b) return;
+    setTimeout(() => {
+      if (!b.classList.contains('on')) return;
+      b.querySelector('.halka')?.remove();
+      const h = document.createElement('i'); h.className = 'halka'; h.setAttribute('aria-hidden', 'true');
+      b.append(h); h.addEventListener('animationend', () => h.remove(), { once: true });
+    }, 40);
+  }, true);
+}

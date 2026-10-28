@@ -10,12 +10,26 @@ let cache = null;
 // ---------- Ham veri: sessionStorage önbelleği ----------
 // İlk ziyarette Firestore'dan okunur; sonraki sayfa geçişlerinde önbellekten ANINDA açılır, arka planda tazelenir.
 // Koltuk planı (Event.seats) siteye gerekmediği için önbelleğe/belleğe alınmaz.
-const ONBELLEK = EMU ? 'tiyatrol.ham.emu' : 'tiyatrol.ham.v2', OMUR = 45 * 60 * 1000;
+const ONBELLEK = EMU ? 'tiyatrol.ham.emu' : 'tiyatrol.ham.v3', OMUR = 45 * 60 * 1000;
 const KOLEKSIYONLAR = ['Show', 'Event', 'Stage', 'Team', 'Player', 'Campaign', 'Review'];
+// Doluluk: Event.seats'ten YALNIZCA sayı türetilir (kimlik yok, koltuk planı önbelleğe girmez).
+// Kapalı/engelli koltuk kapasiteden düşer; süresi dolmuş tutma boş sayılır. Plan boşsa (hiç başlatılmamış) null.
+const zMs = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : typeof v === 'number' ? v : v && v.seconds ? v.seconds * 1000 : 0);
+function dolulukHesapla(seats) {
+  if (!seats || typeof seats !== 'object') return null;
+  let toplam = 0, dolu = 0;
+  for (const m of Object.values(seats)) {
+    if (!m || typeof m !== 'object' || m.status === 'blocked' || m.customerId === '__ADMIN_BLOCKED__') continue;
+    toplam++;
+    if (m.status === 'sold') dolu++;
+    else if (m.status === 'reserved') { const b = typeof m.holdExpiresAt === 'number' ? m.holdExpiresAt : zMs(m.holdExpiresAt) || (zMs(m.reservedAt) ? zMs(m.reservedAt) + 15 * 60000 : 0); if (!b || b + 60000 > Date.now()) dolu++; }
+  }
+  return toplam ? { toplam, dolu } : null;
+}
 async function tazele() {
   const sonuc = await Promise.all(KOLEKSIYONLAR.map((a) => oku(a).catch(() => [])));
   const ham = Object.fromEntries(KOLEKSIYONLAR.map((a, i) => [a, sonuc[i]]));
-  ham.Event = ham.Event.map(({ seats, ...e }) => e);
+  ham.Event = ham.Event.map(({ seats, ...e }) => ({ ...e, _dl: dolulukHesapla(seats) }));
   try { sessionStorage.setItem(ONBELLEK, JSON.stringify({ t: Date.now(), ham })); } catch {}
   return ham;
 }
@@ -47,7 +61,7 @@ export async function yukle() {
     const playerById = new Map(players.map((p) => [p.id, p]));
     const showById = new Map();
 
-    const ev = events.map((e) => ({ ...e, when: tarihAyristir(e.date), priceNum: sayi(e.price) })).filter((e) => e.when);
+    const ev = events.map((e) => ({ ...e, when: tarihAyristir(e.date), priceNum: sayi(e.price), doluluk: e._dl ? { ...e._dl, kalan: Math.max(0, e._dl.toplam - e._dl.dolu), oran: Math.min(1, e._dl.dolu / e._dl.toplam) } : null })).filter((e) => e.when);
 
     for (const s of shows) {
       s.cat = (s.category || 'Diğer').trim();

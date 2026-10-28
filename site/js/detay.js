@@ -122,12 +122,17 @@ export { tarihUzun, saat };
 // Sayı animasyonu: 0'dan hedefe (ease-out)
 export function sayAc(kok = document) {
   const az = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  kok.querySelectorAll('[data-say]').forEach((el) => {
+  // Görünür olunca BİR kez sayar (sekme/kaydırma altındaki sayaçlar boşuna çalışmaz).
+  const say = (el) => {
     const hedef = +el.dataset.say; if (az || !hedef) { el.textContent = hedef; return; }
     const t0 = performance.now(), sure = 900;
     const adim = (t) => { const p = Math.min(1, (t - t0) / sure); el.textContent = Math.round(hedef * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(adim); };
     requestAnimationFrame(adim);
-  });
+  };
+  const liste = [...kok.querySelectorAll('[data-say]:not([data-sg])')];
+  if (!('IntersectionObserver' in window)) { liste.forEach((el) => { el.dataset.sg = '1'; el.textContent = el.dataset.say; }); return; }
+  const g = new IntersectionObserver((ent) => { for (const x of ent) if (x.isIntersecting) { g.unobserve(x.target); say(x.target); } }, { threshold: 0.4 });
+  liste.forEach((el) => { el.dataset.sg = '1'; g.observe(el); });
 }
 // Geri sayım: "12 gün 3 saat 05 dk"
 export function geriSayim(el, hedef) {

@@ -4,6 +4,7 @@ import { perdeAc, isikKur } from '../fx.js';
 import { ilOku, ilYaz } from '../iller.js';
 import { tarihAyristir } from '../util.js';
 import { mandala, KAMPANYA_SANAT } from '../ui.js';
+import { buAksamHtml, buAksamBaglan } from '../canli.js';
 import { temaYaz, temaOku, temaHesapla, temaSecenekleri } from '../theme.js';
 import { takvimMenusu, dakikaOku } from '../detay.js';
 import { kalpDugme } from '../fav.js';
@@ -52,6 +53,7 @@ function ciz(d0) {
     }).join('')}</div></section>`);
   }
 
+  { const as = buAksamHtml(d, now); if (as) parts.push(as); }
   if (hafta.length) parts.push(`<section class="sec">${bolumBasligi('Bu hafta sahnede', 'Önümüzdeki yedi günde perde açan oyunlar.', '/kesfet?zaman=hafta')}${ray(hafta.map((s) => oyunKarti(s)).join(''))}</section>`);
 
   // Kampanyalar: solda HD sahne grafiği, sağda yukarı akan kuponlar (kompakt, sayfa kaydırmayı engellemez)
@@ -150,7 +152,7 @@ function ciz(d0) {
   }
 
   // Bölümleri istenen sıraya diz (işaret metnine göre); sırada olmayanlar özgün sırasıyla sona gider
-  const SIRA = [/tema-sec/, /id="ajanda"/, /<h2>[^<]* oyunları</, /harita-bant/, /soz-sec/, /<h2>Ücretsiz seanslar</, /ne izlesem/, /<h2>Bu hafta sahnede</, /<h2>Bu hafta sonu</, /en çok oynayanlar/, /<h2>Yeni eklenenler</, /<h2>Son çağrı</, /<h2>Çocuklarla</, /class="budget"/, /<h2>Tüm oyunlar</, /<h2>Sahneler</, /class="replik"/, /Sahnenin yüzleri/, /<h2>Son baktıkların</, /Sahnedeki oyuncular/, /<h2>Topluluklar</, /kamp-vitrin/, /class="guides"/];
+  const SIRA = [/tema-sec/, /aksam-sec/, /id="ajanda"/, /<h2>[^<]* oyunları</, /harita-bant/, /soz-sec/, /<h2>Ücretsiz seanslar</, /ne izlesem/, /<h2>Bu hafta sahnede</, /<h2>Bu hafta sonu</, /en çok oynayanlar/, /<h2>Yeni eklenenler</, /<h2>Son çağrı</, /<h2>Çocuklarla</, /class="budget"/, /<h2>Tüm oyunlar</, /<h2>Sahneler</, /class="replik"/, /Sahnenin yüzleri/, /<h2>Son baktıkların</, /Sahnedeki oyuncular/, /<h2>Topluluklar</, /kamp-vitrin/, /class="guides"/];
   const rank = (s) => { const k = SIRA.findIndex((r) => r.test(s)); return k < 0 ? 99 : k; };
   parts.sort((a, b) => rank(a) - rank(b));
   home.innerHTML = parts.join('');
@@ -158,6 +160,7 @@ function ciz(d0) {
   $('#to-ozel')?.addEventListener('input', (e) => { temaYaz({ palet: 'ozel', ozel: e.target.value }); $$('.to-kart').forEach((x) => x.classList.remove('on')); });
   document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
   document.querySelectorAll('.il-cipler [data-il]').forEach((b) => b.addEventListener('click', () => ilYaz(b.dataset.il)));
+  buAksamBaglan(home);
   if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d);
   if (fiyatli.length >= 3) butceKur(fiyatli);
