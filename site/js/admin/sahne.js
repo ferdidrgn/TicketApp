@@ -81,6 +81,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
       k.innerHTML = `<div class="sk-kitle"><div class="sk-kim"><b>${esc(e.oyun)}</b><span>${esc(e.sahne)} · ${esc(saatYaz(e.ms))} · ${esc(gorece(e.ms))}</span></div>
         <div class="sk-sayi"><b>${r.recipients}</b><span>bilet sahibi</span></div><div class="sk-sayi"><b>${r.withToken}</b><span>push alabilir</span></div></div>
         ${r.withToken < r.recipients ? `<p class="muted" style="margin:8px 0 0">${r.recipients - r.withToken} kişi bildirimi yalnızca uygulama içi kutuda görür (cihaz kaydı yok / bildirim kapalı). İptal ve "gelmedi" biletler sayılmaz.</p>` : ''}
+        ${r.loudAlarm && Number.isFinite(r.loudAlarm.of) && Number.isFinite(r.loudAlarm.optedIn) ? `<p class="bk-note" id="sk-sessiz">🔕 ${r.loudAlarm.of} kişiden ${r.loudAlarm.optedIn}'si telefonu sessizdeyken sesli hatırlatmayı açtı.</p>` : ''}
         ${aktif ? '' : '<p class="muted" style="margin:8px 0 0">Bu seans ±24 saat dışında: sahne şablonları (başladı, ara, bitti…) kapalı; duyuru gönderebilirsin.</p>'}`;
       hizliCiz(); serbestCiz();
     } catch (er) { k.innerHTML = `<div class="bk-alert" role="alert">Alıcılar alınamadı: ${esc(hataMesaji(er))}</div>`; hizliCiz(); serbestCiz(); }
@@ -172,6 +173,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
         ${duzenle ? `<input id="o-baslik" type="text" maxlength="60" value="${esc(p.title)}" aria-label="Başlık">` : `<b>${esc(p.title)}</b>`}
         ${duzenle ? `<textarea id="o-govde" maxlength="240" placeholder="Mesajı yaz (en fazla 240 karakter)" aria-label="Mesaj">${esc(istek.body || '')}</textarea>` : `<p>${esc(p.body)}</p>`}</div>
       <p class="sk-hedef-satir"><b>${esc(r.target.label)}</b> · ${istek.target.type === 'all' ? `${r.recipients} kullanıcıya (uygulamayı yüklemiş herkese) gider` : `${r.recipients} kişi · ${r.withToken} push alabilir`}</p>
+      ${(() => { const la = r.loudAlarm; return la && Number.isFinite(la.of) && Number.isFinite(la.optedIn) ? `<p class="bk-note" id="o-sessiz">🔕 ${la.of} kişiden ${la.optedIn}'si telefonu sessizdeyken sesli hatırlatmayı açtı.${p.kind === 'alarm' ? '' : ' (Yalnızca alarm bildiriminde geçerlidir.)'}</p>` : ''; })()}
       ${istek.target.type === 'all' ? '<div class="bk-alert" role="alert">⚠ Bu bildirim TÜM kullanıcılara gider. Emin misin?</div>' : ''}
       ${p.kind === 'alarm' ? '<p class="muted">Alarm bildirimi yüksek öncelikle gider; telefon sessizde veya "Rahatsız Etme"deyse sesi çalmayabilir.</p>' : ''}
       <div id="o-sonuc" aria-live="polite"></div>
@@ -185,7 +187,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
       try {
         const s = await cagir('adminSendNotification', gonderilecek);
         $('#o-sonuc', modal).innerHTML = `<div class="bk-res ok"><div class="bk-res-t">${s.duplicate ? 'ZATEN GÖNDERİLMİŞ' : 'GÖNDERİLDİ'}</div>
-          <div>${s.recipients} alıcı${s.topic ? ' (tüm kullanıcılar, konu üzerinden)' : ` · push: ${s.success} başarılı${s.failure ? `, ${s.failure} başarısız` : ''} · ${s.withToken ?? 0} cihaz kaydı`}</div></div>`;
+          <div>${s.recipients} alıcı${s.topic ? ' (tüm kullanıcılar, konu üzerinden)' : ` · push: ${s.success} başarılı${s.failure ? `, ${s.failure} başarısız` : ''} · ${s.withToken ?? 0} cihaz kaydı`}${Number.isFinite(s.loudCount) ? `<br>${s.loudCount} kişi sessizde sesli hatırlatmayı açmıştı` : ''}</div></div>`;
         g.remove(); $('#o-iptal', modal).textContent = 'Kapat';
         logYukle();
       } catch (er) { g.disabled = false; g.textContent = 'Tekrar dene'; $('#o-sonuc', modal).innerHTML = `<div class="bk-alert" role="alert">${esc(hataMesaji(er))}</div>`; }
@@ -203,7 +205,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
         ${satir.map((x) => `<tr><td>${esc(x.createdAt && x.createdAt.toMillis ? saatYaz(x.createdAt.toMillis()) : '—')}</td><td>${esc(x.sentByName || (x.sentBy || '').slice(0, 6))}</td>
           <td>${esc(x.targetLabel || x.target?.type || '')}${x.template ? `<br><span class="muted">${esc(x.template)}</span>` : ''}</td>
           <td>${x.kind === 'alarm' ? '<span class="tag bad">Alarm</span> ' : ''}<b>${esc(x.title || '')}</b><br><span class="muted">${esc(x.body || '')}</span></td>
-          <td>${x.status === 'done' ? `${x.recipients ?? 0} alıcı<br><span class="muted">${x.success ?? 0} ✓ ${x.failure ? `· ${x.failure} ✗` : ''}</span>` : '<span class="tag warn">Tamamlanmadı</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Henüz gönderim yok.</div>'}`;
+          <td>${x.status === 'done' ? `${x.recipients ?? 0} alıcı<br><span class="muted">${x.success ?? 0} ✓ ${x.failure ? `· ${x.failure} ✗` : ''}${Number.isFinite(x.loudCount) ? `<br>🔕 sessizde sesli: ${x.loudCount}` : ''}</span>` : '<span class="tag warn">Tamamlanmadı</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Henüz gönderim yok.</div>'}`;
     } catch (e) { k.innerHTML = `<h2>Son gönderimler</h2><div class="bk-alert" role="alert">${esc(hataMesaji(e))}</div>`; }
   }
 

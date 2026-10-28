@@ -170,23 +170,39 @@ function liste(m, c) {
 }
 
 // ---------- form ----------
+const ONAY_ACIK = /^(evet|true|1|e)$/i;
 function alanHtml(c, a, x) {
+  const h = alanHtml0(c, a, x);
+  if (!a.ipucu || a.t === 'img') return h;
+  if (a.t === 'secenekler') return h.replace('</legend>', `</legend><span class="hint" id="f_${a.k}_h" style="display:block;margin-bottom:8px">${esc(a.ipucu)}</span>`);
+  const i = h.lastIndexOf('</div>');
+  return h.slice(0, i) + `<span class="hint" id="f_${a.k}_h">${esc(a.ipucu)}</span>` + h.slice(i);
+}
+function alanHtml0(c, a, x) {
   const v = x?.[a.k];
   const id = `f_${a.k}`;
   const tam = a.tam ? ' full' : '';
   const L = `<label for="${id}">${a.e}${a.zorunlu ? ' *' : ''}</label>`;
-  const ip = a.ipucu ? `<span class="hint">${esc(a.ipucu)}</span>` : '';
   switch (a.t) {
     case 'area': return `<div class="fld-in${tam}">${L}<textarea id="${id}">${esc(v ?? '')}</textarea></div>`;
     case 'img': return `<div class="fld-in${tam}">${L}<div class="img-row">${v ? `<img src="${esc(v)}" alt="" id="${id}_p">` : `<img id="${id}_p" style="display:none" alt="">`}<div style="flex:1;display:grid;gap:8px"><input id="${id}" type="url" placeholder="https://…" value="${esc(v ?? '')}"><input type="file" accept="image/*" data-up="${id}"></div></div><span class="hint">Adres yapıştır ya da dosya yükle (Firebase Storage).</span></div>`;
     case 'sel': return `<div class="fld-in${tam}">${L}<select id="${id}"><option value="">— Seç —</option>${adlari(a.kaynak).sort((p, q) => p.ad.localeCompare(q.ad, 'tr')).map((o) => `<option value="${esc(o.id)}" ${(v === o.id || v === o.docId) ? 'selected' : ''}>${esc(o.ad)}</option>`).join('')}</select></div>`;
     case 'multi': { const secili = new Set(Array.isArray(v) ? v : []); return `<div class="fld-in${tam}">${L}<div class="multi" id="${id}">${adlari(a.kaynak).sort((p, q) => p.ad.localeCompare(q.ad, 'tr')).map((o) => `<label><input type="checkbox" value="${esc(o.id)}" ${secili.has(o.id) ? 'checked' : ''}>${esc(o.ad)}</label>`).join('') || '<span class="hint">Henüz kayıt yok.</span>'}</div></div>`; }
+    case 'secenekler': {
+      const bilinen = new Set(a.secenekler.map((o) => o.kod));
+      const liste = (Array.isArray(v) ? v : []).map((k) => String(k).trim());
+      const secili = new Set(liste.map((k) => k.toUpperCase()));
+      const diger = liste.filter((k) => k && !bilinen.has(k.toUpperCase()));
+      return `<fieldset class="fld-in${tam} opts" id="${id}"><legend>${a.e}</legend>${a.secenekler.map((o) => `<label class="opt"><input type="checkbox" value="${esc(o.kod)}" ${secili.has(o.kod) ? 'checked' : ''}><span><b>${esc(o.ad)}</b><small>${esc(o.acik)}</small></span></label>`).join('')}
+        <div class="opt-other"><label for="${id}_diger">Diğer kodlar</label><input id="${id}_diger" type="text" value="${esc(diger.join(', '))}" placeholder="Boş bırakabilirsin"><small>Eski kayıtlardan kalan kodlar burada korunur; virgülle ayır.</small></div></fieldset>`;
+    }
+    case 'onay': return `<div class="fld-in${tam}"><label for="${id}">${a.e}</label><label class="opt single"><input id="${id}" type="checkbox" ${ONAY_ACIK.test(String(v ?? '').trim()) ? 'checked' : ''}><span><b>${esc(a.onayMetin)}</b></span></label></div>`;
     case 'lines': return `<div class="fld-in${tam}">${L}<textarea id="${id}">${esc((Array.isArray(v) ? v : []).join('\n'))}</textarea></div>`;
     case 'odul': return `<div class="fld-in${tam}">${L}<textarea id="${id}" placeholder="2013 | Yılın En Başarılı Erkek Oyuncusu | Pippa oyunundaki performansı">${esc((Array.isArray(v) ? v : []).map((x) => (x && typeof x === 'object') ? [x.year || '', x.title || '', x.detail || ''].join(' | ') : String(x)).join('\n'))}</textarea><span class="hint">Mobil uygulamayla aynı biçimde (yıl, başlık, detay) kaydedilir.</span></div>`;
     case 'dt': return `<div class="fld-in${tam}">${L}<input id="${id}" type="datetime-local" value="${dtLokalden(v)}"></div>`;
     case 'day': return `<div class="fld-in${tam}">${L}<input id="${id}" type="date" value="${gunYaz(v)}"></div>`;
     case 'num': return `<div class="fld-in${tam}">${L}<input id="${id}" type="number" step="any" value="${v ?? ''}"></div>`;
-    default: return `<div class="fld-in${tam}">${L}<input id="${id}" type="text" value="${esc(v ?? '')}" ${a.liste ? `list="dl_${a.liste}"` : ''}>${ip}${a.liste === 'turler' ? `<datalist id="dl_turler">${[...new Set(veri.Show.map((s) => s.category).filter(Boolean))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>` : ''}</div>`;
+    default: return `<div class="fld-in${tam}">${L}<input id="${id}" type="text" value="${esc(v ?? '')}" ${a.liste ? `list="dl_${a.liste}"` : ''}>${a.liste === 'turler' ? `<datalist id="dl_turler">${[...new Set(veri.Show.map((s) => s.category).filter(Boolean))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>` : ''}</div>`;
   }
 }
 function form(c, x = null) {
@@ -216,7 +232,12 @@ function form(c, x = null) {
     for (const a of S.alanlar) {
       const el = bg.querySelector('#f_' + a.k);
       let v;
-      if (a.t === 'multi') v = [...el.querySelectorAll('input:checked')].map((i) => i.value);
+      if (a.t === 'secenekler') {
+        const sec = [...el.querySelectorAll('input[type=checkbox]:checked')].map((i) => i.value);
+        const diger = bg.querySelector('#f_' + a.k + '_diger').value.split(/[,;]/).map((t) => t.trim()).filter(Boolean);
+        v = [...new Set([...sec, ...diger])];
+      } else if (a.t === 'onay') v = el.checked ? a.onayDeger : '';
+      else if (a.t === 'multi') v = [...el.querySelectorAll('input:checked')].map((i) => i.value);
       else if (a.t === 'lines') v = el.value.split('\n').map((s) => s.trim()).filter(Boolean);
       else if (a.t === 'odul') v = el.value.split('\n').map((s) => s.trim()).filter(Boolean).map((s) => { const [y, t, ...r] = s.split('|').map((x) => x.trim()); return t === undefined ? { year: '', title: y, detail: '' } : { year: y, title: t, detail: r.join(' | ') }; });
       else if (a.t === 'dt') v = dtUygulamaya(el.value);

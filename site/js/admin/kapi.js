@@ -59,6 +59,7 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
           <h3>Hesap silme (30 gün bekleme)</h3>
           ${ad.stale ? `<div class="bk-alert" role="alert">⚠ Hesap silme görevi ${ad.lastRunAt ? `${esc(sure(ad.ageMinutes))} çalışmış` : 'hiç çalışmamış'} ve vadesi geçmiş ${ad.overdue} kayıt var. Aşağıdan elle çalıştırın; sürerse Cloud Scheduler'ı kontrol edin.</div>` : ''}
           ${ad.failing > 0 ? `<div class="bk-alert" role="alert">⚠ ${ad.failing} silme kaydı tekrar tekrar hata veriyor (Firestore: AccountDeletion, lastError alanı). Kayıt silinmeden kalır; elle çalıştırmak aynı hatayı verirse müdahale gerekir.</div>` : ''}
+          ${!(ad.pending || ad.deleting || ad.overdue || ad.failing) ? '<p class="bk-note">Şu an bekleyen hesap silme talebi yok.</p>' : ''}
           <div class="bk-stats">
             <div><b>${ad.pending}</b><span>Bekleyen (30 gün dolmadı / henüz alınmadı)</span></div>
             <div><b>${ad.deleting}</b><span>Siliniyor / yarım kaldı</span></div>
