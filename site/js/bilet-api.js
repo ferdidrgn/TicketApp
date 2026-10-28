@@ -1,6 +1,7 @@
 // Bilet satın alma API'si (Cloud Functions, europe-west1). İstemci ASLA fiyat/tutar göndermez; sunucu hesaplar.
 // Hata kodları: unauthenticated, failed-precondition, resource-exhausted, invalid-argument, permission-denied, not-found.
 import { fonksiyon, auth, db, doc, getDoc } from './firebase.js';
+import { silmeBekliyor } from './hesap-sil.js';
 
 const VARSAYILAN = {
   unauthenticated: 'Oturumun kapanmış. Devam etmek için tekrar giriş yap.',
@@ -39,6 +40,10 @@ export function apiHata(e) {
 // Telefon doğrulaması isteyen satış callable'ları. İstemci kontrolü yalnızca UX içindir; asıl güvenlik sunucudadır.
 const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
 async function cagir(ad, veri) {
+  // Kapı sırası sunucuyla aynı (docs/HESAP-SILME.md §3): silinmek üzere işaretli hesap telefon sorusundan ÖNCE ACCOUNT_DELETION_PENDING alır.
+  if (TELEFONLU.has(ad) && silmeBekliyor()) {
+    const h = new Error(VARSAYILAN.ACCOUNT_DELETION_PENDING); h.kod = 'ACCOUNT_DELETION_PENDING'; throw h;
+  }
   if (TELEFONLU.has(ad) && auth.currentUser && !auth.currentUser.phoneNumber) {
     const h = new Error(VARSAYILAN.PHONE_REQUIRED); h.kod = 'PHONE_REQUIRED'; throw h;
   }

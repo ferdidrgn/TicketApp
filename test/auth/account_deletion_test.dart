@@ -35,6 +35,29 @@ void main() {
       expect(u.nextEventDate, DateTime(2026, 11, 12, 20));
     });
 
+    test('UPCOMING_TICKETS GERÇEK backend şekli: ISO tarih; tarihi bilinmeyen bilette nextEventDate/başlık YOK', () {
+      final iso = FirebaseFunctionsException(
+        message: 'UPCOMING_TICKETS',
+        code: 'failed-precondition',
+        details: {
+          'code': 'UPCOMING_TICKETS',
+          'count': 1,
+          'nextEventDate': '2026-11-12T17:00:00.000Z',
+          'nextEventTitle': 'Hamlet',
+        },
+      );
+      final a = AccountDeletionService.mapError(iso) as UpcomingTicketsException;
+      expect(a.nextEventDate, DateTime.utc(2026, 11, 12, 17));
+      final bare = AccountDeletionService.mapError(FirebaseFunctionsException(
+        message: 'UPCOMING_TICKETS',
+        code: 'failed-precondition',
+        details: {'code': 'UPCOMING_TICKETS', 'count': 1},
+      )) as UpcomingTicketsException;
+      expect(bare.count, 1);
+      expect(bare.nextEventDate, isNull);
+      expect(bare.nextEventTitle, isNull);
+    });
+
     test('ACCOUNT_DELETION_PENDING tarihle eşlenir', () {
       final e = AccountDeletionService.mapError(FirebaseFunctionsException(
         message: 'x',

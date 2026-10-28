@@ -132,7 +132,7 @@ async function gelecekBiletler(uid) {
   const l = s.docs.map((d) => normallestir({ ...d.data(), id: d.id }, veri))
     .filter((b) => !b.iptalEdildi && b.when && b.when.getTime() > simdi)
     .sort((a, b) => a.when - b.when);
-  return { sayi: l.reduce((n, b) => n + (b.koltuklar.length || 1), 0), tarih: l[0]?.when || null, baslik: l[0]?.ad || '' };
+  return { sayi: l.length, // sunucu `count` = bilet belgesi sayısı (koltuk değil); önizleme ile red ekranı tutarlı olsun tarih: l[0]?.when || null, baslik: l[0]?.ad || '' };
 }
 
 // ---------- Modal ----------

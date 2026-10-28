@@ -24,7 +24,7 @@ const SIL_GUN = +(process.env.DELETE_DAYS || 30);
 async function requestAccountDeletion(uid) {
   const u = await oku(`User/${uid}`);
   if (u?.deletionStatus === 'pending') return { status: 'pending', scheduledAt: u.deletionScheduledAt, requestedAt: u.deletionRequestedAt, already: true };
-  const gelecek = (await listele('Ticket')).filter((t) => t.customerId === uid && t.paymentStatus !== 'cancelled' && !t.cancelledAt && (tarihAyristir(t.eventDate) || 0) > new Date())
+  const gelecek = (await listele('Ticket')).filter((t) => t.customerId === uid && t.paymentStatus !== 'cancelled' && t.paymentStatus !== 'no_show' && !t.usedAt && !t.cancelledAt && (tarihAyristir(t.eventDate) || 0) > new Date())
     .sort((a, b) => tarihAyristir(a.eventDate) - tarihAyristir(b.eventDate));
   if (gelecek.length) {
     throw new Hata('FAILED_PRECONDITION', 'UPCOMING_TICKETS', { code: 'UPCOMING_TICKETS', count: gelecek.reduce((n, t) => n + (t.buySeats?.length || 1), 0), nextEventDate: tarihAyristir(gelecek[0].eventDate).toISOString(), nextEventTitle: gelecek[0].showName || '' });
@@ -194,8 +194,12 @@ http.createServer(async (req, res) => {
     let govde = ''; for await (const c of req) govde += c;
     const { data } = JSON.parse(govde || '{}');
     const uid = uidAl(req);
+    // Kapı sırası GERÇEK backend ile aynı (docs/HESAP-SILME.md §3): giriş -> ACCOUNT_DELETION_PENDING -> PHONE_REQUIRED.
+    if (SATIN_ALMA.has(ad)) {
+      const ku = await oku(`User/${uid}`);
+      if (ku?.deletionStatus === 'pending') throw new Hata('FAILED_PRECONDITION', 'ACCOUNT_DELETION_PENDING', { code: 'ACCOUNT_DELETION_PENDING', scheduledAt: ku.deletionScheduledAt || null });
+    }
     if (TELEFONLU.has(ad) && !telefonAl(req)) throw new Hata('FAILED_PRECONDITION', 'PHONE_REQUIRED', { code: 'PHONE_REQUIRED' });
-    if (SATIN_ALMA.has(ad) && (await oku(`User/${uid}`))?.deletionStatus === 'pending') throw new Hata('FAILED_PRECONDITION', 'ACCOUNT_DELETION_PENDING', { code: 'ACCOUNT_DELETION_PENDING' });
     const sonuc = await ISLEVLER[ad](uid, data || {}, req);
     yanit(200, { result: sonuc });
   } catch (e) {

@@ -14,7 +14,7 @@ const DURUM = {
   cancelled: ['İptal', 'bad'], free: ['Ücretsiz', ''],
 };
 const durumOf = (t) => t.paymentStatus || (t.orderMethod === 'venue' ? 'pay_at_venue' : t.orderMethod === 'free' ? 'free' : 'paid');
-const sure = (ms) => (ms == null ? '—' : ms < 1 ? 'şimdi' : ms < 120 ? `${ms} dk önce` : `${Math.round(ms / 60)} sa önce`);
+const sure = (ms) => (ms == null ? '—' : ms < 1 ? 'şimdi' : ms < 120 ? `${ms} dk önce` : ms < 2880 ? `${Math.round(ms / 60)} sa önce` : `${Math.round(ms / 1440)} gün önce`);
 const kodAyikla = (v) => { const m = String(v || '').trim().match(/[A-Za-z0-9_-]{6,}/g); return m ? m[m.length - 1] : ''; };
 
 async function cagir(ad, veri) { return (await (await fonksiyon(ad))(veri)).data; }
@@ -41,7 +41,8 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
       const h = await cagir('adminHealth', {});
       const takili = h.stuck.held + h.stuck.paying;
       const hb = h.heartbeat;
-      k.classList.toggle('bad', hb.stale || takili > 0 || h.refundRequired.count > 0 || h.reminders.stale);
+      const ad = h.accountDeletion || null; // hesap silme işleyicisi (docs/HESAP-SILME.md); eski backend'de/hatada yok
+      k.classList.toggle('bad', hb.stale || takili > 0 || h.refundRequired.count > 0 || h.reminders.stale || !!(ad && (ad.stale || ad.failing > 0)));
       k.innerHTML = `<h2>Sistem sağlığı</h2>
         ${hb.stale ? `<div class="bk-alert" role="alert">⚠ Süre dolumu görevi ${hb.lastRunAt ? `${esc(sure(hb.ageMinutes))} çalışmış — 15 dakikadan eski` : 'hiç çalışmamış'}. Tutulan koltuklar serbest kalmayabilir.</div>` : ''}
         ${takili > 0 ? `<div class="bk-alert" role="alert">⚠ ${takili} sipariş süresi geçtiği hâlde kapanmadı (tutulan: ${h.stuck.held}, ödemede: ${h.stuck.paying}).</div>` : ''}
@@ -54,7 +55,30 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
           <div><button type="button" class="bk-link" id="bk-iptal-git" aria-label="İptal edilenleri göster"><b>${h.cancelled.today} / ${h.cancelled.total}</b><span>İptal edilen (bugün / toplam) ›</span></button></div>
           <div><b>${h.refundRequired.count}</b><span>İade gereken</span></div>
         </div>
+        ${ad ? `<div class="bk-sub" id="bk-ad" aria-label="Hesap silme">
+          <h3>Hesap silme (30 gün bekleme)</h3>
+          ${ad.stale ? `<div class="bk-alert" role="alert">⚠ Hesap silme görevi ${ad.lastRunAt ? `${esc(sure(ad.ageMinutes))} çalışmış` : 'hiç çalışmamış'} ve vadesi geçmiş ${ad.overdue} kayıt var. Aşağıdan elle çalıştırın; sürerse Cloud Scheduler'ı kontrol edin.</div>` : ''}
+          ${ad.failing > 0 ? `<div class="bk-alert" role="alert">⚠ ${ad.failing} silme kaydı tekrar tekrar hata veriyor (Firestore: AccountDeletion, lastError alanı). Kayıt silinmeden kalır; elle çalıştırmak aynı hatayı verirse müdahale gerekir.</div>` : ''}
+          <div class="bk-stats">
+            <div><b>${ad.pending}</b><span>Bekleyen (30 gün dolmadı / henüz alınmadı)</span></div>
+            <div><b>${ad.deleting}</b><span>Siliniyor / yarım kaldı</span></div>
+            <div><b>${ad.overdue}</b><span>Vadesi geçmiş, işlenmemiş</span></div>
+            <div><b>${ad.failing}</b><span>Hatalı (3+ deneme)</span></div>
+            <div><b>${esc(sure(ad.ageMinutes))}</b><span>Son çalışma (silinen ${ad.deleted}, ertelenen ${ad.postponed}, hata ${ad.failed})</span></div>
+          </div>
+          <div class="bk-row"><button type="button" class="btn btn-ghost btn-sm" id="bk-ad-calistir">Silme işlerini şimdi çalıştır</button><span class="muted" id="bk-ad-sonuc" role="status" aria-live="polite"></span></div>
+        </div>` : ''}
         ${h.reminders.stale ? '<div class="bk-alert" role="alert" style="margin-top:12px">⚠ Otomatik hatırlatma görevi çalışmıyor (son çalışma: ' + (h.reminders.lastRunAt ? esc(sure(h.reminders.ageMinutes)) : 'hiç') + '). Sahne kumandası sekmesinden kontrol et.</div>' : ''}`;
+      const adBtn = $('#bk-ad-calistir', k);
+      if (adBtn) adBtn.addEventListener('click', async () => {
+        if (!confirm('Vadesi gelen hesap silme talepleri şimdi İŞLENECEK: bu hesaplar ve kişisel verileri KALICI olarak silinir (geri alınamaz). Devam edilsin mi?')) return;
+        adBtn.disabled = true; const so = $('#bk-ad-sonuc', k); so.textContent = 'Çalışıyor…';
+        try {
+          const r = await cagir('adminProcessAccountDeletions', {});
+          const ozet = `Silinen ${r.deleted}, ertelenen ${r.postponed}, hatalı ${r.failed} (taranan ${r.scanned}${r.remainingDue ? `, kalan vadesi gelmiş ${r.remainingDue}` : ''})`;
+          bildir(ozet, r.failed > 0); saglik();
+        } catch (e) { adBtn.disabled = false; so.textContent = ''; bildir(hataMesaji(e), true); }
+      });
       $('#bk-iptal-git', k).addEventListener('click', () => { iptalAcik = true; iptalCiz(true); $('#bk-iptalliste', m).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     } catch (e) { k.classList.add('bad'); k.innerHTML = `<h2>Sistem sağlığı</h2><div class="bk-alert" role="alert">Sağlık bilgisi alınamadı: ${esc(hataMesaji(e))}</div>`; }
   }

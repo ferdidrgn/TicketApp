@@ -18,7 +18,7 @@ Hepsi `httpsCallable` / `functions.httpsCallable` ile çağrılır; veri `{}` (p
 
 | Durum | Sonuç |
 |---|---|
-| Gelecek tarihli aktif bilet var | `failed-precondition`, `message` = `UPCOMING_TICKETS`, `details` = `{ code:'UPCOMING_TICKETS', count, nextEventDate (ISO, UTC), nextEventTitle? }`. **Hiçbir veri değişmez.** |
+| Gelecek tarihli aktif bilet var | `failed-precondition`, `message` = `UPCOMING_TICKETS`, `details` = `{ code:'UPCOMING_TICKETS', count, nextEventDate? (ISO, UTC; tarihi bilinmeyen bilet yüzünden reddedilmişse YOK), nextEventTitle? }`. **Hiçbir veri değişmez.** |
 | Bilet yok, normal hesap | `{ status:'pending', scheduledAt:<ISO>, requestedAt:<ISO>, already:false }` |
 | Zaten pending (tekrar çağrı) | `{ status:'pending', scheduledAt:<aynı ISO>, requestedAt, already:true }` — süre UZAMAZ (idempotent) |
 | Anonim (misafir) hesap | `{ status:'deleted' }` — Auth kullanıcısı ve User belgesi silindi; istemci oturumu yerel olarak kapatmalı |
@@ -130,7 +130,8 @@ Yeni Firestore index'i GEREKMEZ (tek alanlı `scheduledAt` / `status` sorguları
 - Önce functions, sonra rules (ODEME-GUVENLIK ile aynı sıra).
 - Risk: eski biçim `Event.seats[*].customerId` yalnızca kullanıcının bilet/siparişinde geçen etkinliklerde temizlenir; bilete dönüşmemiş, siparişsiz eski "reserved" koltuk kalıntıları bulunamaz.
 - Risk: gerçek GCS'e karşı test EDİLMEDİ (yalnız Storage emülatörü); ilk deploy'da bir test hesabıyla uçtan uca deneyin (`getStorage().bucket()` varsayılan bucket).
-- Risk: `Event.date` ayrıştırılamayan eski biletler "gelecek" sayılmaz.
+- Karar (çapraz denetim, 28.10.2026): tarihi ayrıştırılamayan (ne `Event.date` ne bilet `eventDate`) AKTİF bilet **"gelecek" sayılır** (güvenli taraf: geçerli bilet sessizce anonimleşmesin). İstek reddedilir (`details.nextEventDate` YOKTUR, yalnız `count`; istemci tarih alanını opsiyonel okumalı); 30. günde ise silme 30 gün ertelenir (`lastPostponeReason: 'unparseable_ticket_date'`). Çözüm: yönetici `adminSetTicketStatus` ile bileti iptal/gelmedi yapar ya da Event tarihini düzeltir.
+- Risk (kuralla ENGELLENEMEZ): Firebase Auth `user.delete()` istemciden çağrılırsa hesap bilet kuralı atlanarak silinir ve `User`/`Ticket` kalıntıları anonimleşmez (rules Auth'u kontrol edemez). Web ve mobil kodda hiçbir yerde çağrılmıyor (grep ile doğrulandı); yalnız elle/hatalı yeni kod bunu yapabilir -> kod incelemesinde yasak.
 - Risk: sunucu saatine göre 30 gün; kullanıcı saat dilimi etkisi yok.
 
 ## 10. Hata / yarım kalma senaryoları (testle kanıtlı: functions/test/account-deletion.test.js)

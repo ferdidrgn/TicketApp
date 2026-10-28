@@ -72,14 +72,18 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
         got.forEach((s) => { if (s.exists) evs.set(s.id, s.data()); });
       }
     }
-    const items = [];
+    // GÜVENLİ TARAF: tarihi ayrıştırılamayan (ne Event.date ne bilet metni) aktif bilet "gelecek" SAYILIR. Sayılmasa kullanıcının geçerli
+    // bileti sessizce anonimleşir (geri alınamaz veri kaybı + kural ihlali); sayılırsa en kötü ihtimalle silme ertelenir/reddedilir ve
+    // yönetici adminSetTicketStatus ile bileti iptal/gelmedi yaparak (ya da tarihi düzelterek) çözer. Tarih bilinmediği için nextEventDate yok.
+    const items = []; let unknown = 0;
     for (const d of active) {
       const x = d.data(), ev = evs.get(x.eventId);
       const ms = parseEventDateMs(ev ? ev.date : x.eventDate) ?? parseEventDateMs(x.eventDate);
-      if (ms != null && ms > t) items.push({ ms, title: x.showName || '' });
+      if (ms == null) unknown += 1;
+      else if (ms > t) items.push({ ms, title: x.showName || '' });
     }
     items.sort((a, b) => a.ms - b.ms);
-    return { count: items.length, next: items[0] || null, lastMs: items.length ? items[items.length - 1].ms : null };
+    return { count: items.length + unknown, unknown, next: items[0] || null, lastMs: items.length ? items[items.length - 1].ms : null };
   }
 
   async function hasPayingOrder(uid) {
@@ -89,7 +93,7 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
 
   function upcomingError(u) {
     return new HttpsError('failed-precondition', 'UPCOMING_TICKETS', {
-      code: 'UPCOMING_TICKETS', count: u.count, nextEventDate: iso(u.next.ms), ...(u.next.title ? { nextEventTitle: u.next.title } : {}),
+      code: 'UPCOMING_TICKETS', count: u.count, ...(u.next ? { nextEventDate: iso(u.next.ms) } : {}), ...(u.next && u.next.title ? { nextEventTitle: u.next.title } : {}),
     });
   }
 
@@ -277,7 +281,8 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
     if (!claim) return 'skipped';
     try {
       const up = await upcomingTickets(uid);
-      if (up.count > 0) { await postpone(uid, claim, up.lastMs + 864e5, 'upcoming_tickets'); return 'postponed'; }
+      // tarihi bilinmeyen bilet varsa (yönetici incelemesi gerekir) 30 gün sonrasına; aksi halde son etkinlik + 1 gün
+      if (up.count > 0) { await postpone(uid, claim, up.unknown ? nowMs + CFG.GRACE_MS : up.lastMs + 864e5, up.unknown ? 'unparseable_ticket_date' : 'upcoming_tickets'); return 'postponed'; }
       if (await hasPayingOrder(uid)) { await postpone(uid, claim, nowMs + 864e5, 'paying_order'); return 'postponed'; }
       await purge(uid);
       return 'deleted';

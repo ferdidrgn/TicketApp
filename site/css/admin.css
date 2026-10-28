@@ -74,6 +74,9 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .bk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .bk-stats b { display: block; font: 800 24px var(--font-display); color: var(--accent); }
 .bk-stats span { color: var(--ink-2); font-size: 13px; }
+.bk-sub { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bk-sub h3 { font-size: 16px; margin: 0 0 10px; }
+.bk-sub .bk-row { margin-top: 12px; align-items: center; }
 .bk-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .bk-seg button { text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
 .bk-seg button small { display: block; color: var(--ink-2); margin-top: 2px; }
