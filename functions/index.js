@@ -22,6 +22,7 @@ const { createNotifier } = require('./src/notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createAccountDeletion } = require('./src/accountDeletion');
 const { createTeam } = require('./src/team');
+const { createReviews } = require('./src/reviews');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -109,6 +110,10 @@ function getTeam() {
   return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), log: logger });
 }
 
+function getReviews() {
+  return createReviews({ db: getFirestore(), team: getTeam(), log: logger });
+}
+
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
   return async (request) => {
@@ -157,6 +162,16 @@ exports.teamSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded(
 exports.teamCheckIn = onCall(base, guarded((req) => getTeam().teamCheckIn(req.auth.uid, req.data)));
 exports.teamStats = onCall({ ...base, timeoutSeconds: 120 }, guarded((req) => getTeam().teamStats(req.auth.uid, req.data)));
 exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTeamManager(req.auth.uid, req.data)));
+// Doğrulanmış yorum + moderasyon (Review istemci yazımına KAPALI; yalnız bu callable'lar). docs/UGC-KURALLARI.md
+exports.canReview = onCall(base, guarded((req) => getReviews().canReview(req.auth.uid, req.data, phoneCtx(req))));
+exports.submitReview = onCall(base, guarded((req) => getReviews().submitReview(req.auth.uid, req.data, phoneCtx(req))));
+exports.deleteMyReview = onCall(base, guarded((req) => getReviews().deleteMyReview(req.auth.uid, req.data)));
+exports.reportContent = onCall(base, guarded((req) => getReviews().reportContent(req.auth.uid, req.data, phoneCtx(req))));
+exports.blockUser = onCall(base, guarded((req) => getReviews().blockUser(req.auth.uid, req.data)));
+exports.unblockUser = onCall(base, guarded((req) => getReviews().unblockUser(req.auth.uid, req.data)));
+exports.adminModerate = onCall(base, guarded((req) => getReviews().adminModerate(req.auth.uid, req.data)));
+exports.teamModerate = onCall(base, guarded((req) => getReviews().teamModerate(req.auth.uid, req.data)));
+exports.teamReviews = onCall(base, guarded((req) => getReviews().teamReviews(req.auth.uid, req.data)));
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,

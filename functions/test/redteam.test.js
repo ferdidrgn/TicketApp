@@ -224,86 +224,86 @@ test('(e) Config şeması: admin bile geçersiz satış modu/limit yazamaz', asy
 // ------------------------------------------------------------------ (f) Review / ReviewReport / Notification
 const rev = (o = {}) => ({ showId: 's1', userId: 'carol', userName: 'Carol', userImage: '', rating: 5, text: 'harika', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), hidden: false, ...o });
 
-test('(f) Review create: gerçek mobil payload telefonlu kullanıcıyla geçer; telefonsuz/anonim/sahte kimlik/aralık dışı reddedilir', async () => {
+test('(f) Review (Q-1): istemci HİÇBİR yoldan yorum yazamaz/güncelleyemez/silemez (yazma yalnız sunucu callable) — telefonlu, admin, sahibi dahil', async () => {
   const c = asPhone('carol');
-  await assertSucceeds(setDoc(doc(c, 'Review/carol_s1'), rev())); // mobil ReviewRepository.upsert (ilk yazım) ile birebir
-  // telefonsuz hesap
+  // eski mobil payload'ı artık REDDEDİLİR (mobil submitReview callable'ına taşındı)
+  await assertFails(setDoc(doc(c, 'Review/carol_s1'), rev()));
+  await assertFails(setDoc(doc(c, 'Review/carol_s1'), { ...rev(), verified: true }));
   await assertFails(setDoc(doc(as('dave'), 'Review/dave_s1'), rev({ userId: 'dave' })));
-  // anonim sağlayıcı (telefon claim'i olsa bile)
-  await assertFails(setDoc(doc(as('erin', { phone_number: PH, firebase: { sign_in_provider: 'anonymous' } }), 'Review/erin_s1'), rev({ userId: 'erin' })));
   await assertFails(setDoc(doc(anon(), 'Review/x_s1'), rev({ userId: 'x' })));
-});
-
-test('(f) Review create: taklit, sunucu alanı, tür/boyut/değer saldırıları reddedilir', async () => {
-  const c = asPhone('carol');
-  const bad = async (o, id = 'carol_s1') => assertFails(setDoc(doc(c, `Review/${id}`), rev(o)), JSON.stringify(Object.keys(o)));
-  await bad({ userId: 'bob' }); // başkası adına
-  await assertFails(setDoc(doc(c, 'Review/bob_s1'), rev({ userId: 'bob' })));
-  await assertFails(setDoc(doc(c, 'Review/bob_s1'), rev())); // başkasının kimliğiyle belge
-  await assertFails(setDoc(doc(c, 'Review/carol_s2'), rev())); // kimlik showId ile uyuşmuyor
-  await assertFails(setDoc(doc(c, 'Review/carol_yok'), rev({ showId: 'yok' }))); // olmayan oyun
-  await bad({ rating: 0 }); await bad({ rating: 6 }); await bad({ rating: 5.5 }); await bad({ rating: '5' }); await bad({ rating: null });
-  await bad({ text: 'x'.repeat(601) }); await bad({ text: 5 }); await bad({ text: ['a'] });
-  await bad({ hidden: true }); await bad({ hidden: 'false' });
-  await bad({ verified: true }); await bad({ isAdmin: true }); await bad({ likes: 9999 }); await bad({ role: 'admin' }); // fazladan alan
-  await bad({ userName: 'x'.repeat(81) }); await bad({ userName: { a: 1 } }); await bad({ userImage: 'x'.repeat(601) });
-  await bad({ showId: 5 }); await bad({ showId: '' });
-  await bad({ createdAt: Timestamp.fromDate(new Date('2001-01-01')) }); // istemci zamanı
-  await bad({ updatedAt: Timestamp.fromDate(new Date('2001-01-01')) });
-  const { createdAt, ...noCreated } = rev(); void createdAt; // zorunlu createdAt eksik
-  await assertFails(setDoc(doc(c, 'Review/carol_s1'), noCreated));
-  const { text, ...noText } = rev(); void text; // zorunlu text eksik
-  await assertFails(setDoc(doc(c, 'Review/carol_s1'), noText));
-});
-
-test('(f) Review update/delete: yalnız sahibi (telefonlu); alan kilidi; admin yalnız hidden', async () => {
-  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'Review/carol_s1'), rev({ createdAt: Timestamp.now(), updatedAt: Timestamp.now() })); });
-  const c = asPhone('carol');
-  // mobil güncelleme payload'ı (tüm alanlar tekrar yazılır, createdAt/hidden yok)
-  await assertSucceeds(updateDoc(doc(c, 'Review/carol_s1'), { showId: 's1', userId: 'carol', userName: 'Carol', userImage: '', rating: 3, text: 'idare eder', updatedAt: serverTimestamp() }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { hidden: true }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { userId: 'bob' }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { showId: 's2' }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { rating: 9, updatedAt: serverTimestamp() }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { text: 'x'.repeat(601), updatedAt: serverTimestamp() }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { text: 5, updatedAt: serverTimestamp() }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { verified: true }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { createdAt: Timestamp.now() }));
-  await assertFails(updateDoc(doc(c, 'Review/carol_s1'), { updatedAt: Timestamp.fromDate(new Date('2001-01-01')) }));
-  // başkası
-  await assertFails(updateDoc(doc(asPhone('mallory'), 'Review/carol_s1'), { rating: 1, updatedAt: serverTimestamp() }));
-  await assertFails(deleteDoc(doc(asPhone('mallory'), 'Review/carol_s1')));
-  await assertFails(updateDoc(doc(asPhone('mallory'), 'Review/carol_s1'), { hidden: true }));
-  // telefonu olmayan sahip güncelleyemez
-  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'Review/dave_s1'), rev({ userId: 'dave' })); });
-  await assertFails(updateDoc(doc(as('dave'), 'Review/dave_s1'), { rating: 1, updatedAt: serverTimestamp() }));
-  // admin: yalnız hidden
+  await assertFails(setDoc(doc(as('admin1'), 'Review/admin1_s1'), rev({ userId: 'admin1' })));
+  // mevcut yoruma (alice_s1) sahibi, başkası, admin: güncelleme/silme yok
+  const al = asPhone('alice');
+  await assertFails(updateDoc(doc(al, 'Review/alice_s1'), { text: 'değişti', updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(al, 'Review/alice_s1'), { rating: 1 }));
+  await assertFails(updateDoc(doc(al, 'Review/alice_s1'), { hidden: false, verified: true }));
+  await assertFails(deleteDoc(doc(al, 'Review/alice_s1')));
+  await assertFails(updateDoc(doc(asPhone('mallory'), 'Review/alice_s1'), { hidden: true }));
+  await assertFails(deleteDoc(doc(asPhone('mallory'), 'Review/alice_s1')));
   const a = as('admin1');
-  await assertSucceeds(updateDoc(doc(a, 'Review/carol_s1'), { hidden: true }));
-  await assertFails(updateDoc(doc(a, 'Review/carol_s1'), { text: 'sansür', hidden: true }));
-  await assertFails(updateDoc(doc(a, 'Review/carol_s1'), { hidden: 'evet' }));
-  // sahibi siler
-  await assertSucceeds(deleteDoc(doc(c, 'Review/carol_s1')));
+  await assertFails(updateDoc(doc(a, 'Review/alice_s1'), { hidden: true })); // admin da callable (adminModerate + ModerationLog) kullanır
+  await assertFails(deleteDoc(doc(a, 'Review/alice_s1')));
 });
 
-test('(f) ReviewReport: id biçimi, alan listesi, boyut; yalnız admin okur; güncelleme/silme yok', async () => {
-  const c = as('carol');
-  await assertSucceeds(setDoc(doc(c, 'ReviewReport/alice_s1_carol'), { reviewId: 'alice_s1', userId: 'carol', createdAt: serverTimestamp() })); // mobil payload
-  await assertFails(setDoc(doc(c, 'ReviewReport/alice_s1_carol'), { reviewId: 'alice_s1', userId: 'carol', createdAt: serverTimestamp() })); // tekrar = update
-  await assertSucceeds(setDoc(doc(as('erin'), 'ReviewReport/alice_s1_erin'), { reviewId: 'alice_s1', userId: 'erin', createdAt: serverTimestamp(), reason: 'spam' }));
-  const bad = (id, o) => assertFails(setDoc(doc(as('frank'), `ReviewReport/${id}`), { reviewId: 'alice_s1', userId: 'frank', createdAt: serverTimestamp(), ...o }), id);
-  await bad('rastgele-1', {}); // kimlik biçimi
-  await bad('alice_s1_carol2', {}); await bad('alice_s1_carol', { userId: 'carol' }); // başkasının adına
-  await bad('alice_s1_frank', { reviewId: 'bob_s9' }); // olmayan yorum
-  await bad('alice_s1_frank', { reason: 'x'.repeat(201) }); await bad('alice_s1_frank', { reason: 5 });
-  await bad('alice_s1_frank', { extra: 1 }); await bad('alice_s1_frank', { createdAt: Timestamp.fromDate(new Date('2001-01-01')) });
-  await assertFails(setDoc(doc(asAnonProvider('anon1'), 'ReviewReport/alice_s1_anon1'), { reviewId: 'alice_s1', userId: 'anon1', createdAt: serverTimestamp() }));
-  await assertFails(setDoc(doc(anon(), 'ReviewReport/alice_s1_x'), { reviewId: 'alice_s1', userId: 'x', createdAt: serverTimestamp() }));
+test('(f) Review okuma: görünür yorum herkese; gizli yorum yalnız yazarına ve admine; sorgu hidden==false ile kısıtlanmalı', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'Review/bob_s1'), { showId: 's1', userId: 'bob', rating: 2, text: 'gizli', hidden: true, status: 'hidden', hiddenReason: 'moderator' });
+  });
+  await assertSucceeds(getDoc(doc(anon(), 'Review/alice_s1')));
+  await assertFails(getDoc(doc(anon(), 'Review/bob_s1')));
+  await assertFails(getDoc(doc(as('alice'), 'Review/bob_s1')));
+  await assertSucceeds(getDoc(doc(as('bob'), 'Review/bob_s1'))); // yazar kendi gizli yorumunu görür
+  await assertSucceeds(getDoc(doc(as('admin1'), 'Review/bob_s1')));
+  await assertSucceeds(getDocs(query(collection(anon(), 'Review'), where('showId', '==', 's1'), where('hidden', '==', false))));
+  await assertFails(getDocs(query(collection(anon(), 'Review'), where('showId', '==', 's1')))); // kısıtsız sorgu gizlileri de kapsar
+  await assertFails(getDocs(query(collection(anon(), 'Review'), where('hidden', '==', true))));
+  await assertSucceeds(getDocs(query(collection(as('bob'), 'Review'), where('userId', '==', 'bob'))));
+  await assertSucceeds(getDocs(query(collection(as('admin1'), 'Review'), where('hidden', '==', true))));
+});
+
+test('(f) ReviewReport / ModerationLog / ReviewLimits: istemci yazamaz; ReviewReport ve ModerationLog yalnız admin okur', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'ReviewReport/alice_s1_carol'), { reviewId: 'alice_s1', userId: 'carol', counted: true });
+    await setDoc(doc(d, 'ModerationLog/m1'), { by: 'admin1', action: 'hide', reviewId: 'alice_s1' });
+    await setDoc(doc(d, 'ReviewLimits/carol'), { subHourCount: 1 });
+  });
+  const c = asPhone('carol'), ad = as('admin1'), al = as('alice'), an = anon();
+  await assertFails(setDoc(doc(c, 'ReviewReport/alice_s1_erin'), { reviewId: 'alice_s1', userId: 'carol', createdAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(ad, 'ReviewReport/alice_s1_admin1'), { reviewId: 'alice_s1', userId: 'admin1', createdAt: serverTimestamp() }));
   await assertFails(getDoc(doc(c, 'ReviewReport/alice_s1_carol')));
   await assertFails(getDocs(collection(c, 'ReviewReport')));
-  await assertSucceeds(getDoc(doc(as('admin1'), 'ReviewReport/alice_s1_carol')));
+  await assertSucceeds(getDoc(doc(ad, 'ReviewReport/alice_s1_carol')));
   await assertFails(updateDoc(doc(c, 'ReviewReport/alice_s1_carol'), { reason: 'x' }));
   await assertFails(deleteDoc(doc(c, 'ReviewReport/alice_s1_carol')));
+  for (const [id, who] of [['ModerationLog/m1', c], ['ModerationLog/m1', al], ['ModerationLog/m1', an]]) await assertFails(getDoc(doc(who, id)));
+  await assertSucceeds(getDoc(doc(ad, 'ModerationLog/m1')));
+  await assertFails(setDoc(doc(ad, 'ModerationLog/m2'), { by: 'admin1' }));
+  await assertFails(updateDoc(doc(ad, 'ModerationLog/m1'), { reason: 'sil' }));
+  await assertFails(deleteDoc(doc(ad, 'ModerationLog/m1')));
+  await assertFails(setDoc(doc(c, 'ModerationLog/m3'), { by: 'carol' }));
+  await assertFails(getDoc(doc(c, 'ReviewLimits/carol'))); await assertFails(setDoc(doc(c, 'ReviewLimits/carol'), { subHourCount: 0 }));
+});
+
+test('(f) User/{me}/blocks: yalnız kendi listesini okur/yazar; biçim ve sunucu zamanı zorunlu; başkasınınkine erişim yok', async () => {
+  const a = asPhone('alice');
+  await assertSucceeds(setDoc(doc(a, 'User/alice/blocks/bob'), { blockedAt: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(a, 'User/alice/blocks/bob')));
+  await assertSucceeds(getDocs(collection(a, 'User/alice/blocks')));
+  await assertFails(setDoc(doc(a, 'User/alice/blocks/alice'), { blockedAt: serverTimestamp() })); // kendini engelleme
+  await assertFails(setDoc(doc(a, 'User/alice/blocks/x1'), { blockedAt: serverTimestamp(), extra: 1 }));
+  await assertFails(setDoc(doc(a, 'User/alice/blocks/x2'), { blockedAt: Timestamp.fromDate(new Date('2001-01-01')) }));
+  await assertFails(setDoc(doc(a, 'User/alice/blocks/x3'), {}));
+  await assertFails(updateDoc(doc(a, 'User/alice/blocks/bob'), { blockedAt: serverTimestamp() }));
+  // başkası: okuyamaz/yazamaz/silemez; admin de okuyamaz
+  await assertFails(getDoc(doc(as('bob'), 'User/alice/blocks/bob')));
+  await assertFails(getDocs(collection(as('bob'), 'User/alice/blocks')));
+  await assertFails(setDoc(doc(as('bob'), 'User/alice/blocks/zed'), { blockedAt: serverTimestamp() }));
+  await assertFails(deleteDoc(doc(as('bob'), 'User/alice/blocks/bob')));
+  await assertFails(getDoc(doc(as('admin1'), 'User/alice/blocks/bob')));
+  await assertFails(setDoc(doc(anon(), 'User/alice/blocks/zed'), { blockedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(asAnonProvider('anon1'), 'User/anon1/blocks/zed'), { blockedAt: serverTimestamp() }));
+  await assertSucceeds(deleteDoc(doc(a, 'User/alice/blocks/bob')));
 });
 
 test('(f) Notification: istemci create EDEMEZ (sahte/sınırsız); yalnız kendi isRead alanı güncellenir; başkasınınkini okuyamaz', async () => {
@@ -338,7 +338,7 @@ test('(i) kural dosyası taraması: `allow write/create/update/delete: if true` 
     if (m) cur = m[1];
     if (/allow\s+(read|get|list)[^:]*:\s*if\s+true/.test(l)) open.push(cur);
   }
-  assert.deepEqual(open.sort(), ['/AppTools/{docId}', '/Campaign/{campaignId}', '/Config/{docId}', '/Event/{eventId}', '/Player/{playerId}', '/Review/{reviewId}', '/Seats/{stageId}', '/Show/{showId}', '/Stage/{stageId}', '/Team/{teamId}']);
+  assert.deepEqual(open.sort(), ['/AppTools/{docId}', '/Campaign/{campaignId}', '/Config/{docId}', '/Event/{eventId}', '/Player/{playerId}', '/Seats/{stageId}', '/Show/{showId}', '/Stage/{stageId}', '/Team/{teamId}']);
   // 3) son kural tümüyle kapalı wildcard
   assert.match(text, /match\s+\/\{document=\*\*\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;\s*\}/);
   // 4) wildcard/recursive allow'lar: yalnız Stats (okuma admin, yazma false) ve son deny
@@ -349,7 +349,10 @@ test('(i) kural dosyası taraması: `allow write/create/update/delete: if true` 
 // ------------------------------------------------------------------ (j) sınırsız liste okuma
 test('(j) KAYIT: herkese açık koleksiyonlar sorgu limiti olmadan listelenebilir (web tüm koleksiyonu okur; mobil isLimit=false kullanır) -> bilinen/kabul edilen risk', async () => {
   // Bu test mevcut davranışı BELGELER: limit zorunluluğu getirmek web (site/js/store.js) ve mobil sorguları kırar.
-  for (const c of ['Show', 'Stage', 'Team', 'Player', 'Campaign', 'Event', 'Review']) await assertSucceeds(getDocs(collection(anon(), c)));
+  for (const c of ['Show', 'Stage', 'Team', 'Player', 'Campaign', 'Event']) await assertSucceeds(getDocs(collection(anon(), c)));
+  // Review (Q-1): gizli yorumlar yüzünden artık YALNIZ `hidden==false` kısıtlı sorgu çalışır (site/js/store.js + mobil buna göre güncellendi).
+  await assertSucceeds(getDocs(query(collection(anon(), 'Review'), where('hidden', '==', false))));
+  await assertFails(getDocs(collection(anon(), 'Review')));
   await assertSucceeds(getDocs(query(collection(anon(), 'Show'), limit(20))));
   // Ama kişisel/yönetim koleksiyonları HİÇBİR sorguyla listelenemez:
   for (const c of ['User', 'Ticket', 'Order', 'UserLimits', 'AccountDeletion', 'Stats', 'System', 'NotificationLog', 'ReviewReport', 'Notification']) {

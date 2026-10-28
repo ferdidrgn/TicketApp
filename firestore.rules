@@ -231,73 +231,45 @@ service cloud.firestore {
     // okuma herkese açık. Yazma SADECE admin panelinden yapılmalı.
     // -------------------------------------------------------------------
     // -------------------------------------------------------------------
-    // Review — oyun yorumu + puan. Belge kimliği `${userId}_${showId}`: bir
-    // kullanıcı bir oyuna TEK yorum bırakır. "Yalnızca izleyen yazar" kuralı
-    // istemcide (geçmiş bilet) uygulanır; rules bilet sorgulayamaz, bu yüzden
-    // burada kimlik, puan aralığı ve metin sınırı zorlanır.
-    // GİZLİLİK NOTU: `userName` / `userImage` yorumla birlikte KAMUYA AÇIK gösterilir — bu bilinçli
-    // bir ürün kararıdır (yorum yazarken kullanıcı bunu görür). Başka hiçbir kullanıcı verisi buraya yazılmaz.
+    // Review — DOĞRULANMIŞ oyun yorumu + puan (Q-1/M-1, docs/UGC-KURALLARI.md). Belge kimliği `${userId}_${showId}`.
+    // YAZMA İSTEMCİYE KAPALI: yalnızca Cloud Functions (submitReview / deleteMyReview / reportContent / adminModerate / teamModerate;
+    // Admin SDK). Sunucu bileti (geçmiş seans), telefon doğrulamasını, metin süzgecini, hız sınırını ve `userName` türetmesini uygular;
+    // istemciden gelen ad/foto/doğrulandı bayrağı hiçbir yerde kabul edilmez (taklit/sahte yorum yok).
+    // OKUMA: gizli (hidden:true — bekleyen, şikâyetle ya da moderatörce gizlenen) yorumlar yalnız yazarına ve admine görünür; herkes
+    // için sorgu `where('hidden','==',false)` ile kısıtlanmalıdır (kural bunu sorgudan kanıtlar). Ekip yöneticisi gizlileri
+    // `teamReviews` callable'ıyla görür. GİZLİLİK: `userName` ("Ayşe K.") yorumla birlikte KAMUYA AÇIKTIR (bilinçli ürün kararı).
     // -------------------------------------------------------------------
     match /Review/{reviewId} {
-      allow read: if true;
-
-      // Create (S-1): doğrulanmış telefon + anonim olmayan sağlayıcı; alan beyaz listesi, tür ve boyut sınırı; sunucu zamanı;
-      // yalnızca var olan bir oyuna; `hidden` istemciden yalnızca false yazılabilir.
-      allow create: if phoneVerified() &&
-        request.resource.data.keys().hasOnly(['showId', 'userId', 'userName', 'userImage', 'rating', 'text', 'createdAt', 'updatedAt', 'hidden']) &&
-        request.resource.data.keys().hasAll(['showId', 'userId', 'rating', 'text', 'hidden', 'createdAt']) &&
-        request.resource.data.showId is string &&
-        request.resource.data.showId.size() >= 1 && request.resource.data.showId.size() <= 128 &&
-        reviewId == request.auth.uid + '_' + request.resource.data.showId &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.rating is int &&
-        request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
-        request.resource.data.text is string &&
-        request.resource.data.text.size() <= 600 &&
-        request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
-        request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
-        request.resource.data.hidden == false &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.get('updatedAt', request.time) == request.time &&
-        exists(/databases/$(database)/documents/Show/$(request.resource.data.showId));
-
-      // Sahibi yalnızca puan/metin/ad/foto/zaman alanlarını değiştirir (aynı doğrulamalar); admin ayrıca `hidden` değiştirebilir.
-      allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid && phoneVerified() &&
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['rating', 'text', 'userName', 'userImage', 'updatedAt']) &&
-          request.resource.data.rating is int &&
-          request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
-          request.resource.data.text is string &&
-          request.resource.data.text.size() <= 600 &&
-          request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
-          request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
-          request.resource.data.get('updatedAt', request.time) == request.time) ||
-        (isAdmin() &&
-          request.resource.data.hidden is bool &&
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['hidden']))
-      );
-
-      allow delete: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if resource.data.hidden == false ||
+        (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create, update, delete: if false;
     }
 
-    // Şikâyetler (S-1): anonim olmayan oturum; belge kimliği `${reviewId}_${reporterUid}` (mobil ReviewRepository.report ile aynı) ->
-    // kullanıcı başına yorum başına TEK belge; alan beyaz listesi + boyut sınırı; var olan yoruma; yalnızca admin okur.
+    // Şikâyetler: yalnız `reportContent` callable'ı yazar (id `${reviewId}_${reporterUid}`, telefon doğrulaması + eşik sunucuda); yalnız admin okur.
     match /ReviewReport/{reportId} {
-      allow create: if notAnonymous() &&
-        request.resource.data.keys().hasOnly(['reviewId', 'userId', 'createdAt', 'reason']) &&
-        request.resource.data.keys().hasAll(['reviewId', 'userId', 'createdAt']) &&
-        request.resource.data.reviewId is string &&
-        request.resource.data.reviewId.size() >= 3 && request.resource.data.reviewId.size() <= 300 &&
-        reportId == request.resource.data.reviewId + '_' + request.auth.uid &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.get('reason', '') is string && request.resource.data.get('reason', '').size() <= 200 &&
-        exists(/databases/$(database)/documents/Review/$(request.resource.data.reviewId));
       allow read: if isAdmin();
-      allow update, delete: if false;
+      allow write: if false;
+    }
+
+    // ModerationLog — moderasyon denetim izi (kim/ne/ne zaman/hangi içerik/sebep). İstemci YAZAMAZ; yalnız admin okur.
+    match /ModerationLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    // ReviewLimits — yorum/şikâyet hız sınırı sayaçları (yalnız sunucu).
+    match /ReviewLimits/{uid} {
+      allow read, write: if false;
+    }
+
+    // User/{me}/blocks/{blockedUid} — kullanıcı engelleme listesi: kullanıcı YALNIZCA kendi listesini okur/yazar
+    // (blockUser/unblockUser callable'ları aynı belgeyi yazar). Belge yalnız { blockedAt: sunucu zamanı }; kendini engelleme yok.
+    match /User/{userId}/blocks/{blockedUid} {
+      allow read: if isOwner(userId);
+      allow create: if notAnonymous() && isOwner(userId) && !deletionLocked(userId) && blockedUid != userId &&
+        blockedUid.size() >= 1 && blockedUid.size() <= 128 &&
+        request.resource.data.keys().hasOnly(['blockedAt']) && request.resource.data.blockedAt == request.time;
+      allow update: if false;
+      allow delete: if isOwner(userId);
     }
 
     match /Show/{showId} {

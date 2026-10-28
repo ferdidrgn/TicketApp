@@ -35,6 +35,12 @@ module.exports = {
     LIST_PAST_MS: 24 * 60 * 60 * 1000, LIST_FUTURE_MS: 90 * 24 * 60 * 60 * 1000, MAX_EVENTS_PER_SHOW: 40, MAX_SHOWS_PER_TEAM: 50,
   },
 
+  // Doğrulanmış yorum + moderasyon (docs/UGC-KURALLARI.md)
+  REVIEW: {
+    TEXT_MAX: 600, DETAIL_MAX: 200, AUTO_HIDE_AT: 3, MAX_BLOCKS: 200, MAX_TICKETS_SCAN: 500,
+    SUBMIT: { perHour: 5, perDay: 20 }, REPORT: { perHour: 10, perDay: 40 },
+  },
+
   // Hesap silme (docs/HESAP-SILME.md)
   ACCOUNT_DELETION: {
     GRACE_MS: 30 * 24 * 60 * 60 * 1000, // bekleme süresi
