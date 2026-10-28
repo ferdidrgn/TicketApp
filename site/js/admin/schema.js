@@ -45,6 +45,7 @@ export const KOLEKSIYONLAR = {
       { k: 'stageId', e: 'Sahne', t: 'sel', kaynak: 'Stage', zorunlu: true, tam: true },
       { k: 'date', e: 'Tarih ve saat', t: 'dt', zorunlu: true },
       { k: 'price', e: 'Bilet fiyatı (₺)', t: 'text', ipucu: '0 = ücretsiz' },
+      { k: 'cancelled', e: 'Seans iptal edildi — iptal için "evet" yaz (bilet sahiplerine otomatik bildirim gider; tarihi değiştirirsen "ertelendi" bildirimi gider)', t: 'text', tam: true },
     ],
   },
   Stage: {

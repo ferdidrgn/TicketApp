@@ -385,7 +385,9 @@ service cloud.firestore {
     match /Config/{docId} {
       allow read: if true;
       allow create, update: if isAdmin() && (docId != 'bildirim' || (
-        request.resource.data.autoReminders is bool)) && (docId != 'satis' || (
+        request.resource.data.autoReminders is bool &&
+        request.resource.data.get('alarm2h', false) is bool && request.resource.data.get('thankYou', true) is bool &&
+        request.resource.data.get('thankYouAll', false) is bool)) && (docId != 'satis' || (
         request.resource.data.mode in ['kapali', 'rezervasyon', 'online'] &&
         request.resource.data.rezervasyonLimit is int &&
         request.resource.data.rezervasyonLimit >= 0 && request.resource.data.rezervasyonLimit <= 50 &&

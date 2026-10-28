@@ -157,6 +157,9 @@ test('Config/bildirim: herkes okur; yalnızca admin yazar ve autoReminders mant�
   await assertFails(setDoc(doc(as('alice'), 'Config/bildirim'), { autoReminders: false }));
   await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: 'hayır' }));
   await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { baska: 1 }));
+  await assertSucceeds(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: true, alarm2h: true, thankYou: false, thankYouAll: false }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: true, alarm2h: 'evet' }));
+  await assertFails(setDoc(doc(as('admin1'), 'Config/bildirim'), { autoReminders: true, thankYou: 1 }));
 });
 
 test('Notification: yönetici bile başkası adına uygulama içi bildirim yazamaz (duyuru yalnızca sunucudan)', async () => {
