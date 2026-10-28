@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/js/theme-core.js"></script>
+<meta name="robots" content="noindex, nofollow">
+<title>Koltuk planı — Yönetim</title>
+<meta name="theme-color" content="#0a0509">
+<link rel="icon" href="/img/favicon.png">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/admin.css">
+<style>
+.kp { max-width: 880px; margin: 32px auto; padding: 0 16px 64px; }
+.kp h1 { font-family: var(--font-display, inherit); margin: 0 0 8px; }
+.kp .muted { color: var(--ink-3); }
+.kp .kart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 18px 0; }
+.kp label { display: block; font-weight: 600; margin: 14px 0 6px; }
+.kp select, .kp textarea, .kp input[type=text] { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.kp textarea { min-height: 92px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.kp .ozet { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.kp .ozet span { background: var(--accent-soft); border-radius: 999px; padding: 6px 12px; font-weight: 600; }
+.kp .uyari { color: var(--err, #c0392b); font-weight: 600; margin-top: 10px; }
+.kp .ok { color: var(--ok, #1a8f4b); font-weight: 600; margin-top: 10px; }
+.kp .satirlar { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; font-size: 13px; }
+.kp .satirlar div { background: var(--surface-2, var(--bg)); border-radius: 8px; padding: 6px 10px; }
+.kp .btn { cursor: pointer; }
+</style>
+</head>
+<body>
+<main class="kp" id="app"><p class="muted">Yükleniyor…</p></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/js/admin/koltuk-plani.js"></script>
+</body>
+</html>
