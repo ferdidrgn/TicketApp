@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/gallery_section.dart';
 import '../../../../../shared/widgets/listing.dart';
@@ -1040,6 +1043,77 @@ class _BodyState extends State<_Body> {
               ),
             ),
           ),
+        if (_httpsUri(widget.team.donationUrl) != null ||
+            _httpsUri(widget.team.volunteerUrl) != null)
+          section(6, _SupportLinks(team: widget.team)),
+      ],
+    );
+  }
+}
+
+/// Yalnız https:// adreslerini kabul eder (harici bağlantı); aksi halde null.
+Uri? _httpsUri(final String raw) {
+  final Uri? u = Uri.tryParse(raw.trim());
+  if (u == null || u.scheme != 'https' || u.host.isEmpty) return null;
+  return u;
+}
+
+/// "Ekibe destek ol" / "Gönüllü ol": topluluğun kendi harici sayfalarına bağlantı.
+/// Uygulama içinde bağış toplanmaz; alan boşsa düğme hiç çizilmez.
+class _SupportLinks extends StatelessWidget {
+  final Team team;
+  const _SupportLinks({required this.team});
+
+  Future<void> _open(final BuildContext context, final Uri uri) async {
+    final String hata = context.l10n.teamLinkOpenFailed;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    bool ok = false;
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!ok) messenger.showSnackBar(SnackBar(content: Text(hata)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Uri? donation = _httpsUri(team.donationUrl);
+    final Uri? volunteer = _httpsUri(team.volunteerUrl);
+    final AppLocalizations l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            if (donation != null)
+              Semantics(
+                button: true,
+                label: l.teamSupport,
+                child: OutlinedButton.icon(
+                  onPressed: () => _open(context, donation),
+                  icon: const Icon(Icons.favorite_border_rounded, size: 18),
+                  label: Text(l.teamSupport),
+                ),
+              ),
+            if (volunteer != null)
+              Semantics(
+                button: true,
+                label: l.teamVolunteer,
+                child: OutlinedButton.icon(
+                  onPressed: () => _open(context, volunteer),
+                  icon: const Icon(Icons.volunteer_activism_outlined, size: 18),
+                  label: Text(l.teamVolunteer),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l.teamExternalNote,
+          style: Sk.ui(context, size: 12, color: cs.onSurfaceVariant),
+        ),
       ],
     );
   }

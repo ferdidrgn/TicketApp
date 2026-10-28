@@ -859,6 +859,30 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Sanat Serüveni'**
   String get settingsShareSubject;
+
+  /// No description provided for @teamSupport.
+  ///
+  /// In tr, this message translates to:
+  /// **'Ekibe destek ol'**
+  String get teamSupport;
+
+  /// No description provided for @teamVolunteer.
+  ///
+  /// In tr, this message translates to:
+  /// **'Gönüllü ol'**
+  String get teamVolunteer;
+
+  /// No description provided for @teamExternalNote.
+  ///
+  /// In tr, this message translates to:
+  /// **'Harici bağlantı: topluluğun kendi seçtiği sayfa açılır; uygulama içinde ödeme alınmaz.'**
+  String get teamExternalNote;
+
+  /// No description provided for @teamLinkOpenFailed.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bağlantı açılamadı.'**
+  String get teamLinkOpenFailed;
 }
 
 class _AppLocalizationsDelegate

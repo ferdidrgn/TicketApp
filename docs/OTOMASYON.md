@@ -9,6 +9,7 @@ Durum: 28.10.2026. **Bu iş akışları GitHub'da henüz hiç çalıştırılmad
 | `ci.yml` | PR + `main` push | Flutter analyze/test, site derlemesi, **yeni:** `functions-test` (Java 21 + Node 20 + Firestore/Auth/Functions/Storage emülatörü; `functions/test/*.test.js`, 20 dk zaman aşımı) |
 | `deploy-web.yml` | `main` push (`site/**`), elle, **yeni:** her gün 05:00 ve 17:00 UTC | Siteyi önişler (sitemap, JSON-LD, oyun sayfaları) ve Hosting'e yayınlar. Cron, yeni oyun/seans eklenince sitenin kendiliğinden güncellenmesini sağlar |
 | `health-check.yml` | **yeni:** 3 saatte bir + elle | Canlı site + zamanlayıcı kalp atışı denetimi; sorunda Telegram + başarısız-iş e-postası |
+| `weekly-digest.yml` | **yeni:** pazartesi 09:00 TR + elle | Son 7 günün görüntülenme/seans/doluluk toplu özeti -> Telegram (bkz. aşağıdaki bölüm) |
 | `deploy-backend.yml`, `deploy-android.yml`, `deploy-ios.yml` | elle | Değişmedi (bkz. `DEPLOY-SIRASI.md`) |
 | `.github/dependabot.yml` | haftalık (pazartesi 06:00 TR) | github-actions, `functions/` npm, Flutter pub için gruplanmış (minor+patch) PR'lar, ekosistem başına en çok 5 açık PR |
 
@@ -25,6 +26,15 @@ Bağımlılıksız Node betiği.
 4. Telegram secret'ları yoksa betik hata vermez, yalnız log'a yazar.
 
 Yerel sınama (ağsız, sırsız): `node site/tools/health-check.mjs --dry-run` (sağlıklı / belge yok / eşik aşıldı / site 500 senaryolarını sahte yanıtlarla çalıştırır, JWT imzasını doğrular).
+
+## Haftalık özet (`site/tools/weekly-digest.mjs`)
+
+Bağımlılıksız Node betiği; health-check'in servis hesabı JWT yöntemini (`erisimJetonu`) yeniden kullanır. **Yalnız toplu sayılar, kişisel veri yok.** Salt okuma (Cloud Datastore Viewer yeter; health-check için eklenen rol aynı).
+- Görüntülenme: `Stats/views/days/{gün}` son 7 gün (dünden geriye, Europe/Istanbul) ve önceki 7 gün (yüzde değişim), en yoğun gün, `Stats/views/months/{ay}` ay toplamı, en çok görüntülenen 3 oyun (`show_<id>` sayaçları; ad için `Show/{id}`).
+- Yaklaşan seanslar: `Event` listesi (yalnız `date` + `seats`); önümüzdeki 7 günde seans sayısı, doluluk % (blokeli koltuk düşer, mağaza kuralıyla aynı), tükenen / %85 üstü seans sayısı. `seats`'ten yalnız sayı hesaplanır.
+- **Yeni favori sayısı özette YOK:** `User.favorite*` alanlarında tarih tutulmadığından "yeni" hesaplanamaz.
+- Telegram secret'ları yoksa özet log'a yazılır (başarısız olmaz). `FIREBASE_SERVICE_ACCOUNT` yoksa adım atlanır. Kısmi okuma hatalarında özet yine gönderilir, sonuna "Okunamayanlar" eklenir. Çıkış 1 yalnız servis hesabı bozuksa/jeton alınamıyorsa.
+- Yerel sınama: `node site/tools/weekly-digest.mjs --dry-run` (sahte yanıtlar, ağ yok). Maliyet: ayda ~4 çalışma, ~400 belge okuması/çalışma.
 
 ## Sahibin eklemesi gereken secret'lar
 

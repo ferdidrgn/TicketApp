@@ -419,4 +419,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsShareSubject => 'Art Adventure';
+
+  @override
+  String get teamSupport => 'Support the team';
+
+  @override
+  String get teamVolunteer => 'Volunteer';
+
+  @override
+  String get teamExternalNote =>
+      'External link: opens a page chosen by the team; no payment is taken inside the app.';
+
+  @override
+  String get teamLinkOpenFailed => 'Could not open the link.';
 }

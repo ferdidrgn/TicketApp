@@ -73,6 +73,8 @@ export const KOLEKSIYONLAR = {
       { k: 'imageUrl', e: 'Görsel', t: 'img', tam: true },
       { k: 'description', e: 'Açıklama', t: 'area', tam: true },
       { k: 'photosId', e: 'Galeri (her satıra bir görsel adresi)', t: 'lines', tam: true },
+      { k: 'donationUrl', e: 'Bağış / destek bağlantısı', t: 'https', tam: true, ipucu: 'İsteğe bağlı. Yalnız https:// ile başlayan harici sayfa (banka, bağış platformu vb.). Boşsa düğme görünmez; uygulamada para toplanmaz.' },
+      { k: 'volunteerUrl', e: 'Gönüllü başvuru bağlantısı', t: 'https', tam: true, ipucu: 'İsteğe bağlı. Yalnız https:// ile başlayan başvuru formu adresi. Boşsa düğme görünmez.' },
     ],
   },
   Player: {

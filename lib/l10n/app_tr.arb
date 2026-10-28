@@ -172,5 +172,9 @@
       }
     }
   },
-  "settingsShareSubject": "Sanat Serüveni"
+  "settingsShareSubject": "Sanat Serüveni",
+  "teamSupport": "Ekibe destek ol",
+  "teamVolunteer": "Gönüllü ol",
+  "teamExternalNote": "Harici bağlantı: topluluğun kendi seçtiği sayfa açılır; uygulama içinde ödeme alınmaz.",
+  "teamLinkOpenFailed": "Bağlantı açılamadı."
 }

@@ -6,6 +6,17 @@ import { paylasMenusu } from '../ozellik.js';
 import { $, esc, idFromPath, linkOf, baslangic, tarihUzun, saat, kisalt } from '../util.js';
 
 kabukCiz('toplulukler');
+
+/** Yalnız https:// adresleri kabul eder (harici bağlantı); geçersizse ''. */
+const httpsUrl = (v) => { try { const u = new URL(String(v || '').trim()); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
+/** "Ekibe destek ol" / "Gönüllü ol": Team.donationUrl / volunteerUrl varsa harici düğmeler. Uygulama içinde bağış toplanmaz. */
+export function destekHtml(t) {
+  const bagis = httpsUrl(t.donationUrl), gonullu = httpsUrl(t.volunteerUrl);
+  if (!bagis && !gonullu) return '';
+  const rel = 'noopener noreferrer nofollow';
+  return `<div class="destek"><div class="destek-act">${bagis ? `<a class="btn btn-ghost" href="${esc(bagis)}" target="_blank" rel="${rel}" data-destek="bagis">Ekibe destek ol</a>` : ''}${gonullu ? `<a class="btn btn-ghost" href="${esc(gonullu)}" target="_blank" rel="${rel}" data-destek="gonullu">Gönüllü ol</a>` : ''}</div>
+    <p class="tiny">Harici bağlantı: bu bağlantılar topluluğun kendi seçtiği sayfalara gider; TiyatRol üzerinden ödeme alınmaz.</p></div>`;
+}
 yukle().then((d) => {
   const t = d.teamById.get(idFromPath());
   if (!t) return bulunamadi('Topluluk');
@@ -30,7 +41,7 @@ yukle().then((d) => {
     <div class="pf-foto kare">${t.imageUrl ? `<img src="${esc(t.imageUrl)}" alt="${esc(t.name)}">` : `<div class="yok">${esc(baslangic(t.name))}</div>`}</div>
     <div class="pf-info"><div class="crumbs"><a href="/vitrin">Vitrin</a> / <a href="/kesfet?tur=topluluklar">Topluluklar</a></div><h1>${kelimeKelime(t.name)}</h1>
       <div class="pf-sayilar"><div><b data-say="${sahnede.length}">0</b><span>Sahnede</span></div><div><b data-say="${t.shows.length}">0</b><span>Toplam oyun</span></div><div><b data-say="${kadro.length}">0</b><span>Oyuncu</span></div></div>
-      <div class="op-act">${sonraki ? `<a class="btn btn-primary" href="${linkOf('oyun', sonraki.show)}">Sıradaki oyuna git</a>` : ''}${kalpB}<button class="btn btn-ghost" id="paylas">Paylaş</button></div></div>
+      <div class="op-act">${sonraki ? `<a class="btn btn-primary" href="${linkOf('oyun', sonraki.show)}">Sıradaki oyuna git</a>` : ''}${kalpB}<button class="btn btn-ghost" id="paylas">Paylaş</button></div>${destekHtml(t)}</div>
   </div></section>
   <div class="wrap"><div id="sekme-kap"></div></div>`;
   sekmeler($('#sekme-kap'), tabHtml);

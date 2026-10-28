@@ -256,3 +256,16 @@
 .kalp-b { position: relative; }
 .kalp .halka, .kalp-b .halka { position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--accent); pointer-events: none; animation: kalpHalka .55s var(--ease) both; }
 @keyframes kalpHalka { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+
+/* "Senin için" önerileri (js/oneri.js): kartın altında gerçek sinyalden "neden" etiketi */
+.oneri-sec[hidden] { display: none; }
+.on-kart { flex: none; width: clamp(160px, 17vw, 220px); display: flex; flex-direction: column; gap: 4px; scroll-snap-align: start; }
+.on-kart .card { width: 100%; }
+.on-neden { align-self: flex-start; max-width: 100%; font-size: 12px; font-weight: 600; line-height: 1.3; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.on-not { margin-top: 4px; color: var(--ink-2); }
+.on-not a { text-decoration: underline; }
+
+/* Ekip destek bağlantıları (topluluk sayfası, js/pages/topluluk.js › destekHtml) */
+.destek { display: grid; gap: 10px; margin-top: 12px; }
+.destek-act { display: flex; gap: 10px; flex-wrap: wrap; }
+.destek .tiny { color: var(--ink-2); }

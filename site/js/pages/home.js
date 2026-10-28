@@ -8,6 +8,7 @@ import { buAksamHtml, buAksamBaglan } from '../canli.js';
 import { temaYaz, temaOku, temaHesapla, temaSecenekleri } from '../theme.js';
 import { takvimMenusu, dakikaOku } from '../detay.js';
 import { kalpDugme } from '../fav.js';
+import { oneriYerTutucu, oneriKur } from '../oneri.js';
 import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, gunAdi, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
 
@@ -53,6 +54,7 @@ function ciz(d0) {
     }).join('')}</div></section>`);
   }
 
+  parts.push(oneriYerTutucu()); // "Senin için": favori/bilet sinyaliyle sonradan dolar (js/oneri.js)
   { const as = buAksamHtml(d, now); if (as) parts.push(as); }
   if (hafta.length) parts.push(`<section class="sec">${bolumBasligi('Bu hafta sahnede', 'Önümüzdeki yedi günde perde açan oyunlar.', '/kesfet?zaman=hafta')}${ray(hafta.map((s) => oyunKarti(s)).join(''))}</section>`);
 
@@ -152,7 +154,7 @@ function ciz(d0) {
   }
 
   // Bölümleri istenen sıraya diz (işaret metnine göre); sırada olmayanlar özgün sırasıyla sona gider
-  const SIRA = [/tema-sec/, /aksam-sec/, /id="ajanda"/, /<h2>[^<]* oyunları</, /harita-bant/, /soz-sec/, /<h2>Ücretsiz seanslar</, /ne izlesem/, /<h2>Bu hafta sahnede</, /<h2>Bu hafta sonu</, /en çok oynayanlar/, /<h2>Yeni eklenenler</, /<h2>Son çağrı</, /<h2>Çocuklarla</, /class="budget"/, /<h2>Tüm oyunlar</, /<h2>Sahneler</, /class="replik"/, /Sahnenin yüzleri/, /<h2>Son baktıkların</, /Sahnedeki oyuncular/, /<h2>Topluluklar</, /kamp-vitrin/, /class="guides"/];
+  const SIRA = [/tema-sec/, /oneri-sec/, /aksam-sec/, /id="ajanda"/, /<h2>[^<]* oyunları</, /harita-bant/, /soz-sec/, /<h2>Ücretsiz seanslar</, /ne izlesem/, /<h2>Bu hafta sahnede</, /<h2>Bu hafta sonu</, /en çok oynayanlar/, /<h2>Yeni eklenenler</, /<h2>Son çağrı</, /<h2>Çocuklarla</, /class="budget"/, /<h2>Tüm oyunlar</, /<h2>Sahneler</, /class="replik"/, /Sahnenin yüzleri/, /<h2>Son baktıkların</, /Sahnedeki oyuncular/, /<h2>Topluluklar</, /kamp-vitrin/, /class="guides"/];
   const rank = (s) => { const k = SIRA.findIndex((r) => r.test(s)); return k < 0 ? 99 : k; };
   parts.sort((a, b) => rank(a) - rank(b));
   home.innerHTML = parts.join('');
@@ -161,6 +163,7 @@ function ciz(d0) {
   document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
   document.querySelectorAll('.il-cipler [data-il]').forEach((b) => b.addEventListener('click', () => ilYaz(b.dataset.il)));
   buAksamBaglan(home);
+  oneriKur(home, d, il);
   if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d);
   if (fiyatli.length >= 3) butceKur(fiyatli);

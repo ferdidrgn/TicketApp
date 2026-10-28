@@ -12,6 +12,8 @@ extension TeamModelMapper on TeamModel {
         imageUrl: imageUrl ?? '',
         photosId: photosId?.whereType<String>().toList() ?? [],
         showsId: showsId?.whereType<String>().toList() ?? [],
+        donationUrl: donationUrl?.trim() ?? '',
+        volunteerUrl: volunteerUrl?.trim() ?? '',
       );
 }
 
@@ -26,5 +28,7 @@ extension TeamEntityMapper on Team {
         imageUrl: imageUrl,
         photosId: photosId,
         showsId: showsId,
+        donationUrl: donationUrl,
+        volunteerUrl: volunteerUrl,
       );
 }
