@@ -225,6 +225,10 @@ class PurchaseFailure extends Failure {
   /// Doğrulanmış telefon gerekli (`PHONE_REQUIRED`): telefon kapısı açılır.
   bool get isPhoneRequired => code == 'phone-required';
 
+  /// Hesap silinmek üzere (`ACCOUNT_DELETION_PENDING`): satın alma yapılamaz;
+  /// arayüz "Silmeyi iptal et" eylemi sunar.
+  bool get isDeletionPending => code == 'account-deletion-pending';
+
   @override
   List<Object?> get props => [message, code];
 }

@@ -7,6 +7,7 @@ import 'package:dartz/dartz.dart' show Either;
 
 import '../../../../core/errors/failures.dart';
 import '../../../auth/data/phone_link_service.dart';
+import '../../../auth/presentation/providers/account_deletion_provider.dart';
 import '../../../auth/presentation/providers/phone_link_provider.dart';
 import '../../domain/entities/purchase_entities.dart';
 import '../../domain/usecases/confirm_free_use_case_impl.dart';
@@ -85,6 +86,11 @@ class SeatPurchaseState {
   /// [SeatPurchaseController.phoneGateDismissed] çağrılır.
   final bool phoneRequired;
 
+  /// Hesap silinmek üzere (30 gün bekleme): sunucu satın almayı reddetti.
+  /// Arayüz "Silmeyi iptal et" eylemi sunar
+  /// ([SeatPurchaseController.cancelAccountDeletion]).
+  final bool deletionPending;
+
   const SeatPurchaseState({
     this.selected = const {},
     this.phase = PurchasePhase.selecting,
@@ -95,6 +101,7 @@ class SeatPurchaseState {
     this.completedSeats = const [],
     this.completedTotal = 0,
     this.phoneRequired = false,
+    this.deletionPending = false,
   });
 
   /// Sunucuda tutulan koltuklar var mı (ödeme akışı dahil).
@@ -124,6 +131,7 @@ class SeatPurchaseState {
     final List<String>? completedSeats,
     final double? completedTotal,
     final bool? phoneRequired,
+    final bool? deletionPending,
   }) =>
       SeatPurchaseState(
         selected: selected ?? this.selected,
@@ -136,6 +144,7 @@ class SeatPurchaseState {
         completedSeats: completedSeats ?? this.completedSeats,
         completedTotal: completedTotal ?? this.completedTotal,
         phoneRequired: phoneRequired ?? this.phoneRequired,
+        deletionPending: deletionPending ?? this.deletionPending,
       );
 }
 
@@ -296,7 +305,46 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         result = await call();
       }
     }
+    return _noteDeletionPending(result);
+  }
+
+  /// Sunucu ACCOUNT_DELETION_PENDING derse arayüze "Silmeyi iptal et" eylemi
+  /// için bayrak kaldırır (hata mesajı yine normal yoldan bildirilir).
+  Either<Failure, T> _noteDeletionPending<T>(final Either<Failure, T> result) {
+    final f = result.fold((final f) => f, (final _) => null);
+    if (f is PurchaseFailure && f.isDeletionPending && !_disposed) {
+      _set(state.copyWith(deletionPending: true));
+    }
     return result;
+  }
+
+  /// Hesap silme bekliyorken satın alma reddedildi: silmeyi iptal eder.
+  /// Başarıda bayrak iner ve kullanıcı kaldığı yerden devam edebilir.
+  Future<bool> cancelAccountDeletion() async {
+    if (_disposed || !state.deletionPending) {
+      return false;
+    }
+    final error =
+        await ref.read(accountDeletionControllerProvider).cancel();
+    if (_disposed) {
+      return error == null;
+    }
+    if (error == null) {
+      _set(state.copyWith(deletionPending: false));
+      _noticeNow('Silme talebiniz iptal edildi. Hesabınız aktif.',
+          isError: false);
+      return true;
+    }
+    _noticeNow(error);
+    return false;
+  }
+
+  /// Kullanıcı "Silmeyi iptal et" önerisini kapattı.
+  void dismissDeletionPending() {
+    if (_disposed || !state.deletionPending) {
+      return;
+    }
+    _set(state.copyWith(deletionPending: false));
   }
 
   void _requirePhone(final _PendingAction action) {
@@ -468,7 +516,8 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     }
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
-    final result = await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId));
+    final result = _noteDeletionPending(
+        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId)));
     if (_disposed) {
       return null;
     }

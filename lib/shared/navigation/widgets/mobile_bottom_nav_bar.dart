@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../features/auth/presentation/providers/account_deletion_provider.dart';
+import '../../../features/auth/presentation/widgets/account_deletion_widgets.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 import 'ticket_nav_bar.dart';
 
@@ -78,12 +81,40 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
         // altında kalmaz. Çentiğin içinden bu zemin görünür.
         extendBody: false,
         backgroundColor: cs.surface,
-        body: widget.navigationShell,
+        // Silinmek üzere olan hesapta kalıcı şerit (yoksa görünmez).
+        body: _ShellBody(child: widget.navigationShell),
         bottomNavigationBar: TicketBottomNavBar(
           currentIndex: _currentIndex,
           onTap: _onItemTapped,
         ),
       ),
+    );
+  }
+}
+
+/// Kabuk gövdesi. Hesap silme beklerken üstte kalıcı şerit gösterir: şerit
+/// durum çubuğunun altında durur ve alttaki sayfaların üst güvenli alanı
+/// tekrar eklemesi engellenir. Bekleyen silme yoksa düzen hiç değişmez.
+class _ShellBody extends ConsumerWidget {
+  final Widget child;
+
+  const _ShellBody({required this.child});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final pending = ref.watch(accountDeletionInfoProvider).value != null;
+    // Yapı her durumda aynı kalır: şerit açılıp kapanırken sekmeler
+    // (IndexedStack) yeniden kurulmaz.
+    return Column(
+      children: [
+        pending
+            ? const SafeArea(bottom: false, child: AccountDeletionBanner())
+            : const SizedBox.shrink(),
+        Expanded(
+          child: MediaQuery.removePadding(
+              context: context, removeTop: pending, child: child),
+        ),
+      ],
     );
   }
 }

@@ -164,11 +164,23 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   void _showNotice(final PurchaseNotice n) {
     if (!mounted) return;
     final cs = Theme.of(context).colorScheme;
+    // Hesap silinmek üzereyse mesajın yanında tek dokunuşla vazgeçme eylemi.
+    final deletionPending = ref
+        .read(seatPurchaseControllerProvider(widget.eventId))
+        .deletionPending;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: n.isError ? cs.error : null,
+        duration: deletionPending ? const Duration(seconds: 10) : const Duration(seconds: 4),
+        action: deletionPending
+            ? SnackBarAction(
+                label: 'Silmeyi iptal et',
+                textColor: n.isError ? cs.onError : null,
+                onPressed: () => _ctrl.cancelAccountDeletion(),
+              )
+            : null,
         content: Text(
           n.text,
           style: n.isError ? TextStyle(color: cs.onError) : null,

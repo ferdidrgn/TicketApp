@@ -394,7 +394,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               PreferenceRow(
                 icon: Icons.delete_outline_rounded,
                 title: 'Hesabı sil',
-                subtitle: 'Hesabın ve tüm verilerin kalıcı olarak silinir',
+                subtitle: '30 gün içinde kalıcı olarak silinir; bu sürede vazgeçebilirsin',
                 destructive: true,
                 trailing: const SizedBox.shrink(),
                 onTap: () => showDeleteAccountDialog(context, ref, user.id),
