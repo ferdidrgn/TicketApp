@@ -58,8 +58,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'operation-not-allowed':
+          // Firebase'de Anonymous sağlayıcı kapalı: çökme yok, kullanıcıya
+          // anlamlı yönlendirme (Google / telefon ile giriş).
           throw Exception(
-              'Anonymous giriş desteklenmiyor. Firebase konsoldan etkinleştirin.');
+              'Misafir girişi şu an kapalı. Google ile ya da telefon numaranla giriş yapabilirsin.');
         case 'network-request-failed':
           throw Exception(
               'İnternet bağlantısı yok. Lütfen bağlantınızı kontrol edin.');

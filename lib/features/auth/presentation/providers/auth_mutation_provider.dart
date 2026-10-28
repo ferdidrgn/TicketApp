@@ -182,6 +182,15 @@ class AuthMutation extends _$AuthMutation {
           .call(updatedUser, updatedUser.imageUrl, isUpdate: true);
     }
 
+    // Çoklu cihaz: bu cihazın token'ını User.fcmTokens listesine ekle (girişi bozmaz).
+    if (fcmToken.isNotEmpty) {
+      try {
+        await FCMManager.instance.registerTokenForCurrentUser(fcmToken);
+      } catch (e) {
+        debugPrint('FCM token listeye yazılamadı: $e');
+      }
+    }
+
     await LocalStorageService.saveUserData(
       userId: uid,
       displayName: firebaseUser?.displayName ?? 'Kullanıcı',

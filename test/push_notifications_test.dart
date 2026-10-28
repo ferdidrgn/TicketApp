@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ticketapp/core/services/push/fcm_token_list.dart';
 import 'package:ticketapp/core/services/push/push_message_mapper.dart';
 import 'package:ticketapp/core/services/push/push_payload.dart';
 import 'package:ticketapp/core/services/push/push_service.dart';
@@ -31,8 +32,10 @@ class FakeTokenStore implements PushTokenStore {
   final List<String> calls;
   bool fail = false;
   FakeTokenStore(this.calls);
+  final List<String?> clearedTokens = [];
   @override
-  Future<void> clearTokenForCurrentUser() async {
+  Future<void> clearTokenForCurrentUser(final String? token) async {
+    clearedTokens.add(token);
     calls.add('clearToken');
     if (fail) throw Exception('firestore');
   }
@@ -266,6 +269,12 @@ void main() {
       expect(gw.calls, ['clearToken', 'unsub:all_users', 'deleteToken']);
     });
 
+    test('çıkışta YALNIZ bu cihazın tokeni çıkarılır (gateway tokeni store a iletilir)',
+        () async {
+      await svc.detachFromUser();
+      expect(store.clearedTokens, ['tok']);
+    });
+
     test('bir temizlik adımı patlasa da diğerleri çalışır', () async {
       store.fail = true;
       gw.failDelete = true;
@@ -355,6 +364,30 @@ void main() {
       expect(NotificationType.fromString('announcement'),
           NotificationType.announcement);
       expect(NotificationType.fromString('???'), NotificationType.unknown);
+    });
+  });
+
+  group('FcmTokenList (çoklu cihaz)', () {
+    test('ekleme: yinelenmez, yeni token sona gelir', () {
+      expect(FcmTokenList.add(['a', 'b'], null, 'c'), ['a', 'b', 'c']);
+      expect(FcmTokenList.add(['a', 'b'], null, 'a'), ['b', 'a']);
+    });
+
+    test('üst sınır 5: en eski düşer', () {
+      expect(FcmTokenList.add(['1', '2', '3', '4', '5'], null, '6'),
+          ['2', '3', '4', '5', '6']);
+    });
+
+    test('eski tekil alan geçişte listeye alınır; liste yoksa/bozuksa güvenli', () {
+      expect(FcmTokenList.add(null, 'old', 'new'), ['old', 'new']);
+      expect(FcmTokenList.add(['old'], 'old', 'new'), ['old', 'new']);
+      expect(FcmTokenList.add('bozuk', '', 'new'), ['new']);
+      expect(FcmTokenList.add([1, null, 'x'], null, 'y'), ['x', 'y']);
+    });
+
+    test('çıkarma: yalnız bu cihaz, diğerleri korunur', () {
+      expect(FcmTokenList.remove(['a', 'b', 'c'], 'b'), ['a', 'c']);
+      expect(FcmTokenList.remove(null, 'b'), isEmpty);
     });
   });
 }

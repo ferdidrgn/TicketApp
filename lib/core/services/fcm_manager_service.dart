@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/navigation/providers/navigation_keys.dart';
 import '../../shared/navigation/widgets/nav_handler.dart';
 import 'push/alarm_alert_dialog.dart';
+import 'push/fcm_token_list.dart';
 import 'push/local_notification_service.dart';
 import 'push/push_message_mapper.dart';
 import 'push/push_payload.dart';
@@ -98,13 +99,21 @@ class _FirebasePushGateway implements PushGateway {
 
 class _FirestoreTokenStore implements PushTokenStore {
   @override
-  Future<void> clearTokenForCurrentUser() async {
+  Future<void> clearTokenForCurrentUser(final String? token) async {
     final User? u = FirebaseAuth.instance.currentUser;
-    if (u == null || u.isAnonymous) return;
-    await FirebaseFirestore.instance
-        .collection('User')
-        .doc(u.uid)
-        .update({'fcmToken': ''});
+    if (u == null || u.isAnonymous || token == null || token.isEmpty) return;
+    final ref = FirebaseFirestore.instance.collection('User').doc(u.uid);
+    await FirebaseFirestore.instance.runTransaction((final tx) async {
+      final Map<String, dynamic>? d = (await tx.get(ref)).data();
+      if (d == null) return;
+      final Map<String, Object?> patch = {};
+      if (d['fcmTokens'] is List) {
+        patch['fcmTokens'] = FcmTokenList.remove(d['fcmTokens'], token);
+      }
+      // Eski tekil alan yalnız bu cihaza aitse boşaltılır.
+      if (d['fcmToken'] == token) patch['fcmToken'] = '';
+      if (patch.isNotEmpty) tx.update(ref, patch);
+    });
   }
 }
 
@@ -189,8 +198,8 @@ class FCMManager {
     // Oturum açık bir kullanıcı varsa güncel token'ı dökümanına yaz.
     // Giriş SIRASINDA yapılan asıl kayıt auth_mutation_provider.dart ->
     // _handlePostLogin içinde.
-    await _persistTokenForCurrentUser(token);
-    fcm.onTokenRefresh.listen(_persistTokenForCurrentUser);
+    await registerTokenForCurrentUser(token);
+    fcm.onTokenRefresh.listen(registerTokenForCurrentUser);
 
     _setupListeners(fcm);
     unawaited(_handleLaunchTaps(fcm));
@@ -202,7 +211,7 @@ class FCMManager {
   /// NOT (MİMARİ TERCİH): FCMManager bir core servisi — Users feature'ının
   /// zincirini import etmek yerine diğer datasource'larla AYNI SEVİYEDE
   /// doğrudan Firestore'a yazıyoruz (collection('User')).
-  Future<void> _persistTokenForCurrentUser(final String? token) async {
+  Future<void> registerTokenForCurrentUser(final String? token) async {
     if (token == null || token.isEmpty) return;
 
     final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -212,12 +221,20 @@ class FCMManager {
       // Token ile "sessizde sesli hatırlat" tercihi AYNI cihaza aittir: birlikte
       // yazılır (tercih hiç seçilmediyse yazılmaz -> sunucuda varsayılan KAPALI).
       final bool? loud = await service.loudAlarmPreference();
-      await FirebaseFirestore.instance
-          .collection('User')
-          .doc(firebaseUser.uid)
-          .update({
-        'fcmToken': token,
-        if (loud != null) 'notifPrefs': {'loudAlarm': loud},
+      final ref =
+          FirebaseFirestore.instance.collection('User').doc(firebaseUser.uid);
+      // Çoklu cihaz: token listeye eklenir (en çok 5, en eskisi düşer; bu yüzden
+      // salt arrayUnion değil işlem içinde okuyup birleştirilir). Eski sürümler
+      // çalışsın diye tekil `fcmToken` da son cihazla güncellenir.
+      await FirebaseFirestore.instance.runTransaction((final tx) async {
+        final Map<String, dynamic>? d = (await tx.get(ref)).data();
+        final Object? old = d?['fcmToken'];
+        tx.update(ref, {
+          'fcmTokens': FcmTokenList.add(
+              d?['fcmTokens'], old is String ? old : null, token),
+          'fcmToken': token,
+          if (loud != null) 'notifPrefs': {'loudAlarm': loud},
+        });
       });
     } catch (e) {
       debugPrint("FCM token Firestore'a yazılamadı: $e");

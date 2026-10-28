@@ -9,10 +9,11 @@ abstract class PushGateway {
   Future<void> unsubscribeFromTopic(String topic);
 }
 
-/// Kullanıcı dökümanındaki `fcmToken` alanı.
+/// Kullanıcı dökümanındaki `fcmTokens` (çoklu cihaz) ve eski `fcmToken` alanı.
 abstract class PushTokenStore {
-  /// Giriş yapmış kullanıcının `fcmToken` alanını boşaltır.
-  Future<void> clearTokenForCurrentUser();
+  /// Giriş yapmış kullanıcının belgesinden YALNIZ bu cihazın [token]'ını çıkarır
+  /// (diğer cihazlar etkilenmez). [token] null/boşsa yapılacak bir şey yoktur.
+  Future<void> clearTokenForCurrentUser(String? token);
 }
 
 /// Basit bool tercih deposu (SharedPreferences arkasında).
@@ -129,7 +130,9 @@ class PushService {
       }
     }
 
-    await step('clearToken', tokenStore.clearTokenForCurrentUser);
+    String? token;
+    await step('getToken', () async => token = await gateway.getToken());
+    await step('clearToken', () => tokenStore.clearTokenForCurrentUser(token));
     await step('unsubscribe',
         () => gateway.unsubscribeFromTopic(announcementsTopic));
     await step('deleteToken', gateway.deleteToken);
