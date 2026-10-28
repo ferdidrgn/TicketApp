@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -53,6 +54,10 @@ abstract final class AppInitializer {
       ).timeout(const Duration(seconds: 10));
 
       if (Firebase.apps.isNotEmpty) {
+        // SMS doğrulama kodu mesajı Türkçe gitsin (Firebase mesajı bu dile göre yerelleştirir).
+        try {
+          await FirebaseAuth.instance.setLanguageCode('tr');
+        } catch (_) {}
         // Firestore'un ilk sorgusundan ÖNCE, offline persistence ayarını
         // yap — `settings` bir kez okunduktan/ilk sorgu yapıldıktan sonra
         // değiştirilemez, bu yüzden bu çağrı burada, uygulamanın herhangi

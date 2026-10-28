@@ -40,6 +40,8 @@ if (APPCHECK_SITE_KEY) {
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+// SMS doğrulama mesajı ve reCAPTCHA Türkçe gitsin (Firebase mesajı bu dile göre yerelleştirir).
+try { auth.languageCode = 'tr'; } catch (_) {}
 export const storage = getStorage(app);
 
 // Emülatör: YALNIZCA localhost/127.0.0.1 üzerinde ve localStorage['tiyatrol.emu']==='1' iken.
