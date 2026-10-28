@@ -209,5 +209,5 @@ for (const [il, mp] of ilShows) {
 // sitemap + robots
 const bugun = new Date().toISOString().slice(0, 10);
 await writeFile(join(CIKTI, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${adresler.map((a) => `  <url><loc>${SITE}${esc(a.u)}</loc><lastmod>${bugun}</lastmod><priority>${a.p}</priority></url>`).join('\n')}\n</urlset>\n`, 'utf8');
-await writeFile(join(CIKTI, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /yonetim\nDisallow: /*?q=\nDisallow: /*?al=\nDisallow: /ayarlar\nDisallow: /koltuk\nDisallow: /odeme-sonuc\nDisallow: /biletlerim\n\nSitemap: ${SITE}/sitemap.xml\n`, 'utf8');
+await writeFile(join(CIKTI, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /yonetim\nDisallow: /ekip\nDisallow: /*?q=\nDisallow: /*?al=\nDisallow: /ayarlar\nDisallow: /koltuk\nDisallow: /odeme-sonuc\nDisallow: /biletlerim\n\nSitemap: ${SITE}/sitemap.xml\n`, 'utf8');
 console.log(`Bitti: ${adresler.length} sayfa → ${CIKTI}`);

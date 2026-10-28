@@ -316,13 +316,11 @@ function createTeam({ db, auth, notifier, messaging, now = Date.now, log = conso
     data = data || {};
     const ticketId = validateId(data.ticketId, 'bilet');
     const notFound = () => err('not-found', 'Bu kodla, yetkili olduğun bir seansa ait bilet bulunamadı.');
+    // yetki ön denetimi: aktif yöneticisi olmayan biri bilet var/yok bilgisi alamaz
+    if (!(await isAdminUser(uid)) && (await managedTeamIds(uid)).length === 0) throw permDenied();
     const ref = col('Ticket').doc(ticketId);
     const snap = await ref.get();
-    if (!snap.exists) { // yetki ön denetimi: yöneticisi olmayan biri bilet var/yok bilgisi alamaz
-      const admin = await isAdminUser(uid);
-      if (!admin && (await managedTeamIds(uid)).length === 0) throw permDenied();
-      throw notFound();
-    }
+    if (!snap.exists) throw notFound();
     const t0 = snap.data();
     let scope;
     try { ({ scope } = await assertCanManageEvent(uid, String(t0.eventId || ''))); } catch (e) {

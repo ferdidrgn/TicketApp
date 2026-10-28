@@ -1,0 +1,47 @@
+/* /ekip — ekip yöneticisi paneli. Yalnız tema belirteçleri (var(--...)); 390px'te yatay kaydırma yok. */
+.ek-sayfa { padding: 28px 0 56px; display: grid; gap: 18px; max-width: 880px; margin-inline: auto; }
+.ek-sayfa h1 { font-size: clamp(26px, 6vw, 36px); margin: 0; }
+.ek-kart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(14px, 4vw, 22px); display: grid; gap: 12px; min-width: 0; }
+.ek-kart h2 { font-size: 19px; margin: 0; }
+.ek-sec { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.ek-alan { display: grid; gap: 6px; min-width: 0; }
+.ek-alan label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.ek-alan input, .ek-alan select, .ek-alan textarea { width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 10px 14px; font: inherit; }
+.ek-alan textarea { min-height: 96px; resize: vertical; }
+.ek-alan input:focus-visible, .ek-alan select:focus-visible, .ek-alan textarea:focus-visible, .ek-btn:focus-visible, .ek-sekme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ek-sekmeler { display: flex; gap: 8px; flex-wrap: wrap; }
+.ek-sekme { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink-2); font: inherit; font-weight: 600; cursor: pointer; }
+.ek-sekme[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ek-ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.ek-ozet > div { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.ek-ozet b { display: block; font-size: 26px; color: var(--accent); line-height: 1.1; }
+.ek-ozet span { font-size: 12.5px; color: var(--ink-2); }
+.ek-bar { height: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.ek-bar i { display: block; height: 100%; background: var(--accent); }
+.ek-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.ek-btn { min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-weight: 600; text-align: left; padding: 10px 14px; display: flex; gap: 10px; align-items: center; cursor: pointer; transition: transform .16s, border-color .2s; }
+.ek-btn:hover:not(:disabled) { border-color: var(--accent); }
+.ek-btn:active:not(:disabled) { transform: scale(.98); }
+.ek-btn:disabled { opacity: .45; cursor: not-allowed; }
+.ek-btn.alarm { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.ek-btn small { display: block; font-weight: 500; color: var(--warn); font-size: 12px; }
+.ek-btn-ana { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); justify-content: center; text-align: center; }
+.ek-uyari { border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.ek-hata { border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.ek-muted { color: var(--ink-2); font-size: 14px; margin: 0; }
+.ek-sonuc { border-radius: 14px; padding: 16px; border: 2px solid var(--line); display: grid; gap: 4px; }
+.ek-sonuc.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.ek-sonuc.bad { border-color: var(--accent); background: var(--accent-soft); }
+.ek-sonuc b { font-size: 22px; letter-spacing: .02em; }
+.ek-tablo { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.ek-tablo table { width: 100%; border-collapse: collapse; min-width: 420px; font-size: 14px; }
+.ek-tablo th, .ek-tablo td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+.ek-tablo tr:last-child td { border-bottom: 0; }
+.ek-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.ek-modal { width: min(520px, 100%); max-height: 92vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px; display: grid; gap: 14px; }
+.ek-onizle { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--bg); display: grid; gap: 4px; }
+.ek-onizle small { color: var(--ink-3); }
+.ek-onizle.alarm { border-color: var(--warn); }
+.ek-act { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 480px) { .ek-act .btn { flex: 1; } }
+@media (prefers-reduced-motion: reduce) { .ek-btn { transition: none; } }

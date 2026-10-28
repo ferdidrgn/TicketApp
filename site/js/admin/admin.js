@@ -13,6 +13,7 @@ import { $, $$, esc, tarihAyristir, debounce } from '../util.js';
 import { biletKapi } from './kapi.js';
 import { dashboard } from './dashboard.js';
 import { sahneKumandasi } from './sahne.js';
+import { ekipYoneticileri } from './ekipyonetici.js';
 
 const app = $('#app');
 let kullanici = null;
@@ -101,6 +102,7 @@ function iskeletCiz() {
     ${Object.entries(KOLEKSIYONLAR).map(([k, c]) => `<button class="nv" data-g="${k}">${c.ikon} ${c.ad}</button>`).join('')}
     <button class="nv" data-g="biletler">🎟️ Biletler &amp; Kapı</button>
     <button class="nv" data-g="sahne">🎭 Sahne kumandası</button>
+    <button class="nv" data-g="ekipyon">🧑‍🤝‍🧑 Ekip yöneticileri</button>
     <span class="sp"></span>
     <button class="nv" data-g="gorunum">🎨 Görünüm</button><button class="nv" data-g="yardim">❓ Yardım</button>
     <a class="nv btn" href="/" style="justify-content:flex-start;color:var(--ink-2)">↗ Siteyi aç</a>
@@ -116,6 +118,7 @@ function goster() {
   if (gorunum === 'ozet') return ozet(m);
   if (gorunum === 'biletler') return biletKapi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'sahne') return sahneKumandasi(m, { veri, bildir, hataMesaji });
+  if (gorunum === 'ekipyon') return ekipYoneticileri(m, { veri, bildir, hataMesaji });
   if (gorunum === 'gorunum') return gorunumAyari(m);
   if (gorunum === 'yardim') return yardim(m);
   return liste(m, gorunum);

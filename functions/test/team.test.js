@@ -21,6 +21,7 @@ function sut({ now, messaging } = {}) {
   const team = createTeam({ db, auth, notifier: n, now: now || Date.now, log: silent });
   return { team, msg, n };
 }
+const mkAuth = async (o) => { try { await auth.deleteUser(o.uid); } catch { /* yoktu */ } return auth.createUser(o); };
 const get = async (c, id) => { const s = await db.collection(c).doc(id).get(); return s.exists ? s.data() : null; };
 const grant = (teamId, uid, status = 'active') => db.collection('TeamManager').doc(`${teamId}_${uid}`).set({ teamId, uid, status, addedBy: 'admin1', addedAt: Timestamp.now() });
 let rid = 0;
@@ -359,13 +360,13 @@ test('hesap silme pending / deleting iken yönetici callable\'ları ACCOUNT_DELE
   for (const status of ['pending', 'deleting']) {
     await db.collection('AccountDeletion').doc('mgrA').set({ uid: 'mgrA', status, scheduledAt: Timestamp.fromMillis(Date.now() + 864e5) });
     const calls = [
-      send(team, 'mgrA', { target: { type: 'event', id: 'eA' }, template: 'basladi' }),
-      team.teamNotifyPreview('mgrA', { target: { type: 'event', id: 'eA' } }),
-      team.getMyManagedTeams('mgrA'),
-      team.teamCheckIn('mgrA', { ticketId: t.c1 }),
-      team.teamStats('mgrA', {}),
+      () => send(team, 'mgrA', { target: { type: 'event', id: 'eA' }, template: 'basladi' }),
+      () => team.teamNotifyPreview('mgrA', { target: { type: 'event', id: 'eA' } }),
+      () => team.getMyManagedTeams('mgrA'),
+      () => team.teamCheckIn('mgrA', { ticketId: t.c1 }),
+      () => team.teamStats('mgrA', {}),
     ];
-    for (const c of calls) { const e = await expectCode(c, 'failed-precondition'); assert.equal(e.message, 'ACCOUNT_DELETION_PENDING'); }
+    for (const f of calls) { const c = f(); const e = await expectCode(c, 'failed-precondition'); assert.equal(e.message, 'ACCOUNT_DELETION_PENDING'); }
   }
 });
 
@@ -374,7 +375,7 @@ test('adminSetTeamManager: e-postayla ekle (maskeli ipucu, telefon durumu), idem
   await db.collection('Team').doc('tA').set({ name: 'Ekip A' });
   await makeAdmin('admin1');
   const uid = 'newmgr1';
-  await auth.createUser({ uid, email: 'Yonetici.Biri@Example.com' });
+  await mkAuth({ uid, email: 'Yonetici.Biri@Example.com' });
   await db.collection('User').doc(uid).set({ role: 'user', firstName: 'Ayşe', lastName: 'Demir', isPhoneActive: true });
   const { team } = sut();
   const a = await team.adminSetTeamManager('admin1', { teamId: 'tA', email: ' yonetici.biri@example.com ', action: 'add' });
@@ -397,20 +398,20 @@ test('adminSetTeamManager: e-postayla ekle (maskeli ipucu, telefon durumu), idem
 test('adminSetTeamManager: kayıtsız e-posta net hata; geçersiz e-posta/eylem; olmayan ekip; telefonsuz hesap da atanabilir (uyarılı)', async () => {
   await db.collection('Team').doc('tA').set({ name: 'Ekip A' });
   await makeAdmin('admin1');
-  await auth.createUser({ uid: 'nophone', email: 'nophone@example.com' });
+  await mkAuth({ uid: 'nophone', email: 'team-nophone@example.com' });
   await db.collection('User').doc('nophone').set({ role: 'user', firstName: 'A', lastName: 'B' });
   const { team } = sut();
   const e = await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'yok.kimse@example.com', action: 'add' }), 'not-found');
   assert.match(e.message, /kayıtlı bir hesap yok/);
   await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'bozuk', action: 'add' }), 'invalid-argument');
-  await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'nophone@example.com', action: 'sil' }), 'invalid-argument');
+  await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'team-nophone@example.com', action: 'sil' }), 'invalid-argument');
   await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', action: 'add' }), 'invalid-argument');
-  await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tYok', email: 'nophone@example.com', action: 'add' }), 'not-found');
+  await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tYok', email: 'team-nophone@example.com', action: 'add' }), 'not-found');
   await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', uid: 'nophone', action: 'revoke' }), 'not-found'); // hiç atanmamış
-  const r = await team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'nophone@example.com', action: 'add' });
+  const r = await team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'team-nophone@example.com', action: 'add' });
   assert.equal(r.phoneActive, false); assert.equal(r.status, 'active');
   // silinme süreci bekleyen hesap atanamaz
-  await auth.createUser({ uid: 'leaving', email: 'leaving@example.com' });
+  await mkAuth({ uid: 'leaving', email: 'leaving@example.com' });
   await db.collection('AccountDeletion').doc('leaving').set({ uid: 'leaving', status: 'pending', scheduledAt: Timestamp.fromMillis(Date.now() + 864e5) });
   await expectCode(team.adminSetTeamManager('admin1', { teamId: 'tA', uid: 'leaving', action: 'add' }), 'failed-precondition');
 });
@@ -419,7 +420,7 @@ test('adminSetTeamManager: kayıtsız e-posta net hata; geçersiz e-posta/eylem;
 test('yönetici hesabı silinince TeamManager belgeleri revoked + kişisel alanlar silinir; log/limit/NotificationLog takma adlanır', async () => {
   await db.collection('Team').doc('tA').set({ name: 'Ekip A' });
   await makeAdmin('admin1');
-  await auth.createUser({ uid: 'mgrDel', email: 'mgrdel@example.com' });
+  await mkAuth({ uid: 'mgrDel', email: 'mgrdel@example.com' });
   await db.collection('User').doc('mgrDel').set({ role: 'user', firstName: 'Silinecek', lastName: 'Kişi', isPhoneActive: true });
   const { team } = sut();
   await team.adminSetTeamManager('admin1', { teamId: 'tA', email: 'mgrdel@example.com', action: 'add' });
@@ -436,7 +437,7 @@ test('yönetici hesabı silinince TeamManager belgeleri revoked + kişisel alanl
   const lg = (await db.collection('TeamManagerLog').get()).docs.map((x) => JSON.stringify(x.data()));
   assert.ok(lg.every((x) => !x.includes('mgrDel')));
   // admin silinirse addedBy takma adlanır
-  await auth.createUser({ uid: 'otherMgr', email: 'other@example.com' });
+  await mkAuth({ uid: 'otherMgr', email: 'other@example.com' });
   await db.collection('User').doc('otherMgr').set({ role: 'user' });
   await team.adminSetTeamManager('admin1', { teamId: 'tA', uid: 'otherMgr', action: 'add' });
   await db.collection('User').doc('admin1').set({ role: 'user' }); // purge için gerekmez ama admin kaydı kalsın
