@@ -255,9 +255,15 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
   void _celebrate(final SeatPurchaseState s) {
     // Biletler sunucuda kesildi; listeyi tazele.
-    if (!_isGuest) ref.invalidate(myTicketsProvider(widget.customerId));
-    if (!_reduceMotion) _confettiController.play();
-    HapticFeedback.mediumImpact();
+    // Yan işlemler (liste tazeleme, konfeti, titreşim) başarılı satın alma
+    // sonucunu ASLA bozmaz: hata yutulur, diyalog yine açılır.
+    try {
+      if (!_isGuest) ref.invalidate(myTicketsProvider(widget.customerId));
+      if (!_reduceMotion) _confettiController.play();
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      debugPrint('Satın alma sonrası yan işlem hatası: ${e.runtimeType}');
+    }
     showDialog<void>(
       context: context,
       barrierDismissible: false,

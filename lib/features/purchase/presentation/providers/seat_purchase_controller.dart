@@ -555,6 +555,18 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (_disposed) {
       return false;
     }
+    final failure = result.fold<Failure?>((final f) => f, (final _) => null);
+    if (failure != null &&
+        await _fulfilledDespiteError(failure, hold.orderId)) {
+      if (_disposed) {
+        return false;
+      }
+      _complete(seats: hold.seatIds, total: 0, free: true);
+      return true;
+    }
+    if (_disposed) {
+      return false;
+    }
     return result.fold(
       (final f) {
         if (f is PurchaseFailure && f.isPhoneRequired) {
@@ -598,6 +610,22 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (_disposed) {
       return false;
     }
+    final failure = result.fold<Failure?>((final f) => f, (final _) => null);
+    if (failure != null &&
+        await _fulfilledDespiteError(failure, hold.orderId)) {
+      if (_disposed) {
+        return false;
+      }
+      _complete(
+          seats: hold.seatIds,
+          total: hold.total,
+          free: false,
+          reservation: true);
+      return true;
+    }
+    if (_disposed) {
+      return false;
+    }
     return result.fold(
       (final f) {
         if (f is PurchaseFailure && f.isPhoneRequired) {
@@ -625,6 +653,35 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         return true;
       },
     );
+  }
+
+  /// Onay çağrısı HATA döndü ama sunucuda iş bitmiş olabilir (yanıt kaybı,
+  /// zaman aşımı, tekrar deneme yarışı). Kesin iş-kuralı reddi değilse
+  /// Order belgesine bakılır; bilet kesilmişse başarı sayılır — kullanıcıya
+  /// "hata" gösterilip bilet yine de oluşmuş olması (tutarsızlık) böylece
+  /// biter. Okuma da başarısızsa `false` (eski davranış).
+  Future<bool> _fulfilledDespiteError(
+      final Failure f, final String orderId) async {
+    if (f is PurchaseFailure) {
+      const definitive = {
+        'resource-exhausted',
+        'permission-denied',
+        'invalid-argument',
+        'unauthenticated',
+        'phone-required',
+        'account-deletion-pending',
+      };
+      if (definitive.contains(f.code)) {
+        return false;
+      }
+    }
+    try {
+      final order =
+          await _watchOrder(orderId).first.timeout(const Duration(seconds: 6));
+      return order != null && order.status.isFulfilled;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _complete(
@@ -666,6 +723,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         seats: hold?.seatIds ?? order.seatIds,
         total: hold?.total ?? order.total,
         free: order.free,
+        reservation: order.status == OrderStatus.reserved,
       );
       return;
     }

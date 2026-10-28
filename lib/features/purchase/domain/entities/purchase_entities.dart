@@ -136,6 +136,9 @@ enum OrderStatus {
   paying,
   paid,
   freeConfirmed,
+
+  /// Rezervasyon (ödeme sahnede) onaylandı; sunucu siparişi `reserved` yapar.
+  reserved,
   expired,
   failed,
   cancelled,
@@ -146,6 +149,7 @@ enum OrderStatus {
         'paying' => paying,
         'paid' => paid,
         'free_confirmed' => freeConfirmed,
+        'reserved' => reserved,
         'expired' => expired,
         'failed' => failed,
         'cancelled' => cancelled,
@@ -153,7 +157,7 @@ enum OrderStatus {
       };
 
   /// Bilet kesildi.
-  bool get isFulfilled => this == paid || this == freeConfirmed;
+  bool get isFulfilled => this == paid || this == freeConfirmed || this == reserved;
 
   /// Sipariş artık ilerlemez ve bilet de kesilmedi.
   bool get isDeadEnd => this == expired || this == failed || this == cancelled;

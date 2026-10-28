@@ -363,6 +363,24 @@ class _BoardingPassCardState extends State<BoardingPassCard>
                                   letterSpacing: 1.2)),
                         ],
                       ),
+                      if (widget.ticket.purchasedAtText.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Text('Alış',
+                                style: Sk.ui(context,
+                                    size: 12.5,
+                                    color: cs.onSurfaceVariant,
+                                    weight: FontWeight.w700)),
+                            const Spacer(),
+                            Text(widget.ticket.purchasedAtText,
+                                style: Sk.ui(context,
+                                    size: 12.5,
+                                    color: cs.onSurfaceVariant,
+                                    weight: FontWeight.w700)),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Row(
                         children: [

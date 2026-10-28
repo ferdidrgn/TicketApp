@@ -337,6 +337,10 @@ class _MomentBody extends StatelessWidget {
             ),
           ],
         ),
+        if (t.purchasedAtText.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          TicketField(label: 'ALIŞ ZAMANI', value: t.purchasedAtText),
+        ],
         if (ticketPayState(t) != TicketPayState.unknown) ...[
           const SizedBox(height: AppSpacing.lg),
           Align(
