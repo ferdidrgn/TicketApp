@@ -277,6 +277,33 @@ test('NotificationLog: kim, hedef, şablon, alıcı/başarılı/başarısız say
   assert.equal((await db.collection('User').doc('u1').get()).data().fcmToken, tok(1));
 });
 
+test('çoklu cihaz: fcmTokens + eski fcmToken birlikte okunur, tekilleştirilir; ölü token yalnız dizi/alandan temizlenir', async () => {
+  const admin = await makeAdmin();
+  const { n, msg } = makeNotifier({ messaging: fakeMessaging({ dead: [tok(12)] }) });
+  await seedUser('m1', { token: tok(11), tokens: [tok(11), tok(12), tok(13)] }); // eski alan dizide de var -> tek sayılır
+  await seedUser('m2', { token: tok(21) }); // yalnız eski alan
+  await seedUser('m3', { tokens: [tok(31), tok(32)] }); // yalnız yeni dizi
+  const r = await n.adminSendNotification(admin, { target: { type: 'user', id: 'm1' }, title: 'T', body: 'B' });
+  assert.deepEqual(msg.multicasts[0].tokens.slice().sort(), [tok(11), tok(12), tok(13)].sort());
+  assert.equal(r.success, 2); assert.equal(r.failure, 1);
+  const u1 = (await db.collection('User').doc('m1').get()).data();
+  assert.deepEqual(u1.fcmTokens, [tok(11), tok(13)]); // ölü token düştü
+  assert.equal(u1.fcmToken, tok(11)); // sağlam cihazın eski alanı bozulmadı
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm2' }, title: 'T2', body: 'B' });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm3' }, title: 'T3', body: 'B' });
+  assert.deepEqual(msg.multicasts[1].tokens, [tok(21)]);
+  assert.deepEqual(msg.multicasts[2].tokens.slice().sort(), [tok(31), tok(32)]);
+});
+
+test('çoklu cihaz: ölü token eski tekil alandaysa o alan boşaltılır, dizi korunur', async () => {
+  const admin = await makeAdmin();
+  const { n } = makeNotifier({ messaging: fakeMessaging({ dead: [tok(41)] }) });
+  await seedUser('m4', { token: tok(41), tokens: [tok(41), tok(42)] });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm4' }, title: 'T', body: 'B' });
+  const u = (await db.collection('User').doc('m4').get()).data();
+  assert.equal(u.fcmToken, ''); assert.deepEqual(u.fcmTokens, [tok(42)]);
+});
+
 test('FCM tümden başarısız: uygulama içi bildirim yine yazılır, failure sayılır, istek patlamaz', async () => {
   const admin = await makeAdmin();
   const { n } = makeNotifier({ messaging: fakeMessaging({ failAll: true }) });

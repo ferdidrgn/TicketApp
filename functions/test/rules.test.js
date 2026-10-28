@@ -311,3 +311,19 @@ test('hesap silme mezar taşı: deleting/deleted uid eski token ile User yazamaz
   await assertFails(setDoc(doc(as('z2'), 'User/z2'), { role: 'user' }));
   await assertSucceeds(updateDoc(doc(as('z3'), 'User/z3'), { fcmToken: 'x' }));
 });
+
+test('User.fcmTokens: kullanıcı kendi dizisini yazabilir (<=5 string, <=4096); aşırı/yanlış tür reddedilir', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'User/ft1'), { role: 'user' }); });
+  const d = doc(as('ft1'), 'User/ft1');
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['a', 'b'], fcmToken: 'b' }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: [] }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['1', '2', '3', '4', '5'] }));
+  await assertFails(updateDoc(d, { fcmTokens: ['1', '2', '3', '4', '5', '6'] }));
+  await assertFails(updateDoc(d, { fcmTokens: [1] }));
+  await assertFails(updateDoc(d, { fcmTokens: 'abc' }));
+  await assertFails(updateDoc(d, { fcmTokens: ['x'.repeat(4097)] }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['x'.repeat(4096)] }));
+  await assertFails(updateDoc(doc(as('ft2'), 'User/ft1'), { fcmTokens: ['a'] })); // başkasının belgesi
+  await assertSucceeds(setDoc(doc(as('ft3'), 'User/ft3'), { role: 'user', fcmTokens: ['a'] }));
+  await assertFails(setDoc(doc(as('ft4'), 'User/ft4'), { role: 'user', fcmTokens: ['a', 'b', 'c', 'd', 'e', 'f'] }));
+});

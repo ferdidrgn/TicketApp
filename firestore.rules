@@ -58,6 +58,17 @@ service cloud.firestore {
       return v == null || (v is map && v.keys().hasOnly(['loudAlarm']) && v.get('loudAlarm', false) is bool);
     }
 
+    // ÇOKLU CİHAZ PUSH (N-3): User.fcmTokens = bu hesaba bağlı cihazların FCM token'ları (liste, <=5, her biri metin <=4096 karakter).
+    function fcmTokensOk() {
+      let v = request.resource.data.get('fcmTokens', null);
+      return v == null || (v is list && v.size() <= 5 &&
+        (v.size() < 1 || (v[0] is string && v[0].size() <= 4096)) &&
+        (v.size() < 2 || (v[1] is string && v[1].size() <= 4096)) &&
+        (v.size() < 3 || (v[2] is string && v[2].size() <= 4096)) &&
+        (v.size() < 4 || (v[3] is string && v[3].size() <= 4096)) &&
+        (v.size() < 5 || (v[4] is string && v[4].size() <= 4096)));
+    }
+
     // Hesap silme mezar taşı (AccountDeletion/{uid}.status == 'deleted'|'deleting'): silinen/silinmekte olan uid'in eski ID token'ı
     // (~1 saat geçerli) User belgesini yeniden oluşturamaz/yazamaz. 'pending' (bekleme) kullanıcıyı ENGELLEMEZ (vazgeçebilmeli).
     function deletionLocked(userId) {
@@ -90,7 +101,7 @@ service cloud.firestore {
         request.resource.data.get('isPhoneActive', false) in [false, null] &&
         !('phoneVerifiedAt' in request.resource.data) &&
         !('phoneKey' in request.resource.data) &&
-        notifPrefsOk() &&
+        notifPrefsOk() && fcmTokensOk() &&
         phoneNumberWriteOk(null);
 
       // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
@@ -112,7 +123,7 @@ service cloud.firestore {
           request.resource.data.get('isPhoneActive', null) in [false, null]) &&
         request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null) &&
         request.resource.data.get('phoneKey', null) == resource.data.get('phoneKey', null) &&
-        notifPrefsOk() &&
+        notifPrefsOk() && fcmTokensOk() &&
         phoneNumberWriteOk(resource.data.get('phoneNumber', null));
 
       // Delete: KAPALI (28.10.2026). Hesap silme artık yalnızca sunucuda (requestAccountDeletion -> 30 gün bekleme ->

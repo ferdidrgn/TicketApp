@@ -2,7 +2,7 @@
 /**
  * Bildirim gönderme ("Sahne kumandası") ve otomatik hatırlatmalar.
  * Firebase Messaging enjekte edilir (testte sahte). FCM gönderimi ücretsizdir; maliyet Firestore okuma/yazmasındadır.
- * Kısıt: mobil tarafta kullanıcı başına TEK token (User.fcmToken) tutulur — çok cihazlı kullanıcıya yalnız son giriş yapılan cihaz ulaşır.
+ * Çoklu cihaz: User.fcmTokens (dizi, en çok 5) + eski tekil User.fcmToken birlikte okunur (tekilleştirilir).
  */
 const crypto = require('crypto');
 const { FieldPath, Timestamp } = require('firebase-admin/firestore');
@@ -77,16 +77,17 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
   // ---------------------------------------------------------------- ortak
   /** uid -> token ve "sessizde sesli hatırlat" izni veren uid kümesi (yalnız notifPrefs.loudAlarm === true; başka her şey = izin yok). */
   async function loadRecipients(userIds) {
-    const tokens = new Map(); // uid -> token
+    const tokens = new Map(); // uid -> token DİZİSİ (çoklu cihaz: User.fcmTokens + eski tekil User.fcmToken, tekilleştirilmiş)
     const loud = new Set(); // izinli uid'ler (yalnız token'ı olanlar)
     for (let i = 0; i < userIds.length; i += 300) {
       const refs = userIds.slice(i, i + 300).map((u) => col('User').doc(u));
-      const snaps = await db.getAll(...refs, { fieldMask: ['fcmToken', 'notifPrefs'] });
+      const snaps = await db.getAll(...refs, { fieldMask: ['fcmToken', 'fcmTokens', 'notifPrefs'] });
       snaps.forEach((s, j) => {
         const d = s.exists ? s.data() : {};
-        const tk = d.fcmToken;
-        if (typeof tk === 'string' && tk.length > 20) {
-          tokens.set(userIds[i + j], tk);
+        const list = [...(Array.isArray(d.fcmTokens) ? d.fcmTokens : []), d.fcmToken];
+        const tks = [...new Set(list.filter((t) => typeof t === 'string' && t.length > 20))];
+        if (tks.length) {
+          tokens.set(userIds[i + j], tks);
           if (d.notifPrefs && d.notifPrefs.loudAlarm === true) loud.add(userIds[i + j]);
         }
       });
@@ -102,7 +103,7 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
   async function pushByPrefs({ tokens: tokenMap, loud }, build, kind) {
     const group = (uids) => {
       const owners = new Map();
-      for (const u of uids) { const tk = tokenMap.get(u); owners.set(tk, [...(owners.get(tk) || []), u]); }
+      for (const u of uids) for (const tk of tokenMap.get(u)) owners.set(tk, [...(owners.get(tk) || []), u]);
       return owners;
     };
     const parts = kind === 'alarm'
@@ -137,7 +138,14 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
         for (const tk of dead) for (const uid of tokenOwner.get(tk) || []) {
           try { // yalnız hâlâ aynı token ise sil (kullanıcı arada yenilemiş olabilir)
             const ref = col('User').doc(uid);
-            await db.runTransaction(async (tx) => { const d = await tx.get(ref); if (d.exists && d.data().fcmToken === tk) tx.update(ref, { fcmToken: '' }); });
+            await db.runTransaction(async (tx) => {
+              const d = await tx.get(ref);
+              if (!d.exists) return;
+              const u = d.data(), patch = {};
+              if (u.fcmToken === tk) patch.fcmToken = '';
+              if (Array.isArray(u.fcmTokens) && u.fcmTokens.includes(tk)) patch.fcmTokens = u.fcmTokens.filter((x) => x !== tk);
+              if (Object.keys(patch).length) tx.update(ref, patch);
+            });
           } catch { /* temizlik zorunlu değil */ }
         }
       } catch (e) {
@@ -434,8 +442,8 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
     if (fresh.length) {
       const tokenMap = await loadTokens(fresh);
       const owners = new Map();
-      for (const [u, tk] of tokenMap) owners.set(tk, [...(owners.get(tk) || []), u]);
-      const r = await pushTokens([...tokenMap.values()], buildMessage({ title, body, kind: 'normal', eventId, now: t }), owners);
+      for (const [u, tks] of tokenMap) for (const tk of tks) owners.set(tk, [...(owners.get(tk) || []), u]);
+      const r = await pushTokens([...owners.keys()], buildMessage({ title, body, kind: 'normal', eventId, now: t }), owners);
       failed = r.failure;
     }
     // bayrak: bildirimi zaten oluşturulmuş olanlar dahil tüm uygun biletler işaretlenir -> bir sonraki çalışmada hiçbir iş kalmaz
