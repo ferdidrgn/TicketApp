@@ -24,8 +24,8 @@ Kaynak raporlar: telefon kimliği (docs/TELEFON-DOGRULAMA.md), hesap silme (docs
 ## DALGA 2 (Dalga 1 + rules birleşince)
 | ID | İş | Boyut | Bağımlılık |
 |---|---|---|---|
-| N-1 | Etkinliğe gelen kişilere mesaj/push: admin + ekip yöneticisi için seans bazlı gönderim ekranı (şablon + kısa metin, alıcı sayısı önizleme), otomatik "seans iptal" bildirimi, bilet sahiplerine seans sonrası teşekkür | M | T-1 |
-| N-2 | Bildirim tercihleri (`User.notifPrefs`: kategori aç/kapa, sessiz saat), işlemsel/pazarlama ayrımı | M | sessiz-alarm işi |
+| N-1 | Etkinliğe gelen kişilere mesaj/push: admin + ekip yöneticisi için seans bazlı gönderim ekranı (şablon + kısa metin, alıcı sayısı önizleme), otomatik "seans iptal" bildirimi, bilet sahiplerine seans sonrası teşekkür | M | T-1 | **REVIEW** (28.10: otomatik iptal/erteleme + teşekkür + alarm2h bayrağı; docs/BILDIRIM-TERCIHLERI.md) |
+| N-2 | Bildirim tercihleri (`User.notifPrefs`: kategori aç/kapa, sessiz saat), işlemsel/pazarlama ayrımı | M | sessiz-alarm işi | **REVIEW** (28.10: şema+kurallar+mobil+web+sunucu süzgeci) |
 | N-3 | `fcmTokens` çoklu cihaz (dizi), ölü token temizliği | S | — |
 | Q-1 | Doğrulanmış yorum (bilet sahibi, `verified`, sunucudan yazım) + seans sonrası "nasıldı?" | M | S-1 |
 | Q-2 | Ekibe soru sor (Q&A, ön onaylı) + kural tabanlı SSS botu | M | S-1, T-1 |

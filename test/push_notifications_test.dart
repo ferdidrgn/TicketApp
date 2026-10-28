@@ -109,6 +109,7 @@ void main() {
         '/my-tickets/bildirim-abc123',
         '/show/oyun-adi-XyZ9',
         '/stage/s-1',
+        '/show/hamlet-abc123?yorum=1', // seans sonrası yorum daveti
       ]) {
         expect(PushRoutes.safeRoute(r), r, reason: r);
       }
@@ -121,6 +122,10 @@ void main() {
         '/admin',
         '/show/../admin',
         '/show/a?x=1',
+        '/show/a?yorum=2',
+        '/show/a?yorum=1&x=2',
+        '/stage/a?yorum=1',
+        '/show/?yorum=1',
         '/login',
         'javascript:alert(1)',
         '/notifications/../admin',
