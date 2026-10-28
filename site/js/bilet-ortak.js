@@ -51,7 +51,7 @@ export function normallestir(t, veri) {
     adres: stage?.address || '', lat: stage?.lat ?? null, lng: stage?.lng ?? null,
     when, koltuklar, tutar: sayi(t.orderPrice), show, dakika: dakikaOku(show?.duration),
     yontem: t.orderMethod || '', odeme: t.paymentStatus || '', alis: alisZamani(t),
-    kullanildi: !!t.usedAt, iptalEdildi: !!t.cancelledAt || t.paymentStatus === 'cancelled',
+    kullanildi: !!t.usedAt, showId: t.showId || '', stageId: t.stageId || '', eventDateHam: t.eventDate || '', usedAtHam: t.usedAt || '', iptalEdildi: !!t.cancelledAt || t.paymentStatus === 'cancelled',
   };
 }
 

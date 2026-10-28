@@ -125,6 +125,10 @@
           "destination": "/odeme-sonuc.html"
         },
         {
+          "source": "/pasaport",
+          "destination": "/pasaport.html"
+        },
+        {
           "source": "/biletlerim",
           "destination": "/biletlerim.html"
         },
@@ -392,6 +396,10 @@
         {
           "source": "/odeme-sonuc",
           "destination": "/odeme-sonuc.html"
+        },
+        {
+          "source": "/pasaport",
+          "destination": "/pasaport.html"
         },
         {
           "source": "/biletlerim",
