@@ -9,6 +9,7 @@ const VARSAYILAN = {
   'invalid-argument': 'Seçimin geçersiz görünüyor. Sayfayı yenileyip tekrar dene.',
   'permission-denied': 'Bu işlem için yetkin yok.',
   'not-found': 'Kayıt bulunamadı. Süre dolmuş olabilir.',
+  ACCOUNT_DELETION_PENDING: 'Hesabınız silinmek üzere; devam etmek için silmeyi iptal edin.',
   PHONE_REQUIRED: 'Bilet ve rezervasyon için telefon numaranı doğrulaman gerekiyor.',
   unavailable: 'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.',
 };
@@ -21,6 +22,9 @@ export function apiHata(e) {
   // Sunucu sözleşmesi: failed-precondition + details.code === 'PHONE_REQUIRED' (doğrulanmış telefon yok).
   if (kod === 'failed-precondition' && (e?.details?.code === 'PHONE_REQUIRED' || e?.details === 'PHONE_REQUIRED')) {
     const h = new Error(VARSAYILAN.PHONE_REQUIRED); h.kod = 'PHONE_REQUIRED'; return h;
+  }
+  if (kod === 'failed-precondition' && (e?.details?.code === 'ACCOUNT_DELETION_PENDING' || e?.details === 'ACCOUNT_DELETION_PENDING')) {
+    const h = new Error(VARSAYILAN.ACCOUNT_DELETION_PENDING); h.kod = 'ACCOUNT_DELETION_PENDING'; return h;
   }
   // Sunucunun yazdığı Türkçe mesaj yalnızca bilinen iş hatalarında gösterilir; "internal" vb. genel mesaja düşer.
   if (SUNUCU_MESAJI.has(kod)) {

@@ -6,12 +6,28 @@ import { favListe, bildir } from '../fav.js';
 import { ilOku, ilYaz } from '../iller.js';
 import { $, $$, esc } from '../util.js';
 import { baslikYaz } from '../detay.js';
+import { oturumDinle, mevcut } from '../auth.js';
+import { silmeModaliAc, silmeyiIptalEt, silmeDurumu, silmeBekliyor, tarihTR } from '../hesap-sil.js';
 
 kabukCiz('');
 baslikYaz('Ayarlar', 'Görünüm, erişilebilirlik ve veri ayarları.');
 const ic = $('#icerik');
 ciz();
 document.addEventListener('pwa-hazir', ciz);
+let sonUid;
+oturumDinle((u) => { if ((u?.uid || '') !== sonUid) { sonUid = u?.uid || ''; ciz(); } });
+document.addEventListener('silme-durumu', ciz);
+
+function hesapKarti() {
+  if (!mevcut()) return '';
+  if (silmeBekliyor()) {
+    const t = silmeDurumu().tarih;
+    return `<section class="ay-kart"><h2>Hesap</h2><p><b>Silinmek üzere${t ? ` — ${esc(tarihTR(t))}` : ''}</b><br>Hesabın bu tarihte kalıcı olarak silinecek. O güne kadar vazgeçebilirsin.</p>
+      <div><button class="btn btn-primary btn-sm" id="sil-iptal">Silmeyi iptal et</button></div></section>`;
+  }
+  return `<section class="ay-kart"><h2>Hesap</h2><p>Hesabını silersen 30 günlük bekleme süresi başlar; bu sürede giriş yapıp vazgeçebilirsin.</p>
+    <div><button class="btn btn-ghost btn-sm btn-tehlike" id="sil-ac" aria-haspopup="dialog">Hesabımı sil</button></div></section>`;
+}
 
 function ciz() {
   const t = temaOku(), e = erisimOku();
@@ -30,6 +46,7 @@ function ciz() {
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" id="yedek">Yedek bağlantısı kopyala</button><button class="btn btn-ghost btn-sm" id="ice">Yedek bağlantısı yapıştır</button><button class="btn btn-ghost btn-sm" id="temizle">Tüm yerel verimi sil</button></div></section>
     <section class="ay-kart"><h2>Uygulama gibi kullan</h2><p>Siteyi ana ekrana ekle; çevrimdışıyken son baktığın sayfalar açılır.</p>
       ${pwaKurulabilir() ? '<button class="btn btn-primary btn-sm" id="kur">Ana ekrana ekle</button>' : '<p class="tiny">Tarayıcı menüsünden “Ana ekrana ekle / Uygulamayı yükle” seçeneğini kullanabilirsin.</p>'}</section>
+    ${hesapKarti()}
     <section class="ay-kart"><h2>Klavye kısayolları</h2><p>Sayfada <kbd>?</kbd> tuşuna basarak tüm kısayolları görebilirsin: <kbd>/</kbd> ara, <kbd>g</kbd> <kbd>h</kbd> vitrin, <kbd>g</kbd> <kbd>k</kbd> oyunlar.</p></section>
   </div>`;
   $$('[data-mod]').forEach((b) => b.addEventListener('click', () => { temaYaz({ mod: b.dataset.mod }); ciz(); }));
@@ -41,5 +58,7 @@ function ciz() {
   $('#yedek').addEventListener('click', async () => { const u = `${location.origin}/favoriler?al=${btoa(unescape(encodeURIComponent(JSON.stringify(favListe()))))}`; try { await navigator.clipboard.writeText(u); bildir('Yedek bağlantısı kopyalandı'); } catch { prompt('Bağlantıyı kopyala:', u); } });
   $('#ice').addEventListener('click', () => { const u = prompt('Yedek bağlantısını yapıştır:'); if (!u) return; try { location.href = new URL(u).pathname + new URL(u).search; } catch { bildir('Geçersiz bağlantı'); } });
   $('#temizle').addEventListener('click', () => { if (confirm('Favoriler, tema, il ve diğer yerel verilerin silinsin mi?')) { try { localStorage.clear(); sessionStorage.clear(); } catch {} location.reload(); } });
+  $('#sil-ac')?.addEventListener('click', () => silmeModaliAc());
+  $('#sil-iptal')?.addEventListener('click', async (ev) => { ev.currentTarget.disabled = true; await silmeyiIptalEt(); });
   $('#kur')?.addEventListener('click', async () => { if (await pwaKur()) bildir('Eklendi'); ciz(); });
 }

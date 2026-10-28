@@ -7,6 +7,7 @@ import { yukle } from '../store.js';
 import { db, doc, onSnapshot, getDoc, collection, query, where } from '../firebase.js';
 import { girisGerekli, telefonGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
 import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl, rezervasyonOnayla, satisAyari } from '../bilet-api.js';
+import { silmeyiIptalEt } from '../hesap-sil.js';
 import { $, $$, esc, tl, sayi, tarihUzun, saat, tarihAyristir, linkOf } from '../util.js';
 
 // Event belge kimliği Firestore'da serbesttir: eski kayıtlarda boşluk ve Türkçe harf olabilir
@@ -70,6 +71,16 @@ function bildir(m, tur = 'hata') {
   t.textContent = m; t.className = `k-toast on ${tur}`;
   clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('on'); }, 4800);
   panelCiz();
+}
+
+/** Hata kullanıcıya gösterilir; hesap silinmek üzereyse mesajla birlikte eylem odaklı "Silmeyi iptal et" düğmesi çıkar. */
+function hataGoster(e) {
+  if (e?.kod === 'ACCOUNT_DELETION_PENDING') {
+    S.banner = { tur: 'hata', baslik: 'Hesabınız silinmek üzere', metin: 'Yeni bilet ve rezervasyon yapabilmek için önce silmeyi iptal edin.', eylem: 'Silmeyi iptal et' };
+    bannerCiz(); canli('Hesabınız silinmek üzere; devam etmek için silmeyi iptal edin.');
+    return bildir(e.message);
+  }
+  bildir(e.message);
 }
 
 // ---------- Salon düzeni ----------
@@ -263,7 +274,7 @@ async function tut() {
     });
     canli(`Koltukların tutuldu. ${Math.round((S.hold.expiresAt - Date.now()) / 60000)} dakika içinde tamamlamalısın.`);
   } catch (e) {
-    bildir(e.message);
+    hataGoster(e);
     if (e.kod === 'failed-precondition') S.secili = S.secili.filter((id) => durum(id) === 'bos');
     if (e.kod === 'unauthenticated') girisGerekli('Oturumun kapanmış. Devam etmek için tekrar giriş yap.');
   } finally { S.bekliyor = false; boya(); panelCiz(); }
@@ -295,7 +306,7 @@ async function ode() {
       S.bekliyor = false; panelCiz(); formKapsulu(); return;
     }
     throw new Error('Ödeme başlatılamadı. Biraz sonra tekrar dene.');
-  } catch (e) { bildir(e.message); S.bekliyor = false; panelCiz(); }
+  } catch (e) { hataGoster(e); S.bekliyor = false; panelCiz(); }
 }
 // iyzico formu: kendi origin'imizden yalıtılmış (allow-same-origin YOK) sandbox iframe'de gösterilir.
 function formKapsulu() {
@@ -315,7 +326,7 @@ async function onayla() {
     await telefonluDene(() => ucretsizOnayla(S.hold.orderId));
     const id = S.hold.orderId; tutmaTemizle();
     location.assign(`/odeme-sonuc?order=${encodeURIComponent(id)}&durum=basarili`);
-  } catch (e) { bildir(e.message); S.bekliyor = false; panelCiz(); }
+  } catch (e) { hataGoster(e); S.bekliyor = false; panelCiz(); }
 }
 
 async function rezerve() {
@@ -326,7 +337,7 @@ async function rezerve() {
     const id = S.hold.orderId; tutmaTemizle();
     location.assign(`/odeme-sonuc?order=${encodeURIComponent(id)}&durum=rezervasyon`);
   } catch (e) {
-    bildir(e.message); S.bekliyor = false; panelCiz();
+    hataGoster(e); S.bekliyor = false; panelCiz();
     if (e.kod === 'unauthenticated') girisGerekli('Oturumun kapanmış. Devam etmek için tekrar giriş yap.');
   }
 }
@@ -376,7 +387,12 @@ const IKON_BILGI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 
 function bannerCiz() {
   const b = $('#k-banner'); if (!b) return;
-  b.innerHTML = S.banner ? `<div class="k-uyari ${S.banner.tur}" role="alert">${IKON_BILGI}<div><b>${esc(S.banner.baslik)}</b>${esc(S.banner.metin)}</div></div>` : '';
+  b.innerHTML = S.banner ? `<div class="k-uyari ${S.banner.tur}" role="alert">${IKON_BILGI}<div><b>${esc(S.banner.baslik)}</b>${esc(S.banner.metin)}${S.banner.eylem ? `<p><button type="button" class="btn btn-primary btn-sm" data-sil-iptal>${esc(S.banner.eylem)}</button></p>` : ''}</div></div>` : '';
+  const dg = b.querySelector('[data-sil-iptal]');
+  if (dg) dg.addEventListener('click', async () => {
+    dg.disabled = true;
+    if (await silmeyiIptalEt()) { S.banner = null; bannerCiz(); bildir('Silme iptal edildi. Şimdi koltuk seçebilirsin.', 'bilgi'); } else dg.disabled = false;
+  });
 }
 
 function ozetSatirlari() {

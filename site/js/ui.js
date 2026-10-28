@@ -6,6 +6,7 @@ import './ozellik.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme, favListe } from './fav.js';
 import { hesapDugmesi } from './auth.js';
+import { silmeBannerKur } from './hesap-sil.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt, ayniGun, tarihAyristir } from './util.js';
 
@@ -65,6 +66,7 @@ export function kabukCiz(aktif = '') {
   temaPaneli();
   ilSecici();
   hesapDugmesi($('#hesap'));
+  silmeBannerKur();
   const favSay = () => { const n = favListe().length; const e = $('#fav-n'); if (e) { e.textContent = n || ''; e.style.display = n ? '' : 'none'; } };
   favSay(); document.addEventListener('fav-degisti', favSay);
   aramaKur();

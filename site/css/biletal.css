@@ -248,3 +248,22 @@ body.modal-acik { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .iptal-bg, .odeme-k { animation: none !important; transition: none !important; } }
 .plan-zoom .btn { width: auto; height: 36px; padding: 0 14px; border-radius: 999px; font-size: 14px; line-height: 1; }
 .k-ust .ph-poster { display: grid; place-items: center; text-align: center; font: 600 10px/1.2 var(--font-body); color: var(--ink-3); padding: 4px; overflow: hidden; }
+/* ---------- Hesap silme (30 gün bekleme) ---------- */
+.btn-tehlike { background: var(--err); border-color: var(--err); color: #fff; }
+.btn-tehlike:hover:not([disabled]) { filter: brightness(.92); }
+.btn-tehlike[disabled] { opacity: .45; cursor: not-allowed; }
+.btn-ghost.btn-tehlike { background: transparent; color: var(--err); border-color: color-mix(in srgb, var(--err) 60%, transparent); }
+.btn-ghost.btn-tehlike:hover { background: color-mix(in srgb, var(--err) 10%, transparent); filter: none; }
+.sil-modal { gap: 14px; }
+.sil-govde { display: grid; gap: 12px; }
+.sil-govde p { font-size: 15.5px; line-height: 1.55; }
+.sil-not { padding: 10px 12px; border-radius: 12px; background: var(--surface-2, var(--bg)); border: 1px solid var(--line); overflow-wrap: anywhere; }
+.sil-liste { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); font-size: 14.5px; }
+.sil-onay { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.sil-btnlar { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.sil-btnlar .btn { min-height: 46px; }
+.sil-banner { display: flex; align-items: center; justify-content: center; gap: 8px 16px; flex-wrap: wrap; padding: 10px 16px; background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--ink); border-bottom: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line)); font-size: 14.5px; text-align: center; }
+.sil-banner p { margin: 0; overflow-wrap: anywhere; } .sil-banner p span { color: var(--ink-2); }
+.sil-banner .btn { min-height: 38px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+.sil-banner .btn[disabled] { opacity: .6; cursor: progress; }
+@media (max-width: 520px) { .sil-btnlar .btn { flex: 1 1 100%; } .sil-banner { padding: 10px 16px; } }
