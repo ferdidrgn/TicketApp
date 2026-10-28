@@ -119,14 +119,15 @@ test('Event.seats herkese açık okunur ama kullanıcı kimliği içermez; koltu
   await assertFails(updateDoc(doc(as('alice'), 'Event/e1'), { 'seats.A2.status': 'sold' }));
 });
 
-test('YETKİ YÜKSELTME: kullanıcı User belgesini role:admin ile OLUŞTURAMAZ (create), role güncelleyemez; silip yeniden oluşturma da engellenir', async () => {
+test('YETKİ YÜKSELTME: kullanıcı User belgesini role:admin ile OLUŞTURAMAZ (create), role güncelleyemez; sunucu silip yeniden oluşturma da engellenir', async () => {
   const c = env.authenticatedContext('carol').firestore();
   await assertFails(setDoc(doc(c, 'User/carol'), { role: 'admin', eMail: 'c@x.com' }));
   await assertFails(setDoc(doc(c, 'User/carol'), { role: 'curator' }));
   await assertSucceeds(setDoc(doc(c, 'User/carol'), { role: 'user', eMail: 'c@x.com' }));
   await assertFails(updateDoc(doc(c, 'User/carol'), { role: 'admin' }));
   await assertSucceeds(updateDoc(doc(c, 'User/carol'), { city: 'İzmir' }));
-  await assertSucceeds(deleteDoc(doc(c, 'User/carol')));
+  await assertFails(deleteDoc(doc(c, 'User/carol'))); // istemci silemez (hesap silme yalnız sunucuda: docs/HESAP-SILME.md)
+  await env.withSecurityRulesDisabled(async (ctx) => { await deleteDoc(doc(ctx.firestore(), 'User/carol')); }); // sunucu silmesi
   await assertFails(setDoc(doc(c, 'User/carol'), { role: 'admin' }));
   // alanı hiç yazmayan yeni kullanıcı (role yok) geçerli kalır; admin olamaz
   await assertSucceeds(setDoc(doc(c, 'User/carol'), { eMail: 'c@x.com' }));

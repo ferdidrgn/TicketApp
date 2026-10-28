@@ -254,3 +254,44 @@ test('sunucu taslağı (role:user, _id, listeler) mobil güncelleme yüküyle UY
   await assertSucceeds(updateDoc(doc(asPhone('t1', '+905551234567'), 'User/t1'), upd));
   await assertFails(updateDoc(doc(asPhone('t2', '+905551234567'), 'User/t2'), { ...upd, _id: 't2' })); // role null -> 'user' reddedilir
 });
+
+// ------------------------------------------------------------------ hesap silme (docs/HESAP-SILME.md)
+test('hesap silme: istemci User.deletion* alanlarını YAZAMAZ (create/update), kendi alanlarını OKUR; User belgesini SİLEMEZ', async () => {
+  const ts = (n) => new Date(n);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/p1'), { role: 'user', firstName: 'A', deletionStatus: 'pending', deletionScheduledAt: ts(1000), deletionRequestedAt: ts(500) });
+    await setDoc(doc(d, 'User/p2'), { role: 'user', firstName: 'B' });
+    await setDoc(doc(d, 'AccountDeletion/p1'), { uid: 'p1', status: 'pending' });
+  });
+  const own = await assertSucceeds(getDoc(doc(as('p1'), 'User/p1')));
+  if (own.data().deletionStatus !== 'pending') throw new Error('kendi deletion alanı okunamadı');
+  await assertFails(getDoc(doc(as('p2'), 'User/p1')));
+  await assertFails(updateDoc(doc(as('p2'), 'User/p2'), { deletionStatus: 'pending' }));
+  await assertFails(updateDoc(doc(as('p2'), 'User/p2'), { deletionScheduledAt: ts(9) }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionStatus: 'active' }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionScheduledAt: ts(999999999) }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionRequestedAt: ts(1) }));
+  await assertFails(setDoc(doc(as('newu'), 'User/newu'), { role: 'user', deletionStatus: 'pending' }));
+  await assertSucceeds(updateDoc(doc(as('p1'), 'User/p1'), { fcmToken: 'x' })); // bekleme sürecinde diğer alanlar güncellenebilir
+  await assertFails(deleteDoc(doc(as('p2'), 'User/p2'))); // User silme istemciden kapalı (sunucu akışı zorunlu)
+  await assertFails(getDoc(doc(as('p1'), 'AccountDeletion/p1')));
+  await assertFails(setDoc(doc(as('p1'), 'AccountDeletion/p1'), { status: 'cancelled' }));
+  await assertFails(deleteDoc(doc(as('p1'), 'AccountDeletion/p1')));
+  await assertFails(setDoc(doc(as('admin1'), 'AccountDeletion/p1'), { status: 'pending' }));
+  await assertSucceeds(getDoc(doc(as('admin1'), 'AccountDeletion/p1')));
+});
+
+test('hesap silme mezar taşı: deleting/deleted uid eski token ile User yazamaz/yeniden oluşturamaz; pending engellemez', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/z1'), { role: 'user' });
+    await setDoc(doc(d, 'AccountDeletion/z1'), { uid: 'z1', status: 'deleting' });
+    await setDoc(doc(d, 'AccountDeletion/z2'), { uid: 'z2', status: 'deleted' });
+    await setDoc(doc(d, 'AccountDeletion/z3'), { uid: 'z3', status: 'pending' });
+    await setDoc(doc(d, 'User/z3'), { role: 'user', deletionStatus: 'pending' });
+  });
+  await assertFails(updateDoc(doc(as('z1'), 'User/z1'), { fcmToken: 'x' }));
+  await assertFails(setDoc(doc(as('z2'), 'User/z2'), { role: 'user' }));
+  await assertSucceeds(updateDoc(doc(as('z3'), 'User/z3'), { fcmToken: 'x' }));
+});

@@ -14,6 +14,7 @@
 const { FieldPath, FieldValue, Timestamp } = require('firebase-admin/firestore');
 const cfg = require('./config');
 const { requirePhone } = require('./phone');
+const { deletionPendingError, isBlocking } = require('./accountDeletion');
 const { err, parsePriceKurus, parseEventDateMs, kurusToTl, kurusStr, validateId, validateSeatIds } = require('./util');
 
 const seatPath = (sid, k) => new FieldPath('seats', sid, k);
@@ -93,6 +94,15 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const snap = tx ? await tx.get(satisRef()) : await satisRef().get();
     return normalizeSatis(snap.exists ? snap.data() : null);
   }
+  // ---- Hesap silme kapısı (docs/HESAP-SILME.md): pending/deleting kullanıcı satış yapamaz; cancelTicket/releaseHold serbest.
+  const delRef = (uid) => db.collection('AccountDeletion').doc(uid);
+  function checkDeletion(snap) {
+    if (snap && snap.exists && isBlocking(snap.data())) {
+      const sa = snap.data().scheduledAt;
+      throw deletionPendingError(sa && typeof sa.toMillis === 'function' ? sa.toMillis() : null);
+    }
+  }
+  async function assertNotDeleting(uid) { checkDeletion(await delRef(uid).get()); }
   async function assertAdmin(uid) {
     const u = await db.collection('User').doc(uid).get();
     if (!u.exists || u.data().role !== 'admin') throw err('permission-denied', 'Bu işlem için yönetici yetkisi gerekir.');
@@ -171,6 +181,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   // ------------------------------------------------------------------ holdSeats
   async function holdSeats(uid, data, ctx) {
+    await assertNotDeleting(uid);
     const { key } = who(ctx);
     const eventId = validateId(data && data.eventId, 'etkinlik');
     const seatIds = validateSeatIds(data && data.seatIds);
@@ -182,12 +193,14 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
     return db.runTransaction(async (tx) => {
       const t = now();
-      const [evSnap, L, myOrdersSnap, myTicketsSnap] = await Promise.all([
+      const [evSnap, L, myOrdersSnap, myTicketsSnap, delSnap] = await Promise.all([
         tx.get(eventRef),
         loadLimits(tx, uid, key),
         tx.get(orders().where('userId', '==', uid).where('eventId', '==', eventId)),
         tx.get(db.collection('Ticket').where('customerId', '==', uid).where('eventId', '==', eventId)),
+        tx.get(delRef(uid)),
       ]);
+      checkDeletion(delSnap);
       const heldDocs = myOrdersSnap.docs.filter((d) => d.data().status === 'held');
       if (!evSnap.exists) throw err('not-found', 'Etkinlik bulunamadı.');
       const ev = evSnap.data();
@@ -420,10 +433,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   // ------------------------------------------------------------------ ücretsiz onay
   async function confirmFree(uid, data, ctx) {
+    await assertNotDeleting(uid);
     const { key } = who(ctx);
     const orderId = validateId(data && data.orderId, 'sipariş');
     const orderRef = orders().doc(orderId);
     return db.runTransaction(async (tx) => {
+      checkDeletion(await tx.get(delRef(uid)));
       const c = await readFulfillCtx(tx, orderRef, orderId, key);
       if (!c) throw err('not-found', 'Sipariş bulunamadı.');
       if (c.order.userId !== uid) throw err('permission-denied', 'Bu siparişe erişim izniniz yok.');
@@ -444,10 +459,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   // ------------------------------------------------------------------ rezervasyon (ödeme sahnede)
   async function confirmReservation(uid, data, ctx) {
+    await assertNotDeleting(uid);
     const { key } = who(ctx);
     const orderId = validateId(data && data.orderId, 'sipariş');
     const orderRef = orders().doc(orderId);
     return db.runTransaction(async (tx) => {
+      checkDeletion(await tx.get(delRef(uid)));
       const satis = await readSatis(tx);
       const c = await readFulfillCtx(tx, orderRef, orderId, key);
       if (!c) throw err('not-found', 'Sipariş bulunamadı.');
@@ -592,6 +609,32 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     };
   }
 
+  /** Hesap silme sağlığı (docs/HESAP-SILME.md): bekleyen/vadesi geçmiş sayısı + zamanlanmış işin kalp atışı. Hata paneli bozmaz. */
+  async function deletionHealth(t) {
+    const AD = cfg.ACCOUNT_DELETION, col = () => db.collection('AccountDeletion');
+    try {
+      const [hb, pending, deleting, overdue, failing] = await Promise.all([
+        db.collection('System').doc('processAccountDeletions').get(),
+        col().where('status', '==', 'pending').count().get(),
+        col().where('status', '==', 'deleting').count().get(),
+        col().where('scheduledAt', '<=', Timestamp.fromMillis(t)).count().get(),
+        col().where('errorCount', '>=', AD.FAILING_AT).count().get(),
+      ]);
+      const h = hb.exists ? hb.data() : null;
+      const last = h && h.lastRunAt && typeof h.lastRunAt.toMillis === 'function' ? h.lastRunAt.toMillis() : null;
+      const od = overdue.data().count;
+      return {
+        pending: pending.data().count, deleting: deleting.data().count, overdue: od, failing: failing.data().count,
+        lastRunAt: last, ageMinutes: last == null ? null : Math.max(0, Math.round((t - last) / 60000)),
+        processed: h ? h.processed || 0 : 0, deleted: h ? h.deleted || 0 : 0, postponed: h ? h.postponed || 0 : 0, failed: h ? h.failed || 0 : 0,
+        stale: last == null ? od > 0 : t - last > AD.STALE_MS && od > 0,
+      };
+    } catch (e) {
+      log.error('deletionHealth', { code: e && e.code });
+      return null;
+    }
+  }
+
   async function adminHealth(uid) {
     await assertAdmin(uid);
     const t = now();
@@ -620,6 +663,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       orders().where('refundRequired', '==', true).limit(50).get(), readSatis(),
       db.collection('System').doc('eventReminders').get(), db.collection('Config').doc('bildirim').get(),
     ]);
+    const accountDeletion = await deletionHealth(t);
     const rh = remHb.exists ? remHb.data() : null;
     const rLast = rh && rh.lastRunAt && typeof rh.lastRunAt.toMillis === 'function' ? rh.lastRunAt.toMillis() : null;
     const rEnabled = !(remConf.exists && remConf.data().autoReminders === false);
@@ -639,6 +683,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         sent24: rh ? rh.sent24 || 0 : 0, sent2: rh ? rh.sent2 || 0 : 0,
         stale: rEnabled && (rLast == null || t - rLast > cfg.NOTIFY.REMINDER_STALE_MS),
       },
+      accountDeletion,
       refundRequired: {
         count: refundSnap.size,
         orders: refundSnap.docs.map((d) => ({ orderId: d.id, total: d.data().total ?? null, paymentId: d.data().paymentId || null })),
@@ -657,6 +702,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   }
 
   async function startPayment(uid, data, ctx = {}) {
+    await assertNotDeleting(uid);
     const { phone } = who(ctx);
     const orderId = validateId(data && data.orderId, 'sipariş');
     if ((await readSatis()).mode !== 'online') {
@@ -672,6 +718,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const t = now();
     // 1) held -> paying (atomik); koltuk tutma süresi ödeme penceresine uzatılır.
     const prep = await db.runTransaction(async (tx) => {
+      checkDeletion(await tx.get(delRef(uid)));
       const oSnap = await tx.get(orderRef);
       if (!oSnap.exists) throw err('not-found', 'Sipariş bulunamadı.');
       const o = oSnap.data();

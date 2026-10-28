@@ -10,6 +10,8 @@ const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
+const { getAuth } = require('firebase-admin/auth');
+const { getStorage } = require('firebase-admin/storage');
 
 const cfg = require('./src/config');
 const { err, makeAssertAdmin } = require('./src/util');
@@ -17,6 +19,8 @@ const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
+const { createAccountDeletion } = require('./src/accountDeletion');
+const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
 if (!getApps().length) initializeApp();
@@ -74,6 +78,16 @@ function getService(withSecrets) {
   });
 }
 
+function getDeletion() {
+  return createAccountDeletion({
+    db: getFirestore(), auth: getAuth(), orderService: getService(false), salt: phoneSalt(), log: logger,
+    // Profil görseli: ppics/{uid}.* (ön ek; src/storage.js). Storage emülatörü yoksa emülatörde gerçek Google API'ye çıkılmaz.
+    deleteProfileImage: async (uid) => {
+      if (emulator && !process.env.FIREBASE_STORAGE_EMULATOR_HOST) return;
+      await deleteProfileImages(getStorage().bucket(), uid);
+    },
+  });
+}
 function getStats() { return createStats({ db: getFirestore(), log: logger }); }
 function getNotifier() {
   const db = getFirestore();
@@ -103,6 +117,14 @@ exports.cancelTicket = onCall(base, guarded((req) => getService(false).cancelTic
 // Telefon doğrulama senkronu: istemci giriş/telefon bağlama sonrası (getIdToken(true) ardından) çağırır. docs/TELEFON-DOGRULAMA.md
 exports.syncPhoneVerification = onCall(base, guarded((req) =>
   createPhoneSync({ db: getFirestore(), salt: phoneSalt(), log: logger }).syncPhoneVerification(req.auth.uid, phoneCtx(req))));
+// Hesap silme (30 gün bekleme). Ayrıntı/sözleşme: docs/HESAP-SILME.md
+exports.requestAccountDeletion = onCall(base, guarded((req) => getDeletion().requestAccountDeletion(req.auth.uid, phoneCtx(req))));
+exports.cancelAccountDeletion = onCall(base, guarded((req) => getDeletion().cancelAccountDeletion(req.auth.uid)));
+exports.getAccountDeletionStatus = onCall(base, guarded((req) => getDeletion().getAccountDeletionStatus(req.auth.uid)));
+exports.adminProcessAccountDeletions = onCall({ ...base, timeoutSeconds: 540, memory: '512MiB' }, guarded(async (req) => {
+  await makeAssertAdmin(getFirestore())(req.auth.uid);
+  return getDeletion().processDue();
+}));
 // Yönetici callable'ları: yetki sunucuda User/{uid}.role == 'admin' ile denetlenir.
 exports.adminSetTicketStatus = onCall(base, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
 exports.adminCheckIn = onCall(base, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
@@ -170,4 +192,12 @@ exports.eventReminders = onSchedule(
   async () => {
     const r = await getNotifier().eventReminders();
     logger.info('eventReminders', r);
+  });
+
+/** Süresi (30 gün) dolan hesap silme taleplerini işler. Günde 1 (03:00 TR). Production'da Cloud Scheduler (Blaze) gerekir. docs/HESAP-SILME.md */
+exports.processAccountDeletions = onSchedule(
+  { region: cfg.REGION, schedule: '0 3 * * *', timeZone: 'Europe/Istanbul', timeoutSeconds: 540, memory: '512MiB' },
+  async () => {
+    const r = await getDeletion().processDue();
+    logger.info('processAccountDeletions', r);
   });

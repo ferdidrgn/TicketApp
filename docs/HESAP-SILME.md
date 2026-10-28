@@ -45,7 +45,7 @@ Vazgeçme. `{ status:'active', wasPending:boolean }`. Pending değilse (kayıt y
 ### 2.4 Yönetici
 
 - `adminProcessAccountDeletions()` — yalnız `User.role == 'admin'`; zamanlayıcı yoksa/arızalıysa elle tetikler. Yanıt: `{ processed, deleted, postponed, failed, scanned, remainingDue }`.
-- `adminHealth()` yanıtına eklenen `accountDeletion` alanı (admin paneli gösterir): `{ pending, deleting, overdue, lastRunAt (ms|null), ageMinutes, processed, deleted, postponed, failed, stale }`.
+- `adminHealth()` yanıtına eklenen `accountDeletion` alanı (admin paneli gösterir): `{ pending, deleting, overdue, lastRunAt (ms|null), ageMinutes, processed, deleted, postponed, failed, failing, stale }`. `overdue` = vadesi geçmiş ama işlenmemiş kayıt; `failing` = 3+ denemede hata veren kayıt (`errorCount >= 3`; `lastError` kodu `AccountDeletion/{uid}` içinde, admin okur).
 
 ## 3. Satış callable'ları ve bekleme süresi
 
@@ -72,10 +72,14 @@ processAccountDeletions (her gün 03:00 Europe/Istanbul)  scheduledAt <= şimdi 
   1. pending -> deleting (atomik kilit)
   2. gelecek bilet TEKRAR kontrol:
         var -> ERTELE: scheduledAt = son etkinlik tarihi + 1 gün, status 'pending', kullanıcıya Notification (type 'accountDeletion')
-  3. Ticket/Order kişisel alanları anonimleştir (silinmez)
-  4. Notification, Review, ReviewReport, UserLimits/{uid} (aynası) sil; Storage ppics/{uid}.jpg sil
-  5. Auth kullanıcısını sil, User/{uid} sil
-  6. AccountDeletion/{uid} -> {status:'deleted', deletedAt}  (UserLimits/ph_* sayacı KASITLI kalır)
+  3. SIRA (her adım idempotent; hata olursa sonrakiler çalışmaz, User/Auth en sonda olduğundan kayıt kurtarılabilir kalır):
+       a. Storage: ppics/{uid}.* ve ppics/{uid}/* (ön ek; jpg/png/webp/alt klasör)       [hata -> Firestore'a HİÇ dokunulmaz]
+       b. Eski biçim Event.seats[*].customerId == uid alanını sil (yalnız kullanıcının bilet/siparişindeki etkinlikler)
+       c. Ticket / Order anonimleştir (customerId/userId -> deleted-<hash>, phoneKey ve eski kişisel alanlar silinir; belge KALIR)
+       d. NotificationLog.sentBy == uid (yönetici ise) anonimleştir
+       e. Notification, Review, ReviewReport, UserLimits/{uid} (aynası) sil
+       f. Auth kullanıcısını sil (user-not-found = başarı)      g. User/{uid} sil
+       h. AccountDeletion/{uid} -> {status:'deleted', deletedAt}  (kişisel alan yok; UserLimits/ph_* sayacı KASITLI kalır)
   her adım idempotent; hata -> kayıt 'pending'e döner (attempts++), ertesi gün yeniden denenir
 ```
 
@@ -98,12 +102,14 @@ processAccountDeletions (her gün 03:00 Europe/Istanbul)  scheduledAt <= şimdi 
 | `User/{uid}` (ad, e-posta, telefon, favoriler, fcmToken, görsel adı) | **Silinir** | Kişisel veri |
 | `Notification` (userId==uid) | **Silinir** | Kişisel |
 | `Review`, `ReviewReport` (userId==uid) | **Silinir** | Kamuya açık ad/fotoğraf içerir |
-| Storage `ppics/{uid}.jpg` | **Silinir** | Profil görseli |
+| Storage `ppics/{uid}.*` (jpg/png/alt klasör) | **Silinir** (ön ek ile) | Profil görseli (istemci yolu `ppics/{uid}.jpg`) |
+| `Event.seats[*].customerId` (eski biçim kalıntı) | Alan silinir | Yeni biçimde zaten tutulmaz |
+| `NotificationLog.sentBy/sentByName` (yöneticiyse) | Anonimleşir | Ad |
 | `UserLimits/{uid}` (uid aynası) | **Silinir** | Uid'e bağlı |
 | `UserLimits/ph_*` (telefon HASH sayacı) | **KALIR** (KASITLI) | Aynı numarayla yeniden kayıtta ücretsiz bilet/rezervasyon hakkı sıfırlanmasın (docs/ODEME-GUVENLIK.md §15). Düz numara değil, tuzlu hash; yalnızca sayaç |
 | `Ticket` | **KALIR, anonimleşir**: `customerId` -> `deleted-<hash>` | Mali/yasal saklama; koltuk, tutar, tarih, durum, oyun adı kalır, istatistik bozulmaz |
 | `Order` | **KALIR, anonimleşir**: `userId` -> `deleted-<hash>`, `phoneKey` kaldırılır | Aynı; `paymentId`/tutar iade ve muhasebe için kalır |
-| `AccountDeletion/{uid}` | `{status:'deleted', uid, requestedAt, deletedAt}` | İşlem günlüğü; **düz telefon/e-posta yok**, phoneKey silinir |
+| `AccountDeletion/{uid}` | `{status:'deleted', deletedAt}` (belge kimliği = silinmiş uid; Auth'ta karşılığı yok) | İşlem günlüğü; **düz telefon/e-posta yok**, phoneKey silinir |
 
 `deleted-<hash>` = `'deleted-' + sha256('acctdel:' + uid)` ilk 16 hex. Aynı kullanıcının kayıtları birbirine bağlı kalır, kişiye bağlanamaz.
 
@@ -115,13 +121,31 @@ processAccountDeletions (her gün 03:00 Europe/Istanbul)  scheduledAt <= şimdi 
 
 ## 8. Zamanlayıcı kurulumu
 
-`processAccountDeletions`: `onSchedule('0 3 * * *', timeZone 'Europe/Istanbul')`. Cloud Scheduler gerektirir -> **Blaze planı** (functions deploy zaten Blaze ister; `expireHolds`/`eventReminders` ile aynı). İlk deploy'da Scheduler işi otomatik oluşur. Zamanlayıcı çalışmazsa admin panelinden `adminProcessAccountDeletions` elle çalıştırılır; `adminHealth.accountDeletion.stale` uyarır (>36 saat çalışmamış ve vadesi geçmiş kayıt varsa). Heartbeat: `System/processAccountDeletions` `{ lastRunAt, processed, deleted, postponed, failed }`.
+`processAccountDeletions`: `onSchedule('0 3 * * *', timeZone 'Europe/Istanbul')`. Cloud Scheduler gerektirir -> **Blaze planı** (functions deploy zaten Blaze ister; `expireHolds`/`eventReminders` ile aynı). İlk deploy'da Scheduler işi otomatik oluşur. Zamanlayıcı çalışmazsa admin panelinden `adminProcessAccountDeletions` elle çalıştırılır; `adminHealth.accountDeletion.stale` uyarır (>36 saat çalışmamış ve vadesi geçmiş kayıt varsa). Heartbeat: `System/processAccountDeletions` `{ lastRunAt, processed, deleted, postponed, failed }`. Bir çalışmada en çok 100 kullanıcı / 7 dakika işlenir (kalanı ertesi gün; `adminProcessAccountDeletions` ile elle devam edilir).
 Yeni Firestore index'i GEREKMEZ (tek alanlı `scheduledAt` / `status` sorguları).
 
 ## 9. Deploy sırası ve riskler
 
 - `firestore.rules` yeni alanları korur ve `User` belge **silmesini** istemciden kapatır (silme artık yalnız sunucuda): eski mobil sürüm `deleteUser` ile doğrudan belge silerse reddedilir. Mobil bu sözleşmeye geçmeden rules'u deploy etmeyin. (Firebase Auth `user.delete()` istemci tarafında hâlâ teknik olarak mümkün: istemci doğrudan çağırmamalı; bilet kuralı yalnızca callable yolunda zorlanır.)
 - Önce functions, sonra rules (ODEME-GUVENLIK ile aynı sıra).
-- Risk: eski kayıtlarda `Event.seats[*].customerId` kalmış olabilir (eski biçim); anonimleştirme Event belgelerini taramaz.
+- Risk: eski biçim `Event.seats[*].customerId` yalnızca kullanıcının bilet/siparişinde geçen etkinliklerde temizlenir; bilete dönüşmemiş, siparişsiz eski "reserved" koltuk kalıntıları bulunamaz.
+- Risk: gerçek GCS'e karşı test EDİLMEDİ (yalnız Storage emülatörü); ilk deploy'da bir test hesabıyla uçtan uca deneyin (`getStorage().bucket()` varsayılan bucket).
 - Risk: `Event.date` ayrıştırılamayan eski biletler "gelecek" sayılmaz.
 - Risk: sunucu saatine göre 30 gün; kullanıcı saat dilimi etkisi yok.
+
+## 10. Hata / yarım kalma senaryoları (testle kanıtlı: functions/test/account-deletion.test.js)
+
+Durum makinesi: `pending` -> (atomik kilit, `claimedAt` = 15 dk kira) `deleting` -> `deleted`. Hata olursa kayıt `deleting` KALIR (`errorCount++`, `lastError` = yalnız hata KODU; hata mesajı yazılmaz; kilit bırakılır) ve ertesi çalışma / elle tetikleme kaldığı yerden devam eder. `deleting` kasıtlı olarak iptal edilemez: yarım silinmiş hesap yeniden canlandırılmaz.
+
+| Senaryo | Sonuç |
+|---|---|
+| Storage silme hatası | Firestore/Auth'a dokunulmaz; sonraki çalışmada tamamlanır |
+| Bilet anonimleştirme 2. sayfada kesilir | İlk sayfa anonim kalır, kalanlar sonraki çalışmada; çift işlem/kayıp yok; User hâlâ duruyor |
+| Auth silme hatası | User belgesi silinmemiştir; yeniden denenir |
+| Auth zaten silinmiş | Başarı sayılır |
+| İşleyici çöker (kilit kalır) | 15 dk sonra başka çalışma devralır |
+| İki işleyici eşzamanlı | Biri siler, diğeri atlar |
+| Bir kullanıcıda hata | Diğerleri işlenmeye devam eder |
+| Gelecek bilet / ödemesi süren sipariş çıkmış | Silme ertelenir + bildirim |
+
+Kanıtlanmayanlar: gerçek Cloud Scheduler tetiklemesi, gerçek GCS (yalnız Storage emülatörü denendi), üretim verisi.

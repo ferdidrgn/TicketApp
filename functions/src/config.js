@@ -27,6 +27,17 @@ module.exports = {
     REMINDER_STALE_MS: 45 * 60 * 1000, // eventReminders bu süredir çalışmadıysa panel uyarır (zamanlama: 15 dk)
   },
 
+  // Hesap silme (docs/HESAP-SILME.md)
+  ACCOUNT_DELETION: {
+    GRACE_MS: 30 * 24 * 60 * 60 * 1000, // bekleme süresi
+    BATCH: 50, MAX_PER_RUN: 100, // zamanlanmış çalışmada yığın boyutu / üst sınır
+    TIME_BUDGET_MS: 7 * 60 * 1000, // bir çalışmada en çok bu kadar işlenir (kalanı ertesi gün/elle)
+    CLAIM_MS: 15 * 60 * 1000, // 'deleting' kilidi bu süre sonra yeniden alınabilir
+    STALE_MS: 36 * 60 * 60 * 1000, // günlük iş bu süredir çalışmadıysa panel uyarır
+    FAILING_AT: 3, // errorCount bu değere ulaşan kayıtlar adminHealth'te "hata veren" sayılır
+    DOC_BATCH: 400, // anonimleştirme/silme batch boyutu (<=500)
+  },
+
   // Etkinlik tarihi "gg.aa.yyyy,ss:dd" yerel (Türkiye, UTC+3, DST yok) saat olarak yazılır.
   TZ_OFFSET_MIN: 180,
   ALLOWED_ORIGINS: [

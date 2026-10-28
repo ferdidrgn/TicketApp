@@ -51,6 +51,13 @@ service cloud.firestore {
         (request.auth.token.get('phone_number', null) != null && v == request.auth.token.get('phone_number', null));
     }
 
+    // Hesap silme mezar taşı (AccountDeletion/{uid}.status == 'deleted'|'deleting'): silinen/silinmekte olan uid'in eski ID token'ı
+    // (~1 saat geçerli) User belgesini yeniden oluşturamaz/yazamaz. 'pending' (bekleme) kullanıcıyı ENGELLEMEZ (vazgeçebilmeli).
+    function deletionLocked(userId) {
+      return exists(/databases/$(database)/documents/AccountDeletion/$(userId)) &&
+        get(/databases/$(database)/documents/AccountDeletion/$(userId)).data.status in ['deleting', 'deleted'];
+    }
+
     // -------------------------------------------------------------------
     // User — lib/features/users/domain/entities/user.dart
     // Koleksiyon adı: 'User' (bkz. user_remote_data_source_and_impl.dart,
@@ -67,7 +74,11 @@ service cloud.firestore {
       // TELEFON (docs/TELEFON-DOGRULAMA.md): isPhoneActive / phoneVerifiedAt / phoneKey YALNIZCA sunucu (syncPhoneVerification)
       // yazar. İstemci create'te isPhoneActive'i yalnızca false/null/yok, phoneVerifiedAt/phoneKey'i hiç yazamaz; phoneNumber
       // yalnızca boş ya da token'daki doğrulanmış phone_number ile birebir aynı olabilir.
-      allow create: if isOwner(userId) &&
+      // HESAP SİLME (docs/HESAP-SILME.md): deletionStatus / deletionScheduledAt / deletionRequestedAt YALNIZCA sunucu yazar.
+      allow create: if isOwner(userId) && !deletionLocked(userId) &&
+        !('deletionStatus' in request.resource.data) &&
+        !('deletionScheduledAt' in request.resource.data) &&
+        !('deletionRequestedAt' in request.resource.data) &&
         request.resource.data.get('role', 'user') in ['user', 'guest', 'unknown'] &&
         request.resource.data.get('isPhoneActive', false) in [false, null] &&
         !('phoneVerifiedAt' in request.resource.data) &&
@@ -84,7 +95,10 @@ service cloud.firestore {
       // üzerinden, geliştirici tarafından elle yapılmalı.
       // Update'te de: isPhoneActive değişmedi YA DA false/null'a çekiliyor (true'ya ASLA); phoneVerifiedAt/phoneKey değişmez;
       // phoneNumber değişmedi, boşaltılıyor ya da token'daki doğrulanmış numarayla aynı.
-      allow update: if isOwner(userId) &&
+      allow update: if isOwner(userId) && !deletionLocked(userId) &&
+        request.resource.data.get('deletionStatus', null) == resource.data.get('deletionStatus', null) &&
+        request.resource.data.get('deletionScheduledAt', null) == resource.data.get('deletionScheduledAt', null) &&
+        request.resource.data.get('deletionRequestedAt', null) == resource.data.get('deletionRequestedAt', null) &&
         request.resource.data.get('role', null) == resource.data.get('role', null) &&
         (request.resource.data.get('isPhoneActive', null) == resource.data.get('isPhoneActive', null) ||
           request.resource.data.get('isPhoneActive', null) in [false, null]) &&
@@ -92,9 +106,16 @@ service cloud.firestore {
         request.resource.data.get('phoneKey', null) == resource.data.get('phoneKey', null) &&
         phoneNumberWriteOk(resource.data.get('phoneNumber', null));
 
-      // Delete: hesap silme akışı var (bkz. delete_user_use_case_impl.dart
-      // -> UserRemoteDataSourceImpl.deleteUser) — sadece kendi hesabı.
-      allow delete: if isOwner(userId);
+      // Delete: KAPALI (28.10.2026). Hesap silme artık yalnızca sunucuda (requestAccountDeletion -> 30 gün bekleme ->
+      // processAccountDeletions): "gelecek biletim varken sil" kuralı istemciden aşılamasın. Admin SDK kuralları atlar.
+      allow delete: if false;
+    }
+
+    // AccountDeletion — hesap silme işlem günlüğü / kuyruğu. Yalnızca sunucu yazar; yalnız admin okur (düz telefon/e-posta içermez).
+    // Kullanıcı kendi durumunu User.deletion* alanlarından ya da getAccountDeletionStatus callable'ından okur.
+    match /AccountDeletion/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // -------------------------------------------------------------------
