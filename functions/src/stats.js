@@ -22,7 +22,7 @@ const isoOf = (ms) => new Date(ms).toISOString();
 
 function createStats({ db, now = Date.now, log = console }) {
   // ---------------------------------------------------------------- trackView
-  const RATE = { windowMs: 60 * 1000, ip: 30, target: 6 };
+  const RATE = { windowMs: 60 * 1000, ip: 30, target: 6, targetAll: 120, all: 600 };
   const rate = new Map(); // instance belleği: anahtar -> {start,count}
   const known = new Map(); // `${kind}:${id}` -> {ok, until}
   function hit(key, max) {
@@ -30,6 +30,14 @@ function createStats({ db, now = Date.now, log = console }) {
     if (rate.size > 5000) { for (const [k, v] of rate) if (t - v.start >= RATE.windowMs) rate.delete(k); if (rate.size > 5000) rate.clear(); }
     let e = rate.get(key);
     if (!e || t - e.start >= RATE.windowMs) { e = { start: t, count: 0 }; rate.set(key, e); }
+    e.count += 1;
+    return e.count <= max;
+  }
+  const grate = new Map(); // IP'den bağımsız tavanlar (ayrı harita: ip döndürerek şişirilip sıfırlanamaz)
+  function ghit(key, max) {
+    const t = now();
+    let e = grate.get(key);
+    if (!e || t - e.start >= RATE.windowMs) { e = { start: t, count: 0 }; grate.set(key, e); }
     e.count += 1;
     return e.count <= max;
   }
@@ -59,6 +67,10 @@ function createStats({ db, now = Date.now, log = console }) {
     const who = String(ip || 'unknown');
     if (!hit(`ip:${who}`, RATE.ip) || !hit(`t:${who}:${kind}:${id}`, RATE.target)) return { status: 204, ignored: 'rate' };
     if (!(await exists(kind, id))) return { status: 204, ignored: 'unknown' };
+    // S-1: X-Forwarded-For istemci tarafından döndürülebilir (req.ip sahtelenebilir; IP döndürerek yukarıdaki sınırlar aşılır) ->
+    // IP'den BAĞIMSIZ sert tavanlar: hedef başına ve instance başına dakikalık toplam. Yalnız VAR OLAN hedefler için sayılır
+    // (anahtar sayısı belge sayısıyla sınırlı). Normal trafik (küçük tiyatro sitesi) bunların çok altındadır.
+    if (!ghit(`${kind}:${id}`, RATE.targetAll) || !ghit('*', RATE.all)) return { status: 204, ignored: 'rate' };
     const t = now();
     const inc = { total: FieldValue.increment(1), [`${kind}_total`]: FieldValue.increment(1), [`${kind}_${id}`]: FieldValue.increment(1) };
     const batch = db.batch();

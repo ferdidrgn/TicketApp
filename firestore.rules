@@ -30,6 +30,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // GÜVENLİK (S-1, docs/GUVENLIK-DENETIMI.md): anonim olmayan oturum / doğrulanmış telefonlu oturum.
+    // Telefon token'ı Firebase Auth SMS doğrulamasından gelir; istemci sahteleyemez.
+    function notAnonymous() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function phoneVerified() {
+      return notAnonymous() && request.auth.token.get('phone_number', null) != null;
+    }
+
     // 🔥 UserRole — bkz. lib/core/common/enum/enums.dart:
     //   enum UserRole { admin, curator, user, guest, unknown }
     // User.role, Firestore'a `role.name` ile yazılıyor (bkz. user.dart ->
@@ -185,10 +194,10 @@ service cloud.firestore {
     match /Notification/{notificationId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
 
-      // Create: satın alma sonrası kullanıcı KENDİ bildirimini oluşturuyor
-      // (bkz. event_provider.dart -> createNotification, userId: customerId
-      // = mevcut kullanıcı). Başkası adına bildirim oluşturulamaz.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Create: KAPALI (S-1). Bildirimleri yalnızca sunucu (Admin SDK: sipariş onayı, hatırlatma, duyuru) yazar; mobilde
+      // createNotification kullanım durumu hiçbir yerden çağrılmıyor. Aksi halde kullanıcı kendine sınırsız/sahte
+      // (ör. sahte "ödeme alındı") bildirim üretip depolamayı şişirebilirdi.
+      allow create: if false;
 
       // Update: tek gerçek kullanım `markNotificationRead` — sadece
       // `isRead` alanını değiştiriyor. Sahipliği (`userId`) veya
@@ -196,6 +205,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         resource.data.userId == request.auth.uid &&
         request.resource.data.userId == resource.data.userId &&
+        request.resource.data.isRead is bool &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
 
       // Delete: kod tabanında kullanılmıyor ama kullanıcının kendi
@@ -223,25 +233,40 @@ service cloud.firestore {
     match /Review/{reviewId} {
       allow read: if true;
 
-      allow create: if isSignedIn() &&
+      // Create (S-1): doğrulanmış telefon + anonim olmayan sağlayıcı; alan beyaz listesi, tür ve boyut sınırı; sunucu zamanı;
+      // yalnızca var olan bir oyuna; `hidden` istemciden yalnızca false yazılabilir.
+      allow create: if phoneVerified() &&
+        request.resource.data.keys().hasOnly(['showId', 'userId', 'userName', 'userImage', 'rating', 'text', 'createdAt', 'updatedAt', 'hidden']) &&
+        request.resource.data.keys().hasAll(['showId', 'userId', 'rating', 'text', 'hidden', 'createdAt']) &&
+        request.resource.data.showId is string &&
+        request.resource.data.showId.size() >= 1 && request.resource.data.showId.size() <= 128 &&
         reviewId == request.auth.uid + '_' + request.resource.data.showId &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.rating is int &&
         request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
         request.resource.data.text is string &&
         request.resource.data.text.size() <= 600 &&
-        request.resource.data.hidden == false;
+        request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
+        request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
+        request.resource.data.hidden == false &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.get('updatedAt', request.time) == request.time &&
+        exists(/databases/$(database)/documents/Show/$(request.resource.data.showId));
 
-      // Sahibi yalnızca puan/metin/ad/foto/zaman alanlarını değiştirir;
-      // admin ayrıca `hidden` (gizleme) alanını değiştirebilir.
+      // Sahibi yalnızca puan/metin/ad/foto/zaman alanlarını değiştirir (aynı doğrulamalar); admin ayrıca `hidden` değiştirebilir.
       allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid &&
+        (resource.data.userId == request.auth.uid && phoneVerified() &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['rating', 'text', 'userName', 'userImage', 'updatedAt']) &&
           request.resource.data.rating is int &&
           request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
-          request.resource.data.text.size() <= 600) ||
+          request.resource.data.text is string &&
+          request.resource.data.text.size() <= 600 &&
+          request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
+          request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
+          request.resource.data.get('updatedAt', request.time) == request.time) ||
         (isAdmin() &&
+          request.resource.data.hidden is bool &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['hidden']))
       );
@@ -250,10 +275,19 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // Şikâyetler: giriş yapan herkes KENDİ adına yazar; yalnızca admin okur.
+    // Şikâyetler (S-1): anonim olmayan oturum; belge kimliği `${reviewId}_${reporterUid}` (mobil ReviewRepository.report ile aynı) ->
+    // kullanıcı başına yorum başına TEK belge; alan beyaz listesi + boyut sınırı; var olan yoruma; yalnızca admin okur.
     match /ReviewReport/{reportId} {
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
+      allow create: if notAnonymous() &&
+        request.resource.data.keys().hasOnly(['reviewId', 'userId', 'createdAt', 'reason']) &&
+        request.resource.data.keys().hasAll(['reviewId', 'userId', 'createdAt']) &&
+        request.resource.data.reviewId is string &&
+        request.resource.data.reviewId.size() >= 3 && request.resource.data.reviewId.size() <= 300 &&
+        reportId == request.resource.data.reviewId + '_' + request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.get('reason', '') is string && request.resource.data.get('reason', '').size() <= 200 &&
+        exists(/databases/$(database)/documents/Review/$(request.resource.data.reviewId));
       allow read: if isAdmin();
       allow update, delete: if false;
     }
