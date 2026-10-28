@@ -1,0 +1,52 @@
+# Sağlık denetimi — canlı site + Firestore System/* kalp atışları (zamanlayıcılar çalışıyor mu?).
+# Sorun varsa Telegram'a mesaj atar (TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID yoksa yalnız log) ve iş akışını BAŞARISIZ
+# yapar -> GitHub'ın "failed run" e-postası yedek bildirimdir. Ayrıntı: docs/OTOMASYON.md
+#
+# Secret'lar (hepsi isteğe bağlı): FIREBASE_SERVICE_ACCOUNT (kalp atışı denetimi için; role: Cloud Datastore Viewer),
+#                                  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+# Zamanlanmış çalışmalar yalnız varsayılan dalda (main) çalışır.
+name: Health Check
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # 3 saatte bir (dakika 17: tam saat yoğunluğundan kaçınmak için)
+  workflow_dispatch:
+
+concurrency:
+  group: health-check
+  cancel-in-progress: true
+
+jobs:
+  health:
+    name: Site + zamanlayıcı sağlığı
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write   # yalnız cron canlı tutma adımı için
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: site/tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Kendi kendine sınama (sahte yanıtlar, ağ yok)
+        run: node site/tools/health-check.mjs --dry-run
+
+      - name: Denetim
+        run: node site/tools/health-check.mjs
+        env:
+          SITE_URL: https://tiyatrol.web.app
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      # 60 gün hareketsizlikte cron durmasın diye (bkz. deploy-web.yml); başarısızlığı önemsenmez.
+      - name: Keep schedule alive
+        if: github.event_name == 'schedule' && success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/health-check.yml/enable"

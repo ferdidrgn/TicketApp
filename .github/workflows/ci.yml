@@ -72,3 +72,50 @@ jobs:
           node-version: "20"
       - run: node site/tools/build.mjs
       - run: test -s site-dist/index.html && test -s site-dist/.well-known/assetlinks.json
+
+  functions-test:
+    name: Backend testleri (functions/, emülatör)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Firestore/Storage emülatörleri Java ister.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install functions dependencies
+        run: npm --prefix functions ci
+
+      # SAHTE test değerleri (gerçek sır DEĞİL). Dosya yalnız bu geçici koşucuda yaşar, commit edilmez.
+      - name: Write fake local secrets
+        run: |
+          {
+            echo 'PHONE_HASH_SALT=tiyatrol-phone-v1:ticketappflutter'
+            echo 'IYZICO_API_KEY=sandbox-fake-api-key'
+            echo 'IYZICO_SECRET_KEY=sandbox-fake-secret-key'
+          } > functions/.secret.local
+
+      # firebase.json'da Storage emülatörü/kuralı yok; CI için geçici bir yapılandırma üret (repo dosyası değişmez).
+      - name: Prepare CI emulator config
+        run: |
+          cat > ci-storage.rules <<'RULES'
+          rules_version = "2";
+          service firebase.storage {
+            match /b/{bucket}/o {
+              match /{allPaths=**} { allow read, write: if true; }
+            }
+          }
+          RULES
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('firebase.json','utf8'));c.storage={rules:'ci-storage.rules'};c.emulators.storage={port:9199};fs.writeFileSync('firebase.ci.json',JSON.stringify(c,null,2))"
+
+      - name: Run backend tests in emulators
+        run: npx -y firebase-tools@14 emulators:exec --config firebase.ci.json --project ticketappflutter --only firestore,auth,functions,storage "npm --prefix functions test"
