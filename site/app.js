@@ -833,6 +833,12 @@ function initChrome() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mnav.classList.contains('is-open')) { setMenu(false); burger.focus(); } });
 
   // Form yalnızca kullanıcının e-posta uygulamasını açar — sitede veri saklanmaz/gönderilmez.
+  // Konu çipleri: seçileni gizli 'subject' alanına yazar (gönderim bu değeri kullanır).
+  const konuAlani = document.querySelector('#contactForm [name=subject]');
+  document.querySelectorAll('#contactForm [data-konu]').forEach((c) => c.addEventListener('click', () => {
+    document.querySelectorAll('#contactForm [data-konu]').forEach((x) => { const on = x === c; x.classList.toggle('is-on', on); x.setAttribute('aria-pressed', String(on)); });
+    if (konuAlani) konuAlani.value = c.dataset.konu;
+  }));
   $('contactForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
