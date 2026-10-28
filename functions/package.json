@@ -6,7 +6,7 @@
   "engines": { "node": "20" },
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=60000 test/*.test.js",
-    "test:emulator": "firebase emulators:exec --project ticketappflutter --only firestore,auth,functions \"npm test\"",
+    "test:emulator": "firebase emulators:exec --project ticketappflutter --only firestore,auth,functions,storage \"npm test\"",
     "serve": "firebase emulators:start --only firestore,auth,functions"
   },
   "dependencies": {

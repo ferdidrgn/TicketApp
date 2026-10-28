@@ -26,6 +26,18 @@ const app = initializeApp({
   storageBucket: 'ticketappflutter.appspot.com',
 });
 
+// App Check (reCAPTCHA v3). Site key'i SAHİBİ üretir (Firebase Console > App Check > Web > reCAPTCHA v3; docs/GUVENLIK-DENETIMI.md).
+// BOŞKEN hiçbir şey yapılmaz ve hata vermez (şimdiki davranış). Anahtar herkese açık bir değerdir (secret DEĞİL).
+// Geliştirme: localhost'ta konsolda çıkan debug token'ı Console > App Check > Apps > Manage debug tokens'a ekleyin.
+const APPCHECK_SITE_KEY = '';
+if (APPCHECK_SITE_KEY) {
+  try {
+    if (['localhost', '127.0.0.1'].includes(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    const ac = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check.js');
+    ac.initializeAppCheck(app, { provider: new ac.ReCaptchaV3Provider(APPCHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  } catch (e) { console.warn('[TiyatRol] App Check başlatılamadı (devam ediliyor):', e && e.code); }
+}
+
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);

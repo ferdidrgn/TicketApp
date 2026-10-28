@@ -95,7 +95,10 @@ function getDeletion() {
     },
   });
 }
-function getStats() { return createStats({ db: getFirestore(), log: logger }); }
+// S-1: TEK örnek. Önceden her istekte createStats() çağrılıyordu -> trackView'in bellek içi hız sınırı/önbelleği her istekte SIFIRLANIYORDU
+// (sınır fiilen yoktu; redteam.test.js "(h)" kanıtladı). Instance başına tek örnek = sınırlar gerçekten işler.
+let statsSingleton = null;
+function getStats() { return statsSingleton || (statsSingleton = createStats({ db: getFirestore(), log: logger })); }
 function getNotifier() {
   const db = getFirestore();
   return createNotifier({ db, messaging: getMessaging(), assertAdmin: makeAssertAdmin(db), log: logger });

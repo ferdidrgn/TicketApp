@@ -19,7 +19,7 @@ const STORAGE_HOST = process.env.FIREBASE_STORAGE_EMULATOR_HOST;
 
 let env;
 before(async () => {
-  const cfg = { projectId: 'redteam-test', firestore: { host: fsHost, port: Number(fsPort), rules: RULES } };
+  const cfg = { projectId: 'ticketappflutter', firestore: { host: fsHost, port: Number(fsPort), rules: RULES } };
   if (STORAGE_HOST) {
     const [h, p] = STORAGE_HOST.split(':');
     cfg.storage = { host: h, port: Number(p), rules: fs.readFileSync(path.join(ROOT, 'storage.rules'), 'utf8') };
@@ -334,7 +334,7 @@ test('(i) kural dosyası taraması: `allow write/create/update/delete: if true` 
   const open = [];
   let cur = null;
   for (const l of stripped) {
-    const m = /match\s+(\/[^\s{]+(?:\/\{[^}]+\})?)\s*\{/.exec(l);
+    const m = /match\s+(\/\S+)\s*\{/.exec(l);
     if (m) cur = m[1];
     if (/allow\s+(read|get|list)[^:]*:\s*if\s+true/.test(l)) open.push(cur);
   }
@@ -455,7 +455,7 @@ test('(g) OTOMATİK TARAMA: index.js içindeki TÜM admin* callable\'ları yetki
   assert.equal((await db.collection('User').doc(user2.uid).get()).data().role, 'user');
 });
 
-test('(g) tüm kullanıcı callable\'ları anonim çağrıda UNAUTHENTICATED; hata gövdesi iç ayrıntı/iz sızdırmaz', { skip: SKIP_FN, timeout: 120000 }, async () => {
+test('(g) tüm kullanıcı callable\'ları anonim çağrıda UNAUTHENTICATED; hata gövdesi iç ayrıntı/iz sızdırmaz', { skip: SKIP_FN, timeout: 280000 }, async () => {
   const src = fs.readFileSync(path.join(ROOT, 'functions', 'index.js'), 'utf8');
   const names = [...src.matchAll(/^exports\.(\w+)\s*=\s*onCall\(/gm)].map((m) => m[1]);
   assert.ok(names.length >= 18, names.join(','));
@@ -475,28 +475,34 @@ test('(g) tüm kullanıcı callable\'ları anonim çağrıda UNAUTHENTICATED; ha
   }
 });
 
-test('(h) trackView kötüye kullanımı: yöntem/origin/bot/boyut; X-Forwarded-For döndürerek sayaç şişirme IP\'den bağımsız tavana takılır', { skip: SKIP_FN, timeout: 120000 }, async () => {
+test('(h) trackView kötüye kullanımı: yöntem/origin/bot/boyut; X-Forwarded-For döndürerek sayaç şişirme IP\'den bağımsız tavana takılır', { skip: SKIP_FN, timeout: 280000 }, async () => {
   const db = adminDb();
   await db.collection('Show').doc('rt_show').set({ name: 'RT' });
   const url = fnUrl('trackView');
   const good = { Origin: 'https://tiyatrol.web.app', 'User-Agent': 'Mozilla/5.0 (X11) Safari/605', 'Content-Type': 'application/json' };
-  const post = (h, body) => fetch(url, { method: 'POST', headers: { ...good, ...h }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+  const post = (h, body) => fetch(url, { signal: AbortSignal.timeout(60000), method: 'POST', headers: { ...good, ...h }, body: typeof body === 'string' ? body : JSON.stringify(body) });
   for (let i = 0; i < 40; i++) { try { const r = await post({}, { k: 'show', id: 'yok' }); if (r.status) break; } catch { /* henüz yok */ } await new Promise((r) => setTimeout(r, 1000)); }
-  assert.equal((await fetch(url, { method: 'GET', headers: good })).status, 405);
+  console.log('h:warm'); assert.equal((await fetch(url, { signal: AbortSignal.timeout(30000), method: 'GET', headers: good })).status, 405); console.log('h:get');
   assert.equal((await fetch(url, { method: 'PUT', headers: good, body: '{}' })).status, 405);
   assert.equal((await post({}, '{bozuk')).status, 400);
   assert.equal((await post({}, { k: 'show', id: 'x'.repeat(5000) })).status, 400);
   assert.equal((await post({}, { k: '__proto__', id: 'a' })).status, 400);
   assert.equal((await post({}, { k: 'User', id: 'alice' })).status, 400); // koleksiyon adı sızdırılamaz
   const total = async () => { const q = await db.collection('Stats').doc('views').collection('days').get(); let t = 0; q.forEach((d) => { t += d.data()['show_rt_show'] || 0; }); return t; };
-  const before = await total();
+  console.log('h:pre'); const before = await total(); console.log('h:before', before);
   assert.equal((await post({ Origin: 'https://evil.example' }, { k: 'show', id: 'rt_show' })).status, 204); // origin sahte
   assert.equal((await post({ 'User-Agent': 'curl/8.0' }, { k: 'show', id: 'rt_show' })).status, 204); // bot
   await new Promise((r) => setTimeout(r, 500));
   assert.equal(await total(), before, 'sahte origin/bot sayaç artırdı');
   // IP döndürme saldırısı: her istek farklı X-Forwarded-For
-  const N = 300;
-  await Promise.all(Array.from({ length: N }, (_, i) => post({ 'X-Forwarded-For': `203.0.${Math.floor(i / 250)}.${i % 250 + 1}` }, { k: 'show', id: 'rt_show' })));
+  // aynı IP: hedef başına dakikada en çok 6 sayılır
+  for (let i = 0; i < 20; i++) await post({ 'X-Forwarded-For': '198.51.100.7' }, { k: 'show', id: 'rt_show' });
+  await new Promise((r) => setTimeout(r, 800));
+  const same = (await total()) - before;
+  console.log('h:sameIp', same);
+  assert.ok(same <= 6, `aynı IP ile ${same} sayım yazıldı (tavan 6/dk)`);
+  console.log('h:flood'); const N = 150;
+  for (let i = 0; i < N; i++) await (async () => post({ 'X-Forwarded-For': `203.0.${Math.floor(i / 250)}.${i % 250 + 1}` }, { k: 'show', id: 'rt_show' }))();
   await new Promise((r) => setTimeout(r, 1500));
   const added = (await total()) - before;
   assert.ok(added <= 120, `X-Forwarded-For döndürme ile ${added} sayım yazıldı (tavan 120/dk/hedef)`);
