@@ -11,7 +11,7 @@ const biletUrl = (e) => `/koltuk/${encodeURIComponent(e.docId || e.id)}`;
 let SATIS = { mode: 'rezervasyon' };
 Promise.all([yukle(), satisAyari()]).then(([d, a]) => { SATIS = a; ciz(d); }).catch(hata);
 
-const kalpB = (id) => `<button type="button" class="kalp-b ${favMi(id) ? 'on' : ''}" data-fav="${id}" aria-pressed="${favMi(id)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Favori</button>`;
+const kalpB = (id) => `<button type="button" class="kalp-b ${favMi(id) ? 'on' : ''}" data-fav="${id}" data-fav-tur="oyun" aria-pressed="${favMi(id)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Favori</button>`;
 
 function ciz(d) {
   const s = d.showById.get(idFromPath());

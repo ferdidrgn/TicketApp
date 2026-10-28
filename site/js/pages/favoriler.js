@@ -1,7 +1,7 @@
 import '../theme.js';
 import { yukle } from '../store.js';
 import { kabukCiz, oyunKarti, kisi, hataKutusu, iskelet } from '../ui.js';
-import { favListe, bildir } from '../fav.js';
+import { favListe, favMi, favIceAl, favHazir, hesapKipinde, bildir } from '../fav.js';
 import { takvimLinkleri, dakikaOku } from '../detay.js';
 import { $, $$, esc, linkOf } from '../util.js';
 import { baslikYaz } from '../detay.js';
@@ -11,29 +11,27 @@ kabukCiz('');
 try {
   const al = new URLSearchParams(location.search).get('al');
   if (al) {
-    const yeni = JSON.parse(decodeURIComponent(escape(atob(al)))); const mevcut = new Set(favListe());
-    const toplam = new Set([...mevcut, ...yeni.filter((x) => typeof x === 'string')]);
-    localStorage.setItem('tiyatrol.fav.v1', JSON.stringify([...toplam]));
-    history.replaceState(null, '', '/favoriler'); setTimeout(() => bildir(`${toplam.size - mevcut.size} favori eklendi`), 600);
+    const yeni = JSON.parse(decodeURIComponent(escape(atob(al))));
+    const eklenen = favIceAl(Array.isArray(yeni) ? yeni : []);
+    history.replaceState(null, '', '/favoriler'); setTimeout(() => bildir(`${eklenen} favori eklendi`), 600);
   }
 } catch {}
 baslikYaz('Favorilerim', 'Favori oyunların, sahnelerin ve sanatçıların.');
 const ic = $('#icerik');
 let sekme = 'oyun';
-yukle().then(ciz).catch((e) => { ic.innerHTML = hataKutusu(e.message); });
+Promise.all([yukle(), favHazir()]).then(([d]) => ciz(d)).catch((e) => { ic.innerHTML = hataKutusu(e.message); });
 document.addEventListener('fav-degisti', () => yukle().then(ciz));
 
 function ciz(d) {
-  const ids = new Set(favListe());
-  const oyunlar = d.shows.filter((s) => ids.has(s.id));
-  const sahneler = d.stages.filter((s) => ids.has(s.id));
-  const sanatcilar = d.players.filter((s) => ids.has(s.id));
-  const topluluklar = d.teams.filter((s) => ids.has(s.id));
+  const oyunlar = d.shows.filter((s) => favMi(s.id, 'oyun'));
+  const sahneler = d.stages.filter((s) => favMi(s.id, 'sahne'));
+  const sanatcilar = d.players.filter((s) => favMi(s.id, 'oyuncu'));
+  const topluluklar = d.teams.filter((s) => favMi(s.id, 'topluluk'));
   const sahnede = oyunlar.filter((s) => s.state === 'aktif' || s.state === 'vitrin');
   const kapanan = oyunlar.filter((s) => s.state === 'bitti' || s.state === 'taslak');
   const toplam = oyunlar.length + sahneler.length + sanatcilar.length + topluluklar.length;
   const sek = [['oyun', 'Oyunlar', oyunlar.length], ['sahne', 'Sahneler', sahneler.length], ['sanatci', 'Sanatçılar', sanatcilar.length], ['topluluk', 'Topluluklar', topluluklar.length]];
-  ic.innerHTML = `<div class="pg-ust"><h1>Favorilerim</h1><p>Bu liste bu tarayıcıda saklanır; giriş gerekmez. Uygulamadaki favorilerin hesabına bağlı olduğundan ayrıdır.</p></div>
+  ic.innerHTML = `<div class="pg-ust"><h1>Favorilerim</h1><p>${hesapKipinde() ? 'Favorilerin hesabına bağlı: uygulamayla ve diğer cihazlarınla aynı liste.' : 'Giriş yapmadan da favori ekleyebilirsin; giriş yapınca hesabına taşınır ve uygulamayla eşitlenir.'}</p></div>
     <div class="fav-sek">${sek.map(([k, a, n]) => `<button class="chip ${sekme === k ? 'on' : ''}" data-k="${k}">${a} (${n})</button>`).join('')}</div><div id="fav-icerik"></div>`;
   if (oyunlar.some((s) => s.upcoming.length)) {
     $('.pg-ust').insertAdjacentHTML('beforeend', '<p style="margin-top:14px"><button class="btn btn-ghost btn-sm" id="fav-ics">Favorilerimin seanslarını takvime aktar (.ics)</button></p>');

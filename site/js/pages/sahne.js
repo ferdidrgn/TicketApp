@@ -13,7 +13,7 @@ yukle().then((d) => {
   const n = g.upcoming[0];
   const tel = String(g.communication || '').trim();
   const oynayan = g.shows.filter((s) => s.state === 'aktif' || s.state === 'vitrin');
-  const kalpB = `<button type="button" class="kalp-b ${favMi(g.id) ? 'on' : ''}" data-fav="${g.id}" aria-pressed="${favMi(g.id)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Takip et</button>`;
+  const kalpB = `<button type="button" class="kalp-b ${favMi(g.id, 'sahne') ? 'on' : ''}" data-fav="${g.id}" data-fav-tur="sahne" aria-pressed="${favMi(g.id, 'sahne')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.3-9.2C1.6 7.6 3.4 4.5 6.5 4.5c2 0 3.5 1.1 4.5 2.7h2c1-1.6 2.5-2.7 4.5-2.7 3.1 0 4.9 3.1 3.8 6.3C19.5 15.4 12 20 12 20Z"/></svg>Takip et</button>`;
   const yol = g.lat != null && g.lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}` : '';
 
   const seans = g.upcoming.length ? `<div class="sessions">${g.upcoming.slice(0, 40).map((e) => `<a class="sess" href="${e.show ? linkOf('oyun', e.show) : '#'}"><div class="d"><b>${e.when.getDate()}</b><small>${AYLAR[e.when.getMonth()].slice(0, 3)}</small></div><div><b>${esc(e.show?.name || 'Oyun')}</b><br><span class="muted">${saat(e.when)}</span></div><div class="pr"><b>${e.priceNum ? tl(e.priceNum) : ''}</b></div><span class="btn btn-ghost btn-sm">Detay</span></a>`).join('')}</div>` : '';
