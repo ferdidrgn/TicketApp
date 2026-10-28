@@ -25,6 +25,7 @@ import '../../../events/presentation/providers/event_provider.dart';
 import '../../../purchase/domain/entities/purchase_entities.dart';
 import '../../../purchase/presentation/pages/payment_web_view_page.dart';
 import '../../../auth/presentation/widgets/phone_verify_sheet.dart';
+import '../../../settings/presentation/widgets/loud_alarm_sheet.dart';
 import '../../../purchase/presentation/providers/purchase_provider.dart';
 import '../../../purchase/presentation/providers/seat_purchase_controller.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -269,7 +270,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             NavigationHandler.goToMyTickets(context, widget.customerId),
         onHome: () => NavigationHandler.goToHome(context),
       ),
-    );
+    ).whenComplete(() {
+      // İlk bilet sonrası bir kez: "sessizde de sesli hatırlat" izni sorulur
+      // (varsayılan kapalı; telefonun sessiz ayarı değiştirilmez).
+      if (!_isGuest) unawaited(LoudAlarmSheet.maybePromptAfterPurchase());
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────

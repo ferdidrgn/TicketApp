@@ -51,6 +51,13 @@ service cloud.firestore {
         (request.auth.token.get('phone_number', null) != null && v == request.auth.token.get('phone_number', null));
     }
 
+    // BİLDİRİM TERCİHİ (docs/BILDIRIM-ISTATISTIK.md "Sessizde sesli hatırlatma"): User.notifPrefs yalnızca { loudAlarm: bool } olabilir
+    // (kullanıcı kendisi yazar; sunucu yalnız okur). Başka alan/tür reddedilir.
+    function notifPrefsOk() {
+      let v = request.resource.data.get('notifPrefs', null);
+      return v == null || (v is map && v.keys().hasOnly(['loudAlarm']) && v.get('loudAlarm', false) is bool);
+    }
+
     // Hesap silme mezar taşı (AccountDeletion/{uid}.status == 'deleted'|'deleting'): silinen/silinmekte olan uid'in eski ID token'ı
     // (~1 saat geçerli) User belgesini yeniden oluşturamaz/yazamaz. 'pending' (bekleme) kullanıcıyı ENGELLEMEZ (vazgeçebilmeli).
     function deletionLocked(userId) {
@@ -83,6 +90,7 @@ service cloud.firestore {
         request.resource.data.get('isPhoneActive', false) in [false, null] &&
         !('phoneVerifiedAt' in request.resource.data) &&
         !('phoneKey' in request.resource.data) &&
+        notifPrefsOk() &&
         phoneNumberWriteOk(null);
 
       // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
@@ -104,6 +112,7 @@ service cloud.firestore {
           request.resource.data.get('isPhoneActive', null) in [false, null]) &&
         request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null) &&
         request.resource.data.get('phoneKey', null) == resource.data.get('phoneKey', null) &&
+        notifPrefsOk() &&
         phoneNumberWriteOk(resource.data.get('phoneNumber', null));
 
       // Delete: KAPALI (28.10.2026). Hesap silme artık yalnızca sunucuda (requestAccountDeletion -> 30 gün bekleme ->

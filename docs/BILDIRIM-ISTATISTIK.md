@@ -84,6 +84,8 @@ Mobil `NotificationType` bilinmeyen türleri `unknown` olarak okur (çökmez); `
 Değişkenler `{oyun}`, `{sahne}`, `{dk}`, `{saat}`. Sabit şablonlarda metin **sunucuda üretilir** (istemcinin gönderdiği başlık/gövde yok sayılır); taşan başlık 60'a kısaltılır.
 
 ### Alarm yükü
+> 28.10.2026: aşağıdaki alarm kanalı / time-sensitive yalnız alıcı **izin verdiyse** kullanılır; aksi halde alarm da normal kanala gider (bölüm 11).
+
 - Android: `priority:'high'`, `ttl: 120000 ms`, `notification.channelId:'tiyatrol_alarm'`, `sound:'default'`, bildirim önceliği `max`, titreşim.
 - iOS (APNs): `apns-priority: 10`, `apns-push-type: alert`, `apns-expiration` (+2 dk), `aps.sound:'default'`, `aps.interruption-level:'time-sensitive'`.
 - `data`: `{kind:'alarm', eventId?, route:'/notifications'}` (tümü string). Normal bildirim: `android.priority:'normal'`, alarm alanları yok.
@@ -145,6 +147,7 @@ FCM mesajları **ücretsizdir**. Aşağıdakiler Firestore okuma/yazma ve fonksi
 Örnek: günde 2.000 görüntülenme ≈ 4.000 yazma (ücretsiz kotada). Panelin Genel bakış'ı açılışta 1 `adminStats` çağırır (ay başına 2 dk önbellek).
 
 ## 8. Sesli alarm sınırları (dürüst özet)
+> 28.10.2026: alarm kanalı artık yalnız kullanıcı izniyle kullanılır, ayrıntı bölüm 11.
 - **iOS**: "Kritik Uyarı" (sessiz modu aşan) Apple'ın özel yetkisini gerektirir; uygulamada yok. Kullanılan `time-sensitive` yalnız Odak/Rahatsız Etme'yi aşabilir; **telefonun sessiz anahtarı/sesi kapalıysa ses çalmaz**.
 - **Android**: ses, kullanıcının o **kanal** için seçtiği önem/ses ayarına bağlıdır; Rahatsız Etme veya kanal sessize alınmışsa çalmaz. Kanal uygulamada oluşturulmadıysa (bölüm 6.5a) alarm normal bildirim gibi davranır.
 - TTL 2 dk: cihaz çevrimdışıysa geç gelen "5 dk sonra başlıyor" bildirimi düşürülür (iOS için `apns-expiration`).
@@ -160,3 +163,42 @@ FCM mesajları **ücretsizdir**. Aşağıdakiler Firestore okuma/yazma ve fonksi
 ## 10. Testler
 `npm --prefix functions run test:emulator` (Firestore + Auth + Functions emülatörleri; Java gerekli). FCM **hiç çağrılmaz**: testlerde `messaging` enjekte edilen sahtedir.
 Yeni dosyalar: `cancel-counter.test.js`, `stats.test.js`, `notify.test.js` (+ `rules.test.js`, `callable.test.js` eklemeleri).
+
+## 11. Sessizde sesli hatırlatma (izinli) — 28.10.2026
+
+### Kural (sahibin kararı)
+"Telefon sessizdeyken bildirimi sesli atalım, bu izni almış olalım. Bildirimden sonra telefon sessizde kalmaya devam etsin. Telefon sessizde DEĞİLSE onu ASLA sessize almayalım — kullanıcıyı zor durumda bırakmayalım."
+
+Uygulanışı:
+1. **Uygulama telefonun zil/sessiz/titreşim modunu ASLA değiştirmez.** Kodda `AudioManager`, `setRingerMode`, `setStreamVolume`, Rahatsız Etme politikası (`ACCESS_NOTIFICATION_POLICY`, `setInterruptionFilter`), `MODIFY_AUDIO_SETTINGS` YOK ve istenmez; `AndroidManifest.xml`'e eklenmez. `test/push_notifications_test.dart` ("NEVER change ringer mode") `lib/` ve `android/app/src` altını bu API'ler için tarar; biri eklenirse test kırılır. `bypassDnd` kapalıdır.
+2. Seans hatırlatması/alarm bildirimi **yalnız kullanıcı açıkça izin verdiyse** sessiz moddayken de duyulur: Android'de `tiyatrol_alarm` kanalı (`AudioAttributesUsage.alarm` = ALARM ses akışı). Ses bitince telefon kendi durumunda kalır (biz bir şey geri almıyoruz çünkü hiçbir şeyi değiştirmedik). Telefon sessizde değilse alarm akışı zaten normal ses seviyesiyle çalar; hiçbir şey sessize alınmaz.
+3. İzin vermeyenler (varsayılan): alarm türü bildirim de `tiyatrol_default` kanalında ve normal ses akışıyla gelir (sessiz modda sessiz).
+
+### Tercih alanı
+`User/{uid}.notifPrefs.loudAlarm` (bool). Varsayılan **KAPALI** (alan yok = kapalı; yalnızca `true` boolean izin sayılır).
+- Mobil: Ayarlar > İzinler > "Sessizdeyken de sesli hatırlat" anahtarı ve ilk bilet alma sonrası bir kez çıkan açıklama sayfası (`loud_alarm_sheet.dart`). Açarken Android 13+/iOS bildirim izni (`POST_NOTIFICATIONS`, manifestte zaten var) istenir; izin yoksa tercih açılmaz. Yalnız bildirim izni istenir; **Rahatsız Etme erişimi istenmez**.
+- Cihazda `SharedPreferences` (`push_loud_alarm_enabled`) + hesapta `notifPrefs.loudAlarm` (FCM token ile aynı cihaza aittir; token yazımında ve girişten sonra eşitlenir). Arka plan isolate'ı ve ön plan yerel gösterim cihaz tercihini okur.
+- `firestore.rules`: kullanıcı yalnız `notifPrefs = { loudAlarm: bool }` yazabilir (create + update); başka alan/tür reddedilir; sunucu-sahipli alanlar (`role`, telefon, silme) korunur. Testler: `functions/test/rules.test.js`.
+
+### Kanal seçimi (sunucu, `functions/src/notify.js`)
+- `kind==='alarm'` ve hedef **token bazlı** (kişi / oyun / seans): alıcılar `loadRecipients` ile `fcmToken` + `notifPrefs.loudAlarm` okunarak ikiye ayrılır; izinliler `tiyatrol_alarm` (+ iOS time-sensitive), diğerleri `tiyatrol_default` (Android `priority:'high'`, aynı TTL; iOS `interruption-level:'active'`) alır. **İki ayrı multicast** (her biri 500'lük parçalarla); FCM ücretsiz, çağrı sayısı en çok 2x. Ek Firestore okuması yok (aynı `getAll`, `fieldMask` ile `notifPrefs` eklendi).
+- **Konu hedefi ("Tüm kullanıcılar")**: tek mesaj, alıcı tercihi bilinemez -> alarm bile **normal kanala** gider. Sesli alarm yalnız token bazlı hedeflerde mümkündür.
+- `normal` tür ve otomatik hatırlatmalar (24 sa / 2 sa) tercihten etkilenmez, normal kanaldadır (kararlı davranış; istenirse 2 sa hatırlatması alarm türüne çevrilebilir).
+- `adminNotifyPreview` yanıtına `loudAlarm: { optedIn, of }` eklendi ("X kişiden Y'si sessizde sesli hatırlatmayı açtı"; konu hedefinde `null`). `adminSendNotification` yanıtı ve `NotificationLog` `loudCount` (alarm kanalına giden kişi sayısı) içerir. Panelde gösterim isteğe bağlı (site/ bu işte değiştirilmedi).
+- `data.kind` her iki durumda `alarm` kalır; mobil ön planda uygulama içi uyarı penceresi sessiz kanaldan bağımsızdır.
+
+### Kanal oluşturma ve sürümleme
+İki kanal uygulama açılışında (`LocalNotificationService.ensureInitialized`, `FCMManager.init`; ayrıca arka plan isolate'ı) idempotent oluşturulur; sunucu `channelId`'leri ile birebir aynıdır (`tiyatrol_alarm`, `tiyatrol_default`; `config.js` NOTIFY.ALARM_CHANNEL/DEFAULT_CHANNEL, `push_payload.dart` PushChannels). Android'de kanal bir kez oluşturulunca ses/önem ayarları kodla değişmez; bu işte kanal ayarı değişmediği için **yeni id gerekmedi**. İleride değişirse: yeni id (ör. `tiyatrol_alarm_v2`) + eski kanalı `deleteNotificationChannel` ile silme + sunucu sabitini aynı sürümde güncelleme.
+
+### Platform sınırları (dürüst)
+- **Android**: Alarm ses akışı sessiz/titreşim modunda çalar; Rahatsız Etme (DND) kullanıcı tarafından açıksa ve alarm istisnası yoksa sistem kuralı geçerlidir, uygulama onu aşmaya çalışmaz (ayarlar metni bunu yazar). Kullanıcı isterse "Bildirim sesi ve sistem ayarları" satırıyla uygulama ayarlarına gider ve oradan "Sahne alarmı" kanalını seçer (doğrudan `ACTION_CHANNEL_NOTIFICATION_SETTINGS` kısayolu native kod/yeni paket ister; kapsam dışı bırakıldı, uygulama ayarları kısayolu kullanılıyor).
+- **Üretici ROM'ları**: Xiaomi/MIUI, Huawei/EMUI, Oppo, Vivo ve bazı Samsung pil tasarrufu modları arka plan/uygulama kapalıyken FCM'i geciktirir veya düşürür; kanal ayarlarını sıfırlayabilir. Sesli hatırlatma bu cihazlarda garanti edilemez; kullanıcıya "pil kısıtlamasını kaldır / otomatik başlatmaya izin ver" yönlendirmesi gerekebilir.
+- **iOS**: sessiz anahtarı açıkken bildirim sesi çalmaz; bunu aşan Kritik Uyarı yetkisi Apple onayı ister ve YOKTUR. Yapılabilen: `time-sensitive` (Odak/Rahatsız Etme'yi aşar) + sistemin titreşim ayarı. UI metni iOS'ta bunu açıkça yazar ("sessiz anahtarı açıkken ses çıkmaz") ve sessizde ses vaadi vermez. Tercih kapalıyken iOS'ta time-sensitive de verilmez.
+- TTL 2 dk, önizleme ve rate-limit kuralları değişmedi.
+
+### KVKK
+Tercih bir ayardır (bool); kimlik, konum, sağlık vb. özel nitelikli veri değildir ve yalnız bildirim kanalı seçimi için okunur. Teknik olarak kullanıcı kaydının parçasıdır (hesap silinince `User` belgesiyle gider); `NotificationLog`'a alıcı bazlı yazılmaz, yalnız toplam `loudCount`. Açık rıza mantığı: varsayılan kapalı, kullanıcı açıklamayı görüp kendisi açar, her an kapatabilir.
+
+### Test planı
+- Otomatik: `functions/test/notify.test.js` (tercih yok/kapalı/geçersiz -> normal kanal; açık -> alarm kanalı; karışık alıcı iki multicast; konu hedefi normal kanal; önizleme `optedIn/of`; log `loudCount`), `functions/test/rules.test.js` (`notifPrefs`), `test/push_notifications_test.dart` (kanal seçimi, varsayılan kapalı, ringer API taraması), `test/loud_alarm_copy_test.dart` (metin dürüstlüğü).
+- **Gerçek cihaz denemesi GEREKLİ ve bu işte yapılmadı** (sandbox'ta cihaz/FCM yok): (1) Android 13+ cihaz sessiz modda, tercih açık -> hatırlatma çalıyor mu, sonra zil modu hâlâ sessiz mi; (2) tercih kapalı -> sessiz geliyor mu; (3) telefon sessizde DEĞİLKEN hiçbir şeyin sessize alınmadığı; (4) DND açıkken davranış; (5) Xiaomi/Huawei gibi bir cihaz; (6) iPhone: sessiz anahtarı açık/kapalı + Odak modu ile time-sensitive; (7) uygulama kapalı/arka planda/ön planda üç durum; (8) yeniden kurulumdan sonra kanal oluşuyor mu.

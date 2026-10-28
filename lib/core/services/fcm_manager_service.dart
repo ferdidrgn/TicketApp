@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/navigation/providers/navigation_keys.dart';
 import '../../shared/navigation/widgets/nav_handler.dart';
@@ -44,6 +45,40 @@ final announcementsEnabledProvider =
     AsyncNotifierProvider<AnnouncementsEnabledNotifier, bool>(
         AnnouncementsEnabledNotifier.new);
 
+/// "Sessizdeyken de sesli hatırlat" tercihi (varsayılan KAPALI).
+/// Açma, [LoudAlarmResult.permissionDenied] dönebilir: bildirim izni verilmediyse
+/// tercih AÇILMAZ. Telefonun zil/sessiz modu hiçbir durumda değiştirilmez.
+enum LoudAlarmResult { enabled, disabled, permissionDenied, failed }
+
+class LoudAlarmEnabledNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() => FCMManager.instance.service.loudAlarmEnabled();
+
+  Future<LoudAlarmResult> set(final bool enabled) async {
+    try {
+      if (enabled) {
+        // Android 13+ POST_NOTIFICATIONS / iOS bildirim izni. Yalnız bildirim
+        // izni istenir; Rahatsız Etme (NOTIFICATION_POLICY) erişimi İSTENMEZ.
+        final PermissionStatus st = await Permission.notification.request();
+        if (!st.isGranted && !st.isProvisional) {
+          state = const AsyncData(false);
+          return LoudAlarmResult.permissionDenied;
+        }
+      }
+      await FCMManager.instance.service.setLoudAlarmEnabled(enabled);
+      state = AsyncData(enabled);
+      return enabled ? LoudAlarmResult.enabled : LoudAlarmResult.disabled;
+    } catch (e) {
+      debugPrint('Sesli hatırlatma tercihi uygulanamadı: $e');
+      return LoudAlarmResult.failed;
+    }
+  }
+}
+
+final loudAlarmEnabledProvider =
+    AsyncNotifierProvider<LoudAlarmEnabledNotifier, bool>(
+        LoudAlarmEnabledNotifier.new);
+
 // ───────────────────────── Firebase bağdaştırıcıları ─────────────────────────
 
 class _FirebasePushGateway implements PushGateway {
@@ -73,6 +108,18 @@ class _FirestoreTokenStore implements PushTokenStore {
   }
 }
 
+class _FirestoreLoudAlarmRemote implements LoudAlarmRemote {
+  @override
+  Future<void> write(final bool enabled) async {
+    final User? u = FirebaseAuth.instance.currentUser;
+    if (u == null || u.isAnonymous) return;
+    await FirebaseFirestore.instance
+        .collection('User')
+        .doc(u.uid)
+        .update({'notifPrefs': {'loudAlarm': enabled}});
+  }
+}
+
 class _SharedPrefsStore implements PushPrefs {
   @override
   Future<bool?> readBool(final String key) async =>
@@ -97,6 +144,7 @@ class FCMManager {
       tokenStore: _FirestoreTokenStore(),
       prefs: _SharedPrefsStore(),
       notifier: LocalNotificationService.instance,
+      loudAlarmRemote: _FirestoreLoudAlarmRemote(),
       alarmPresenter: _presentAlarm,
       bannerPresenter: _presentBanner,
     );
@@ -161,13 +209,28 @@ class FCMManager {
     if (firebaseUser == null || firebaseUser.isAnonymous) return;
 
     try {
+      // Token ile "sessizde sesli hatırlat" tercihi AYNI cihaza aittir: birlikte
+      // yazılır (tercih hiç seçilmediyse yazılmaz -> sunucuda varsayılan KAPALI).
+      final bool? loud = await service.loudAlarmPreference();
       await FirebaseFirestore.instance
           .collection('User')
           .doc(firebaseUser.uid)
-          .update({'fcmToken': token});
+          .update({
+        'fcmToken': token,
+        if (loud != null) 'notifPrefs': {'loudAlarm': loud},
+      });
     } catch (e) {
       debugPrint("FCM token Firestore'a yazılamadı: $e");
     }
+  }
+
+  /// Giriş sonrası: bu cihazın kayıtlı "sessizde sesli hatırlat" tercihini
+  /// (seçildiyse) giriş yapan hesaba yazar. Oturum yoksa/anonimse atlanır.
+  Future<void> syncLoudAlarmPref() async {
+    if (kIsWeb) return;
+    final bool? loud = await service.loudAlarmPreference();
+    if (loud == null) return;
+    await _FirestoreLoudAlarmRemote().write(loud);
   }
 
   /// ÇIKIŞTAN ÖNCE çağır: User.fcmToken'ı boşaltır, topic'ten çıkar,

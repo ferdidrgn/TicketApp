@@ -190,6 +190,11 @@ class AuthMutation extends _$AuthMutation {
       role: role,
     );
 
+    // 🔔 Bu cihazın "sessizde de sesli hatırlat" tercihi (varsa) hesaba yazılır.
+    try {
+      await FCMManager.instance.syncLoudAlarmPref();
+    } catch (_) {/* tercih eşitlemesi girişi engellemez */}
+
     // 🔥 KRİTİK DÜZELTME (devam):
     // Önceki yama sadece authFirebaseUserProvider ve userProfileProvider'ı
     // invalidate ediyordu. Ama userProfileProvider aslında currentUserIdProvider'ı

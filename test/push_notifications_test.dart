@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ticketapp/core/services/push/push_message_mapper.dart';
 import 'package:ticketapp/core/services/push/push_payload.dart';
@@ -45,6 +47,16 @@ class FakePrefs implements PushPrefs {
       map[key] = value;
 }
 
+class FakeLoudRemote implements LoudAlarmRemote {
+  final List<bool> writes = [];
+  bool fail = false;
+  @override
+  Future<void> write(final bool enabled) async {
+    if (fail) throw Exception('offline');
+    writes.add(enabled);
+  }
+}
+
 class FakeNotifier implements LocalNotifier {
   final List<LocalNotificationSpec> shown = [];
   @override
@@ -52,6 +64,40 @@ class FakeNotifier implements LocalNotifier {
 }
 
 void main() {
+  group('Zil modu kuralı: NEVER change ringer mode', () {
+    test('lib/ ve Android tarafında ringer-DND politikası API yok', () {
+      // Sahibin kuralı: telefonun sessiz/zil modunu ASLA değiştirmeyiz.
+      final banned = RegExp(
+          r'AudioManager|setRingerMode|setStreamVolume|ACCESS_NOTIFICATION_POLICY|MODIFY_AUDIO_SETTINGS|NotificationPolicyAccess|setInterruptionFilter|bypassDnd:\s*true|setBypassDnd\(true|canBypassDnd');
+      final roots = <Directory>[
+        Directory('lib'),
+        Directory('android/app/src'),
+      ];
+      final hits = <String>[];
+      for (final d in roots.where((final d) => d.existsSync())) {
+        for (final f in d.listSync(recursive: true).whereType<File>()) {
+          final n = f.path.replaceAll(r'\', '/');
+          if (!(n.endsWith('.dart') ||
+              n.endsWith('.kt') ||
+              n.endsWith('.java') ||
+              n.endsWith('.xml'))) {
+            continue;
+          }
+          final text = f.readAsStringSync();
+          // Yorumlardaki kural açıklamaları sayılmaz.
+          final code = text
+              .split('\n')
+              .where((final l) => !l.trimLeft().startsWith('//') &&
+                  !l.trimLeft().startsWith('///') &&
+                  !l.trimLeft().startsWith('*'))
+              .join('\n');
+          if (banned.hasMatch(code)) hits.add(n);
+        }
+      }
+      expect(hits, isEmpty, reason: 'Yasak ses/DND API: $hits');
+    });
+  });
+
   group('PushRoutes (beyaz liste)', () {
     test('geçerli uygulama içi rotalar kabul edilir', () {
       for (final r in [
@@ -120,12 +166,29 @@ void main() {
   });
 
   group('PushMessageMapper', () {
-    test('alarm -> tiyatrol_alarm kanalı', () {
-      final s = PushMessageMapper.toSpec(const PushIncoming(
-          messageId: 'm1',
-          title: 'Sahne değişti',
-          body: 'Salon B',
-          data: {'kind': 'alarm', 'eventId': 'e1'}));
+    test('alarm + izin YOK (varsayılan) -> normal kanal; izinli -> alarm kanalı',
+        () {
+      const m = PushIncoming(data: {'kind': 'alarm'});
+      final off = PushMessageMapper.toSpec(m);
+      expect(off.channelId, 'tiyatrol_default');
+      expect(off.isAlarm, isTrue); // tür korunur (uygulama içi uyarı), kanal normal
+      expect(PushMessageMapper.toSpec(m, loudAlarm: true).channelId,
+          'tiyatrol_alarm');
+      // normal tür izinli kullanıcıda bile alarm kanalına GİTMEZ.
+      expect(
+          PushMessageMapper.toSpec(const PushIncoming(data: {}), loudAlarm: true)
+              .channelId,
+          'tiyatrol_default');
+    });
+
+    test('alarm (izinli) -> tiyatrol_alarm kanalı', () {
+      final s = PushMessageMapper.toSpec(
+          const PushIncoming(
+              messageId: 'm1',
+              title: 'Sahne değişti',
+              body: 'Salon B',
+              data: {'kind': 'alarm', 'eventId': 'e1'}),
+          loudAlarm: true);
       expect(s.channelId, 'tiyatrol_alarm');
       expect(s.isAlarm, isTrue);
       expect(s.title, 'Sahne değişti');
@@ -211,8 +274,38 @@ void main() {
       expect(gw.calls, contains('unsub:all_users'));
     });
 
+    test('sesli hatırlatma tercihi: varsayılan KAPALI, yerel yazılır, sunucuya iletilir',
+        () async {
+      final remote = FakeLoudRemote();
+      final s2 = PushService(
+          gateway: gw,
+          tokenStore: store,
+          prefs: prefs,
+          notifier: notifier,
+          loudAlarmRemote: remote);
+      expect(await s2.loudAlarmEnabled(), isFalse);
+      expect(await s2.loudAlarmPreference(), isNull);
+      await s2.setLoudAlarmEnabled(true);
+      expect(await s2.loudAlarmEnabled(), isTrue);
+      expect(remote.writes, [true]);
+      remote.fail = true; // sunucu hatası yerel tercihi bozmaz
+      await s2.setLoudAlarmEnabled(false);
+      expect(await s2.loudAlarmEnabled(), isFalse);
+      expect(await s2.loudAlarmPromptSeen(), isFalse);
+      await s2.markLoudAlarmPromptSeen();
+      expect(await s2.loudAlarmPromptSeen(), isTrue);
+    });
+
+    test('ön plan: izin yokken alarm da NORMAL kanalda gösterilir', () async {
+      await svc.handleForeground(
+          const PushIncoming(title: 'ALARM', data: {'kind': 'alarm'}));
+      expect(notifier.shown.single.channelId, 'tiyatrol_default');
+      expect(alarms, ['ALARM']); // uygulama içi uyarı sessiz kanaldan bağımsız
+    });
+
     test('ön plan: alarm yerel bildirim + uyarı, normal yalnız şerit',
         () async {
+      prefs.map[PushService.loudAlarmPrefKey] = true;
       await svc.handleForeground(const PushIncoming(
           title: 'ALARM', data: {'kind': 'alarm'}));
       expect(notifier.shown.single.channelId, 'tiyatrol_alarm');
@@ -230,6 +323,12 @@ void main() {
       await svc.handleBackground(const PushIncoming(
           title: 'x', body: 'y', data: {'kind': 'alarm'}));
       expect(notifier.shown, isEmpty);
+      await svc.handleBackground(const PushIncoming(
+          data: {'kind': 'alarm', 'title': 'Acil', 'body': 'Detay'},
+          hasNotificationBlock: false));
+      expect(notifier.shown.single.channelId, 'tiyatrol_default'); // izin yok
+      notifier.shown.clear();
+      prefs.map[PushService.loudAlarmPrefKey] = true;
       await svc.handleBackground(const PushIncoming(
           data: {'kind': 'alarm', 'title': 'Acil', 'body': 'Detay'},
           hasNotificationBlock: false));

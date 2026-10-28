@@ -210,6 +210,22 @@ test('User update: isPhoneActive true\'ya çekilemez; sunucunun yazdığı alanl
   await assertFails(updateDoc(doc(p1, 'User/p1'), { role: 'admin' }));
 });
 
+test('User.notifPrefs: kullanıcı yalnız { loudAlarm: bool } yazar (create + update); başka alan/tür ve başkasının belgesi reddedilir; sunucu alanları korunur', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'User/n1'), { role: 'user', isPhoneActive: true, phoneKey: 'ph_k', phoneVerifiedAt: 7, phoneNumber: '' });
+  });
+  const n1 = as('n1');
+  await assertSucceeds(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true } }));
+  await assertSucceeds(updateDoc(doc(n1, 'User/n1'), { 'notifPrefs.loudAlarm': false }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: 'evet' } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true, role: 'admin' } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: 'x' }));
+  await assertFails(updateDoc(doc(as('bob'), 'User/n1'), { notifPrefs: { loudAlarm: true } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true }, phoneVerifiedAt: 8 })); // tercih yazarken sunucu alanı bozulamaz
+  await assertSucceeds(setDoc(doc(as('n2'), 'User/n2'), { firstName: 'A', notifPrefs: { loudAlarm: false } }));
+  await assertFails(setDoc(doc(as('n3'), 'User/n3'), { firstName: 'A', notifPrefs: { loudAlarm: 1 } }));
+});
+
 // ---- GERÇEK istemci yük örnekleri (çapraz denetim): mobil UserModel.toFirestore + datasource, web kullaniciBelgesi, sunucu taslağı
 const MOBIL_CREATE = (uid) => ({ // auth_mutation_provider._handlePostLogin: User.empty(uid).copyWith(...) -> UserModel.toFirestore()
   _createdAt: '', _updatedAt: '', _id: uid, firstName: 'Yeni', lastName: 'Kullanıcı', imageUrl: '', phoneNumber: '', eMail: 'a@b.co',

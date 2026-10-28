@@ -19,7 +19,7 @@ module.exports = {
 
   // Bildirim (docs/BILDIRIM-ISTATISTIK.md)
   NOTIFY: {
-    TOPIC_ALL: 'all_users', ALARM_CHANNEL: 'tiyatrol_alarm', TITLE_MAX: 60, BODY_MAX: 240,
+    TOPIC_ALL: 'all_users', ALARM_CHANNEL: 'tiyatrol_alarm', DEFAULT_CHANNEL: 'tiyatrol_default', TITLE_MAX: 60, BODY_MAX: 240,
     RATE: { max: 30, windowMs: 60 * 60 * 1000 }, // yönetici başına saatlik gönderim
     TIMED_WINDOW_MS: 24 * 60 * 60 * 1000, // sahne şablonları yalnızca seanstan ±24 saat
     MULTICAST_CHUNK: 500, MAX_INAPP_ALL: 5000, MAX_TICKETS_SCAN: 20000,
