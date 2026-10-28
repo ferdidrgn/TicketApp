@@ -16,11 +16,15 @@ const gorece = (ms) => {
 const saatYaz = (ms) => new Date(ms).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
-  const st = { ev: '', sablonlar: [], onizleme: null, ara: 15 };
+  const st = { ev: '', sf: '', sablonlar: [], onizleme: null, ara: 15 };
   const ad = (c, id) => { const x = (veri[c] || []).find((y) => y.id === id || y.docId === id); return x ? x.name : ''; };
   const seanslar = () => (veri.Event || []).map((e) => { const d = tarihAyristir(e.date); return { id: e.id, docId: e.docId, ms: d ? d.getTime() : null, showId: e.showId, stageId: e.stageId, oyun: ad('Show', e.showId) || 'Oyun', sahne: ad('Stage', e.stageId) }; })
     .filter((e) => e.ms != null && e.ms >= Date.now() - 24 * HOUR && e.ms <= Date.now() + 7 * 24 * HOUR).sort((a, b) => a.ms - b.ms);
   const secili = () => seanslar().find((e) => e.id === st.ev);
+  // Serbest mesaj için GENİŞ seans listesi (geçmiş 30 gün + gelecek 1 yıl): şablonlar ±24 saat ister, duyuru için sınır yok.
+  const tumSeanslar = () => (veri.Event || []).map((e) => { const d = tarihAyristir(e.date); return { id: e.id, docId: e.docId, ms: d ? d.getTime() : null, showId: e.showId, stageId: e.stageId, oyun: ad('Show', e.showId) || 'Oyun', sahne: ad('Stage', e.stageId) }; })
+    .filter((e) => e.ms != null && e.ms >= Date.now() - 30 * 24 * HOUR && e.ms <= Date.now() + 365 * 24 * HOUR).sort((a, b) => a.ms - b.ms);
+  const sfSecili = () => { const l = tumSeanslar(); return l.find((e) => e.id === st.sf) || secili() || l.find((e) => e.ms >= Date.now()) || l[l.length - 1] || null; };
 
   m.innerHTML = `<div class="adm-top"><h1>🎭 Sahne kumandası</h1></div>
     <section class="bk-card" id="sk-oto" aria-label="Otomatik hatırlatmalar"></section>
@@ -113,9 +117,12 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
 
   // ---------------- serbest mesaj
   function serbestCiz() {
-    const k = $('#sk-serbest', m), e = secili();
+    const k = $('#sk-serbest', m), e = sfSecili(), liste = tumSeanslar();
+    const secenek = (b) => b.map((x) => `<option value="${esc(x.id)}" ${e && e.id === x.id ? 'selected' : ''}>${esc(x.oyun)} · ${esc(x.sahne)} · ${esc(saatYaz(x.ms))}</option>`).join('');
+    const yaklasan = liste.filter((x) => x.ms >= Date.now() - 6 * HOUR), gecmis = liste.filter((x) => x.ms < Date.now() - 6 * HOUR).reverse();
     k.innerHTML = `<h2>Serbest mesaj</h2>
       <div class="form-grid">
+        ${liste.length ? `<div class="fld-in full"><label for="sf-seans">Hangi seans / etkinlik? <span class="muted">(bilet alanlara gitmek için)</span></label><select id="sf-seans">${yaklasan.length ? `<optgroup label="Yaklaşan">${secenek(yaklasan)}</optgroup>` : ''}${gecmis.length ? `<optgroup label="Geçmiş (30 gün)">${secenek(gecmis)}</optgroup>` : ''}</select></div>` : ''}
         <div class="fld-in"><label for="sf-hedef">Kime?</label><select id="sf-hedef">
           ${e ? `<option value="event">Bu seansın biletlileri</option><option value="show">Bu oyunun tüm biletlileri</option>` : ''}
           <option value="all">Herkese (tüm kullanıcılar)</option><option value="user">Tek kişi (kullanıcı no)</option></select></div>
@@ -130,6 +137,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
     const say = () => { $('#sf-bc', k).textContent = `${$('#sf-baslik', k).value.length}/60`; $('#sf-gc', k).textContent = `${$('#sf-govde', k).value.length}/240`; };
     $('#sf-baslik', k).addEventListener('input', say); $('#sf-govde', k).addEventListener('input', say);
     $('#sf-hedef', k).addEventListener('change', (ev) => { $('#sf-uid-w', k).style.display = ev.target.value === 'user' ? '' : 'none'; });
+    $('#sf-seans', k)?.addEventListener('change', (ev) => { st.sf = ev.target.value; });
     $$('[data-k]', k).forEach((b) => b.addEventListener('click', () => { tur = b.dataset.k; $$('[data-k]', k).forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); }); }));
     $('#sf-gonder', k).addEventListener('click', () => {
       const h = $('#sf-hedef', k).value, baslik = $('#sf-baslik', k).value.trim(), govde = $('#sf-govde', k).value.trim();
@@ -137,8 +145,8 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
       let target;
       if (h === 'user') { const u = $('#sf-uid', k).value.trim(); if (!u) return bildir('Kullanıcı no gerekli.', true); target = { type: 'user', id: u }; }
       else if (h === 'all') target = { type: 'all' };
-      else if (h === 'show') target = { type: 'show', id: e.showId };
-      else target = { type: 'event', id: e.id };
+      else if (h === 'show') target = { type: 'show', id: (sfSecili() || e).showId };
+      else target = { type: 'event', id: (sfSecili() || e).id };
       onayAc({ target, template: 'genel', title: baslik, body: govde, kind: tur });
     });
   }
