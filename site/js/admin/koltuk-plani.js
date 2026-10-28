@@ -72,6 +72,7 @@ BB:15</textarea>
       <label><input type="checkbox" id="onay"> Satır uzunluklarını gerçek salon düzeniyle karşılaştırdım, yazmak istiyorum</label>
       <button class="btn btn-primary" id="kaydet" type="button" style="margin-top:12px" disabled>Firebase'e yaz</button>
       <button class="btn btn-ghost" id="cik" type="button" style="margin-left:8px">Çıkış</button>
+      <div id="kayitSonuc" role="status" aria-live="polite"></div>
     </div>`;
   const $ = (s) => document.getElementById(s);
   let sonuc = null;
@@ -87,7 +88,7 @@ BB:15</textarea>
     $('ozet').innerHTML = `<span>Zemin: ${z.ids.length}</span><span>Balkon: ${b.ids.length}</span><span>Toplam: ${ids.length}</span>`;
     $('satirlar').innerHTML = [...z.satirlar, ...b.satirlar].map(([a, n]) => `<div><b>${esc(a)}</b> · ${n} koltuk</div>`).join('');
     $('mesaj').innerHTML = hedef && ids.length !== hedef ? `<p class="uyari" role="alert">Toplam ${ids.length}, hedef ${hedef}. Satırları düzelt.</p>` : `<p class="ok">Toplam hedefle uyumlu.</p>`;
-    $('kaydet').disabled = !(hedef ? ids.length === hedef : true) || !$('onay').checked;
+    $('kaydet').disabled = !(hedef ? ids.length === hedef : true);
   };
   const mevcutYaz = async () => {
     const s = $('sahne').value; const d = await getDoc(doc(db, 'Seats', s)).catch(() => null);
@@ -99,14 +100,15 @@ BB:15</textarea>
   $('cik').onclick = () => signOut(auth);
   $('kaydet').addEventListener('click', async () => {
     if (!sonuc) return;
+    if (!$('onay').checked) { bildir('Önce "Satır uzunluklarını … karşılaştırdım" kutusunu işaretle.'); $('onay').focus(); return; }
     const s = $('sahne').value, ad = (sahneler.find((x) => x.id === s) || {}).name || s;
     if (!confirm(`"${ad}" için ${sonuc.length} koltuk yazılacak. Emin misin?`)) return;
     $('kaydet').disabled = true;
     try {
       await setDoc(doc(db, 'Seats', s), { seatsId: sonuc }, { merge: true });
       if ($('kap').checked) await updateDoc(doc(db, 'Stage', s), { capacity: String(sonuc.length), _updatedAt: new Date().toISOString() });
-      bildir('Koltuk planı kaydedildi.'); await mevcutYaz();
-    } catch (e) { bildir(e?.code === 'permission-denied' ? 'Yetki reddedildi (Firestore kuralları).' : 'Kaydedilemedi.'); }
+      bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${sonuc.length} koltuk yazıldı.</span>`; await mevcutYaz();
+    } catch (e) { const m = e?.code === 'permission-denied' ? 'Yetki reddedildi: bu hesap yönetici değil ya da Firestore kuralları izin vermiyor.' : 'Kaydedilemedi.'; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
     finally { hesapla(); }
   });
   await mevcutYaz(); hesapla();
