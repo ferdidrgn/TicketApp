@@ -10,6 +10,8 @@ const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
+const { getAuth } = require('firebase-admin/auth');
+const { getStorage } = require('firebase-admin/storage');
 
 const cfg = require('./src/config');
 const { err, makeAssertAdmin } = require('./src/util');
@@ -17,6 +19,9 @@ const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
+const { createAccountDeletion } = require('./src/accountDeletion');
+const { createTeam } = require('./src/team');
+const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
 if (!getApps().length) initializeApp();
@@ -25,14 +30,18 @@ if (!getApps().length) initializeApp();
 const IYZICO_API_KEY = defineSecret('IYZICO_API_KEY');
 const IYZICO_SECRET_KEY = defineSecret('IYZICO_SECRET_KEY');
 const IYZICO_BASE_URL = defineString('IYZICO_BASE_URL', { default: 'https://sandbox-api.iyzipay.com' });
-const SITE_URL = defineString('SITE_URL', { default: 'https://tiyatrol-web.web.app' });
-// Telefon limit anahtarı tuzu. ÜRETİMDE MUTLAKA ayarlayın (docs/ODEME-GUVENLIK.md); sonradan DEĞİŞTİRİLİRSE tüm telefon sayaçları sıfırlanır.
-const PHONE_HASH_SALT = defineString('PHONE_HASH_SALT', { default: '' });
+const SITE_URL = defineString('SITE_URL', { default: 'https://tiyatrol.web.app' });
+// Telefon limit anahtarı tuzu = SECRET MANAGER sırrı (GitHub Actions etkileşimsiz deploy edebilsin diye param DEĞİL).
+// Kurulum (bir kez): `firebase functions:secrets:set PHONE_HASH_SALT --project ticketappflutter` (>=16 karakter, örn. `openssl rand -hex 32`).
+// Sonradan DEĞİŞTİRİLİRSE tüm telefon sayaçları sıfırlanır. Tuzu okuyan HER fonksiyon `secrets: [PHONE_HASH_SALT]` almalıdır (aşağıda `salted`).
+const PHONE_HASH_SALT = defineSecret('PHONE_HASH_SALT');
 const ENFORCE_APP_CHECK =defineBoolean('ENFORCE_APP_CHECK', { default: false });
 
 const emulator = process.env.FUNCTIONS_EMULATOR === 'true';
 const origins = emulator ? [...cfg.ALLOWED_ORIGINS, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/] : cfg.ALLOWED_ORIGINS;
 const base = { region: cfg.REGION, cors: origins, maxInstances: 20 };
+// phoneSalt() çağıran her onCall (getService / getDeletion / syncPhoneVerification kullananlar) tuz sırrına bağlanır; yoksa üretimde .value() boş döner.
+const salted = { ...base, secrets: [PHONE_HASH_SALT] };
 
 function callbackUrl() {
   const project = process.env.GCLOUD_PROJECT || 'ticketappflutter';
@@ -46,7 +55,9 @@ function callbackUrl() {
  */
 let saltUyarildi = false;
 function phoneSalt() {
-  const s = resolvePhoneSalt({ value: PHONE_HASH_SALT.value(), emulator, project: process.env.GCLOUD_PROJECT });
+  // Emülatörde sır, functions/.secret.local ya da ortamdan (PHONE_HASH_SALT) okunur; yoksa resolvePhoneSalt sabit geliştirme tuzunu verir.
+  const raw = emulator ? process.env.PHONE_HASH_SALT || '' : PHONE_HASH_SALT.value();
+  const s = resolvePhoneSalt({ value: raw, emulator, project: process.env.GCLOUD_PROJECT });
   if (s == null && !saltUyarildi) {
     saltUyarildi = true;
     logger.error('PHONE_HASH_SALT tanımsız ya da 16 karakterden kısa: bilet satışı ve telefon senkronu KAPALI. docs/ODEME-GUVENLIK.md "Telefon tuzu".');
@@ -74,10 +85,27 @@ function getService(withSecrets) {
   });
 }
 
-function getStats() { return createStats({ db: getFirestore(), log: logger }); }
+function getDeletion() {
+  return createAccountDeletion({
+    db: getFirestore(), auth: getAuth(), orderService: getService(false), salt: phoneSalt(), log: logger,
+    // Profil görseli: ppics/{uid}.* (ön ek; src/storage.js). Storage emülatörü yoksa emülatörde gerçek Google API'ye çıkılmaz.
+    deleteProfileImage: async (uid) => {
+      if (emulator && !process.env.FIREBASE_STORAGE_EMULATOR_HOST) return;
+      await deleteProfileImages(getStorage().bucket(), uid);
+    },
+  });
+}
+// S-1: TEK örnek. Önceden her istekte createStats() çağrılıyordu -> trackView'in bellek içi hız sınırı/önbelleği her istekte SIFIRLANIYORDU
+// (sınır fiilen yoktu; redteam.test.js "(h)" kanıtladı). Instance başına tek örnek = sınırlar gerçekten işler.
+let statsSingleton = null;
+function getStats() { return statsSingleton || (statsSingleton = createStats({ db: getFirestore(), log: logger })); }
 function getNotifier() {
   const db = getFirestore();
   return createNotifier({ db, messaging: getMessaging(), assertAdmin: makeAssertAdmin(db), log: logger });
+}
+
+function getTeam() {
+  return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), log: logger });
 }
 
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
@@ -95,25 +123,40 @@ function guarded(fn) {
   };
 }
 
-exports.holdSeats = onCall(base, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data, phoneCtx(req))));
-exports.releaseHold = onCall(base, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
-exports.confirmFree = onCall(base, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data, phoneCtx(req))));
-exports.confirmReservation = onCall(base, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data, phoneCtx(req))));
-exports.cancelTicket = onCall(base, guarded((req) => getService(false).cancelTicket(req.auth.uid, req.data)));
+exports.holdSeats = onCall(salted, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data, phoneCtx(req))));
+exports.releaseHold = onCall(salted, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
+exports.confirmFree = onCall(salted, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data, phoneCtx(req))));
+exports.confirmReservation = onCall(salted, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data, phoneCtx(req))));
+exports.cancelTicket = onCall(salted, guarded((req) => getService(false).cancelTicket(req.auth.uid, req.data)));
 // Telefon doğrulama senkronu: istemci giriş/telefon bağlama sonrası (getIdToken(true) ardından) çağırır. docs/TELEFON-DOGRULAMA.md
-exports.syncPhoneVerification = onCall(base, guarded((req) =>
+exports.syncPhoneVerification = onCall(salted, guarded((req) =>
   createPhoneSync({ db: getFirestore(), salt: phoneSalt(), log: logger }).syncPhoneVerification(req.auth.uid, phoneCtx(req))));
+// Hesap silme (30 gün bekleme). Ayrıntı/sözleşme: docs/HESAP-SILME.md
+exports.requestAccountDeletion = onCall(salted, guarded((req) => getDeletion().requestAccountDeletion(req.auth.uid, phoneCtx(req))));
+exports.cancelAccountDeletion = onCall(salted, guarded((req) => getDeletion().cancelAccountDeletion(req.auth.uid)));
+exports.getAccountDeletionStatus = onCall(salted, guarded((req) => getDeletion().getAccountDeletionStatus(req.auth.uid)));
+exports.adminProcessAccountDeletions = onCall({ ...salted, timeoutSeconds: 540, memory: '512MiB' }, guarded(async (req) => {
+  await makeAssertAdmin(getFirestore())(req.auth.uid);
+  return getDeletion().processDue();
+}));
 // Yönetici callable'ları: yetki sunucuda User/{uid}.role == 'admin' ile denetlenir.
-exports.adminSetTicketStatus = onCall(base, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
-exports.adminCheckIn = onCall(base, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
-exports.adminHealth = onCall(base, guarded((req) => getService(false).adminHealth(req.auth.uid)));
+exports.adminSetTicketStatus = onCall(salted, guarded((req) => getService(false).adminSetTicketStatus(req.auth.uid, req.data)));
+exports.adminCheckIn = onCall(salted, guarded((req) => getService(false).adminCheckIn(req.auth.uid, req.data)));
+exports.adminHealth = onCall(salted, guarded((req) => getService(false).adminHealth(req.auth.uid)));
 // İstatistik + bildirim (yönetici; yetki sunucuda). Ayrıntı: docs/BILDIRIM-ISTATISTIK.md
 exports.adminStats = onCall({ ...base, timeoutSeconds: 120, memory: '512MiB' },
   guarded((req) => getStats().adminStats(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
 exports.adminCancelled = onCall(base, guarded((req) => getStats().adminCancelled(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
 exports.adminNotifyPreview = onCall(base, guarded((req) => getNotifier().adminNotifyPreview(req.auth.uid, req.data)));
 exports.adminSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getNotifier().adminSendNotification(req.auth.uid, req.data)));
-exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY] },
+// Ekip yöneticisi (admin DEĞİL; yalnız kendi ekibinin oyunu/seansı). Kapsam sunucuda hesaplanır, istemci teamId'si kabul edilmez. docs/EKIP-YONETICISI.md
+exports.getMyManagedTeams = onCall({ ...base, timeoutSeconds: 60 }, guarded((req) => getTeam().getMyManagedTeams(req.auth.uid)));
+exports.teamNotifyPreview = onCall(base, guarded((req) => getTeam().teamNotifyPreview(req.auth.uid, req.data)));
+exports.teamSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getTeam().teamSendNotification(req.auth.uid, req.data)));
+exports.teamCheckIn = onCall(base, guarded((req) => getTeam().teamCheckIn(req.auth.uid, req.data)));
+exports.teamStats = onCall({ ...base, timeoutSeconds: 120 }, guarded((req) => getTeam().teamStats(req.auth.uid, req.data)));
+exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTeamManager(req.auth.uid, req.data)));
+exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,
     ...phoneCtx(req),
@@ -122,7 +165,7 @@ exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET
 
 /** iyzico dönüşü (tarayıcı POST). Sonuç SUNUCUDA token ile doğrulanır; yönlendirme her durumda 302. */
 exports.iyzicoCallback = onRequest(
-  { region: cfg.REGION, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY], maxInstances: 20 },
+  { region: cfg.REGION, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT], maxInstances: 20 },
   async (req, res) => {
     const site = SITE_URL.value().replace(/\/+$/, '');
     const go = (orderId, ok) => {
@@ -142,7 +185,7 @@ exports.iyzicoCallback = onRequest(
 
 /** Süresi dolan tutmaları serbest bırakır (ve kaçan ödemeleri sağlayıcıya sorarak kurtarır). */
 exports.expireHolds = onSchedule(
-  { region: cfg.REGION, schedule: 'every 5 minutes', timeZone: 'Europe/Istanbul', secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY], timeoutSeconds: 300 },
+  { region: cfg.REGION, schedule: 'every 5 minutes', timeZone: 'Europe/Istanbul', secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT], timeoutSeconds: 300 },
   async () => {
     const r = await getService(true).expireHolds();
     logger.info('expireHolds', r);
@@ -170,4 +213,12 @@ exports.eventReminders = onSchedule(
   async () => {
     const r = await getNotifier().eventReminders();
     logger.info('eventReminders', r);
+  });
+
+/** Süresi (30 gün) dolan hesap silme taleplerini işler. Günde 1 (03:00 TR). Production'da Cloud Scheduler (Blaze) gerekir. docs/HESAP-SILME.md */
+exports.processAccountDeletions = onSchedule(
+  { region: cfg.REGION, schedule: '0 3 * * *', timeZone: 'Europe/Istanbul', timeoutSeconds: 540, memory: '512MiB', secrets: [PHONE_HASH_SALT] },
+  async () => {
+    const r = await getDeletion().processDue();
+    logger.info('processAccountDeletions', r);
   });

@@ -57,4 +57,45 @@ export const MAKALELER = [
 <ul><li><strong>Katmanlı giyin:</strong> Salonlar bazen serin, bazen sıcak olabilir; çıkarıp giyebileceğin bir ceket ya da hırka işini görür.</li><li><strong>Gürültü yapan aksesuarlardan kaçın:</strong> Bileklik ve takılar sessiz bir sahnede duyulabilir.</li><li><strong>Ayakkabı:</strong> Merdivenli salonlarda rahat bir ayakkabı iyi gelir.</li><li><strong>Şapka ve kalabalık saç modelleri:</strong> Arkandakinin görüşünü kapatmayacak şekilde ayarla.</li></ul>
 <p>Özel bir akşam için şık giyinmek seni daha iyi hissettiriyorsa elbette olur; tiyatro, kendin gibi gelebileceğin bir yerdir.</p>`,
   },
+  {
+    slug: 'oyun-secerken-nelere-bakmali', etiket: 'Başlangıç', dk: 3,
+    baslik: 'Oyun seçerken nelere bakmalı?',
+    ozet: 'Tür, süre, yaş önerisi, kadro ve sahne bilgisini birlikte okuyarak sana uygun oyunu bulmanın yolları.',
+    govde: `<p>Afişi güzel olan her oyun senin o akşamki ruh hâline uymayabilir. Birkaç bilgiyi birlikte okumak seçimi kolaylaştırır.</p>
+<h2>Önce türü ve süreyi düşün</h2><p>Güldürmek mi istiyorsun, düşündürmek mi? Komedi, dram ve müzikal farklı akşamlar vaat eder. Süre de önemlidir: iş çıkışı gideceksen kısa bir oyun, hafta sonu için daha uzun bir oyun daha rahat olabilir. TiyatRol'de oyun sayfasındaki <strong>"Bu oyunda ne var?"</strong> bölümü bu bilgileri tek bakışta toplar.</p>
+<h2>Yaş önerisi ve içerik uyarısı</h2><p>Yaş önerisi, oyunun anlattığı konuya ve dile dair bir yönlendirmedir. İçerik uyarısı varsa mutlaka oku; yanında çocuk ya da hassas biri varsa kararını buna göre ver.</p>
+<h2>Kadro ve topluluk</h2><p>Daha önce beğendiğin bir oyuncuyu ya da topluluğu takip ediyorsan yeni oyunlarını kolayca bulabilirsin. Oyuncu ve topluluk sayfaları geçmiş oyunları da listeler.</p>
+<h2>Sahne ve ulaşım</h2><p>Aynı oyun farklı salonlarda oynanabilir. Sahnenin adresini, ulaşım ve erişim notlarını oyun sayfasından kontrol et.</p>
+<h2>Kararsızsan</h2><p>Keşfet sayfasında zaman, tür ve bütçe süzgeçlerini kullan; ana sayfadaki ruh hâli seçici de sana bir öneri çıkarır.</p>`,
+  },
+  {
+    slug: 'tiyatroda-oturma-duzeni-ve-koltuk-secimi', etiket: 'İpucu', dk: 3,
+    baslik: 'Salonda koltuk seçimi: nereye oturmalı?',
+    ozet: 'Ön, orta ve yan koltukların sahneye bakışını ve koltuk planını okurken dikkat edilecek noktaları anlatır.',
+    govde: `<p>Her salonun düzeni farklıdır; ama koltuk seçerken işe yarayan birkaç genel fikir vardır.</p>
+<h2>Sahneye uzaklık</h2><p>Ön sıralar oyuncuları çok yakından gösterir; ifadeleri ve nefesi hissedersin, ancak sahnenin tamamını görmek için başını çevirmen gerekebilir. Orta sıralar genellikle hem ayrıntıyı hem bütünü görmeyi dengeler.</p>
+<h2>Orta eksen ve yanlar</h2><p>Salonun ortasına yakın koltuklar çoğu zaman sahneyi en dengeli gösterir. Yan koltuklar sahnenin bir bölümünü farklı açıdan izletir; bazı oyunlarda bu bir dezavantaj, bazılarında farklı bir bakış olabilir.</p>
+<h2>Koridora yakınlık</h2><p>Seans sırasında çıkman gerekebilecekse ya da ayağını uzatmak istiyorsan koridor yanı koltuklar rahattır.</p>
+<h2>Koltuk planını oku</h2><p>Bilet al adımında salon planı gösterilir; boş, dolu ve kapalı koltuklar ayrı işaretlenir. Seçtiğin koltuk bir süre senin adına tutulur; süre dolmadan işlemi tamamlaman gerekir.</p>
+<p>Erişim ihtiyacın varsa sahne sayfasındaki erişim notlarına bakmayı unutma.</p>`,
+  },
+  {
+    slug: 'tiyatro-erisilebilirlik-rehberi', etiket: 'Erişilebilirlik', dk: 3,
+    baslik: 'Erişilebilir tiyatro: etiketler ne anlama geliyor?',
+    ozet: 'Sesli betimleme, altyazı, işaret dili ve rahat gösterim etiketlerinin ne demek olduğunu ve nasıl bulunacağını açıklar.',
+    govde: `<p>Tiyatro herkes için bir deneyim olmalı. Bazı oyunlar bunu özel gösterimlerle destekler; TiyatRol'de bu oyunlar etiketle işaretlenir.</p>
+<h2>Etiketler</h2><ul><li><strong>AD · Sesli betimleme:</strong> Sahnede görsel olarak olanlar kulaklık aracılığıyla anlatılır; görme engelli seyirciler için tasarlanmıştır.</li><li><strong>CAP · Altyazılı:</strong> Konuşmalar yazıyla yansıtılır; işitme engelli seyirciler için yararlıdır.</li><li><strong>BSL / TS · İşaret dili:</strong> Oyun işaret diline çevrilir.</li><li><strong>R · Rahat gösterim:</strong> Işık ve ses düzeyi daha yumuşaktır, salona girip çıkmak serbesttir; duyusal hassasiyeti olanlar ve çocuklar için uygundur.</li></ul>
+<h2>Nasıl bulursun?</h2><p>Keşfet sayfasında <strong>"Erişilebilir gösterim"</strong> süzgecini aç. Oyun kartlarındaki küçük etiketler ve oyun sayfasındaki bilgi bölümü hangi gösterimin erişilebilir olduğunu söyler.</p>
+<h2>Mekân erişimi</h2><p>Rampa, asansör ve tekerlekli sandalye alanı gibi bilgiler sahneye göre değişir; sahne sayfasındaki erişim notlarını kontrol et. Eksik ya da hatalı bilgi görürsen oyun sayfasındaki "Bilgi hatalı mı?" bağlantısıyla bize bildirebilirsin.</p>`,
+  },
+  {
+    slug: 'tiyatro-sonrasi-ne-yapilir', etiket: 'Deneyim', dk: 2,
+    baslik: 'Oyundan sonra: deneyimi uzatmanın yolları',
+    ozet: 'Beğendiğin oyunu favorilere eklemek, yorum yazmak ve benzer oyunları keşfetmek için küçük fikirler.',
+    govde: `<p>Perde kapandıktan sonra deneyim bitmek zorunda değil.</p>
+<h2>Konuş</h2><p>Birlikte gittiğin kişiyle en çok hangi sahnenin kaldığını konuşmak oyunu daha uzun süre yaşatır. Oyuncuların ve yönetmenin ne anlatmak istediğini tartışmak farklı bakış açıları kazandırır.</p>
+<h2>Kaydet ve takip et</h2><p>Oyunu, oyuncuyu ya da topluluğu TiyatRol'de favorilerine ekle; yeni seanslar ve sonraki oyunlar için aklında bir liste olsun.</p>
+<h2>Benzerlerini keşfet</h2><p>Oyun sayfasının altındaki <strong>"Benzer oyunlar"</strong> şeridi tür, topluluk ve sahne gibi ortaklıklara göre öneriler sunar.</p>
+<h2>Yorum yaz</h2><p>Deneyimini uygulamadan yorumlayarak diğer seyircilere yol göstermiş olursun. Eleştiri yazarken oyunun sürprizlerini açık etmemeye özen göster.</p>`,
+  },
 ];

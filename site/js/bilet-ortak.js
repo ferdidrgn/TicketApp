@@ -15,6 +15,28 @@ export function biletleriDinle(uid, cb, hataCb) {
   }, (e) => hataCb?.(e));
 }
 
+/** Alış zamanı: Ticket._createdAt (ISO/Timestamp/ms) -> Date | null. createdAt ve Order zamanına da düşer. */
+export function alisZamani(t) {
+  const v = t._createdAt ?? t.createdAt ?? t.paidAt ?? null;
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') { const d = new Date(v); return isNaN(d) ? null : d; }
+  return tarihAyristir(v);
+}
+const ALIS_BICIM = (() => {
+  try { return new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); }
+  catch { return null; }
+})();
+/** "28.10.2026 14:32" (Europe/Istanbul). Çözülemezse ''. */
+export function alisMetni(d) {
+  if (!d || isNaN(d)) return '';
+  if (ALIS_BICIM) {
+    const p = Object.fromEntries(ALIS_BICIM.formatToParts(d).map((x) => [x.type, x.value]));
+    return `${p.day}.${p.month}.${p.year} ${p.hour}:${p.minute}`;
+  }
+  const z = new Date(d.getTime() + 3 * 3600e3), i = (n) => String(n).padStart(2, '0');
+  return `${i(z.getUTCDate())}.${i(z.getUTCMonth() + 1)}.${z.getUTCFullYear()} ${i(z.getUTCHours())}:${i(z.getUTCMinutes())}`;
+}
+
 export function normallestir(t, veri) {
   const ev = veri?.events.find((e) => e.docId === t.eventId || e.id === t.eventId);
   const show = ev?.show || veri?.showById.get(t.showId) || null;
@@ -28,7 +50,7 @@ export function normallestir(t, veri) {
     sahne: t.stageName || stage?.name || '',
     adres: stage?.address || '', lat: stage?.lat ?? null, lng: stage?.lng ?? null,
     when, koltuklar, tutar: sayi(t.orderPrice), show, dakika: dakikaOku(show?.duration),
-    yontem: t.orderMethod || '', odeme: t.paymentStatus || '',
+    yontem: t.orderMethod || '', odeme: t.paymentStatus || '', alis: alisZamani(t),
     kullanildi: !!t.usedAt, iptalEdildi: !!t.cancelledAt || t.paymentStatus === 'cancelled',
   };
 }
@@ -77,6 +99,7 @@ export function biletKarti(b, i = 0) {
       <div class="bk-g">${rz ? `<span class="durum-rozet ${rz.sinif}">${esc(rz.ad)}</span>` : ''}<h3>${link ? `<a href="${link}">${esc(b.ad)}</a>` : esc(b.ad)}</h3>
         <div class="sat">${b.when ? `${tarihUzun(b.when)} · ${saat(b.when)}` : 'Tarih bilgisi yok'}</div>
         <div class="sat">${esc(b.sahne || 'Sahne belirtilmedi')}</div>
+        ${b.alis ? `<div class="sat alis-zaman" style="opacity:.75;font-size:.92em">Alış: <time datetime="${esc(b.alis.toISOString())}">${esc(alisMetni(b.alis))}</time></div>` : ''}
         <div class="koltuklar" aria-label="Koltuklar">${b.koltuklar.map((k) => `<span>${esc(k)}</span>`).join('')}${tutar ? `<span style="background:transparent;padding-left:4px">${esc(tutar)}</span>` : ''}</div>
         ${sahnede && !b.iptalEdildi ? `<div class="odeme-not">Ödeme etkinlik günü sahnede: ${esc(tutar)}</div>` : ''}
         <div class="bk-act">${b.when && !gecmis && !b.iptalEdildi ? `<button type="button" class="btn btn-ghost" data-takvim="${esc(b.id)}">Takvime ekle</button>` : ''}${iptalEdilebilir(b) && !gecmis ? `<button type="button" class="btn btn-ghost tehlike" data-iptal="${esc(b.id)}" aria-label="${esc(b.ad)} biletini iptal et">İptal et</button>` : ''}${yol ? `<a class="btn btn-ghost" target="_blank" rel="noopener" href="${yol}">Yol tarifi</a>` : ''}</div>

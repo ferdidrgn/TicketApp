@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/services/fcm_manager_service.dart';
+import 'loud_alarm_sheet.dart';
 import 'preference_widgets.dart';
 
 /// Ayarlar > İzinler grubuna eklenen iki satır (yalnız mobil):
@@ -13,14 +14,15 @@ List<Widget> announcementPreferenceRows(final BuildContext context) {
   if (kIsWeb) return const [];
   return [
     const _AnnouncementSwitchRow(),
+    const LoudAlarmSwitchRow(),
     PreferenceRow(
       icon: Icons.volume_up_outlined,
-      title: prefText(context, 'Alarm sesi ve sistem ayarları',
-          'Alarm sound & system settings'),
+      title: prefText(context, 'Bildirim sesi ve sistem ayarları',
+          'Notification sound & system settings'),
       subtitle: prefText(
           context,
-          'Sahne alarmının sesini ve “Rahatsız Etme” davranışını telefon ayarlarından seç.',
-          'Choose the stage alarm sound and Do Not Disturb behaviour in system settings.'),
+          '“Rahatsız Etme” açıksa sistemin kuralı geçerlidir; uygulama onu aşmaya çalışmaz. İstersen “Sahne alarmı” kanalını telefon ayarlarından sen seç.',
+          'If Do Not Disturb is on, the system rule applies and the app never overrides it. You can adjust the “Sahne alarmı” channel in system settings.'),
       onTap: openAppSettings,
     ),
   ];

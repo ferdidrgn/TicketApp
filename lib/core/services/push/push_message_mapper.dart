@@ -58,7 +58,12 @@ abstract final class PushMessageMapper {
 
   static String _clean(final String? s) => (s ?? '').trim();
 
-  static LocalNotificationSpec toSpec(final PushIncoming m) {
+  /// [loudAlarm]: kullanıcı "sessizde de sesli hatırlat"a AÇIKÇA izin verdi mi
+  /// (varsayılan KAPALI). Alarm türü bile olsa izin yoksa NORMAL kanala
+  /// düşer (telefon sessizdeyse sessiz gelir) — sunucudaki kanal seçimiyle aynı
+  /// kural. Telefonun zil modu hiçbir durumda değiştirilmez.
+  static LocalNotificationSpec toSpec(final PushIncoming m,
+      {final bool loudAlarm = false}) {
     final PushPayload payload = PushPayload.fromData(m.data);
     String title = _clean(m.title);
     if (title.isEmpty) title = _clean(m.data['title']?.toString());
@@ -69,7 +74,7 @@ abstract final class PushMessageMapper {
       id: notificationId(m.messageId),
       title: title,
       body: body,
-      channelId: PushChannels.forKind(payload.kind),
+      channelId: PushChannels.forKind(payload.kind, loudAlarm: loudAlarm),
       isAlarm: payload.isAlarm,
       payload: payload.encode(),
     );

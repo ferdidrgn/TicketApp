@@ -277,7 +277,7 @@ class _Body extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final bool past = ticket.isPast;
-    final String image = ticket.show?.imageUrl.trim() ?? '';
+    final String image = ticket.posterUrl;
     final String stage = ticket.stageTitle;
     final double posterW = large ? 88 : 64;
     final double posterH = large ? 120 : 88;
@@ -372,6 +372,19 @@ class _Body extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child:
                         TicketStatusBadge(state: ticketPayState(ticket)),
+                  ),
+                ],
+                if (ticket.purchasedAtText.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Alış: ${ticket.purchasedAtText}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: TicketInk.inkSoft(0.58),
+                      fontSize: large ? 13 : 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ],

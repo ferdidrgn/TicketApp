@@ -20,6 +20,11 @@ on:
       - "firebase.site.json"
       - ".firebaserc"
       - ".github/workflows/deploy-web.yml"
+  # Otomatik yenileme: yeni oyun/seans Firestore'a girince prerender + sitemap güncellensin.
+  # Zamanlanmış çalışmalar YALNIZ varsayılan dalda (main) çalışır; `site/**` değişikliği gerekmez.
+  schedule:
+    - cron: "0 5 * * *"   # 05:00 UTC (08:00 TR)
+    - cron: "0 17 * * *"  # 17:00 UTC (20:00 TR)
   workflow_dispatch:
 
 concurrency:
@@ -32,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write   # yalnız cron canlı tutma adımı için (aşağıda)
     steps:
       - uses: actions/checkout@v4
 
@@ -62,3 +68,13 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx -y firebase-tools@14 deploy --only hosting:web,hosting:ekip --config firebase.site.json --project ticketappflutter --non-interactive
+
+      # GitHub, 60 gün hiç depo etkinliği olmayınca zamanlanmış iş akışlarını sessizce DURDURUR (özellikle public depo).
+      # Başarılı bir cron çalışmasının sonunda iş akışını yeniden "enable" ederek sayacı sıfırlıyoruz (aylık anlamsız commit yok).
+      # Bu adım başarısız olsa bile deploy sonucu etkilenmez. İlk GitHub çalışmasında doğrulanmadı — bkz. docs/OTOMASYON.md.
+      - name: Keep schedule alive
+        if: github.event_name == 'schedule' && success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/deploy-web.yml/enable"

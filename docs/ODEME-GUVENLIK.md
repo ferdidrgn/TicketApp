@@ -69,7 +69,7 @@ showImageUrl,stageName,eventDate`) + `orderId`. `orderMethod`: ödemeli `card`, 
    ```
 3. Parametreler (deploy sırasında sorulur ya da `functions/.env.<proje>` dosyasında — bunlar sır değildir):
    - `IYZICO_BASE_URL` (varsayılan SANDBOX `https://sandbox-api.iyzipay.com`; canlı: `https://api.iyzipay.com`)
-   - `SITE_URL` (varsayılan `https://tiyatrol-web.web.app`; özel alan adına geçince güncelle, `/odeme-sonuc` sayfasının kökü)
+   - `SITE_URL` (varsayılan `https://tiyatrol.web.app`; özel alan adına geçince güncelle, `/odeme-sonuc` sayfasının kökü)
    - `ENFORCE_APP_CHECK` (varsayılan `false`, bölüm 5)
 4. iyzico panelinde callback URL ayrıca tanımlanmaz; her istekte `callbackUrl` olarak
    `https://europe-west1-ticketappflutter.cloudfunctions.net/iyzicoCallback` gönderilir. Proje kimliği farklıysa `index.js > callbackUrl()` düzenlenir.
@@ -282,12 +282,11 @@ bilet/rezervasyon/koltuk tutma yapılamaz. Sınırlar (3 / rezervasyonLimit) ve 
 - `UserLimits/{uid}` artık **ayna + eski sayaç**: `{phoneKey (son kullanılan telefon), freeTickets, reservations}`. İstemci hâlâ kendi uid belgesini okuyabilir (kural değişmedi); telefon belgesini OKUYAMAZ.
 - `Order.phoneKey` (hold'da yazılır, onayda güncellenir): iptal/yönetici yolları sayacı doğru anahtara iade etmek için buradan okur. **Düz telefon numarası Limits/Order/Ticket/Notification'a yazılmaz**, yalnızca hash (test: `phone-gate.test.js`).
   Ticket şeması değişmedi (anahtar, bilet kimliğiyle aynı kimlikli Order'da).
-- **Tuz (FAIL-CLOSED, 27.10.2026 denetimi):** `PHONE_HASH_SALT` (Functions string param, **en az 16 karakter**). Üretimde tanımsız/kısaysa telefon gerektiren
+- **Tuz (FAIL-CLOSED, 27.10.2026 denetimi):** `PHONE_HASH_SALT` (**Secret Manager sırrı** — `defineSecret`; 28.10.2026'da string param'dan çevrildi, GitHub Actions etkileşimsiz deploy edebilsin diye; **en az 16 karakter**). Üretimde tanımsız/kısaysa telefon gerektiren
   HER işlem (`holdSeats`, `confirmFree`, `confirmReservation`, `startPayment`, `syncPhoneVerification`) `unavailable` (`details.code = SALT_MISSING`) ile reddedilir ve log'a
   `PHONE_HASH_SALT tanımsız...` hatası düşer; iptal/bırakma/yönetici işlemleri etkilenmez. Depoda görünen sabit tuz YALNIZCA emülatörde (`FUNCTIONS_EMULATOR=true`) kullanılır
-  (10 haneli TR GSM uzayı küçük olduğundan bilinen tuzla hash'ler kaba kuvvetle çözülebilirdi). Üretimde rastgele uzun bir değer verin (örn. `PHONE_HASH_SALT=<openssl rand -hex 32>` ile `functions/.env.<projectId>` veya deploy sihirbazı).
+  (10 haneli TR GSM uzayı küçük olduğundan bilinen tuzla hash'ler kaba kuvvetle çözülebilirdi). Üretimde rastgele uzun bir değer verin (örn. `openssl rand -hex 32 | firebase functions:secrets:set PHONE_HASH_SALT --data-file - --project ticketappflutter`; adım adım: docs/DEPLOY-SIRASI.md). Tuzu okuyan her fonksiyon `secrets: [PHONE_HASH_SALT]` ile bağlıdır; emülatörde sır `functions/.secret.local`/ortamdan okunur, yoksa sabit geliştirme tuzu kullanılır.
   **Yayın öncesi bir kez ayarlanır; sonradan DEĞİŞTİRMEYİN** (anahtarlar değişir, telefon sayaçları fiilen sıfırlanır; uid aynası kısmen telafi eder ama tam güvence değildir).
-  Daha sıkı istenirse `defineSecret`'e çevrilebilir.
 
 ### Geçiş (mevcut uid-anahtarlı sayaçlar kaybolmaz) — seçilen yöntem ve gerekçe
 "İkisini birlikte say" yerine **"ilk telefonlu işlemde telefon sayacına tek seferlik taşı (max)"** seçildi:
@@ -320,7 +319,7 @@ Hesap silme talebinde `User/{uid}` ve uid ayna belgesi silinebilir; telefon saya
 
 ### Sahibinin yapacakları (deploy öncesi)
 1. Firebase Authentication > Sign-in method > **Telefon** sağlayıcısını etkinleştir (SMS bölge politikası: Türkiye; kota/fatura; web için reCAPTCHA, Android için SHA-1/Play Integrity, iOS için APNs).
-2. `PHONE_HASH_SALT` param'ını rastgele uzun değerle ayarla (sonradan değiştirme).
+2. `PHONE_HASH_SALT` **sırrını** rastgele uzun değerle girin (`firebase functions:secrets:set`; sonradan değiştirme).
 3. Sıra: functions (telefon kapısı + yeni callable) -> **istemciler (mobil + web) telefon akışıyla yayımlanır** -> `firestore.rules`. Functions yayımlandığı anda telefonsuz eski istemciler satış yapamaz (`PHONE_REQUIRED`);
    rules'u istemciden önce yayımlarsanız `isPhoneActive:true` / doğrulanmamış `phoneNumber` yazan eski mobil sürüm kayıt/güncellemede reddedilir.
 4. Aydınlatma metni/gizlilik politikasına telefon doğrulaması + sayaç özeti maddesi.

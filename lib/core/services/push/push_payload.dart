@@ -9,13 +9,22 @@ enum PushKind {
       value == 'alarm' ? PushKind.alarm : PushKind.normal;
 }
 
-/// Android bildirim kanalı kimlikleri (backend `channelId` ile AYNI olmalı).
+/// Android bildirim kanalı kimlikleri (backend `channelId` ile AYNI olmalı:
+/// functions/src/config.js NOTIFY.ALARM_CHANNEL / DEFAULT_CHANNEL).
+///
+/// KURAL (sahibin kararı, docs/BILDIRIM-ISTATISTIK.md): NEVER change ringer
+/// mode. Uygulama telefonun zil/sessiz/titreşim modunu ASLA değiştirmez;
+/// AudioManager / setRingerMode / Rahatsız Etme (NOTIFICATION_POLICY) erişimi
+/// kullanılmaz ve istenmez. Alarm kanalı yalnız kullanıcı AÇIKÇA izin verdiyse
+/// (User.notifPrefs.loudAlarm) kullanılır; ses sonrası telefon kendi
+/// durumunda kalır. Bu kural test/push_notifications_test.dart'ta denetlenir.
 abstract final class PushChannels {
   static const String alarm = 'tiyatrol_alarm';
   static const String normal = 'tiyatrol_default';
 
-  static String forKind(final PushKind kind) =>
-      kind == PushKind.alarm ? alarm : normal;
+  /// Alarm türü yalnız [loudAlarm] izni varsa alarm kanalına gider.
+  static String forKind(final PushKind kind, {final bool loudAlarm = false}) =>
+      kind == PushKind.alarm && loudAlarm ? alarm : normal;
 }
 
 /// FCM `data` alanlarından güvenle çözülen yük. Dışarıdan gelen her alan

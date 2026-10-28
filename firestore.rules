@@ -30,6 +30,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // GÜVENLİK (S-1, docs/GUVENLIK-DENETIMI.md): anonim olmayan oturum / doğrulanmış telefonlu oturum.
+    // Telefon token'ı Firebase Auth SMS doğrulamasından gelir; istemci sahteleyemez.
+    function notAnonymous() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function phoneVerified() {
+      return notAnonymous() && request.auth.token.get('phone_number', null) != null;
+    }
+
     // 🔥 UserRole — bkz. lib/core/common/enum/enums.dart:
     //   enum UserRole { admin, curator, user, guest, unknown }
     // User.role, Firestore'a `role.name` ile yazılıyor (bkz. user.dart ->
@@ -51,6 +60,31 @@ service cloud.firestore {
         (request.auth.token.get('phone_number', null) != null && v == request.auth.token.get('phone_number', null));
     }
 
+    // BİLDİRİM TERCİHİ (docs/BILDIRIM-ISTATISTIK.md "Sessizde sesli hatırlatma"): User.notifPrefs yalnızca { loudAlarm: bool } olabilir
+    // (kullanıcı kendisi yazar; sunucu yalnız okur). Başka alan/tür reddedilir.
+    function notifPrefsOk() {
+      let v = request.resource.data.get('notifPrefs', null);
+      return v == null || (v is map && v.keys().hasOnly(['loudAlarm']) && v.get('loudAlarm', false) is bool);
+    }
+
+    // ÇOKLU CİHAZ PUSH (N-3): User.fcmTokens = bu hesaba bağlı cihazların FCM token'ları (liste, <=5, her biri metin <=4096 karakter).
+    function fcmTokensOk() {
+      let v = request.resource.data.get('fcmTokens', null);
+      return v == null || (v is list && v.size() <= 5 &&
+        (v.size() < 1 || (v[0] is string && v[0].size() <= 4096)) &&
+        (v.size() < 2 || (v[1] is string && v[1].size() <= 4096)) &&
+        (v.size() < 3 || (v[2] is string && v[2].size() <= 4096)) &&
+        (v.size() < 4 || (v[3] is string && v[3].size() <= 4096)) &&
+        (v.size() < 5 || (v[4] is string && v[4].size() <= 4096)));
+    }
+
+    // Hesap silme mezar taşı (AccountDeletion/{uid}.status == 'deleted'|'deleting'): silinen/silinmekte olan uid'in eski ID token'ı
+    // (~1 saat geçerli) User belgesini yeniden oluşturamaz/yazamaz. 'pending' (bekleme) kullanıcıyı ENGELLEMEZ (vazgeçebilmeli).
+    function deletionLocked(userId) {
+      return exists(/databases/$(database)/documents/AccountDeletion/$(userId)) &&
+        get(/databases/$(database)/documents/AccountDeletion/$(userId)).data.status in ['deleting', 'deleted'];
+    }
+
     // -------------------------------------------------------------------
     // User — lib/features/users/domain/entities/user.dart
     // Koleksiyon adı: 'User' (bkz. user_remote_data_source_and_impl.dart,
@@ -67,11 +101,16 @@ service cloud.firestore {
       // TELEFON (docs/TELEFON-DOGRULAMA.md): isPhoneActive / phoneVerifiedAt / phoneKey YALNIZCA sunucu (syncPhoneVerification)
       // yazar. İstemci create'te isPhoneActive'i yalnızca false/null/yok, phoneVerifiedAt/phoneKey'i hiç yazamaz; phoneNumber
       // yalnızca boş ya da token'daki doğrulanmış phone_number ile birebir aynı olabilir.
-      allow create: if isOwner(userId) &&
+      // HESAP SİLME (docs/HESAP-SILME.md): deletionStatus / deletionScheduledAt / deletionRequestedAt YALNIZCA sunucu yazar.
+      allow create: if isOwner(userId) && !deletionLocked(userId) &&
+        !('deletionStatus' in request.resource.data) &&
+        !('deletionScheduledAt' in request.resource.data) &&
+        !('deletionRequestedAt' in request.resource.data) &&
         request.resource.data.get('role', 'user') in ['user', 'guest', 'unknown'] &&
         request.resource.data.get('isPhoneActive', false) in [false, null] &&
         !('phoneVerifiedAt' in request.resource.data) &&
         !('phoneKey' in request.resource.data) &&
+        notifPrefsOk() && fcmTokensOk() &&
         phoneNumberWriteOk(null);
 
       // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
@@ -84,17 +123,28 @@ service cloud.firestore {
       // üzerinden, geliştirici tarafından elle yapılmalı.
       // Update'te de: isPhoneActive değişmedi YA DA false/null'a çekiliyor (true'ya ASLA); phoneVerifiedAt/phoneKey değişmez;
       // phoneNumber değişmedi, boşaltılıyor ya da token'daki doğrulanmış numarayla aynı.
-      allow update: if isOwner(userId) &&
+      allow update: if isOwner(userId) && !deletionLocked(userId) &&
+        request.resource.data.get('deletionStatus', null) == resource.data.get('deletionStatus', null) &&
+        request.resource.data.get('deletionScheduledAt', null) == resource.data.get('deletionScheduledAt', null) &&
+        request.resource.data.get('deletionRequestedAt', null) == resource.data.get('deletionRequestedAt', null) &&
         request.resource.data.get('role', null) == resource.data.get('role', null) &&
         (request.resource.data.get('isPhoneActive', null) == resource.data.get('isPhoneActive', null) ||
           request.resource.data.get('isPhoneActive', null) in [false, null]) &&
         request.resource.data.get('phoneVerifiedAt', null) == resource.data.get('phoneVerifiedAt', null) &&
         request.resource.data.get('phoneKey', null) == resource.data.get('phoneKey', null) &&
+        notifPrefsOk() && fcmTokensOk() &&
         phoneNumberWriteOk(resource.data.get('phoneNumber', null));
 
-      // Delete: hesap silme akışı var (bkz. delete_user_use_case_impl.dart
-      // -> UserRemoteDataSourceImpl.deleteUser) — sadece kendi hesabı.
-      allow delete: if isOwner(userId);
+      // Delete: KAPALI (28.10.2026). Hesap silme artık yalnızca sunucuda (requestAccountDeletion -> 30 gün bekleme ->
+      // processAccountDeletions): "gelecek biletim varken sil" kuralı istemciden aşılamasın. Admin SDK kuralları atlar.
+      allow delete: if false;
+    }
+
+    // AccountDeletion — hesap silme işlem günlüğü / kuyruğu. Yalnızca sunucu yazar; yalnız admin okur (düz telefon/e-posta içermez).
+    // Kullanıcı kendi durumunu User.deletion* alanlarından ya da getAccountDeletionStatus callable'ından okur.
+    match /AccountDeletion/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // -------------------------------------------------------------------
@@ -144,10 +194,10 @@ service cloud.firestore {
     match /Notification/{notificationId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
 
-      // Create: satın alma sonrası kullanıcı KENDİ bildirimini oluşturuyor
-      // (bkz. event_provider.dart -> createNotification, userId: customerId
-      // = mevcut kullanıcı). Başkası adına bildirim oluşturulamaz.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Create: KAPALI (S-1). Bildirimleri yalnızca sunucu (Admin SDK: sipariş onayı, hatırlatma, duyuru) yazar; mobilde
+      // createNotification kullanım durumu hiçbir yerden çağrılmıyor. Aksi halde kullanıcı kendine sınırsız/sahte
+      // (ör. sahte "ödeme alındı") bildirim üretip depolamayı şişirebilirdi.
+      allow create: if false;
 
       // Update: tek gerçek kullanım `markNotificationRead` — sadece
       // `isRead` alanını değiştiriyor. Sahipliği (`userId`) veya
@@ -155,6 +205,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         resource.data.userId == request.auth.uid &&
         request.resource.data.userId == resource.data.userId &&
+        request.resource.data.isRead is bool &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
 
       // Delete: kod tabanında kullanılmıyor ama kullanıcının kendi
@@ -182,25 +233,40 @@ service cloud.firestore {
     match /Review/{reviewId} {
       allow read: if true;
 
-      allow create: if isSignedIn() &&
+      // Create (S-1): doğrulanmış telefon + anonim olmayan sağlayıcı; alan beyaz listesi, tür ve boyut sınırı; sunucu zamanı;
+      // yalnızca var olan bir oyuna; `hidden` istemciden yalnızca false yazılabilir.
+      allow create: if phoneVerified() &&
+        request.resource.data.keys().hasOnly(['showId', 'userId', 'userName', 'userImage', 'rating', 'text', 'createdAt', 'updatedAt', 'hidden']) &&
+        request.resource.data.keys().hasAll(['showId', 'userId', 'rating', 'text', 'hidden', 'createdAt']) &&
+        request.resource.data.showId is string &&
+        request.resource.data.showId.size() >= 1 && request.resource.data.showId.size() <= 128 &&
         reviewId == request.auth.uid + '_' + request.resource.data.showId &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.rating is int &&
         request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
         request.resource.data.text is string &&
         request.resource.data.text.size() <= 600 &&
-        request.resource.data.hidden == false;
+        request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
+        request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
+        request.resource.data.hidden == false &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.get('updatedAt', request.time) == request.time &&
+        exists(/databases/$(database)/documents/Show/$(request.resource.data.showId));
 
-      // Sahibi yalnızca puan/metin/ad/foto/zaman alanlarını değiştirir;
-      // admin ayrıca `hidden` (gizleme) alanını değiştirebilir.
+      // Sahibi yalnızca puan/metin/ad/foto/zaman alanlarını değiştirir (aynı doğrulamalar); admin ayrıca `hidden` değiştirebilir.
       allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid &&
+        (resource.data.userId == request.auth.uid && phoneVerified() &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['rating', 'text', 'userName', 'userImage', 'updatedAt']) &&
           request.resource.data.rating is int &&
           request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
-          request.resource.data.text.size() <= 600) ||
+          request.resource.data.text is string &&
+          request.resource.data.text.size() <= 600 &&
+          request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 80 &&
+          request.resource.data.get('userImage', '') is string && request.resource.data.get('userImage', '').size() <= 600 &&
+          request.resource.data.get('updatedAt', request.time) == request.time) ||
         (isAdmin() &&
+          request.resource.data.hidden is bool &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['hidden']))
       );
@@ -209,10 +275,19 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // Şikâyetler: giriş yapan herkes KENDİ adına yazar; yalnızca admin okur.
+    // Şikâyetler (S-1): anonim olmayan oturum; belge kimliği `${reviewId}_${reporterUid}` (mobil ReviewRepository.report ile aynı) ->
+    // kullanıcı başına yorum başına TEK belge; alan beyaz listesi + boyut sınırı; var olan yoruma; yalnızca admin okur.
     match /ReviewReport/{reportId} {
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
+      allow create: if notAnonymous() &&
+        request.resource.data.keys().hasOnly(['reviewId', 'userId', 'createdAt', 'reason']) &&
+        request.resource.data.keys().hasAll(['reviewId', 'userId', 'createdAt']) &&
+        request.resource.data.reviewId is string &&
+        request.resource.data.reviewId.size() >= 3 && request.resource.data.reviewId.size() <= 300 &&
+        reportId == request.resource.data.reviewId + '_' + request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.get('reason', '') is string && request.resource.data.get('reason', '').size() <= 200 &&
+        exists(/databases/$(database)/documents/Review/$(request.resource.data.reviewId));
       allow read: if isAdmin();
       allow update, delete: if false;
     }
@@ -327,6 +402,25 @@ service cloud.firestore {
     match /System/{docId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // TeamManager — EKİP YÖNETİCİSİ yetkisi (docs/EKIP-YONETICISI.md). Belge kimliği `{teamId}_{uid}`.
+    // İstemci ASLA yazamaz (atama/geri alma yalnız adminSetTeamManager callable'ı, Admin SDK). Okuma: admin tümünü,
+    // yönetici yalnız KENDİ kaydını (sorguda `where('uid','==',auth.uid)` şart). User.role DEĞİŞMEZ; bu rol hiçbir
+    // başka koleksiyona yazma/okuma yetkisi vermez (Ticket/Event/Show/Team kuralları değişmedi).
+    // TeamManagerLog: atama günlüğü (yalnız admin okur). TeamLimits: yönetici gönderim sayaçları (istemci erişemez).
+    // -------------------------------------------------------------------
+    match /TeamManager/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+    match /TeamManagerLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /TeamLimits/{uid} {
+      allow read, write: if false;
     }
 
     // -------------------------------------------------------------------

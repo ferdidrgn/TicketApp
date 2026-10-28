@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../purchase/data/datasources/purchase_remote_data_source_and_impl.dart';
+import '../account_deletion_service.dart';
 
 abstract class AuthRemoteDataSource {
   Future<User?> getCurrentUser();
@@ -28,12 +30,16 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final AccountDeletionService _deletion;
 
   AuthRemoteDataSourceImpl(
       {required final FirebaseAuth firebaseAuth,
-      final GoogleSignIn? googleSignIn})
+      final GoogleSignIn? googleSignIn,
+      final AccountDeletionService? deletionService})
       : _auth = firebaseAuth,
-        _googleSignIn = googleSignIn ?? GoogleSignIn.standard();
+        _googleSignIn = googleSignIn ?? GoogleSignIn.standard(),
+        _deletion = deletionService ??
+            AccountDeletionService(FirebasePurchaseCallableClient());
 
   @override
   Future<User?> getCurrentUser() async => _auth.currentUser;
@@ -52,8 +58,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'operation-not-allowed':
+          // Firebase'de Anonymous sağlayıcı kapalı: çökme yok, kullanıcıya
+          // anlamlı yönlendirme (Google / telefon ile giriş).
           throw Exception(
-              'Anonymous giriş desteklenmiyor. Firebase konsoldan etkinleştirin.');
+              'Misafir girişi şu an kapalı. Google ile ya da telefon numaranla giriş yapabilirsin.');
         case 'network-request-failed':
           throw Exception(
               'İnternet bağlantısı yok. Lütfen bağlantınızı kontrol edin.');
@@ -131,17 +139,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final user = _auth.currentUser;
     if (user == null) return false;
 
-    try {
-      await user.delete();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login')
-        throw Exception(
-            'Hesabı silmek için son zamanlarda giriş yapmalısınız. Lütfen tekrar giriş yapın.');
-      throw Exception('Hesap silme başarısız: ${e.message}');
-    } catch (e) {
-      throw Exception('Hesap silme başarısız: $e');
-    }
+    // Artık `user.delete()` ile ANINDA silme YOK (karar: misafir için de
+    // yok; sunucu misafiri hemen siler). `requestAccountDeletion` hesabı 30
+    // gün sonrasına planlar; gelecek bileti varsa [UpcomingTicketsException]
+    // fırlatır. Çıkışı çağıran yapar (AuthMutation.signOut akışı).
+    final result = await _deletion.requestDeletion();
+    return result.status == AccountDeletionStatus.deleted ||
+        result.status == AccountDeletionStatus.scheduled;
   }
 
   // ✅ Named parametre olarak güncellendi

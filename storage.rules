@@ -1,0 +1,60 @@
+// =============================================================================
+// TiyatRol — Cloud Storage Güvenlik Kuralları (S-1, docs/GUVENLIK-DENETIMI.md)
+// =============================================================================
+// İstemci yolları (kodda doğrulandı):
+//   ppics/{uid}.jpg                              mobil profil fotoğrafı (storage_service.dart)
+//   PlayerImages|ShowImages|StageImages|TeamImages/{id}.jpg   mobil yönetim görselleri
+//   images/{koleksiyon}/{zaman}-{ad}             web yönetim paneli yüklemeleri (site/js/admin/admin.js)
+// Görseller uygulamada indirme URL'si (token'lı) ile gösterilir; bu URL kurallardan bağımsız çalışır. Bu yüzden
+// LİSTELEME hiçbir yerde açık değil, `get` yalnızca gerekli yerde açık.
+// Varsayılan: her şey KAPALI. Yönetici = Firestore User/{uid}.role == 'admin' (çapraz servis firestore.get).
+// !!! Console'daki MEVCUT Storage kurallarını kontrol etmeden yayınlamayın (bkz. docs/GUVENLIK-DENETIMI.md).
+// =============================================================================
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return signedIn() &&
+        firestore.get(/databases/(default)/documents/User/$(request.auth.uid)).data.role == 'admin';
+    }
+    // Yalnızca güvenli raster görsel türleri (SVG/HTML yok: betik taşıyabilir).
+    function imageUpload(maxBytes) {
+      return request.resource.size > 0 && request.resource.size <= maxBytes &&
+        request.resource.contentType.matches('image/(jpeg|png|webp|gif|heic|heif|avif)');
+    }
+
+    // Profil fotoğrafı: yalnızca sahibi yazar/siler (dosya adı = uid + uzantı), <= 5 MB.
+    match /ppics/{file} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn() &&
+        file.matches('^' + request.auth.uid + '\\.[A-Za-z0-9]{2,5}$') && imageUpload(5 * 1024 * 1024);
+      allow delete: if signedIn() && file.matches('^' + request.auth.uid + '\\.[A-Za-z0-9]{2,5}$');
+    }
+
+    // Yönetim görselleri (mobil): herkes görüntüleyebilir (get), yalnızca yönetici yazar/siler, <= 10 MB.
+    match /{dir}/{file} {
+      allow get: if dir in ['PlayerImages', 'ShowImages', 'StageImages', 'TeamImages'];
+      allow create, update: if dir in ['PlayerImages', 'ShowImages', 'StageImages', 'TeamImages'] &&
+        isAdmin() && imageUpload(10 * 1024 * 1024);
+      allow delete: if dir in ['PlayerImages', 'ShowImages', 'StageImages', 'TeamImages'] && isAdmin();
+    }
+
+    // Web yönetim paneli: images/{koleksiyon}/{dosya}
+    match /images/{coll}/{file} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isAdmin() && imageUpload(10 * 1024 * 1024);
+      allow delete: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

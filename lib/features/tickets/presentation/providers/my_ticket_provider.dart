@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/util/date_formatter.dart';
@@ -9,6 +10,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../data/repositories/ticket_repository_provider.dart';
 import '../../domain/entities/ticket.dart';
+import '../../domain/ticket_purchase_time.dart';
 import '../../domain/usecases/get_ticket_by_id_use_case.dart';
 import '../../domain/usecases/get_tickets_by_customer_id_use_case.dart';
 
@@ -47,6 +49,9 @@ class DetailedTicket {
   String get posterUrl => (show?.imageUrl ?? '').trim().isNotEmpty
       ? show!.imageUrl.trim()
       : ticket.showImageUrl.trim();
+
+  /// "28.10.2026 14:32" (Europe/Istanbul) ya da kaynak yoksa boş.
+  String get purchasedAtText => formatPurchaseStamp(ticket.createdAt);
 
   bool get isCancelled => ticket.isCancelled;
 
@@ -110,15 +115,27 @@ Future<List<DetailedTicket>> myTickets(
       .toList();
 
   // 3. İlişkili Verileri Paralel Çek (Future.wait ile performans artışı)
-  final results = await Future.wait([
+  // Her biri BAĞIMSIZ ve hataya dayanıklı: Show/Event/Stage okuması (kural,
+  // ağ, bozuk belge) patlarsa bilet yine listelenir; ad/sahne/tarih bilete
+  // satın alma anında kopyalanan özetten gelir (bkz. DetailedTicket).
+  Future<List<T>> safe<T>(final Future<List<T>> f, final String what) async {
+    try {
+      return await f;
+    } catch (e) {
+      debugPrint('myTickets: $what okunamadı (${e.runtimeType}); bilet özeti kullanılacak');
+      return <T>[];
+    }
+  }
+
+  final results = await Future.wait<List<Object?>>([
     showIds.isNotEmpty
-        ? ref.watch(showsByIdsProvider(showIds).future)
+        ? safe<Show>(ref.watch(showsByIdsProvider(showIds).future), 'Show')
         : Future.value(<Show>[]),
     eventIds.isNotEmpty
-        ? ref.watch(eventsByIdsProvider(eventIds).future)
+        ? safe<Event>(ref.watch(eventsByIdsProvider(eventIds).future), 'Event')
         : Future.value(<Event>[]),
     stageIds.isNotEmpty
-        ? ref.watch(stagesByIdsProvider(stageIds).future)
+        ? safe<Stage>(ref.watch(stagesByIdsProvider(stageIds).future), 'Stage')
         : Future.value(<Stage>[]),
   ]);
 

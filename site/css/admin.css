@@ -74,6 +74,9 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .bk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .bk-stats b { display: block; font: 800 24px var(--font-display); color: var(--accent); }
 .bk-stats span { color: var(--ink-2); font-size: 13px; }
+.bk-sub { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bk-sub h3 { font-size: 16px; margin: 0 0 10px; }
+.bk-sub .bk-row { margin-top: 12px; align-items: center; }
 .bk-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .bk-seg button { text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
 .bk-seg button small { display: block; color: var(--ink-2); margin-top: 2px; }
@@ -166,3 +169,20 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
   .modal { padding: 20px; }
   .modal-act .btn-lg { flex: 1; }
 }
+
+/* --- form: onay kutuları (secenekler / onay tipleri) --- */
+fieldset.opts { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.opts legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.opt { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; margin: 0 0 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; font-weight: 400; color: var(--ink); }
+.opt:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.opt input[type=checkbox] { flex: none; width: 20px; min-height: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
+.opt span { min-width: 0; overflow-wrap: anywhere; }
+.opt b { display: block; font-weight: 600; }
+.opt small { display: block; color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+.opt-other { display: grid; gap: 4px; margin-top: 10px; }
+.opt-other small { color: var(--ink-3); font-size: 12.5px; }
+.bk-note { margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.bk-stats > div { min-width: 0; overflow-wrap: anywhere; }
+.bk-alert { overflow-wrap: anywhere; }
+.bk-sub .bk-row .btn { max-width: 100%; white-space: normal; }
+@media (max-width: 480px) { .bk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bk-card { padding: 16px; } }

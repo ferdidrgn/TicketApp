@@ -136,6 +136,9 @@ enum OrderStatus {
   paying,
   paid,
   freeConfirmed,
+
+  /// Rezervasyon (ödeme sahnede) onaylandı; sunucu siparişi `reserved` yapar.
+  reserved,
   expired,
   failed,
   cancelled,
@@ -146,6 +149,7 @@ enum OrderStatus {
         'paying' => paying,
         'paid' => paid,
         'free_confirmed' => freeConfirmed,
+        'reserved' => reserved,
         'expired' => expired,
         'failed' => failed,
         'cancelled' => cancelled,
@@ -153,7 +157,7 @@ enum OrderStatus {
       };
 
   /// Bilet kesildi.
-  bool get isFulfilled => this == paid || this == freeConfirmed;
+  bool get isFulfilled => this == paid || this == freeConfirmed || this == reserved;
 
   /// Sipariş artık ilerlemez ve bilet de kesilmedi.
   bool get isDeadEnd => this == expired || this == failed || this == cancelled;
@@ -224,6 +228,10 @@ class PurchaseFailure extends Failure {
 
   /// Doğrulanmış telefon gerekli (`PHONE_REQUIRED`): telefon kapısı açılır.
   bool get isPhoneRequired => code == 'phone-required';
+
+  /// Hesap silinmek üzere (`ACCOUNT_DELETION_PENDING`): satın alma yapılamaz;
+  /// arayüz "Silmeyi iptal et" eylemi sunar.
+  bool get isDeletionPending => code == 'account-deletion-pending';
 
   @override
   List<Object?> get props => [message, code];

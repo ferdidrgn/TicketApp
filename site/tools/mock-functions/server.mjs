@@ -18,6 +18,28 @@ const IPTAL_SAAT = +(process.env.IPTAL_SAAT || 24);
 class Hata extends Error { constructor(status, msg, details) { super(msg); this.status = status; this.details = details; } }
 const HTTP = { INVALID_ARGUMENT: 400, FAILED_PRECONDITION: 400, UNAUTHENTICATED: 401, PERMISSION_DENIED: 403, NOT_FOUND: 404, RESOURCE_EXHAUSTED: 429, INTERNAL: 500 };
 
+// Hesap silme (docs/HESAP-SILME.md): gelecek bilet -> UPCOMING_TICKETS; pending iken satış -> ACCOUNT_DELETION_PENDING.
+const SATIN_ALMA = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
+const SIL_GUN = +(process.env.DELETE_DAYS || 30);
+async function requestAccountDeletion(uid) {
+  const u = await oku(`User/${uid}`);
+  if (u?.deletionStatus === 'pending') return { status: 'pending', scheduledAt: u.deletionScheduledAt, requestedAt: u.deletionRequestedAt, already: true };
+  const gelecek = (await listele('Ticket')).filter((t) => t.customerId === uid && t.paymentStatus !== 'cancelled' && t.paymentStatus !== 'no_show' && !t.usedAt && !t.cancelledAt && (tarihAyristir(t.eventDate) || 0) > new Date())
+    .sort((a, b) => tarihAyristir(a.eventDate) - tarihAyristir(b.eventDate));
+  if (gelecek.length) {
+    throw new Hata('FAILED_PRECONDITION', 'UPCOMING_TICKETS', { code: 'UPCOMING_TICKETS', count: gelecek.reduce((n, t) => n + (t.buySeats?.length || 1), 0), nextEventDate: tarihAyristir(gelecek[0].eventDate).toISOString(), nextEventTitle: gelecek[0].showName || '' });
+  }
+  const simdi = new Date().toISOString(), scheduledAt = new Date(Date.now() + SIL_GUN * 864e5).toISOString();
+  await guncelle(`User/${uid}`, { deletionStatus: 'pending', deletionScheduledAt: scheduledAt, deletionRequestedAt: simdi });
+  return { status: 'pending', scheduledAt, requestedAt: simdi, already: false };
+}
+async function cancelAccountDeletion(uid) {
+  const u = await oku(`User/${uid}`);
+  const was = u?.deletionStatus === 'pending';
+  if (was) await guncelle(`User/${uid}`, { deletionStatus: null, deletionScheduledAt: null, deletionRequestedAt: null });
+  return { status: 'active', wasPending: was };
+}
+
 // Telefon doğrulaması (docs/TELEFON-DOGRULAMA.md): token'da phone_number yoksa failed-precondition + details.code PHONE_REQUIRED.
 const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
 function telefonAl(req) {
@@ -160,7 +182,7 @@ setInterval(async () => {
   } catch {}
 }, 2000);
 
-const ISLEVLER = { syncPhoneVerification, holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket };
+const ISLEVLER = { requestAccountDeletion, cancelAccountDeletion, syncPhoneVerification, holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket };
 if (process.env.SATIS_MODE) yaz('Config/satis', { mode: process.env.SATIS_MODE, rezervasyonLimit: REZ_LIMIT, iptalSaat: IPTAL_SAAT }).then(() => console.log('Config/satis =', process.env.SATIS_MODE)).catch((e) => console.error(e.message));
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization,content-type,firebase-instance-id-token,x-firebase-appcheck', 'access-control-allow-methods': 'POST,OPTIONS' };
 http.createServer(async (req, res) => {
@@ -172,6 +194,11 @@ http.createServer(async (req, res) => {
     let govde = ''; for await (const c of req) govde += c;
     const { data } = JSON.parse(govde || '{}');
     const uid = uidAl(req);
+    // Kapı sırası GERÇEK backend ile aynı (docs/HESAP-SILME.md §3): giriş -> ACCOUNT_DELETION_PENDING -> PHONE_REQUIRED.
+    if (SATIN_ALMA.has(ad)) {
+      const ku = await oku(`User/${uid}`);
+      if (ku?.deletionStatus === 'pending') throw new Hata('FAILED_PRECONDITION', 'ACCOUNT_DELETION_PENDING', { code: 'ACCOUNT_DELETION_PENDING', scheduledAt: ku.deletionScheduledAt || null });
+    }
     if (TELEFONLU.has(ad) && !telefonAl(req)) throw new Hata('FAILED_PRECONDITION', 'PHONE_REQUIRED', { code: 'PHONE_REQUIRED' });
     const sonuc = await ISLEVLER[ad](uid, data || {}, req);
     yanit(200, { result: sonuc });

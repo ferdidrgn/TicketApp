@@ -25,6 +25,7 @@ import '../../../events/presentation/providers/event_provider.dart';
 import '../../../purchase/domain/entities/purchase_entities.dart';
 import '../../../purchase/presentation/pages/payment_web_view_page.dart';
 import '../../../auth/presentation/widgets/phone_verify_sheet.dart';
+import '../../../settings/presentation/widgets/loud_alarm_sheet.dart';
 import '../../../purchase/presentation/providers/purchase_provider.dart';
 import '../../../purchase/presentation/providers/seat_purchase_controller.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -164,11 +165,23 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
   void _showNotice(final PurchaseNotice n) {
     if (!mounted) return;
     final cs = Theme.of(context).colorScheme;
+    // Hesap silinmek üzereyse mesajın yanında tek dokunuşla vazgeçme eylemi.
+    final deletionPending = ref
+        .read(seatPurchaseControllerProvider(widget.eventId))
+        .deletionPending;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: n.isError ? cs.error : null,
+        duration: deletionPending ? const Duration(seconds: 10) : const Duration(seconds: 4),
+        action: deletionPending
+            ? SnackBarAction(
+                label: 'Silmeyi iptal et',
+                textColor: n.isError ? cs.onError : null,
+                onPressed: () => _ctrl.cancelAccountDeletion(),
+              )
+            : null,
         content: Text(
           n.text,
           style: n.isError ? TextStyle(color: cs.onError) : null,
@@ -242,9 +255,15 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
 
   void _celebrate(final SeatPurchaseState s) {
     // Biletler sunucuda kesildi; listeyi tazele.
-    if (!_isGuest) ref.invalidate(myTicketsProvider(widget.customerId));
-    if (!_reduceMotion) _confettiController.play();
-    HapticFeedback.mediumImpact();
+    // Yan işlemler (liste tazeleme, konfeti, titreşim) başarılı satın alma
+    // sonucunu ASLA bozmaz: hata yutulur, diyalog yine açılır.
+    try {
+      if (!_isGuest) ref.invalidate(myTicketsProvider(widget.customerId));
+      if (!_reduceMotion) _confettiController.play();
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      debugPrint('Satın alma sonrası yan işlem hatası: ${e.runtimeType}');
+    }
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -257,7 +276,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
             NavigationHandler.goToMyTickets(context, widget.customerId),
         onHome: () => NavigationHandler.goToHome(context),
       ),
-    );
+    ).whenComplete(() {
+      // İlk bilet sonrası bir kez: "sessizde de sesli hatırlat" izni sorulur
+      // (varsayılan kapalı; telefonun sessiz ayarı değiştirilmez).
+      if (!_isGuest) unawaited(LoudAlarmSheet.maybePromptAfterPurchase());
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────

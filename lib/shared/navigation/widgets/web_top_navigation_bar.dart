@@ -9,6 +9,7 @@ import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../features/auth/presentation/widgets/account_deletion_widgets.dart';
 import '../../../features/notifications/presentation/providers/notification_provider.dart';
 import 'ticket_nav_bar.dart';
 import 'web_site_header.dart';
@@ -61,6 +62,9 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
         children: [
           // TOP NAVIGATION BAR
           _buildTopBar(context, narrow: narrow),
+
+          // HESAP SİLME ŞERİDİ (bekleyen silme yoksa görünmez; mobil kabukla aynı)
+          const AccountDeletionBanner(),
 
           // MAIN CONTENT
           Expanded(child: widget.navigationShell),

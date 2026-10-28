@@ -9,10 +9,11 @@ abstract class PushGateway {
   Future<void> unsubscribeFromTopic(String topic);
 }
 
-/// Kullanıcı dökümanındaki `fcmToken` alanı.
+/// Kullanıcı dökümanındaki `fcmTokens` (çoklu cihaz) ve eski `fcmToken` alanı.
 abstract class PushTokenStore {
-  /// Giriş yapmış kullanıcının `fcmToken` alanını boşaltır.
-  Future<void> clearTokenForCurrentUser();
+  /// Giriş yapmış kullanıcının belgesinden YALNIZ bu cihazın [token]'ını çıkarır
+  /// (diğer cihazlar etkilenmez). [token] null/boşsa yapılacak bir şey yoktur.
+  Future<void> clearTokenForCurrentUser(String? token);
 }
 
 /// Basit bool tercih deposu (SharedPreferences arkasında).
@@ -24,6 +25,13 @@ abstract class PushPrefs {
 /// Yerel bildirim gösterici.
 abstract class LocalNotifier {
   Future<void> show(LocalNotificationSpec spec);
+}
+
+/// "Sessizde de sesli hatırlat" tercihinin sunucuya (User.notifPrefs.loudAlarm)
+/// yazılması. Oturum yoksa sessizce atlanır; kayıtlı yerel tercih sonraki
+/// token yazımında eşitlenir.
+abstract class LoudAlarmRemote {
+  Future<void> write(bool enabled);
 }
 
 typedef IncomingPresenter = Future<void> Function(
@@ -40,6 +48,9 @@ class PushService {
   final PushPrefs prefs;
   final LocalNotifier notifier;
 
+  /// Tercihi sunucuya yazar (testte null olabilir).
+  final LoudAlarmRemote? loudAlarmRemote;
+
   /// Ön planda gelen alarm için uygulama içi uyarı.
   final IncomingPresenter? alarmPresenter;
 
@@ -51,6 +62,7 @@ class PushService {
     required this.tokenStore,
     required this.prefs,
     required this.notifier,
+    this.loudAlarmRemote,
     this.alarmPresenter,
     this.bannerPresenter,
   });
@@ -67,6 +79,34 @@ class PushService {
       await gateway.unsubscribeFromTopic(announcementsTopic);
     }
   }
+
+  static const String loudAlarmPrefKey = 'push_loud_alarm_enabled';
+  static const String loudAlarmPromptSeenKey = 'push_loud_alarm_prompt_seen';
+
+  /// "Sessizdeyken de sesli hatırlat": varsayılan KAPALI (kullanıcı açar).
+  /// Açık olsa bile telefonun zil modu DEĞİŞTİRİLMEZ; yalnız alarm kanalı
+  /// (Android ALARM ses akışı) seçilir.
+  Future<bool> loudAlarmEnabled() async =>
+      await prefs.readBool(loudAlarmPrefKey) ?? false;
+
+  /// Hiç seçilmemişse null (sunucuya yazılacak bir şey yok).
+  Future<bool?> loudAlarmPreference() => prefs.readBool(loudAlarmPrefKey);
+
+  Future<void> setLoudAlarmEnabled(final bool enabled) async {
+    await prefs.writeBool(loudAlarmPrefKey, enabled);
+    try {
+      await loudAlarmRemote?.write(enabled);
+    } catch (_) {
+      // Yerel tercih kayıtlı; sunucu yazımı sonraki token eşitlemesinde yenilenir.
+    }
+  }
+
+  /// İlk bilet sonrası izin ekranı daha önce gösterildi mi?
+  Future<bool> loudAlarmPromptSeen() async =>
+      await prefs.readBool(loudAlarmPromptSeenKey) ?? false;
+
+  Future<void> markLoudAlarmPromptSeen() =>
+      prefs.writeBool(loudAlarmPromptSeenKey, true);
 
   /// Kayıtlı tercihe göre topic aboneliğini eşitler (açılış / çıkış sonrası).
   Future<void> syncAnnouncementTopic() async {
@@ -90,7 +130,9 @@ class PushService {
       }
     }
 
-    await step('clearToken', tokenStore.clearTokenForCurrentUser);
+    String? token;
+    await step('getToken', () async => token = await gateway.getToken());
+    await step('clearToken', () => tokenStore.clearTokenForCurrentUser(token));
     await step('unsubscribe',
         () => gateway.unsubscribeFromTopic(announcementsTopic));
     await step('deleteToken', gateway.deleteToken);
@@ -102,7 +144,8 @@ class PushService {
     final PushPayload payload = PushPayload.fromData(message.data);
     if (payload.isAlarm) {
       // Ses + titreşim alarm kanalındaki yerel bildirimden gelir.
-      await notifier.show(PushMessageMapper.toSpec(message));
+      await notifier.show(PushMessageMapper.toSpec(message,
+          loudAlarm: await loudAlarmEnabled()));
       await alarmPresenter?.call(message, payload);
     } else {
       await bannerPresenter?.call(message, payload);
@@ -113,7 +156,8 @@ class PushService {
   /// (yalnız data) biz yerel bildirim olarak gösteririz.
   Future<void> handleBackground(final PushIncoming message) async {
     if (message.hasNotificationBlock) return;
-    final LocalNotificationSpec spec = PushMessageMapper.toSpec(message);
+    final LocalNotificationSpec spec = PushMessageMapper.toSpec(message,
+        loudAlarm: await loudAlarmEnabled());
     if (spec.body.isEmpty && spec.title == PushMessageMapper.defaultTitle) {
       return; // gösterilecek içerik yok
     }

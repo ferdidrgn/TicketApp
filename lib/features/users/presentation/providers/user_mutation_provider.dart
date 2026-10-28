@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/services/local_storage_service.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/providers/auth_service.dart';
 import '../../domain/entities/user.dart' as entity;
 import 'user_provider.dart';
 
@@ -37,31 +35,7 @@ class UserMutation extends _$UserMutation {
     ref.invalidate(userProfileProvider);
   }
 
-  /// 🗑️ HESABI VE TÜM VERİLERİ SİL
-  Future<void> deleteAccountCompletely() async {
-    state = const AsyncLoading();
-
-    final result = await AsyncValue.guard(() async {
-      // Auth'dan gelen UID'yi al
-      final userId = ref.read(currentUserIdProvider);
-      if (userId == null) return;
-
-      // 1. Firestore temizliği
-      await ref.read(deleteUserUseCaseProvider).call(userId);
-
-      // 2. Auth oturum kapatma
-      await ref
-          .read(authServiceProvider.notifier)
-          .executeGlobalSignOutRoutine();
-
-      // 3. Lokal temizlik
-      await LocalStorageService.clearAllUserData();
-    });
-
-    if (!ref.mounted) return;
-    state = result;
-
-    // GÜNCELLEME: Profil verisini tamamen sıfırlıyoruz
-    ref.invalidate(userProfileProvider);
-  }
+  // NOT: Anında silen `deleteAccountCompletely` KALDIRILDI. Hesap silme artık
+  // 30 gün bekleme süreli ve sunucu tarafındadır (`requestAccountDeletion`,
+  // bkz. account_deletion_provider.dart).
 }

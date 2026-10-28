@@ -12,6 +12,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/ekip",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/yonetim/**",
           "headers": [
             {
@@ -170,6 +183,10 @@
         {
           "source": "/sartlar",
           "destination": "/sartlar.html"
+        },
+        {
+          "source": "/ekip",
+          "destination": "/ekip.html"
         },
         {
           "source": "/yonetim/**",
@@ -264,6 +281,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/ekip",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/yonetim/**",
           "headers": [
             {
@@ -422,6 +452,10 @@
         {
           "source": "/sartlar",
           "destination": "/sartlar.html"
+        },
+        {
+          "source": "/ekip",
+          "destination": "/ekip.html"
         },
         {
           "source": "/yonetim/**",

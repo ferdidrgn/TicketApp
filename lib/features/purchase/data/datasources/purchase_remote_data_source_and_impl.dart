@@ -11,6 +11,12 @@ const String kPhoneRequiredCode = 'phone-required';
 const String kPhoneRequiredMessage =
     'Devam etmek için telefon numaranı doğrulaman gerekiyor.';
 
+/// Sunucu `failed-precondition` + `details.code = ACCOUNT_DELETION_PENDING`.
+const String kDeletionPendingPurchaseCode = 'account-deletion-pending';
+const String kDeletionPendingPurchaseMessage =
+    'Hesabınız silinmek üzere işaretli. Bilet alabilmek için önce silme '
+    'talebinizi iptal edin.';
+
 /// Callable çağrısını soyutlar: üretimde `FirebaseFunctions`, testte sahte.
 abstract class PurchaseCallableClient {
   /// [name] callable adı; dönen değer her zaman `Map` (sunucu sözleşmesi).
@@ -98,6 +104,11 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
       if (details is Map && details['code'] == 'PHONE_REQUIRED') {
         return const PurchaseException(
             kPhoneRequiredCode, kPhoneRequiredMessage);
+      }
+      // Hesap silinmek üzere (30 gün bekleme): yeni satın alma yapılamaz.
+      if (details is Map && details['code'] == 'ACCOUNT_DELETION_PENDING') {
+        return const PurchaseException(
+            kDeletionPendingPurchaseCode, kDeletionPendingPurchaseMessage);
       }
       if (code == 'unauthenticated') {
         return const PurchaseException(

@@ -182,6 +182,15 @@ class AuthMutation extends _$AuthMutation {
           .call(updatedUser, updatedUser.imageUrl, isUpdate: true);
     }
 
+    // Çoklu cihaz: bu cihazın token'ını User.fcmTokens listesine ekle (girişi bozmaz).
+    if (fcmToken.isNotEmpty) {
+      try {
+        await FCMManager.instance.registerTokenForCurrentUser(fcmToken);
+      } catch (e) {
+        debugPrint('FCM token listeye yazılamadı: $e');
+      }
+    }
+
     await LocalStorageService.saveUserData(
       userId: uid,
       displayName: firebaseUser?.displayName ?? 'Kullanıcı',
@@ -189,6 +198,11 @@ class AuthMutation extends _$AuthMutation {
       photoUrl: firebaseUser?.photoURL ?? '',
       role: role,
     );
+
+    // 🔔 Bu cihazın "sessizde de sesli hatırlat" tercihi (varsa) hesaba yazılır.
+    try {
+      await FCMManager.instance.syncLoudAlarmPref();
+    } catch (_) {/* tercih eşitlemesi girişi engellemez */}
 
     // 🔥 KRİTİK DÜZELTME (devam):
     // Önceki yama sadece authFirebaseUserProvider ve userProfileProvider'ı

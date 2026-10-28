@@ -1,6 +1,13 @@
 # Deploy Backend (MANUEL) — Cloud Functions ve Firestore kuralları/dizinleri.
-# SIRA ÖNEMLİ: önce "functions", mobil sürüm yayınlandıktan sonra "rules".
-# Rules'u fonksiyonlardan ÖNCE deploy etme (satın alma bozulur).
+# SIRA ÖNEMLİ: önce "functions", mobil sürüm yayınlandıktan sonra "rules-and-indexes".
+# Rules'u fonksiyonlardan ÖNCE deploy etme (satın alma bozulur). Tek sayfalık kılavuz: docs/DEPLOY-SIRASI.md
+#
+# Gerekli GitHub sırrı: FIREBASE_SERVICE_ACCOUNT (servis hesabı JSON). Servis hesabı rolleri (IAM):
+#   functions : Cloud Functions Admin, Service Account User, Cloud Build Editor, Artifact Registry Administrator,
+#               Cloud Scheduler Admin, Secret Manager Admin (sırları fonksiyona bağlamak için), Service Usage Admin (API açmak için),
+#               Firebase Admin (ya da en azından Firebase Viewer + Cloud Datastore Index Admin)
+#   rules     : Firebase Rules Admin + Cloud Datastore Index Admin
+# Sırlar (Secret Manager; bir kez `firebase functions:secrets:set <AD>` ile girilir): PHONE_HASH_SALT, IYZICO_API_KEY, IYZICO_SECRET_KEY.
 name: Deploy Backend
 
 on:
@@ -12,24 +19,80 @@ on:
         options: [functions, rules-and-indexes]
         default: functions
 
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT: ticketappflutter
+  FIREBASE_TOOLS: firebase-tools@14
+
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install functions deps
-        if: ${{ inputs.target == 'functions' }}
-        run: npm ci --prefix functions
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
       - name: Write service account
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
-      - name: Deploy
+        run: |
+          if [ -z "$SA" ]; then echo "::error::FIREBASE_SERVICE_ACCOUNT sırrı tanımlı değil (Settings > Secrets and variables > Actions)."; exit 1; fi
+          umask 077
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          node -e "const j=require(process.argv[1]); if(!j.client_email||!j.private_key){process.exit(1)}" "$RUNNER_TEMP/sa.json" \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT geçerli bir servis hesabı JSON'u değil."; exit 1; }
+
+      # ---- functions ---------------------------------------------------------------------------------------------
+      - name: Install functions deps
+        if: ${{ inputs.target == 'functions' }}
+        run: npm ci --prefix functions
+      - name: Syntax check
+        if: ${{ inputs.target == 'functions' }}
+        run: node --check functions/index.js
+      - name: Check required secrets exist (Secret Manager)
+        if: ${{ inputs.target == 'functions' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: |
-          if [ "${{ inputs.target }}" = "functions" ]; then ONLY=functions; else ONLY=firestore; fi
-          npx -y firebase-tools@14 deploy --only $ONLY --project ticketappflutter --non-interactive
+          missing=0
+          for S in PHONE_HASH_SALT IYZICO_API_KEY IYZICO_SECRET_KEY; do
+            # `secrets:get` yalnızca meta veri döner; DEĞER yazdırılmaz.
+            if ! npx -y "$FIREBASE_TOOLS" functions:secrets:get "$S" --project "$FIREBASE_PROJECT" --non-interactive >/dev/null 2>&1; then
+              echo "::error::Secret Manager'da '$S' yok ya da servis hesabı okuyamıyor. Bir kez girin: firebase functions:secrets:set $S --project $FIREBASE_PROJECT"
+              missing=1
+            fi
+          done
+          if [ "$missing" = 1 ]; then echo "Eksik sır(lar) yüzünden deploy durduruldu (etkileşimsiz modda CLI sır soramaz)."; exit 1; fi
+      - name: Enable required Google APIs (best effort)
+        if: ${{ inputs.target == 'functions' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet || true
+          gcloud services enable cloudfunctions.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
+            eventarc.googleapis.com pubsub.googleapis.com cloudscheduler.googleapis.com secretmanager.googleapis.com firebaserules.googleapis.com \
+            --project "$FIREBASE_PROJECT" --quiet \
+            || echo "::warning::API'ler otomatik açılamadı (servis hesabında 'Service Usage Admin' yok olabilir). Hata alırsanız Cloud Console > APIs & Services'ten elle açın: docs/DEPLOY-SIRASI.md"
+
+      # ---- deploy ------------------------------------------------------------------------------------------------
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          TARGET: ${{ inputs.target }}
+        run: |
+          if [ "$TARGET" = "functions" ]; then
+            # --force: etkileşimsiz modda "artifact temizleme politikası" ve "silinen fonksiyon" soruları sorulamaz; kodda olmayan
+            # fonksiyonlar (yeniden adlandırma/kaldırma) silinir. Bu deploy'da kaldırılan fonksiyon YOK.
+            npx -y "$FIREBASE_TOOLS" deploy --only functions --project "$FIREBASE_PROJECT" --non-interactive --force
+          else
+            npx -y "$FIREBASE_TOOLS" deploy --only firestore --project "$FIREBASE_PROJECT" --non-interactive
+          fi
+      - name: Cleanup
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

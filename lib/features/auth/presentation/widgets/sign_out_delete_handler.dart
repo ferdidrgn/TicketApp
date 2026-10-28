@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
-import '../../../users/presentation/providers/user_mutation_provider.dart';
-import '../providers/storage_service.dart';
+import '../../data/account_deletion_service.dart';
+import '../providers/account_deletion_provider.dart';
+import 'account_deletion_widgets.dart';
 
 /// =======================================
 /// 🔔 ORTAK DIALOG HANDLER (ARTISTIC)
@@ -59,32 +62,70 @@ mixin ProfileDeleteAccountHandler on ProfileSnackBarHandler {
       return;
     }
 
-    final confirmed = await _showArtConfirm(context, 'Hesabı Sil',
-        'Tüm verileriniz ve profil fotoğrafınız kalıcı olarak silinecek. Emin misiniz?',
+    // Önizleme tarihi; kesin tarih sunucu cevabıyla bildirilir.
+    final preview =
+        DateTime.now().add(const Duration(days: kAccountDeletionGraceDays));
+    final confirmed = await _showArtConfirm(
+        context, 'Hesabı Sil', deletionConfirmMessage(preview),
         isDanger: true);
+    if (confirmed != true || !context.mounted) return;
 
-    if (confirmed == true && context.mounted) {
-      showLoading(context, "Koleksiyonunuz yok ediliyor...");
+    showLoading(context, 'İstek gönderiliyor...');
+    final outcome = await ref.read(accountDeletionControllerProvider).request();
+    if (context.mounted) Navigator.pop(context); // Loading'i kapat
+    if (!context.mounted) return;
 
-      // 1. ADIM: Önce Storage'daki görseli sil
-      // Not: Auth silindikten sonra yetki hatası almamak için bu işlem en başta yapılır.
-      try {
-        await ref.read(storageServiceProvider).deleteProfileImage(userId);
-      } catch (e) {
-        debugPrint("Storage silme atlandı (Dosya yok veya hata): $e");
-      }
-
-      await ref.read(userMutationProvider.notifier).deleteAccountCompletely();
-
-      if (context.mounted) Navigator.pop(context); // Loading'i kapat
-
-      final mutationState = ref.read(userMutationProvider);
-      if (!mutationState.hasError)
-        showSuccessDialog(context, 'Hesabınız ve eserleriniz silindi.');
-      else
-        showErrorDialog(context,
-            'Hesap silme işlemi başarısız oldu. Güvenlik nedeniyle yeniden giriş yapmanız gerekebilir.');
+    switch (outcome) {
+      case DeletionBlocked(:final reason):
+        await showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          builder: (final sheetContext) => UpcomingTicketsSheet(
+            reason: reason,
+            onGoToTickets: () {
+              Navigator.pop(sheetContext);
+              NavigationHandler.goToMyTickets(context, userId);
+            },
+          ),
+        );
+      case DeletionAlreadyPending():
+        showSuccessDialog(context,
+            'Hesabınız zaten silinmek üzere. Üstteki şeritten silmeyi iptal edebilirsiniz.');
+      case DeletionFailed(:final message):
+        showErrorDialog(context, message);
+      case DeletionScheduled(:final date):
+        await _finishAndLeave(
+            context,
+            ref,
+            date == null
+                ? 'Silme isteğiniz alındı. Bu süre içinde giriş yapıp vazgeçebilirsiniz.'
+                : deletionConfirmMessage(date));
+      case DeletionDone():
+        await _finishAndLeave(context, ref, 'Hesabınız silindi.');
     }
+  }
+
+  Future<void> _finishAndLeave(final BuildContext context, final WidgetRef ref,
+      final String message) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (final dialogContext) => AlertDialog(
+        title: const Text('Hesap silme'),
+        content: Text(message),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Tamam')),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    final router = GoRouter.of(context);
+    // Mevcut çıkış akışı: FCM token temizliği + yerel veri + Firebase çıkışı.
+    // Silme işini sunucu yapar; storage/Firestore temizliği istemcide YOK.
+    await ref.read(authMutationProvider.notifier).signOut();
+    router.go('/login');
   }
 }
 

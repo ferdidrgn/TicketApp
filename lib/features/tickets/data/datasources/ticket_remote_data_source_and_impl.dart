@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/ticket_model.dart';
 
 abstract class TicketRemoteDataSource {
@@ -80,11 +81,21 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
   }
 
   /// 🔥 Yardımcı Metot: Kod tekrarını önler ve güvenli dönüşüm sağlar
+  /// Belge başına dayanıklı dönüşüm: TEK bozuk belge tüm listeyi öldürmez.
+  /// Atlanan belgenin yalnızca kimliği loglanır (kişisel veri basılmaz).
   List<TicketModel> _mapSnapshot(
-          final QuerySnapshot<Map<String, dynamic>> snapshot) =>
-      snapshot.docs.map((final doc) {
-        final data = doc.data();
+      final QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final out = <TicketModel>[];
+    for (final doc in snapshot.docs) {
+      try {
+        final data = Map<String, dynamic>.from(doc.data());
         data['_id'] = doc.id;
-        return TicketModel.fromFirestore(data);
-      }).toList();
+        out.add(TicketModel.fromFirestore(data));
+      } catch (e) {
+        debugPrint(
+            'Ticket ${doc.id} ayrıştırılamadı, atlandı: ${e.runtimeType}');
+      }
+    }
+    return out;
+  }
 }

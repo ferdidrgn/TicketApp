@@ -210,6 +210,22 @@ test('User update: isPhoneActive true\'ya çekilemez; sunucunun yazdığı alanl
   await assertFails(updateDoc(doc(p1, 'User/p1'), { role: 'admin' }));
 });
 
+test('User.notifPrefs: kullanıcı yalnız { loudAlarm: bool } yazar (create + update); başka alan/tür ve başkasının belgesi reddedilir; sunucu alanları korunur', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'User/n1'), { role: 'user', isPhoneActive: true, phoneKey: 'ph_k', phoneVerifiedAt: 7, phoneNumber: '' });
+  });
+  const n1 = as('n1');
+  await assertSucceeds(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true } }));
+  await assertSucceeds(updateDoc(doc(n1, 'User/n1'), { 'notifPrefs.loudAlarm': false }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: 'evet' } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true, role: 'admin' } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: 'x' }));
+  await assertFails(updateDoc(doc(as('bob'), 'User/n1'), { notifPrefs: { loudAlarm: true } }));
+  await assertFails(updateDoc(doc(n1, 'User/n1'), { notifPrefs: { loudAlarm: true }, phoneVerifiedAt: 8 })); // tercih yazarken sunucu alanı bozulamaz
+  await assertSucceeds(setDoc(doc(as('n2'), 'User/n2'), { firstName: 'A', notifPrefs: { loudAlarm: false } }));
+  await assertFails(setDoc(doc(as('n3'), 'User/n3'), { firstName: 'A', notifPrefs: { loudAlarm: 1 } }));
+});
+
 // ---- GERÇEK istemci yük örnekleri (çapraz denetim): mobil UserModel.toFirestore + datasource, web kullaniciBelgesi, sunucu taslağı
 const MOBIL_CREATE = (uid) => ({ // auth_mutation_provider._handlePostLogin: User.empty(uid).copyWith(...) -> UserModel.toFirestore()
   _createdAt: '', _updatedAt: '', _id: uid, firstName: 'Yeni', lastName: 'Kullanıcı', imageUrl: '', phoneNumber: '', eMail: 'a@b.co',
@@ -253,4 +269,61 @@ test('sunucu taslağı (role:user, _id, listeler) mobil güncelleme yüküyle UY
   const { phoneNumber, isPhoneActive, ...upd } = MOBIL_CREATE('t1');
   await assertSucceeds(updateDoc(doc(asPhone('t1', '+905551234567'), 'User/t1'), upd));
   await assertFails(updateDoc(doc(asPhone('t2', '+905551234567'), 'User/t2'), { ...upd, _id: 't2' })); // role null -> 'user' reddedilir
+});
+
+// ------------------------------------------------------------------ hesap silme (docs/HESAP-SILME.md)
+test('hesap silme: istemci User.deletion* alanlarını YAZAMAZ (create/update), kendi alanlarını OKUR; User belgesini SİLEMEZ', async () => {
+  const ts = (n) => new Date(n);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/p1'), { role: 'user', firstName: 'A', deletionStatus: 'pending', deletionScheduledAt: ts(1000), deletionRequestedAt: ts(500) });
+    await setDoc(doc(d, 'User/p2'), { role: 'user', firstName: 'B' });
+    await setDoc(doc(d, 'AccountDeletion/p1'), { uid: 'p1', status: 'pending' });
+  });
+  const own = await assertSucceeds(getDoc(doc(as('p1'), 'User/p1')));
+  if (own.data().deletionStatus !== 'pending') throw new Error('kendi deletion alanı okunamadı');
+  await assertFails(getDoc(doc(as('p2'), 'User/p1')));
+  await assertFails(updateDoc(doc(as('p2'), 'User/p2'), { deletionStatus: 'pending' }));
+  await assertFails(updateDoc(doc(as('p2'), 'User/p2'), { deletionScheduledAt: ts(9) }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionStatus: 'active' }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionScheduledAt: ts(999999999) }));
+  await assertFails(updateDoc(doc(as('p1'), 'User/p1'), { deletionRequestedAt: ts(1) }));
+  await assertFails(setDoc(doc(as('newu'), 'User/newu'), { role: 'user', deletionStatus: 'pending' }));
+  await assertSucceeds(updateDoc(doc(as('p1'), 'User/p1'), { fcmToken: 'x' })); // bekleme sürecinde diğer alanlar güncellenebilir
+  await assertFails(deleteDoc(doc(as('p2'), 'User/p2'))); // User silme istemciden kapalı (sunucu akışı zorunlu)
+  await assertFails(getDoc(doc(as('p1'), 'AccountDeletion/p1')));
+  await assertFails(setDoc(doc(as('p1'), 'AccountDeletion/p1'), { status: 'cancelled' }));
+  await assertFails(deleteDoc(doc(as('p1'), 'AccountDeletion/p1')));
+  await assertFails(setDoc(doc(as('admin1'), 'AccountDeletion/p1'), { status: 'pending' }));
+  await assertSucceeds(getDoc(doc(as('admin1'), 'AccountDeletion/p1')));
+});
+
+test('hesap silme mezar taşı: deleting/deleted uid eski token ile User yazamaz/yeniden oluşturamaz; pending engellemez', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'User/z1'), { role: 'user' });
+    await setDoc(doc(d, 'AccountDeletion/z1'), { uid: 'z1', status: 'deleting' });
+    await setDoc(doc(d, 'AccountDeletion/z2'), { uid: 'z2', status: 'deleted' });
+    await setDoc(doc(d, 'AccountDeletion/z3'), { uid: 'z3', status: 'pending' });
+    await setDoc(doc(d, 'User/z3'), { role: 'user', deletionStatus: 'pending' });
+  });
+  await assertFails(updateDoc(doc(as('z1'), 'User/z1'), { fcmToken: 'x' }));
+  await assertFails(setDoc(doc(as('z2'), 'User/z2'), { role: 'user' }));
+  await assertSucceeds(updateDoc(doc(as('z3'), 'User/z3'), { fcmToken: 'x' }));
+});
+
+test('User.fcmTokens: kullanıcı kendi dizisini yazabilir (<=5 string, <=4096); aşırı/yanlış tür reddedilir', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'User/ft1'), { role: 'user' }); });
+  const d = doc(as('ft1'), 'User/ft1');
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['a', 'b'], fcmToken: 'b' }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: [] }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['1', '2', '3', '4', '5'] }));
+  await assertFails(updateDoc(d, { fcmTokens: ['1', '2', '3', '4', '5', '6'] }));
+  await assertFails(updateDoc(d, { fcmTokens: [1] }));
+  await assertFails(updateDoc(d, { fcmTokens: 'abc' }));
+  await assertFails(updateDoc(d, { fcmTokens: ['x'.repeat(4097)] }));
+  await assertSucceeds(updateDoc(d, { fcmTokens: ['x'.repeat(4096)] }));
+  await assertFails(updateDoc(doc(as('ft2'), 'User/ft1'), { fcmTokens: ['a'] })); // başkasının belgesi
+  await assertSucceeds(setDoc(doc(as('ft3'), 'User/ft3'), { role: 'user', fcmTokens: ['a'] }));
+  await assertFails(setDoc(doc(as('ft4'), 'User/ft4'), { role: 'user', fcmTokens: ['a', 'b', 'c', 'd', 'e', 'f'] }));
 });

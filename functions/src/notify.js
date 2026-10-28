@@ -2,7 +2,7 @@
 /**
  * Bildirim gönderme ("Sahne kumandası") ve otomatik hatırlatmalar.
  * Firebase Messaging enjekte edilir (testte sahte). FCM gönderimi ücretsizdir; maliyet Firestore okuma/yazmasındadır.
- * Kısıt: mobil tarafta kullanıcı başına TEK token (User.fcmToken) tutulur — çok cihazlı kullanıcıya yalnız son giriş yapılan cihaz ulaşır.
+ * Çoklu cihaz: User.fcmTokens (dizi, en çok 5) + eski tekil User.fcmToken birlikte okunur (tekilleştirilir).
  */
 const crypto = require('crypto');
 const { FieldPath, Timestamp } = require('firebase-admin/firestore');
@@ -43,10 +43,24 @@ const dayOf = (ms) => new Date(ms + cfg.TZ_OFFSET_MIN * 60000).toISOString().sli
 /** İstanbul gün öneki, Event.date biçimiyle ("gg.aa.yyyy,"). */
 const datePrefix = (ms) => { const [y, m, d] = dayOf(ms).split('-'); return `${d}.${m}.${y},`; };
 
-/** FCM mesajı (hedef alanı hariç). Alarm: yüksek öncelik + alarm kanalı + kısa TTL + iOS time-sensitive. */
-function buildMessage({ title, body, kind, eventId, now }) {
+/**
+ * FCM mesajı (hedef alanı hariç).
+ * Alarm + `loud` (alıcı notifPrefs.loudAlarm === true ile AÇIKÇA izin verdi): yüksek öncelik + `tiyatrol_alarm` kanalı (Android ALARM ses akışı,
+ * sessiz modda da duyulur) + kısa TTL + iOS time-sensitive.
+ * Alarm + !loud (izin yok / tercih yok / konu hedefi): içerik ve aciliyet aynı (yüksek öncelik, kısa TTL) ama NORMAL kanal ve normal ses:
+ * telefon sessizdeyse sessiz gelir; iOS'ta time-sensitive de verilmez (Odak/Rahatsız Etme'yi aşmak da izne bağlıdır).
+ * Sunucu telefonun zil modunu değiştiremez; bu yalnız hangi kanala düşüleceğini seçer.
+ */
+function buildMessage({ title, body, kind, eventId, now, loud = false }) {
   const data = { kind, route: '/notifications' };
   if (eventId) data.eventId = String(eventId);
+  if (kind === 'alarm' && !loud) {
+    return {
+      notification: { title, body }, data,
+      android: { priority: 'high', ttl: N.ALARM_TTL_MS, notification: { channelId: N.DEFAULT_CHANNEL, sound: 'default', priority: 'high', visibility: 'public' } },
+      apns: { headers: { 'apns-priority': '10', 'apns-push-type': 'alert', 'apns-expiration': String(Math.floor(now / 1000) + N.ALARM_TTL_MS / 1000) }, payload: { aps: { sound: 'default', 'interruption-level': 'active' } } },
+    };
+  }
   if (kind === 'alarm') {
     return {
       notification: { title, body }, data,
@@ -61,14 +75,49 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
   const col = (n) => db.collection(n);
 
   // ---------------------------------------------------------------- ortak
-  async function loadTokens(userIds) {
-    const tokens = new Map(); // uid -> token
+  /** uid -> token ve "sessizde sesli hatırlat" izni veren uid kümesi (yalnız notifPrefs.loudAlarm === true; başka her şey = izin yok). */
+  async function loadRecipients(userIds) {
+    const tokens = new Map(); // uid -> token DİZİSİ (çoklu cihaz: User.fcmTokens + eski tekil User.fcmToken, tekilleştirilmiş)
+    const loud = new Set(); // izinli uid'ler (yalnız token'ı olanlar)
     for (let i = 0; i < userIds.length; i += 300) {
       const refs = userIds.slice(i, i + 300).map((u) => col('User').doc(u));
-      const snaps = await db.getAll(...refs, { fieldMask: ['fcmToken'] });
-      snaps.forEach((s, j) => { const tk = s.exists && s.data().fcmToken; if (typeof tk === 'string' && tk.length > 20) tokens.set(userIds[i + j], tk); });
+      const snaps = await db.getAll(...refs, { fieldMask: ['fcmToken', 'fcmTokens', 'notifPrefs'] });
+      snaps.forEach((s, j) => {
+        const d = s.exists ? s.data() : {};
+        const list = [...(Array.isArray(d.fcmTokens) ? d.fcmTokens : []), d.fcmToken];
+        const tks = [...new Set(list.filter((t) => typeof t === 'string' && t.length > 20))];
+        if (tks.length) {
+          tokens.set(userIds[i + j], tks);
+          if (d.notifPrefs && d.notifPrefs.loudAlarm === true) loud.add(userIds[i + j]);
+        }
+      });
     }
-    return tokens;
+    return { tokens, loud };
+  }
+  async function loadTokens(userIds) { return (await loadRecipients(userIds)).tokens; }
+
+  /**
+   * Token bazlı gönderim. Alarm türünde alıcılar tercihe göre ikiye bölünür (izinli -> alarm kanalı, diğerleri -> normal kanal):
+   * iki ayrı multicast. Maliyet: FCM ücretsiz; çağrı sayısı en çok iki katına çıkar (500'lük parçalar her grup için ayrı).
+   */
+  async function pushByPrefs({ tokens: tokenMap, loud }, build, kind) {
+    const group = (uids) => {
+      const owners = new Map();
+      for (const u of uids) for (const tk of tokenMap.get(u)) owners.set(tk, [...(owners.get(tk) || []), u]);
+      return owners;
+    };
+    const parts = kind === 'alarm'
+      ? [[true, [...tokenMap.keys()].filter((u) => loud.has(u))], [false, [...tokenMap.keys()].filter((u) => !loud.has(u))]]
+      : [[false, [...tokenMap.keys()]]];
+    const total = { success: 0, failure: 0, chunks: 0, loud: 0 };
+    for (const [isLoud, uids] of parts) {
+      if (!uids.length) continue;
+      const owners = group(uids);
+      const r = await pushTokens([...owners.keys()], build(isLoud), owners);
+      total.success += r.success; total.failure += r.failure; total.chunks += r.chunks;
+      if (isLoud) total.loud += uids.length;
+    }
+    return total;
   }
 
   /** Token'ları 500'lük parçalarla gönderir; kalıcı geçersiz token'ları temizler. */
@@ -89,7 +138,14 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
         for (const tk of dead) for (const uid of tokenOwner.get(tk) || []) {
           try { // yalnız hâlâ aynı token ise sil (kullanıcı arada yenilemiş olabilir)
             const ref = col('User').doc(uid);
-            await db.runTransaction(async (tx) => { const d = await tx.get(ref); if (d.exists && d.data().fcmToken === tk) tx.update(ref, { fcmToken: '' }); });
+            await db.runTransaction(async (tx) => {
+              const d = await tx.get(ref);
+              if (!d.exists) return;
+              const u = d.data(), patch = {};
+              if (u.fcmToken === tk) patch.fcmToken = '';
+              if (Array.isArray(u.fcmTokens) && u.fcmTokens.includes(tk)) patch.fcmTokens = u.fcmTokens.filter((x) => x !== tk);
+              if (Object.keys(patch).length) tx.update(ref, patch);
+            });
           } catch { /* temizlik zorunlu değil */ }
         }
       } catch (e) {
@@ -199,7 +255,7 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
     await assertAdmin(uid);
     data = data || {};
     const tgt = await resolveTarget(data.target);
-    let recipients, withToken, topic = false;
+    let recipients, withToken, topic = false, loudAlarm = null;
     if (tgt.type === 'all') {
       topic = true;
       const [users, tok] = await Promise.all([
@@ -208,14 +264,16 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
       recipients = users.data().count; withToken = tok.data().count;
     } else {
       recipients = tgt.userIds.length;
-      withToken = (await loadTokens(tgt.userIds)).size;
+      const rc = await loadRecipients(tgt.userIds);
+      withToken = rc.tokens.size;
+      loudAlarm = { optedIn: rc.loud.size, of: withToken }; // "X kişiden Y'si sessizde sesli hatırlatmayı açtı" (yalnız alarm türünde anlamlı)
     }
     let preview = null, blocked = null;
     if (data.template || data.title) {
       try { preview = compose(data, tgt, true); } catch (e) { blocked = e.message; }
     }
     return {
-      target: { type: tgt.type, id: tgt.id, label: tgt.label }, recipients, withToken, tickets: tgt.tickets ?? null, topic,
+      target: { type: tgt.type, id: tgt.id, label: tgt.label }, recipients, withToken, loudAlarm, tickets: tgt.tickets ?? null, topic,
       event: tgt.type === 'event' ? { show: tgt.ctx.oyun, stage: tgt.ctx.sahne, ms: tgt.ctx.ms } : null,
       preview, blocked, templates: templateList(), now: now(),
     };
@@ -280,8 +338,8 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
       ...(eventId ? { eventId } : {}), ...(tgt.ctx.showId || (tgt.type === 'show' && tgt.id) ? { showId: tgt.ctx.showId || tgt.id } : {}),
     };
     const idPrefix = `ann_${key.slice(0, 16)}`;
-    const msg = buildMessage({ title: msgIn.title, body: msgIn.body, kind: msgIn.kind, eventId, now: now() });
-    let result, inApp = 0, withToken = 0, topic = false, inAppSkipped = false;
+    const build = (loud) => buildMessage({ title: msgIn.title, body: msgIn.body, kind: msgIn.kind, eventId, now: now(), loud });
+    let result, inApp = 0, withToken = 0, topic = false, inAppSkipped = false, loudCount = 0;
 
     if (tgt.type === 'all') {
       topic = true;
@@ -296,17 +354,18 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
           last = s.docs[s.docs.length - 1];
         }
       } else inAppSkipped = true;
-      try { await messaging.send({ ...msg, topic: N.TOPIC_ALL }); result = { success: 1, failure: 0, chunks: 1 }; } catch (e) { log.error('topic hata', { code: e && e.code }); result = { success: 0, failure: 1, chunks: 1 }; }
+      // Konu hedefi tek mesajdır; alıcı tercihi bilinemez -> alarm bile NORMAL kanala gider (sessiz modda sessiz). Sesli alarm yalnız token bazlı hedeflerde.
+      try { await messaging.send({ ...build(false), topic: N.TOPIC_ALL }); result = { success: 1, failure: 0, chunks: 1 }; } catch (e) { log.error('topic hata', { code: e && e.code }); result = { success: 0, failure: 1, chunks: 1 }; }
     } else {
       inApp = await writeInApp(tgt.userIds, base, idPrefix);
-      tokenMap = await loadTokens(tgt.userIds);
+      const rc = await loadRecipients(tgt.userIds);
+      tokenMap = rc.tokens;
       withToken = tokenMap.size;
-      const owners = new Map();
-      for (const [u, tk] of tokenMap) owners.set(tk, [...(owners.get(tk) || []), u]);
-      result = await pushTokens([...tokenMap.values()], msg, owners);
+      result = await pushByPrefs(rc, build, msgIn.kind);
+      loudCount = result.loud;
     }
-    await logRef.update({ status: 'done', inApp, withToken, topic, inAppSkipped, success: result.success, failure: result.failure, chunks: result.chunks, finishedAt: Timestamp.fromMillis(now()) });
-    return { ok: true, duplicate: false, logId: key, recipients, withToken, inApp, topic, success: result.success, failure: result.failure, title: msgIn.title, body: msgIn.body, kind: msgIn.kind };
+    await logRef.update({ status: 'done', inApp, withToken, topic, inAppSkipped, success: result.success, failure: result.failure, chunks: result.chunks, loudCount, finishedAt: Timestamp.fromMillis(now()) });
+    return { ok: true, duplicate: false, logId: key, recipients, withToken, inApp, topic, loudCount, success: result.success, failure: result.failure, title: msgIn.title, body: msgIn.body, kind: msgIn.kind };
   }
 
   // ---------------------------------------------------------------- otomatik hatırlatma
@@ -383,8 +442,8 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
     if (fresh.length) {
       const tokenMap = await loadTokens(fresh);
       const owners = new Map();
-      for (const [u, tk] of tokenMap) owners.set(tk, [...(owners.get(tk) || []), u]);
-      const r = await pushTokens([...tokenMap.values()], buildMessage({ title, body, kind: 'normal', eventId, now: t }), owners);
+      for (const [u, tks] of tokenMap) for (const tk of tks) owners.set(tk, [...(owners.get(tk) || []), u]);
+      const r = await pushTokens([...owners.keys()], buildMessage({ title, body, kind: 'normal', eventId, now: t }), owners);
       failed = r.failure;
     }
     // bayrak: bildirimi zaten oluşturulmuş olanlar dahil tüm uygun biletler işaretlenir -> bir sonraki çalışmada hiçbir iş kalmaz
@@ -397,7 +456,9 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
     return { users: fresh.length, failed };
   }
 
-  return { adminSendNotification, adminNotifyPreview, eventReminders };
+  // Ekip yöneticisi akışı (src/team.js) aynı hedef/şablon/gönderim mantığını yeniden kullanır; yetki kapsamı ORADA denetlenir.
+  const internals = { resolveTarget, compose, activeCustomers, loadRecipients, pushByPrefs, writeInApp };
+  return { adminSendNotification, adminNotifyPreview, eventReminders, internals };
 }
 
 module.exports = { createNotifier, TEMPLATES, templateList, buildMessage };

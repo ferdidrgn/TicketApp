@@ -7,10 +7,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/navigation/providers/navigation_keys.dart';
 import '../../shared/navigation/widgets/nav_handler.dart';
 import 'push/alarm_alert_dialog.dart';
+import 'push/fcm_token_list.dart';
 import 'push/local_notification_service.dart';
 import 'push/push_message_mapper.dart';
 import 'push/push_payload.dart';
@@ -44,6 +46,40 @@ final announcementsEnabledProvider =
     AsyncNotifierProvider<AnnouncementsEnabledNotifier, bool>(
         AnnouncementsEnabledNotifier.new);
 
+/// "Sessizdeyken de sesli hatırlat" tercihi (varsayılan KAPALI).
+/// Açma, [LoudAlarmResult.permissionDenied] dönebilir: bildirim izni verilmediyse
+/// tercih AÇILMAZ. Telefonun zil/sessiz modu hiçbir durumda değiştirilmez.
+enum LoudAlarmResult { enabled, disabled, permissionDenied, failed }
+
+class LoudAlarmEnabledNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() => FCMManager.instance.service.loudAlarmEnabled();
+
+  Future<LoudAlarmResult> set(final bool enabled) async {
+    try {
+      if (enabled) {
+        // Android 13+ POST_NOTIFICATIONS / iOS bildirim izni. Yalnız bildirim
+        // izni istenir; Rahatsız Etme (NOTIFICATION_POLICY) erişimi İSTENMEZ.
+        final PermissionStatus st = await Permission.notification.request();
+        if (!st.isGranted && !st.isProvisional) {
+          state = const AsyncData(false);
+          return LoudAlarmResult.permissionDenied;
+        }
+      }
+      await FCMManager.instance.service.setLoudAlarmEnabled(enabled);
+      state = AsyncData(enabled);
+      return enabled ? LoudAlarmResult.enabled : LoudAlarmResult.disabled;
+    } catch (e) {
+      debugPrint('Sesli hatırlatma tercihi uygulanamadı: $e');
+      return LoudAlarmResult.failed;
+    }
+  }
+}
+
+final loudAlarmEnabledProvider =
+    AsyncNotifierProvider<LoudAlarmEnabledNotifier, bool>(
+        LoudAlarmEnabledNotifier.new);
+
 // ───────────────────────── Firebase bağdaştırıcıları ─────────────────────────
 
 class _FirebasePushGateway implements PushGateway {
@@ -63,13 +99,33 @@ class _FirebasePushGateway implements PushGateway {
 
 class _FirestoreTokenStore implements PushTokenStore {
   @override
-  Future<void> clearTokenForCurrentUser() async {
+  Future<void> clearTokenForCurrentUser(final String? token) async {
+    final User? u = FirebaseAuth.instance.currentUser;
+    if (u == null || u.isAnonymous || token == null || token.isEmpty) return;
+    final ref = FirebaseFirestore.instance.collection('User').doc(u.uid);
+    await FirebaseFirestore.instance.runTransaction((final tx) async {
+      final Map<String, dynamic>? d = (await tx.get(ref)).data();
+      if (d == null) return;
+      final Map<String, Object?> patch = {};
+      if (d['fcmTokens'] is List) {
+        patch['fcmTokens'] = FcmTokenList.remove(d['fcmTokens'], token);
+      }
+      // Eski tekil alan yalnız bu cihaza aitse boşaltılır.
+      if (d['fcmToken'] == token) patch['fcmToken'] = '';
+      if (patch.isNotEmpty) tx.update(ref, patch);
+    });
+  }
+}
+
+class _FirestoreLoudAlarmRemote implements LoudAlarmRemote {
+  @override
+  Future<void> write(final bool enabled) async {
     final User? u = FirebaseAuth.instance.currentUser;
     if (u == null || u.isAnonymous) return;
     await FirebaseFirestore.instance
         .collection('User')
         .doc(u.uid)
-        .update({'fcmToken': ''});
+        .update({'notifPrefs': {'loudAlarm': enabled}});
   }
 }
 
@@ -97,6 +153,7 @@ class FCMManager {
       tokenStore: _FirestoreTokenStore(),
       prefs: _SharedPrefsStore(),
       notifier: LocalNotificationService.instance,
+      loudAlarmRemote: _FirestoreLoudAlarmRemote(),
       alarmPresenter: _presentAlarm,
       bannerPresenter: _presentBanner,
     );
@@ -141,8 +198,8 @@ class FCMManager {
     // Oturum açık bir kullanıcı varsa güncel token'ı dökümanına yaz.
     // Giriş SIRASINDA yapılan asıl kayıt auth_mutation_provider.dart ->
     // _handlePostLogin içinde.
-    await _persistTokenForCurrentUser(token);
-    fcm.onTokenRefresh.listen(_persistTokenForCurrentUser);
+    await registerTokenForCurrentUser(token);
+    fcm.onTokenRefresh.listen(registerTokenForCurrentUser);
 
     _setupListeners(fcm);
     unawaited(_handleLaunchTaps(fcm));
@@ -154,20 +211,43 @@ class FCMManager {
   /// NOT (MİMARİ TERCİH): FCMManager bir core servisi — Users feature'ının
   /// zincirini import etmek yerine diğer datasource'larla AYNI SEVİYEDE
   /// doğrudan Firestore'a yazıyoruz (collection('User')).
-  Future<void> _persistTokenForCurrentUser(final String? token) async {
+  Future<void> registerTokenForCurrentUser(final String? token) async {
     if (token == null || token.isEmpty) return;
 
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser == null || firebaseUser.isAnonymous) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('User')
-          .doc(firebaseUser.uid)
-          .update({'fcmToken': token});
+      // Token ile "sessizde sesli hatırlat" tercihi AYNI cihaza aittir: birlikte
+      // yazılır (tercih hiç seçilmediyse yazılmaz -> sunucuda varsayılan KAPALI).
+      final bool? loud = await service.loudAlarmPreference();
+      final ref =
+          FirebaseFirestore.instance.collection('User').doc(firebaseUser.uid);
+      // Çoklu cihaz: token listeye eklenir (en çok 5, en eskisi düşer; bu yüzden
+      // salt arrayUnion değil işlem içinde okuyup birleştirilir). Eski sürümler
+      // çalışsın diye tekil `fcmToken` da son cihazla güncellenir.
+      await FirebaseFirestore.instance.runTransaction((final tx) async {
+        final Map<String, dynamic>? d = (await tx.get(ref)).data();
+        final Object? old = d?['fcmToken'];
+        tx.update(ref, {
+          'fcmTokens': FcmTokenList.add(
+              d?['fcmTokens'], old is String ? old : null, token),
+          'fcmToken': token,
+          if (loud != null) 'notifPrefs': {'loudAlarm': loud},
+        });
+      });
     } catch (e) {
       debugPrint("FCM token Firestore'a yazılamadı: $e");
     }
+  }
+
+  /// Giriş sonrası: bu cihazın kayıtlı "sessizde sesli hatırlat" tercihini
+  /// (seçildiyse) giriş yapan hesaba yazar. Oturum yoksa/anonimse atlanır.
+  Future<void> syncLoudAlarmPref() async {
+    if (kIsWeb) return;
+    final bool? loud = await service.loudAlarmPreference();
+    if (loud == null) return;
+    await _FirestoreLoudAlarmRemote().write(loud);
   }
 
   /// ÇIKIŞTAN ÖNCE çağır: User.fcmToken'ı boşaltır, topic'ten çıkar,

@@ -6,6 +6,7 @@ import './ozellik.js';
 import { ILLER, ilOku, ilYaz, enYakinIl } from './iller.js';
 import { kalpDugme, favListe } from './fav.js';
 import { hesapDugmesi } from './auth.js';
+import { silmeBannerKur } from './hesap-sil.js';
 import { temaOku, temaYaz, temaSecenekleri } from './theme.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, debounce, baslangic, kisalt, ayniGun, tarihAyristir } from './util.js';
 
@@ -65,6 +66,7 @@ export function kabukCiz(aktif = '') {
   temaPaneli();
   ilSecici();
   hesapDugmesi($('#hesap'));
+  silmeBannerKur();
   const favSay = () => { const n = favListe().length; const e = $('#fav-n'); if (e) { e.textContent = n || ''; e.style.display = n ? '' : 'none'; } };
   favSay(); document.addEventListener('fav-degisti', favSay);
   aramaKur();
@@ -213,8 +215,9 @@ export function oyunKarti(s, { rozet = '', fiyat = true } = {}) {
   const sub = n ? `${tarihUzun(n.when)} · ${saat(n.when)}` : s.state === 'bitti' ? 'Sezon bitti' : s.cat;
   const bugunMu = n && ayniGun(n.when, new Date());
   const yeniMi = s._createdAt && (Date.now() - (tarihAyristir(s._createdAt) || 0)) < 14 * 864e5;
-  const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : bugunMu ? 'Bugün' : (s.upcoming.length && s.upcoming.length <= 2 ? 'Son seanslar' : (yeniMi ? 'Yeni' : '')));
-  const bSinif = s.state === 'bitti' ? 'dim' : (b === 'Yeni' ? 'yeni' : b === 'Son seanslar' ? 'son' : b === 'Bugün' ? 'bugun' : '');
+  const dl = n && n.doluluk && n.doluluk.kalan > 0 && (n.doluluk.kalan <= 20 || n.doluluk.oran >= 0.85) ? `Son ${n.doluluk.kalan} bilet` : '';
+  const b = rozet || (s.state === 'bitti' ? 'Bitti' : s.state === 'vitrin' ? 'Vitrinde' : dl || (bugunMu ? 'Bugün' : (s.upcoming.length && s.upcoming.length <= 2 ? 'Son seanslar' : (yeniMi ? 'Yeni' : ''))));
+  const bSinif = s.state === 'bitti' ? 'dim' : (b === 'Yeni' ? 'yeni' : b === 'Son seanslar' || (dl && b === dl) ? 'son' : b === 'Bugün' ? 'bugun' : '');
   const fp = fiyat && s.minPrice != null ? `<div class="price">${tl(s.minPrice)}'den</div>` : '';
   const yildiz = s.ratingCount ? `<span class="yildiz" title="${s.ratingAvg.toFixed(1)} / 5 (${s.ratingCount} yorum)">★ ${s.ratingAvg.toFixed(1)}</span>` : '';
   const ERIS = { AD: ['Sesli betimleme', '#2563eb'], CAP: ['Altyazılı', '#7c3aed'], BSL: ['İşaret dili', '#dc2626'], R: ['Rahat gösterim', '#16a34a'], TS: ['İşaret dili', '#dc2626'] };

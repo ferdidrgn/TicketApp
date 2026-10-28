@@ -47,6 +47,15 @@ function requirePhone(ctx, salt) {
   return { phone, key: phoneKeyOf(phone, salt) };
 }
 
+/** İstemcilerin beklediği TAM varsayılan User belgesi (role daima 'user'). */
+function userDraft(uid, extra = {}) {
+  const iso = new Date().toISOString();
+  return {
+    _id: uid, _createdAt: iso, _updatedAt: iso, firstName: '', lastName: '', imageUrl: '', eMail: '', city: '', fcmToken: '',
+    role: 'user', favoriteShows: [], favoriteStages: [], favoritePlayers: [], ticketsId: [], ...extra,
+  };
+}
+
 /**
  * syncPhoneVerification: token'da phone_number varsa User/{uid} belgesine doğrulama bilgisini SUNUCU yazar.
  * `role`'e dokunulmaz. Telefon yoksa hata atılmaz; belge daha önce isPhoneActive:true ise false'a çekilir (telefon sonradan kaldırılmış olabilir).
@@ -69,12 +78,8 @@ function createPhoneSync({ db, salt, log = console }) {
     if (!snap.exists) {
       // Belge henüz yok (istemci kaydı sonra gelebilir): istemcilerin beklediği TAM varsayılan User oluşturulur. Eksik `role`/`_id`
       // olursa mobil güncellemesi (role karşılaştırması / boş id) ve rules KIRILIR. role daima 'user' (yetki yükseltilmez).
-      const iso = new Date().toISOString();
       try {
-        await ref.create({
-          _id: uid, _createdAt: iso, _updatedAt: iso, firstName: '', lastName: '', imageUrl: '', eMail: '', city: '', fcmToken: '',
-          role: 'user', favoriteShows: [], favoriteStages: [], favoritePlayers: [], ticketsId: [], ...fields,
-        });
+        await ref.create(userDraft(uid, fields));
       } catch (e) {
         if (!(e && (e.code === 6 || e.code === 'already-exists'))) throw e;
         await ref.set(fields, { merge: true }); // yarış: istemci aynı anda oluşturdu
@@ -95,4 +100,4 @@ function createPhoneSync({ db, salt, log = console }) {
   return { syncPhoneVerification };
 }
 
-module.exports = { normalizeE164, phoneKeyOf, requirePhone, phoneRequired, createPhoneSync, resolvePhoneSalt, MIN_SALT_LEN };
+module.exports = { userDraft, normalizeE164, phoneKeyOf, requirePhone, phoneRequired, createPhoneSync, resolvePhoneSalt, MIN_SALT_LEN };

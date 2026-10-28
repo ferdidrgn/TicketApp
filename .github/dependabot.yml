@@ -1,0 +1,40 @@
+# Dependabot — haftalık, gruplanmış küçük PR'lar (en çok 5 açık PR / ekosistem).
+# site/tools'ta package.json yok (bağımlılıksız Node betikleri), o yüzden npm girdisi yalnız functions/ için.
+# Not: Flutter major yükseltmeleri (riverpod vb.) kod değişikliği ister; PR'ı körlemesine birleştirme, CI'yı bekle.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: "/functions"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    groups:
+      functions-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: pub
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    groups:
+      pub-minor-patch:
+        update-types: ["minor", "patch"]

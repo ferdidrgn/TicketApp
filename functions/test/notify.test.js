@@ -124,7 +124,7 @@ test('alarm: Android yüksek öncelik + alarm kanalı + kısa TTL, iOS apns-prio
   const admin = await makeAdmin();
   const now = clock(Date.UTC(2026, 9, 26, 12, 0, 0));
   const { n, msg } = makeNotifier({ now });
-  await seedUser('a', { token: tok(1) });
+  await seedUser('a', { token: tok(1), loud: true });
   await n.adminSendNotification(admin, { target: { type: 'user', id: 'a' }, title: 'ALARM', body: 'Başlıyor', kind: 'alarm' });
   const m = msg.multicasts[0];
   assert.equal(m.android.priority, 'high'); assert.equal(m.android.notification.channelId, 'tiyatrol_alarm'); assert.equal(m.android.ttl, 120000);
@@ -133,6 +133,54 @@ test('alarm: Android yüksek öncelik + alarm kanalı + kısa TTL, iOS apns-prio
   assert.ok(Object.values(m.data).every((v) => typeof v === 'string'));
   assert.equal(m.notification.title, 'ALARM');
   assert.equal((await notifs())[0].type, 'alarm');
+});
+
+test('alarm + tercih YOK / kapalı: NORMAL kanal (tiyatrol_default), time-sensitive yok; içerik/öncelik/TTL aynı (sessiz modda sessiz)', async () => {
+  const admin = await makeAdmin();
+  const { n, msg } = makeNotifier();
+  await seedUser('a', { token: tok(1) }); // tercih alanı hiç yok
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'a' }, title: 'ALARM', body: 'Başlıyor', kind: 'alarm' });
+  await seedUser('b', { token: tok(2), loud: false });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'b' }, title: 'ALARM', body: 'Başlıyor', kind: 'alarm' });
+  await seedUser('c', { token: tok(3) });
+  await db.collection('User').doc('c').update({ notifPrefs: { loudAlarm: 'true' } }); // bool değil -> izin sayılmaz
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'c' }, title: 'ALARM', body: 'Başlıyor', kind: 'alarm' });
+  assert.equal(msg.multicasts.length, 3);
+  for (const m of msg.multicasts) {
+    assert.equal(m.android.notification.channelId, 'tiyatrol_default'); assert.equal(m.android.priority, 'high'); assert.equal(m.android.ttl, 120000);
+    assert.equal(m.apns.payload.aps['interruption-level'], 'active'); assert.equal(m.data.kind, 'alarm'); assert.equal(m.notification.title, 'ALARM');
+  }
+});
+
+test('alarm + karışık alıcılar: izinliler alarm kanalına, diğerleri normal kanala (iki multicast); log loudCount; önizleme X/Y', async () => {
+  const admin = await makeAdmin();
+  const { n, msg } = makeNotifier();
+  await scene({ specs: [{ u: 'u1', token: tok(1) }, { u: 'u2', token: tok(2) }, { u: 'u3', token: tok(3) }, { u: 'u4' }] });
+  await db.collection('User').doc('u1').update({ notifPrefs: { loudAlarm: true } });
+  await db.collection('User').doc('u2').update({ notifPrefs: { loudAlarm: false } });
+  const tgt = { type: 'event', id: 'ev1' };
+  const pv = await n.adminNotifyPreview(admin, { target: tgt });
+  assert.deepEqual(pv.loudAlarm, { optedIn: 1, of: 3 }); // token'sız u4 sayılmaz
+  const r = await n.adminSendNotification(admin, { target: tgt, title: 'Acil', body: 'Gelin', kind: 'alarm', confirm: true });
+  assert.equal(msg.multicasts.length, 2);
+  const loud = msg.multicasts.find((m) => m.android.notification.channelId === 'tiyatrol_alarm');
+  const quiet = msg.multicasts.find((m) => m.android.notification.channelId === 'tiyatrol_default');
+  assert.deepEqual(loud.tokens, [tok(1)]); assert.deepEqual(quiet.tokens.sort(), [tok(2), tok(3)]);
+  assert.equal(loud.apns.payload.aps['interruption-level'], 'time-sensitive');
+  assert.equal(r.loudCount, 1); assert.equal(r.success, 3);
+  const log = (await db.collection('NotificationLog').doc(r.logId).get()).data();
+  assert.equal(log.loudCount, 1);
+});
+
+test('normal tür: tercihten etkilenmez (tek multicast, alarm kanalı yok); konu hedefli alarm NORMAL kanala gider', async () => {
+  const admin = await makeAdmin();
+  const { n, msg } = makeNotifier();
+  await seedUser('a', { token: tok(1), loud: true });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'a' }, title: 'Merhaba', body: 'Duyuru' });
+  assert.equal(msg.multicasts.length, 1); assert.equal(msg.multicasts[0].android.notification, undefined);
+  await n.adminSendNotification(admin, { target: { type: 'all' }, title: 'Herkese', body: 'Acil', kind: 'alarm', confirm: true });
+  assert.equal(msg.topics.length, 1); assert.equal(msg.topics[0].android.notification.channelId, 'tiyatrol_default');
+  assert.equal(msg.topics[0].apns.payload.aps['interruption-level'], 'active');
 });
 
 test('normal: alarm kanalı/öncelik/time-sensitive YOK', async () => {
@@ -179,6 +227,7 @@ test('şablonlar: sunucuda üretilir (istemci metni yok sayılır), değişkenle
   const admin = await makeAdmin();
   const { n, msg } = makeNotifier();
   await scene({ specs: [{ u: 'u1', token: tok(1) }] });
+  await db.collection('User').doc('u1').update({ notifPrefs: { loudAlarm: true } });
   const tgt = { type: 'event', id: 'ev1' };
   const r = await n.adminSendNotification(admin, { target: tgt, template: 'baslamak_uzere', params: { dk: 5 }, title: 'SAHTE', body: 'SAHTE', kind: 'normal', confirm: true });
   assert.equal(r.title, 'Hamlet 5 dakika sonra başlıyor'); assert.match(r.body, /Büyük Sahne/); assert.equal(r.kind, 'alarm');
@@ -226,6 +275,33 @@ test('NotificationLog: kim, hedef, şablon, alıcı/başarılı/başarısız say
   assert.ok(log.createdAt.toMillis); assert.equal(log.kind, 'normal');
   assert.equal((await db.collection('User').doc('u2').get()).data().fcmToken, ''); // kalıcı geçersiz token temizlendi
   assert.equal((await db.collection('User').doc('u1').get()).data().fcmToken, tok(1));
+});
+
+test('çoklu cihaz: fcmTokens + eski fcmToken birlikte okunur, tekilleştirilir; ölü token yalnız dizi/alandan temizlenir', async () => {
+  const admin = await makeAdmin();
+  const { n, msg } = makeNotifier({ messaging: fakeMessaging({ dead: [tok(12)] }) });
+  await seedUser('m1', { token: tok(11), tokens: [tok(11), tok(12), tok(13)] }); // eski alan dizide de var -> tek sayılır
+  await seedUser('m2', { token: tok(21) }); // yalnız eski alan
+  await seedUser('m3', { tokens: [tok(31), tok(32)] }); // yalnız yeni dizi
+  const r = await n.adminSendNotification(admin, { target: { type: 'user', id: 'm1' }, title: 'T', body: 'B' });
+  assert.deepEqual(msg.multicasts[0].tokens.slice().sort(), [tok(11), tok(12), tok(13)].sort());
+  assert.equal(r.success, 2); assert.equal(r.failure, 1);
+  const u1 = (await db.collection('User').doc('m1').get()).data();
+  assert.deepEqual(u1.fcmTokens, [tok(11), tok(13)]); // ölü token düştü
+  assert.equal(u1.fcmToken, tok(11)); // sağlam cihazın eski alanı bozulmadı
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm2' }, title: 'T2', body: 'B' });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm3' }, title: 'T3', body: 'B' });
+  assert.deepEqual(msg.multicasts[1].tokens, [tok(21)]);
+  assert.deepEqual(msg.multicasts[2].tokens.slice().sort(), [tok(31), tok(32)]);
+});
+
+test('çoklu cihaz: ölü token eski tekil alandaysa o alan boşaltılır, dizi korunur', async () => {
+  const admin = await makeAdmin();
+  const { n } = makeNotifier({ messaging: fakeMessaging({ dead: [tok(41)] }) });
+  await seedUser('m4', { token: tok(41), tokens: [tok(41), tok(42)] });
+  await n.adminSendNotification(admin, { target: { type: 'user', id: 'm4' }, title: 'T', body: 'B' });
+  const u = (await db.collection('User').doc('m4').get()).data();
+  assert.equal(u.fcmToken, ''); assert.deepEqual(u.fcmTokens, [tok(42)]);
 });
 
 test('FCM tümden başarısız: uygulama içi bildirim yine yazılır, failure sayılır, istek patlamaz', async () => {

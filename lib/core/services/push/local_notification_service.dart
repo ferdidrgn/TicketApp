@@ -17,9 +17,17 @@ class LocalNotificationService implements LocalNotifier {
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  /// Alarm: en yüksek önem, ses + titreşim, ALARM ses akışı.
-  /// NOT: "Rahatsız Etme'yi aş" (bypassDnd) bilerek açılmaz — kullanıcı
-  /// izni/tercihi gerektirir; kullanıcı Ayarlar'dan kanalı kendisi seçer.
+  /// Alarm: en yüksek önem, ses + titreşim, ALARM ses akışı (sessiz modda da
+  /// duyulur). YALNIZ kullanıcı "sessizde de sesli hatırlat"a izin verdiyse
+  /// kullanılır (User.notifPrefs.loudAlarm).
+  /// NEVER change ringer mode: telefonun zil modu değiştirilmez; sesten sonra
+  /// telefon olduğu gibi kalır. "Rahatsız Etme'yi aş" (bypassDnd) bilerek
+  /// KAPALI — DND açıksa sistem kuralı geçerlidir, kullanıcı isterse kanalı
+  /// Ayarlar'dan kendisi seçer.
+  /// Kanal ayarları (ses/önem) ilk oluşturmadan sonra kodla DEĞİŞMEZ; bu
+  /// kanalın ayarı değişirse YENİ id (ör. tiyatrol_alarm_v2) + eskiyi
+  /// deleteNotificationChannel ile silme + sunucu NOTIFY.ALARM_CHANNEL
+  /// güncellemesi gerekir. Şu an ayar değişmedi: sürümleme gerekmedi.
   static final AndroidNotificationChannel alarmChannel =
       AndroidNotificationChannel(
     PushChannels.alarm,
@@ -87,7 +95,9 @@ class LocalNotificationService implements LocalNotifier {
   Future<void> show(final LocalNotificationSpec spec) async {
     if (kIsWeb) return;
     await ensureInitialized();
-    final bool alarm = spec.isAlarm;
+    // Alarm kanalı yalnız izinli kullanıcıda seçilir (bkz. PushChannels.forKind);
+    // izin yoksa alarm türü de normal kanalda ve normal ses akışında gösterilir.
+    final bool alarm = spec.channelId == PushChannels.alarm;
     final NotificationDetails details = NotificationDetails(
       android: AndroidNotificationDetails(
         spec.channelId,

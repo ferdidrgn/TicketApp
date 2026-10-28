@@ -7,6 +7,7 @@ import 'package:dartz/dartz.dart' show Either;
 
 import '../../../../core/errors/failures.dart';
 import '../../../auth/data/phone_link_service.dart';
+import '../../../auth/presentation/providers/account_deletion_provider.dart';
 import '../../../auth/presentation/providers/phone_link_provider.dart';
 import '../../domain/entities/purchase_entities.dart';
 import '../../domain/usecases/confirm_free_use_case_impl.dart';
@@ -85,6 +86,11 @@ class SeatPurchaseState {
   /// [SeatPurchaseController.phoneGateDismissed] çağrılır.
   final bool phoneRequired;
 
+  /// Hesap silinmek üzere (30 gün bekleme): sunucu satın almayı reddetti.
+  /// Arayüz "Silmeyi iptal et" eylemi sunar
+  /// ([SeatPurchaseController.cancelAccountDeletion]).
+  final bool deletionPending;
+
   const SeatPurchaseState({
     this.selected = const {},
     this.phase = PurchasePhase.selecting,
@@ -95,6 +101,7 @@ class SeatPurchaseState {
     this.completedSeats = const [],
     this.completedTotal = 0,
     this.phoneRequired = false,
+    this.deletionPending = false,
   });
 
   /// Sunucuda tutulan koltuklar var mı (ödeme akışı dahil).
@@ -124,6 +131,7 @@ class SeatPurchaseState {
     final List<String>? completedSeats,
     final double? completedTotal,
     final bool? phoneRequired,
+    final bool? deletionPending,
   }) =>
       SeatPurchaseState(
         selected: selected ?? this.selected,
@@ -136,6 +144,7 @@ class SeatPurchaseState {
         completedSeats: completedSeats ?? this.completedSeats,
         completedTotal: completedTotal ?? this.completedTotal,
         phoneRequired: phoneRequired ?? this.phoneRequired,
+        deletionPending: deletionPending ?? this.deletionPending,
       );
 }
 
@@ -296,7 +305,46 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         result = await call();
       }
     }
+    return _noteDeletionPending(result);
+  }
+
+  /// Sunucu ACCOUNT_DELETION_PENDING derse arayüze "Silmeyi iptal et" eylemi
+  /// için bayrak kaldırır (hata mesajı yine normal yoldan bildirilir).
+  Either<Failure, T> _noteDeletionPending<T>(final Either<Failure, T> result) {
+    final f = result.fold((final f) => f, (final _) => null);
+    if (f is PurchaseFailure && f.isDeletionPending && !_disposed) {
+      _set(state.copyWith(deletionPending: true));
+    }
     return result;
+  }
+
+  /// Hesap silme bekliyorken satın alma reddedildi: silmeyi iptal eder.
+  /// Başarıda bayrak iner ve kullanıcı kaldığı yerden devam edebilir.
+  Future<bool> cancelAccountDeletion() async {
+    if (_disposed || !state.deletionPending) {
+      return false;
+    }
+    final error =
+        await ref.read(accountDeletionControllerProvider).cancel();
+    if (_disposed) {
+      return error == null;
+    }
+    if (error == null) {
+      _set(state.copyWith(deletionPending: false));
+      _noticeNow('Silme talebiniz iptal edildi. Hesabınız aktif.',
+          isError: false);
+      return true;
+    }
+    _noticeNow(error);
+    return false;
+  }
+
+  /// Kullanıcı "Silmeyi iptal et" önerisini kapattı.
+  void dismissDeletionPending() {
+    if (_disposed || !state.deletionPending) {
+      return;
+    }
+    _set(state.copyWith(deletionPending: false));
   }
 
   void _requirePhone(final _PendingAction action) {
@@ -468,7 +516,8 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     }
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
-    final result = await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId));
+    final result = _noteDeletionPending(
+        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId)));
     if (_disposed) {
       return null;
     }
@@ -503,6 +552,18 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
     final result = await _retryStalePhone(() => _confirmFree(hold.orderId));
+    if (_disposed) {
+      return false;
+    }
+    final failure = result.fold<Failure?>((final f) => f, (final _) => null);
+    if (failure != null &&
+        await _fulfilledDespiteError(failure, hold.orderId)) {
+      if (_disposed) {
+        return false;
+      }
+      _complete(seats: hold.seatIds, total: 0, free: true);
+      return true;
+    }
     if (_disposed) {
       return false;
     }
@@ -549,6 +610,22 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (_disposed) {
       return false;
     }
+    final failure = result.fold<Failure?>((final f) => f, (final _) => null);
+    if (failure != null &&
+        await _fulfilledDespiteError(failure, hold.orderId)) {
+      if (_disposed) {
+        return false;
+      }
+      _complete(
+          seats: hold.seatIds,
+          total: hold.total,
+          free: false,
+          reservation: true);
+      return true;
+    }
+    if (_disposed) {
+      return false;
+    }
     return result.fold(
       (final f) {
         if (f is PurchaseFailure && f.isPhoneRequired) {
@@ -576,6 +653,35 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         return true;
       },
     );
+  }
+
+  /// Onay çağrısı HATA döndü ama sunucuda iş bitmiş olabilir (yanıt kaybı,
+  /// zaman aşımı, tekrar deneme yarışı). Kesin iş-kuralı reddi değilse
+  /// Order belgesine bakılır; bilet kesilmişse başarı sayılır — kullanıcıya
+  /// "hata" gösterilip bilet yine de oluşmuş olması (tutarsızlık) böylece
+  /// biter. Okuma da başarısızsa `false` (eski davranış).
+  Future<bool> _fulfilledDespiteError(
+      final Failure f, final String orderId) async {
+    if (f is PurchaseFailure) {
+      const definitive = {
+        'resource-exhausted',
+        'permission-denied',
+        'invalid-argument',
+        'unauthenticated',
+        'phone-required',
+        'account-deletion-pending',
+      };
+      if (definitive.contains(f.code)) {
+        return false;
+      }
+    }
+    try {
+      final order =
+          await _watchOrder(orderId).first.timeout(const Duration(seconds: 6));
+      return order != null && order.status.isFulfilled;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _complete(
@@ -617,6 +723,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         seats: hold?.seatIds ?? order.seatIds,
         total: hold?.total ?? order.total,
         free: order.free,
+        reservation: order.status == OrderStatus.reserved,
       );
       return;
     }
