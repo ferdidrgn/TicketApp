@@ -54,6 +54,16 @@ gh workflow run "Deploy Backend" --ref main -f target=rules-and-indexes
 ```
 Kuralları fonksiyonlardan/mobilden ÖNCE yayınlarsan eski mobil sürüm bozulur. Bu adım Storage kurallarını da yayınlar: sonrasında profil fotoğrafı ve yönetim görseli yüklemeyi dene.
 
+
+## 5b. Kurallar öncesi ek koşullar (önemli)
+Kurallar (bölüm 5) yayınlandığında aşağıdakiler HAZIR olmalı, yoksa ilgili kullanıcılar bozulur:
+- **Güncel web** yayında olmalı (yorum okuyan sorgular `hidden == false` şartıyla çalışır; eski web kodu yorum okuyamaz). Yani `main`'e son birleştirme yapılmış ve Deploy Web başarılı olmalı.
+- **Yeni mobil sürüm** Play'de yayında olmalı: eski sürümler yorum okuyamaz/yazamaz, doğrudan kullanıcı belgesi silemez, bildirim tercihi ve token yazımı eski biçimde reddedilir.
+- Fonksiyonlar (bölüm 3) deploy edilmiş olmalı.
+
+## 5c. Verilecek karar: toplam bilet limitleri
+Şu an etkinlik başına 3 bilet limiti (telefon bazlı) var. Ayrıca iki TOPLAM limit açık: ücretsiz etkinliklerde toplam 3 ve toplam 3 rezervasyon. "Etkinlik boyunca 3" istiyorsan toplamları kapat: `Config/satis` belgesine `ucretsizToplamLimit: 0` ve `rezervasyonLimit: 0` yaz (deploy gerekmez, kurallar yayınlandıktan sonra, yönetim paneli ya da Console'dan).
+
 ## 6. Canlı duman testi (30 dakika, kendin yap)
 1. Telefonla giriş (gerçek SMS) → web ve mobil.
 2. Aynı numarayı ikinci hesaba bağlamayı dene → reddedilmeli.
