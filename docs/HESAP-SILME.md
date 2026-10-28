@@ -150,3 +150,6 @@ Durum makinesi: `pending` -> (atomik kilit, `claimedAt` = 15 dk kira) `deleting`
 | Gelecek bilet / ödemesi süren sipariş çıkmış | Silme ertelenir + bildirim |
 
 Kanıtlanmayanlar: gerçek Cloud Scheduler tetiklemesi, gerçek GCS (yalnız Storage emülatörü denendi), üretim verisi.
+
+## 11. Yorum ve moderasyon (Q-1/M-1)
+Karar: yorum metni/adı silinir (Show puan önbelleği yeniden hesaplanır). Şikâyete/moderasyona konu olmuş gizli yorum delil olarak uid'siz kimlikle anonim ve gizli saklanır; kullanıcının şikâyetleri, `User/{uid}/blocks`, `ReviewLimits` silinir; `ModerationLog` uid alanları takma adlanır. Kapsam testi: `functions/test/reviews.test.js` (son test). Ayrıntı: `docs/UGC-KURALLARI.md`.

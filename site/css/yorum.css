@@ -1,0 +1,19 @@
+/* Yorumlar: doğrulanmış rozet, menü, yazma formu (js/yorumlar.js) */
+.dogrulandi { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); background: var(--surface); }
+.yorum-ust { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.yorum-menu-d { border: 0; background: none; color: var(--ink-2); font-size: 20px; line-height: 1; padding: 4px 10px; cursor: pointer; border-radius: 8px; min-width: 44px; min-height: 36px; }
+.yorum-menu-d:hover, .yorum-menu-d:focus-visible { background: var(--surface); }
+.yorum-menu { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 6px; }
+.yorum-menu[hidden] { display: none; }
+.yorum-sikayet { display: grid; gap: 10px; width: 100%; max-width: 420px; }
+.yorum-sikayet label, .yorum-yaz label { display: grid; gap: 4px; font-size: 14px; }
+.yorum-sikayet select, .yorum-sikayet input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; }
+.yorum-form { margin: 0 0 20px; }
+.yorum-hak, .yorum-yaz { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); display: grid; gap: 10px; }
+.yorum-yaz h3 { margin: 0; }
+.yorum-yaz textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg, transparent); color: var(--ink); font: inherit; resize: vertical; }
+.yildiz-sec { display: flex; gap: 4px; }
+.yildiz-sec button { border: 0; background: none; font-size: 30px; line-height: 1; color: var(--warn); cursor: pointer; padding: 4px; min-width: 44px; min-height: 44px; }
+.yorum-alt { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.yorum-eylem { display: flex; gap: 8px; flex-wrap: wrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

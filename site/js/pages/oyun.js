@@ -5,6 +5,7 @@ import { baslikYaz, bulunamadi, hata, etkilesimler, harita, takvimMenusu, dakika
 import { kalpDugme, favMi } from '../fav.js';
 import { paylasMenusu } from '../ozellik.js';
 import { dolulukHtml } from '../canli.js';
+import { yorumlarHtml, yorumlarBaglan } from '../yorumlar.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
@@ -149,7 +150,7 @@ function ciz(d) {
     { id: 'ekip', ad: 'Ekip hikâyesi', html: ekipHtml(s) },
     { id: 'mekan', ad: 'Mekân', html: yer ? `<p style="margin-bottom:14px"><a href="${linkOf('sahne', yer)}"><b>${esc(yer.name)}</b></a><br><span class="muted">${esc(yer.address || '')}</span></p>${harita(yer.lat, yer.lng)}` : (s.externalVenueName ? `<p><b>${esc(s.externalVenueName)}</b><br><span class="muted">${esc(s.externalVenueAddress || '')}</span></p>${harita(s.externalLat, s.externalLng)}` : '') },
     { id: 'galeri', ad: 'Galeri', html: galeri(s.photos, s.name) },
-    { id: 'yorumlar', ad: s.ratingCount ? `Yorumlar (${s.ratingCount})` : 'Yorumlar', html: yorumHtml },
+    { id: 'yorumlar', ad: s.ratingCount ? `Yorumlar (${s.ratingCount})` : 'Yorumlar', html: yorumlarHtml(s) },
     { id: 'eski', ad: 'Eski kadro', html: s.pastCast.length ? kadro(s.pastCast) : '' },
     { id: 'benzer', ad: 'Benzer oyunlar', html: benzer.length ? ray(benzer.map((x) => oyunKarti(x)).join('')) : '' },
   ].filter((b) => b.html);
@@ -204,6 +205,7 @@ function ciz(d) {
     });
   };
   seansCiz(); baglan();
+  yorumlarBaglan(s);
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
   $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
   $('#yazdir')?.addEventListener('click', () => print());
