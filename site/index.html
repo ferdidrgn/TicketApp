@@ -316,29 +316,34 @@
 
   <section class="contact" id="iletisim">
     <div class="contact__side">
-      <h2 class="contact__title">Sahneyi<br>birlikte<br><em>kuralım.</em></h2>
-      <p class="p">İster ekibimize katılmak, ister iş birliği yapmak, isterse sadece merhaba demek isteyin — kapımız her zaman açık. Yazdığınız her mesajı okuyoruz.</p>
-      <div class="contact__meta">
-        <a href="mailto:ferdidurgun34@gmail.com">Bize Yazın →</a>
-        <a href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener">Instagram: @tiyatrol_</a>
-        <a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener">Facebook: tiyatrol</a>
-        <span>Ataşehir, İstanbul</span>
-      </div>
+      <p class="eyebrow">İLETİŞİM</p>
+      <h2 class="contact__title">Bize<br><em>yazın.</em></h2>
+      <p class="p">Bilet ve program soruları, iş birliği teklifleri, basın talepleri ya da sadece bir merhaba. Yazdığınız her mesajı okuyoruz, en kısa sürede dönüyoruz.</p>
+      <ul class="contact__cards" aria-label="İletişim kanalları">
+        <li><a href="mailto:ferdidurgun34@gmail.com" data-cursor-hover><span class="cc__t">E-posta</span><span class="cc__v">ferdidurgun34@gmail.com</span></a></li>
+        <li><a href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" data-cursor-hover><span class="cc__t">Instagram</span><span class="cc__v">@tiyatrol_</span></a></li>
+        <li><a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener" data-cursor-hover><span class="cc__t">Facebook</span><span class="cc__v">tiyatrol</span></a></li>
+        <li><span class="cc__static"><span class="cc__t">Merkez</span><span class="cc__v">Ataşehir, İstanbul</span></span></li>
+      </ul>
     </div>
     <form class="contact__form" id="contactForm">
-      <p class="contact__note">Gönder'e bastığınızda e-posta uygulamanız açılır; mesajınız bu sitede saklanmaz.</p>
+      <fieldset class="contact__konu">
+        <legend>Ne hakkında yazıyorsunuz?</legend>
+        <div class="chips" role="group" aria-label="Konu">
+          <button type="button" class="chip is-on" data-konu="Bilet" aria-pressed="true">Bilet / program</button>
+          <button type="button" class="chip" data-konu="Isbirligi" aria-pressed="false">İş birliği</button>
+          <button type="button" class="chip" data-konu="Basin" aria-pressed="false">Basın</button>
+          <button type="button" class="chip" data-konu="Diger" aria-pressed="false">Diğer</button>
+        </div>
+      </fieldset>
+      <input type="hidden" name="subject" value="Bilet" />
       <div class="row">
         <input type="text" name="name" placeholder="Ad Soyad" aria-label="Ad Soyad" autocomplete="name" required />
         <input type="email" name="email" placeholder="E-posta" aria-label="E-posta" autocomplete="email" required />
       </div>
-      <select name="subject" aria-label="Konu">
-        <option value="Bilet">Bilet Hakkında</option>
-        <option value="Isbirligi">İşbirliği / Sponsorluk</option>
-        <option value="Basin">Basın</option>
-        <option value="Diger">Diğer</option>
-      </select>
-      <textarea name="message" rows="4" placeholder="Mesajın…" aria-label="Mesajın" required></textarea>
+      <textarea name="message" rows="5" placeholder="Mesajınız…" aria-label="Mesajınız" required></textarea>
       <button type="submit" class="btn btn--fill" data-cursor-hover>Gönder →</button>
+      <p class="contact__note">Gönder'e bastığınızda e-posta uygulamanız açılır; mesajınız bu sitede saklanmaz.</p>
     </form>
   </section>
 
