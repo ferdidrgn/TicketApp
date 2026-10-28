@@ -60,11 +60,19 @@ service cloud.firestore {
         (request.auth.token.get('phone_number', null) != null && v == request.auth.token.get('phone_number', null));
     }
 
-    // BİLDİRİM TERCİHİ (docs/BILDIRIM-ISTATISTIK.md "Sessizde sesli hatırlatma"): User.notifPrefs yalnızca { loudAlarm: bool } olabilir
-    // (kullanıcı kendisi yazar; sunucu yalnız okur). Başka alan/tür reddedilir.
+    // BİLDİRİM TERCİHİ (docs/BILDIRIM-TERCIHLERI.md): User.notifPrefs = { loudAlarm, reminders, changes, thankYou, newShows, marketing: bool;
+    // quietStart, quietEnd: 'HH:MM' (ikisi birlikte) }. Hepsi isteğe bağlı; bilinmeyen anahtar / yanlış tür reddedilir. Kullanıcı kendisi yazar; sunucu yalnız okur.
+    function quietTimeOk(x) {
+      return x is string && x.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
     function notifPrefsOk() {
       let v = request.resource.data.get('notifPrefs', null);
-      return v == null || (v is map && v.keys().hasOnly(['loudAlarm']) && v.get('loudAlarm', false) is bool);
+      return v == null || (v is map &&
+        v.keys().hasOnly(['loudAlarm', 'reminders', 'changes', 'thankYou', 'newShows', 'marketing', 'quietStart', 'quietEnd']) &&
+        v.get('loudAlarm', false) is bool && v.get('reminders', true) is bool && v.get('changes', true) is bool &&
+        v.get('thankYou', true) is bool && v.get('newShows', false) is bool && v.get('marketing', false) is bool &&
+        (('quietStart' in v) == ('quietEnd' in v)) &&
+        (!('quietStart' in v) || (quietTimeOk(v.get('quietStart', null)) && quietTimeOk(v.get('quietEnd', null)))));
     }
 
     // ÇOKLU CİHAZ PUSH (N-3): User.fcmTokens = bu hesaba bağlı cihazların FCM token'ları (liste, <=5, her biri metin <=4096 karakter).

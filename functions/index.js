@@ -5,6 +5,7 @@
  */
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { defineSecret, defineString, defineBoolean } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
@@ -214,6 +215,23 @@ exports.eventReminders = onSchedule(
     const r = await getNotifier().eventReminders();
     logger.info('eventReminders', r);
   });
+
+/**
+ * Seans iptal / erteleme -> aktif bilet sahiplerine otomatik bildirim (N-1a, docs/BILDIRIM-TERCIHLERI.md). Zamanlanmış iş DEĞİL.
+ * ÖNEMLİ: tetikleyici bölgesi Firestore veritabanı konumuyla aynı olmalı (varsayılan europe-west1; DB başka bölgedeyse `region` değiştirilmeli).
+ * İdempotent (kullanıcı başına kutu belgesi kilidi + tek NotificationLog), bu yüzden yeniden denemeler çift bildirim üretmez.
+ */
+exports.onEventChanged = onDocumentUpdated({ region: cfg.REGION, document: 'Event/{eventId}', maxInstances: 5, timeoutSeconds: 120 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await getNotifier().eventChanged(event.params.eventId, change.before.data(), change.after.data());
+    if (r && !r.skipped) logger.info('eventChanged', { eventId: event.params.eventId, ...r });
+  } catch (e) {
+    logger.error('eventChanged hata', { eventId: event.params.eventId, code: e && e.code, message: e && e.message });
+    throw e; // yeniden denenebilir hata: kilitler sayesinde güvenli
+  }
+});
 
 /** Süresi (30 gün) dolan hesap silme taleplerini işler. Günde 1 (03:00 TR). Production'da Cloud Scheduler (Blaze) gerekir. docs/HESAP-SILME.md */
 exports.processAccountDeletions = onSchedule(

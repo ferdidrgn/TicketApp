@@ -226,6 +226,23 @@ test('User.notifPrefs: kullanıcı yalnız { loudAlarm: bool } yazar (create + u
   await assertFails(setDoc(doc(as('n3'), 'User/n3'), { firstName: 'A', notifPrefs: { loudAlarm: 1 } }));
 });
 
+test('User.notifPrefs (N-2): yeni anahtarlar + sessiz saat HH:MM; bilinmeyen anahtar, yanlış tür, tek başına quietStart, geçersiz saat reddedilir', async () => {
+  const n1 = as('np1');
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'User/np1'), { role: 'user', phoneNumber: '' }); });
+  const ok = { loudAlarm: true, reminders: false, changes: true, thankYou: false, newShows: true, marketing: false, quietStart: '23:00', quietEnd: '08:00' };
+  await assertSucceeds(updateDoc(doc(n1, 'User/np1'), { notifPrefs: ok }));
+  await assertSucceeds(updateDoc(doc(n1, 'User/np1'), { notifPrefs: { reminders: true } })); // kısmi harita (eski {loudAlarm} belgeleri gibi)
+  await assertSucceeds(updateDoc(doc(n1, 'User/np1'), { notifPrefs: { loudAlarm: false } }));
+  for (const bad of [
+    { ...ok, extra: true }, { ...ok, reminders: 'evet' }, { ...ok, newShows: 1 }, { ...ok, marketing: null }, { ...ok, thankYou: 0 },
+    { quietStart: '23:00' }, { quietEnd: '08:00' }, { quietStart: '24:00', quietEnd: '08:00' }, { quietStart: '9:00', quietEnd: '10:00' },
+    { quietStart: '23:00', quietEnd: 800 }, { quietStart: 2300, quietEnd: '08:00' }, { quietStart: '23:00', quietEnd: '08:00:00' },
+  ]) await assertFails(updateDoc(doc(n1, 'User/np1'), { notifPrefs: bad }));
+  await assertFails(updateDoc(doc(as('bob'), 'User/np1'), { notifPrefs: { reminders: false } })); // başkası yazamaz
+  await assertSucceeds(setDoc(doc(as('np2'), 'User/np2'), { firstName: 'A', notifPrefs: { newShows: true, quietStart: '22:30', quietEnd: '07:15' } }));
+  await assertFails(setDoc(doc(as('np3'), 'User/np3'), { firstName: 'A', notifPrefs: { newShows: 'yes' } }));
+});
+
 // ---- GERÇEK istemci yük örnekleri (çapraz denetim): mobil UserModel.toFirestore + datasource, web kullaniciBelgesi, sunucu taslağı
 const MOBIL_CREATE = (uid) => ({ // auth_mutation_provider._handlePostLogin: User.empty(uid).copyWith(...) -> UserModel.toFirestore()
   _createdAt: '', _updatedAt: '', _id: uid, firstName: 'Yeni', lastName: 'Kullanıcı', imageUrl: '', phoneNumber: '', eMail: 'a@b.co',

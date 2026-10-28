@@ -39,8 +39,8 @@ function makeStats({ now } = {}) {
 const tok = (i) => `fcm_token_${String(i).padStart(6, '0')}_${'x'.repeat(24)}`;
 
 /** Kullanıcı + (isteğe bağlı) token. */
-async function seedUser(uid, { token, role = 'user', name = 'Test', loud, tokens } = {}) {
-  await db.collection('User').doc(uid).set({ role, firstName: name, lastName: uid, ...(token ? { fcmToken: token } : {}), ...(tokens ? { fcmTokens: tokens } : {}), ...(loud === undefined ? {} : { notifPrefs: { loudAlarm: loud } }) });
+async function seedUser(uid, { token, role = 'user', name = 'Test', loud, tokens, prefs } = {}) {
+  await db.collection('User').doc(uid).set({ role, firstName: name, lastName: uid, ...(token ? { fcmToken: token } : {}), ...(tokens ? { fcmTokens: tokens } : {}), ...(prefs ? { notifPrefs: prefs } : loud === undefined ? {} : { notifPrefs: { loudAlarm: loud } }) });
 }
 
 let tseq = 0;
