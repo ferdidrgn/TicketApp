@@ -456,7 +456,9 @@ function createNotifier({ db, messaging, assertAdmin, now = Date.now, log = cons
     return { users: fresh.length, failed };
   }
 
-  return { adminSendNotification, adminNotifyPreview, eventReminders };
+  // Ekip yöneticisi akışı (src/team.js) aynı hedef/şablon/gönderim mantığını yeniden kullanır; yetki kapsamı ORADA denetlenir.
+  const internals = { resolveTarget, compose, activeCustomers, loadRecipients, pushByPrefs, writeInApp };
+  return { adminSendNotification, adminNotifyPreview, eventReminders, internals };
 }
 
 module.exports = { createNotifier, TEMPLATES, templateList, buildMessage };

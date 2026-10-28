@@ -371,6 +371,25 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // TeamManager — EKİP YÖNETİCİSİ yetkisi (docs/EKIP-YONETICISI.md). Belge kimliği `{teamId}_{uid}`.
+    // İstemci ASLA yazamaz (atama/geri alma yalnız adminSetTeamManager callable'ı, Admin SDK). Okuma: admin tümünü,
+    // yönetici yalnız KENDİ kaydını (sorguda `where('uid','==',auth.uid)` şart). User.role DEĞİŞMEZ; bu rol hiçbir
+    // başka koleksiyona yazma/okuma yetkisi vermez (Ticket/Event/Show/Team kuralları değişmedi).
+    // TeamManagerLog: atama günlüğü (yalnız admin okur). TeamLimits: yönetici gönderim sayaçları (istemci erişemez).
+    // -------------------------------------------------------------------
+    match /TeamManager/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+    match /TeamManagerLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /TeamLimits/{uid} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------
     // Varsayılan: yukarıda AÇIKÇA tanımlanmamış her yol için tümüyle kapalı
     // (deny-by-default). Firestore rules zaten eşleşmeyen yollarda örtük
     // olarak reddeder; bu blok niyeti açıkça belgelemek için var.

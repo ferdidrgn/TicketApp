@@ -27,6 +27,14 @@ module.exports = {
     REMINDER_STALE_MS: 45 * 60 * 1000, // eventReminders bu süredir çalışmadıysa panel uyarır (zamanlama: 15 dk)
   },
 
+  // Ekip yöneticisi (docs/EKIP-YONETICISI.md): yönetici başına ayrı sayaç (TeamLimits/{uid}).
+  TEAM: {
+    RATE_HOUR: { max: 10, windowMs: 60 * 60 * 1000 }, RATE_DAY: { max: 30, windowMs: 24 * 60 * 60 * 1000 },
+    PER_TARGET: { max: 5, windowMs: 24 * 60 * 60 * 1000 }, // AYNI seansa/oyuna 24 saatte
+    CHECKIN_WINDOW_MS: 24 * 60 * 60 * 1000, // kapı kontrolü yalnız seansa ±24 saat
+    LIST_PAST_MS: 24 * 60 * 60 * 1000, LIST_FUTURE_MS: 90 * 24 * 60 * 60 * 1000, MAX_EVENTS_PER_SHOW: 40, MAX_SHOWS_PER_TEAM: 50,
+  },
+
   // Hesap silme (docs/HESAP-SILME.md)
   ACCOUNT_DELETION: {
     GRACE_MS: 30 * 24 * 60 * 60 * 1000, // bekleme süresi

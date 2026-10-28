@@ -20,6 +20,7 @@ const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createAccountDeletion } = require('./src/accountDeletion');
+const { createTeam } = require('./src/team');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -100,6 +101,10 @@ function getNotifier() {
   return createNotifier({ db, messaging: getMessaging(), assertAdmin: makeAssertAdmin(db), log: logger });
 }
 
+function getTeam() {
+  return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), log: logger });
+}
+
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
   return async (request) => {
@@ -141,6 +146,13 @@ exports.adminStats = onCall({ ...base, timeoutSeconds: 120, memory: '512MiB' },
 exports.adminCancelled = onCall(base, guarded((req) => getStats().adminCancelled(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
 exports.adminNotifyPreview = onCall(base, guarded((req) => getNotifier().adminNotifyPreview(req.auth.uid, req.data)));
 exports.adminSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getNotifier().adminSendNotification(req.auth.uid, req.data)));
+// Ekip yöneticisi (admin DEĞİL; yalnız kendi ekibinin oyunu/seansı). Kapsam sunucuda hesaplanır, istemci teamId'si kabul edilmez. docs/EKIP-YONETICISI.md
+exports.getMyManagedTeams = onCall({ ...base, timeoutSeconds: 60 }, guarded((req) => getTeam().getMyManagedTeams(req.auth.uid)));
+exports.teamNotifyPreview = onCall(base, guarded((req) => getTeam().teamNotifyPreview(req.auth.uid, req.data)));
+exports.teamSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getTeam().teamSendNotification(req.auth.uid, req.data)));
+exports.teamCheckIn = onCall(base, guarded((req) => getTeam().teamCheckIn(req.auth.uid, req.data)));
+exports.teamStats = onCall({ ...base, timeoutSeconds: 120 }, guarded((req) => getTeam().teamStats(req.auth.uid, req.data)));
+exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTeamManager(req.auth.uid, req.data)));
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,

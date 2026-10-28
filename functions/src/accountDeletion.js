@@ -227,6 +227,15 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
     const drop = {}; for (const k of PERSONAL_KEYS) drop[k] = FieldValue.delete();
     await chunked(db.collection('Ticket').where('customerId', '==', uid), (b, d) => b.update(d.ref, { ...drop, customerId: anon, anonymizedAt: anonAt }));
     await chunked(db.collection('Order').where('userId', '==', uid), (b, d) => b.update(d.ref, { ...drop, userId: anon, phoneKey: FieldValue.delete(), anonymizedAt: anonAt }));
+    // ekip yöneticisi ise yetki belgeleri 'revoked' (belge kalır = denetim izi; kişisel alanlar silinir, uid takma adlanır) + atama günlüğü + limit sayacı
+    await chunked(db.collection('TeamManager').where('uid', '==', uid), (b, d) => b.update(d.ref, {
+      status: 'revoked', revokedAt: anonAt, uid: anon, displayName: FieldValue.delete(), emailHint: FieldValue.delete(), phoneActive: FieldValue.delete(),
+    }));
+    await chunked(db.collection('TeamManager').where('addedBy', '==', uid), (b, d) => b.update(d.ref, { addedBy: anon }));
+    await chunked(db.collection('TeamManager').where('revokedBy', '==', uid), (b, d) => b.update(d.ref, { revokedBy: anon }));
+    await chunked(db.collection('TeamManagerLog').where('targetUid', '==', uid), (b, d) => b.update(d.ref, { targetUid: anon }));
+    await chunked(db.collection('TeamManagerLog').where('by', '==', uid), (b, d) => b.update(d.ref, { by: anon }));
+    await db.collection('TeamLimits').doc(uid).delete();
     // yönetici ise gönderim kayıtlarındaki adı
     await chunked(db.collection('NotificationLog').where('sentBy', '==', uid), (b, d) => b.update(d.ref, { sentBy: anon, sentByName: '' }));
     // kişisel koleksiyonlar silinir
