@@ -66,6 +66,35 @@ final getOpenOrdersUseCaseProvider = Provider<GetOpenOrdersUseCase>(
     (final ref) =>
         GetOpenOrdersUseCaseImpl(ref.watch(purchaseRepositoryProvider)));
 
+/// Bir etkinlikteki bilet hakkı (sunucu `getEventQuota`). `null` = henüz
+/// bilinmiyor / okunamadı → arayüz varsayılan sınıra düşer, sunucu denetler.
+class EventQuotaNotifier extends Notifier<EventQuota?> {
+  EventQuotaNotifier(this.eventId);
+  final String eventId;
+  bool _alive = true;
+
+  @override
+  EventQuota? build() {
+    ref.onDispose(() => _alive = false);
+    return null;
+  }
+
+  /// Sunucudan yeniden okur. Hata yutulur (mevcut değer korunur).
+  Future<void> refresh() async {
+    final q = await ref
+        .read(purchaseRemoteDataSourceProvider)
+        .getEventQuota(eventId);
+    if (_alive && q != null) state = q;
+  }
+
+  void clear() {
+    if (_alive) state = null;
+  }
+}
+
+final eventQuotaProvider = NotifierProvider.autoDispose
+    .family<EventQuotaNotifier, EventQuota?, String>(EventQuotaNotifier.new);
+
 /// Zaman kaynağı (testte sahte saat). Geri sayım HER ZAMAN sunucunun verdiği
 /// `expiresAt`'ten bu saate göre hesaplanır.
 final purchaseClockProvider =

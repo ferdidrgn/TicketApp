@@ -278,8 +278,16 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     }
     final next = {...state.selected};
     if (!next.remove(seatId)) {
-      if (next.length >= kMaxSeatsPerPurchase) {
-        _noticeNow('En fazla $kMaxSeatsPerPurchase koltuk seçebilirsin.',
+      final q = ref.read(eventQuotaProvider(eventId));
+      final max = q?.remaining ?? kMaxSeatsPerPurchase;
+      if (next.length >= max) {
+        _noticeNow(
+            q != null && q.isFull
+                ? 'Bu etkinlik için bilet hakkını doldurdun (${q.used}/${q.limit}). '
+                    'Biletlerim sayfasından biletlerine bakabilirsin.'
+                : q != null
+                    ? 'Bu etkinlikte en fazla $max koltuk daha seçebilirsin.'
+                    : 'En fazla $kMaxSeatsPerPurchase koltuk seçebilirsin.',
             isError: false);
         return false;
       }
@@ -407,6 +415,11 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         if (f is PurchaseFailure && f.isPhoneRequired) {
           _requirePhone(_PendingAction.hold);
           return false;
+        }
+        if (f is PurchaseFailure && f.isEventLimit) {
+          // Hak başka cihazdan/sekmeden dolmuş olabilir: seçimi temizle, kotayı tazele.
+          _set(state.copyWith(selected: const {}));
+          unawaited(_refreshQuota());
         }
         _set(state.copyWith(notice: PurchaseNotice(++_noticeSeq, f.message)));
         return false;
@@ -572,10 +585,11 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         if (f is PurchaseFailure && f.isPhoneRequired) {
           _set(state.copyWith(phase: PurchasePhase.held));
           _requirePhone(_PendingAction.confirmFree);
-        } else if (f is PurchaseFailure && f.code == 'resource-exhausted') {
-          // Ücretsiz bilet sınırı: koltukları boşuna tutma.
+        } else if (f is PurchaseFailure && f.isLimit) {
+          // Ücretsiz bilet / etkinlik sınırı: koltukları boşuna tutma.
           unawaited(_release(hold.orderId));
           _resetToSelecting(message: f.message);
+          unawaited(_refreshQuota());
         } else if (f is PurchaseFailure && f.isStale) {
           _resetToSelecting(message: f.message);
         } else {
@@ -631,10 +645,11 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         if (f is PurchaseFailure && f.isPhoneRequired) {
           _set(state.copyWith(phase: PurchasePhase.held));
           _requirePhone(_PendingAction.confirmReservation);
-        } else if (f is PurchaseFailure && f.code == 'resource-exhausted') {
-          // Rezervasyon sınırı: koltukları boşuna tutma.
+        } else if (f is PurchaseFailure && f.isLimit) {
+          // Rezervasyon / etkinlik sınırı: koltukları boşuna tutma.
           unawaited(_release(hold.orderId));
           _resetToSelecting(message: f.message);
+          unawaited(_refreshQuota());
         } else if (f is PurchaseFailure && f.isStale) {
           _resetToSelecting(message: f.message);
         } else {
@@ -665,6 +680,7 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     if (f is PurchaseFailure) {
       const definitive = {
         'resource-exhausted',
+        'event-limit',
         'permission-denied',
         'invalid-argument',
         'unauthenticated',
@@ -684,11 +700,19 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     }
   }
 
+  /// Etkinlik kotasını tazeler; hata asla akışı bozmaz.
+  Future<void> _refreshQuota() async {
+    try {
+      await ref.read(eventQuotaProvider(eventId).notifier).refresh();
+    } catch (_) {/* ekran kapanmış olabilir */}
+  }
+
   void _complete(
       {required final List<String> seats,
       required final double total,
       required final bool free,
       final bool reservation = false}) {
+    unawaited(_refreshQuota());
     _cancelTimers();
     unawaited(_stopTracking());
     _set(SeatPurchaseState(

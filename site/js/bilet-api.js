@@ -27,6 +27,12 @@ export function apiHata(e) {
   if (kod === 'failed-precondition' && (e?.details?.code === 'ACCOUNT_DELETION_PENDING' || e?.details === 'ACCOUNT_DELETION_PENDING')) {
     const h = new Error(VARSAYILAN.ACCOUNT_DELETION_PENDING); h.kod = 'ACCOUNT_DELETION_PENDING'; return h;
   }
+  // Etkinlik başına limit: sunucu details = { code:'EVENT_LIMIT', limit, used, remaining }.
+  if (kod === 'resource-exhausted' && e?.details?.code === 'EVENT_LIMIT') {
+    const d = e.details;
+    const h = new Error(String(e?.message || '').startsWith('Bu etkinlik için') ? e.message : `Bu etkinlik için en fazla ${d.limit} bilet alabilirsin. Şu an ${d.used} biletin var; ${d.remaining} bilet daha alabilirsin.`);
+    h.kod = 'EVENT_LIMIT'; h.limit = d.limit; h.used = d.used; h.remaining = d.remaining; return h;
+  }
   // Sunucunun yazdığı Türkçe mesaj yalnızca bilinen iş hatalarında gösterilir; "internal" vb. genel mesaja düşer.
   if (SUNUCU_MESAJI.has(kod)) {
     const m = String(e?.message || '').trim();
@@ -38,7 +44,7 @@ export function apiHata(e) {
 }
 
 // Telefon doğrulaması isteyen satış callable'ları. İstemci kontrolü yalnızca UX içindir; asıl güvenlik sunucudadır.
-const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment']);
+const TELEFONLU = new Set(['holdSeats', 'confirmFree', 'confirmReservation', 'startPayment', 'getEventQuota']);
 async function cagir(ad, veri) {
   // Kapı sırası sunucuyla aynı (docs/HESAP-SILME.md §3): silinmek üzere işaretli hesap telefon sorusundan ÖNCE ACCOUNT_DELETION_PENDING alır.
   if (TELEFONLU.has(ad) && silmeBekliyor()) {
@@ -53,6 +59,10 @@ async function cagir(ad, veri) {
   } catch (e) { throw apiHata(e); }
 }
 
+/** Etkinlik başına bilet hakkı (sunucu otoritesi): { limit, used, remaining, held, ... }. Hata olursa null (sayfa yine çalışır, sunucu denetler). */
+export async function etkinlikKotasi(eventId) {
+  try { return await cagir('getEventQuota', { eventId }); } catch { return null; }
+}
 export const koltukTut = (eventId, seatIds) => cagir('holdSeats', { eventId, seatIds });
 export const tutmaBirak = (orderId) => cagir('releaseHold', { orderId });
 export const ucretsizOnayla = (orderId) => cagir('confirmFree', { orderId });

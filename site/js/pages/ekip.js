@@ -64,7 +64,7 @@ function iskelet() {
       <div class="ek-alan"><label for="ek-seans">Seans</label><select id="ek-seans">${(oyun()?.events || []).map((x) => `<option value="${esc(x.eventId)}" ${x.eventId === st.eventId ? 'selected' : ''}>${esc(saatYaz(x.ms))}${x.stage ? ` · ${esc(x.stage)}` : ''}</option>`).join('') || '<option value="">Yaklaşan seans yok</option>'}</select></div>
     </div><div id="ek-doluluk"></div></div>
     <div class="ek-sekmeler" role="tablist" aria-label="Ekip paneli bölümleri">
-      ${[['bildirim', 'Bildirim'], ['kapi', 'Kapı'], ['ozet', 'Özet']].map(([k, a]) => `<button type="button" role="tab" class="ek-sekme" id="tab-${k}" aria-selected="${st.sekme === k}" data-s="${k}">${a}</button>`).join('')}</div>
+      ${[['bildirim', 'Bildirim'], ['kapi', 'Kapı'], ['yorum', 'Yorumlar'], ['soru', 'Sorular'], ['ozet', 'Özet']].map(([k, a]) => `<button type="button" role="tab" class="ek-sekme" id="tab-${k}" aria-selected="${st.sekme === k}" data-s="${k}">${a}</button>`).join('')}</div>
     <div id="ek-govde" role="tabpanel" aria-live="polite"></div></section>`);
   $('#ek-ekip')?.addEventListener('change', (ev) => { st.ti = +ev.target.value; st.showId = ''; st.eventId = ''; seansSec(); st.kitle = null; iskelet(); });
   $('#ek-oyun').addEventListener('change', (ev) => { st.showId = ev.target.value; st.eventId = ''; seansSec(); st.kitle = null; iskelet(); });
@@ -85,7 +85,55 @@ function doluluk() {
 function sekmeCiz() {
   if (st.sekme === 'kapi') return kapi();
   if (st.sekme === 'ozet') return ozet();
+  if (st.sekme === 'yorum') return yorumlar();
+  if (st.sekme === 'soru') return sorular();
   return bildirim();
+}
+
+// ---------------------------------------------------------------- yorumlar (gizle / geri aç; silme yok; kapsam sunucuda)
+async function yorumlar() {
+  const g = $('#ek-govde');
+  if (!st.showId) { g.innerHTML = '<div class="ek-kart"><p class="ek-muted">Bir oyun seç.</p></div>'; return; }
+  g.innerHTML = '<div class="skel" style="height:120px"></div>';
+  let r;
+  try { r = await cagir('teamReviews', { showId: st.showId }); } catch (er) { g.innerHTML = `<div class="ek-hata" role="alert">${esc(hata(er))}</div>`; return; }
+  const dur = { pending: 'Bekliyor', hidden: 'Gizli', published: 'Yayında' };
+  g.innerHTML = `<div class="ek-kart"><h2>Yorumlar</h2><p class="ek-muted">Kurallara aykırı yorumları gizleyebilir, yanlışlıkla gizlenenleri geri açabilirsin. Silme yalnız yönetici tarafından yapılır. <a href="/topluluk-kurallari">Topluluk kuralları</a></p>
+    ${r.items.length ? r.items.map((x) => `<div class="yorum" data-id="${esc(x.id)}"><div><b>${esc(x.userName)}</b> · ${'★'.repeat(x.rating || 0)} · ${esc(dur[x.status] || (x.hidden ? 'Gizli' : 'Yayında'))} · şikâyet: ${x.reportCount}</div><p>${esc(x.text || '(metin yok)')}</p>
+      <button type="button" class="btn btn-ghost btn-sm" data-a="${x.hidden ? 'restore' : 'hide'}">${x.hidden ? 'Geri aç' : 'Gizle'}</button></div>`).join('') : '<p class="ek-muted">Bu oyunda henüz yorum yok.</p>'}</div>`;
+  $$('[data-a]', g).forEach((b) => b.addEventListener('click', async () => {
+    const sebep = prompt('Sebep (zorunlu, 3-200 karakter):'); if (!sebep) return;
+    b.disabled = true;
+    try { await cagir('teamModerate', { reviewId: b.closest('[data-id]').dataset.id, action: b.dataset.a, reason: sebep }); yorumlar(); } catch (er) { b.disabled = false; alert(hata(er)); }
+  }));
+}
+
+// ---------------------------------------------------------------- sorular (Q-2: yanıtla = yayınla / reddet / gizle; kapsam sunucuda)
+async function sorular() {
+  const g = $('#ek-govde');
+  if (!st.showId) { g.innerHTML = '<div class="ek-kart"><p class="ek-muted">Bir oyun seç.</p></div>'; return; }
+  g.innerHTML = '<div class="skel" style="height:120px"></div>';
+  let r;
+  try { r = await cagir('teamQuestions', { showId: st.showId }); } catch (er) { g.innerHTML = `<div class="ek-hata" role="alert">${esc(hata(er))}</div>`; return; }
+  const dur = { pending: 'Onay bekliyor', answered: 'Yayında', hidden: 'Gizli', rejected: 'Reddedildi' };
+  g.innerHTML = `<div class="ek-kart"><h2>Seyirci soruları</h2><p class="ek-muted">Soru, sen yanıtlayınca herkese görünür olur. Uygunsuz soruyu reddedebilir, yayındakini gizleyebilirsin. Cevapta bağlantı yazılamaz.</p>
+    ${r.items.length ? r.items.map((x) => `<div class="yorum" data-id="${esc(x.id)}"><div><b>${esc(x.askerName)}</b> · ${esc(dur[x.status] || x.status)} · şikâyet: ${x.reportCount}</div><p>${esc(x.text)}</p>
+      ${x.answer ? `<p class="ek-muted">Cevap: ${esc(x.answer)}</p>` : ''}
+      ${x.status === 'pending' || x.status === 'answered' ? `<textarea data-cevap rows="2" maxlength="600" placeholder="Cevabın" aria-label="Cevap">${esc(x.answer || '')}</textarea><button type="button" class="btn btn-primary btn-sm" data-a="answer">${x.status === 'answered' ? 'Cevabı güncelle' : 'Yanıtla ve yayınla'}</button> ` : ''}
+      ${x.status === 'pending' ? '<button type="button" class="btn btn-ghost btn-sm" data-a="reject">Reddet</button>' : ''}
+      ${x.status === 'answered' ? '<button type="button" class="btn btn-ghost btn-sm" data-a="hide">Gizle</button>' : ''}
+      ${x.status === 'hidden' ? '<button type="button" class="btn btn-ghost btn-sm" data-a="restore">Geri aç</button>' : ''}</div>`).join('') : '<p class="ek-muted">Bu oyunda henüz soru yok.</p>'}</div>`;
+  $$('[data-a]', g).forEach((b) => b.addEventListener('click', async () => {
+    const kutu = b.closest('[data-id]'), id = kutu.dataset.id, a = b.dataset.a;
+    let istek, ad;
+    if (a === 'answer') { ad = 'answerQuestion'; istek = { id, answer: $('[data-cevap]', kutu).value }; }
+    else {
+      const sebep = prompt('Sebep (zorunlu, 3-200 karakter):'); if (!sebep) return;
+      ad = a === 'reject' ? 'rejectQuestion' : 'hideQuestion'; istek = a === 'restore' ? { id, reason: sebep, restore: true } : { id, reason: sebep };
+    }
+    b.disabled = true;
+    try { await cagir(ad, istek); sorular(); } catch (er) { b.disabled = false; alert(hata(er)); }
+  }));
 }
 
 // ---------------------------------------------------------------- bildirim

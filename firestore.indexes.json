@@ -59,6 +59,48 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "User",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "favoritePlayers",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "notifPrefs.newShows",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "User",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "favoriteStages",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "notifPrefs.newShows",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "User",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "favoriteTeams",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "notifPrefs.newShows",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

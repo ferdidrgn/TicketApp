@@ -8,6 +8,7 @@ class TeamModel {
   final String? imageUrl;
   final List<String>? photosId;
   final List<String>? showsId;
+  final String? donationUrl, volunteerUrl;
 
   const TeamModel({
     this.id,
@@ -18,6 +19,8 @@ class TeamModel {
     this.imageUrl,
     this.photosId,
     this.showsId,
+    this.donationUrl,
+    this.volunteerUrl,
   });
 
   /// 🔥 Firestore'dan güvenli okuma
@@ -37,6 +40,8 @@ class TeamModel {
             .toList(),
         showsId:
             (data['showsId'] as List?)?.map((final e) => e.toString()).toList(),
+        donationUrl: data['donationUrl'] as String?,
+        volunteerUrl: data['volunteerUrl'] as String?,
       );
 
   Map<String, dynamic> toFirestore() => {
@@ -46,5 +51,7 @@ class TeamModel {
         'imageUrl': imageUrl,
         'photosId': photosId,
         'showsId': showsId,
+        if (donationUrl != null) 'donationUrl': donationUrl,
+        if (volunteerUrl != null) 'volunteerUrl': volunteerUrl,
       };
 }

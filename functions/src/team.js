@@ -255,12 +255,13 @@ function createTeam({ db, auth, notifier, messaging, now = Date.now, log = conso
     const tgt = await resolveScopedTarget(uid, data.target);
     const rc = await X.loadRecipients(tgt.userIds);
     let preview = null, blocked = null;
+    let category = data.template === 'iptal' || data.template === 'ertelendi' ? 'change' : data.template && data.template !== 'genel' ? 'alarm' : 'announcement';
     if (data.template || data.title) {
-      try { preview = composeForTeam(data, tgt, true); } catch (e) { blocked = e.message; }
+      try { preview = composeForTeam(data, tgt, true); category = X.categoryOf(preview, {}); } catch (e) { blocked = e.message; }
     }
     return {
       target: { type: tgt.type, id: tgt.id, label: tgt.label }, recipients: tgt.userIds.length, withToken: rc.tokens.size,
-      loudAlarm: { optedIn: rc.loud.size, of: rc.tokens.size }, tickets: tgt.tickets ?? null,
+      loudAlarm: { optedIn: rc.loud.size, of: rc.tokens.size }, prefs: X.prefsSummary(tgt.userIds, rc, category), tickets: tgt.tickets ?? null,
       event: tgt.type === 'event' ? { show: tgt.ctx.oyun, stage: tgt.ctx.sahne, ms: tgt.ctx.ms } : null,
       preview, blocked, templates: teamTemplateList(), quota: await quotaOf(uid, targetKeyOf(tgt)), now: now(),
     };
@@ -303,11 +304,13 @@ function createTeam({ db, auth, notifier, messaging, now = Date.now, log = conso
       ...(eventId ? { eventId } : {}), ...(tgt.showId ? { showId: tgt.showId } : {}),
     };
     const build = (loud) => buildMessage({ title: msgIn.title, body: msgIn.body, kind: msgIn.kind, eventId, now: now(), loud });
-    const inApp = await X.writeInApp(tgt.userIds, base, `ann_${key.slice(0, 16)}`);
-    const rc = await X.loadRecipients(tgt.userIds);
+    const category = X.categoryOf(msgIn, {}); // iptal/ertelendi -> change; sahne şablonları -> alarm (muaf); genel -> announcement (muaf)
+    const rc0 = await X.loadRecipients(tgt.userIds);
+    const inApp = await X.writeInApp(X.inboxUsers(tgt.userIds, rc0, category), base, `ann_${key.slice(0, 16)}`);
+    const { rc, suppressed } = X.filterByPrefs(rc0, category, now());
     const result = await X.pushByPrefs(rc, build, msgIn.kind);
-    await logRef.update({ status: 'done', inApp, withToken: rc.tokens.size, topic: false, success: result.success, failure: result.failure, chunks: result.chunks, loudCount: result.loud, finishedAt: Timestamp.fromMillis(now()) });
-    return { ok: true, duplicate: false, logId: key, recipients, withToken: rc.tokens.size, inApp, loudCount: result.loud, success: result.success, failure: result.failure, title: msgIn.title, body: msgIn.body, kind: msgIn.kind };
+    await logRef.update({ status: 'done', category, suppressed, inApp, withToken: rc.tokens.size, topic: false, success: result.success, failure: result.failure, chunks: result.chunks, loudCount: result.loud, finishedAt: Timestamp.fromMillis(now()) });
+    return { ok: true, duplicate: false, logId: key, recipients, withToken: rc.tokens.size, inApp, loudCount: result.loud, suppressed, success: result.success, failure: result.failure, title: msgIn.title, body: msgIn.body, kind: msgIn.kind };
   }
 
   /** Kapı kontrolü: yalnız kendi ekibinin seansına ait bilet. Müşteri adı/telefon/e-posta DÖNMEZ. */

@@ -125,7 +125,7 @@ class _FirestoreLoudAlarmRemote implements LoudAlarmRemote {
     await FirebaseFirestore.instance
         .collection('User')
         .doc(u.uid)
-        .update({'notifPrefs': {'loudAlarm': enabled}});
+        .update({'notifPrefs.loudAlarm': enabled}); // noktalı yol: diğer tercihler (reminders, quiet...) silinmez
   }
 }
 
@@ -233,7 +233,7 @@ class FCMManager {
           'fcmTokens': FcmTokenList.add(
               d?['fcmTokens'], old is String ? old : null, token),
           'fcmToken': token,
-          if (loud != null) 'notifPrefs': {'loudAlarm': loud},
+          if (loud != null) 'notifPrefs.loudAlarm': loud, // noktalı yol: haritanın geri kalanı korunur
         });
       });
     } catch (e) {

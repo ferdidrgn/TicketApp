@@ -109,17 +109,19 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
 
   Future<void> _compose(final Review? existing) async {
     HapticFeedback.selectionClick();
-    final bool? saved = await showModalBottomSheet<bool>(
+    final String? saved = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (final ctx) => _Composer(
           showId: widget.showId, showName: widget.showName, existing: existing),
     );
-    if (saved == true && mounted) {
+    if (saved != null && mounted) {
       refreshReviews(ref, widget.showId);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Yorumun kaydedildi. Teşekkürler!'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(saved == 'pending'
+              ? 'Yorumun incelendikten sonra yayınlanacak. Teşekkürler!'
+              : 'Yorumun kaydedildi. Teşekkürler!'),
           behavior: SnackBarBehavior.floating));
     }
   }
@@ -140,27 +142,78 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
       ),
     );
     if (ok != true) return;
-    await ref.read(reviewRepositoryProvider).delete(r.id);
+    try {
+      await ref.read(reviewRepositoryProvider).deleteMine(r.showId);
+    } catch (e) {
+      if (mounted) _snack(e is ReviewException ? e.message : 'Silinemedi. Tekrar dene.');
+    }
     if (mounted) refreshReviews(ref, widget.showId);
   }
 
+  void _snack(final String m) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
+
+  static const List<(String, String)> _reasons = [
+    ('spam', 'Spam / reklam'),
+    ('hakaret', 'Hakaret / küfür'),
+    ('nefret', 'Nefret söylemi'),
+    ('uygunsuz', 'Uygunsuz içerik'),
+    ('kisisel_bilgi', 'Kişisel bilgi paylaşımı'),
+    ('diger', 'Diğer'),
+  ];
+
   Future<void> _report(final Review r, final String uid) async {
+    final String? reason = await showDialog<String>(
+      context: context,
+      builder: (final ctx) => SimpleDialog(
+        title: const Text('Şikâyet nedeni'),
+        children: [
+          for (final (String k, String v) in _reasons)
+            SimpleDialogOption(onPressed: () => Navigator.of(ctx).pop(k), child: Text(v)),
+        ],
+      ),
+    );
+    if (reason == null) return;
     try {
-      await ref.read(reviewRepositoryProvider).report(r.id, uid);
+      await ref.read(reviewRepositoryProvider).report(r.id, reason: reason);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Şikâyetin alındı. İnceleyeceğiz.'),
-          behavior: SnackBarBehavior.floating));
-    } catch (_) {
+      _snack('Şikâyetin alındı. İnceleyeceğiz.');
+    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Şikâyet gönderilemedi. Tekrar dene.'),
-          behavior: SnackBarBehavior.floating));
+      _snack(e is ReviewException ? e.message : 'Şikâyet gönderilemedi. Tekrar dene.');
     }
   }
 
-  Future<void> _toggleHidden(final Review r) async {
-    await ref.read(reviewRepositoryProvider).setHidden(r.id, !r.hidden);
+  Future<void> _block(final Review r) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (final ctx) => AlertDialog(
+        title: Text('${r.userName.isEmpty ? 'Bu kullanıcı' : r.userName} engellensin mi?'),
+        content: const Text('Bu kullanıcının yorumlarını artık görmeyeceksin.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Engelle')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(reviewRepositoryProvider).blockUser(r.userId);
+      if (mounted) {
+        ref.invalidate(blockedUsersProvider);
+        _snack('Kullanıcı engellendi.');
+      }
+    } catch (e) {
+      if (mounted) _snack(e is ReviewException ? e.message : 'Engellenemedi. Tekrar dene.');
+    }
+  }
+
+  Future<void> _hide(final Review r) async {
+    try {
+      await ref.read(reviewRepositoryProvider).adminHide(r.id);
+    } catch (e) {
+      if (mounted) _snack(e is ReviewException ? e.message : 'Gizlenemedi.');
+    }
     if (mounted) refreshReviews(ref, widget.showId);
   }
 
@@ -171,7 +224,9 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
     final bool loggedIn = uid != null && uid.isNotEmpty;
     final bool isAdmin = ref.watch(isUserPrivilegedProvider);
     final async = ref.watch(reviewsByShowProvider(widget.showId));
-    final bool canReview = ref.watch(canReviewProvider(widget.showId)).value ?? false;
+    final ReviewEligibility? elig = ref.watch(reviewEligibilityProvider(widget.showId)).value;
+    final bool canReview = elig?.canReview ?? false;
+    final Set<String> blocked = ref.watch(blockedUsersProvider).value ?? const <String>{};
 
     return async.when(
       loading: () => const SkBone(height: 120, radius: AppRadius.lg),
@@ -179,7 +234,7 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
       data: (final all) {
         final List<Review> visible = [
           for (final Review r in all)
-            if (!r.hidden || isAdmin) r,
+            if (!blocked.contains(r.userId) && (!r.hidden || r.userId == uid)) r,
         ];
         final Review? mine = loggedIn
             ? visible.where((final r) => r.userId == uid).firstOrNull
@@ -214,7 +269,7 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
                 text: canReview
                     ? 'Bu oyunu izledin. Puanını ve düşüncelerini paylaş.'
                     : (loggedIn
-                        ? 'Yorum yazmak için bu oyunun biletini alıp izlemiş olmalısın.'
+                        ? (elig?.reason ?? 'Yorum yazabilmek için bu oyunu izlemiş olman gerekir.')
                         : 'Yorum yazmak için giriş yapıp oyunu izlemiş olmalısın.'),
                 action: canReview ? 'Yorum yaz' : null,
                 onTap: canReview ? () => _compose(null) : null,
@@ -234,7 +289,8 @@ class _ReviewsSectionState extends ConsumerState<ReviewsSection> {
                 isMine: false,
                 isAdmin: isAdmin,
                 onReport: loggedIn ? () => _report(r, uid) : null,
-                onToggleHidden: isAdmin ? () => _toggleHidden(r) : null,
+                onBlock: loggedIn ? () => _block(r) : null,
+                onToggleHidden: isAdmin && !r.hidden ? () => _hide(r) : null,
               ),
             if (others.length > 3)
               Align(
@@ -380,6 +436,7 @@ class _ReviewTile extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
+  final VoidCallback? onBlock;
   final VoidCallback? onToggleHidden;
 
   const _ReviewTile({
@@ -389,6 +446,7 @@ class _ReviewTile extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onReport,
+    this.onBlock,
     this.onToggleHidden,
   });
 
@@ -440,10 +498,11 @@ class _ReviewTile extends StatelessWidget {
                                   size: 13.5, weight: FontWeight.w800)),
                         ),
                         const SizedBox(width: 6),
-                        Icon(Icons.verified_rounded,
-                            size: 14, color: cs.primary),
+                        if (review.verified)
+                          Icon(Icons.verified_rounded,
+                              size: 14, color: cs.primary),
                       ]),
-                      Text('İzledi · ${_ago(review.createdAt)}',
+                      Text('${review.verified ? 'Doğrulanmış izleyici' : 'İzleyici'} · ${_ago(review.createdAt)}',
                           style: Sk.ui(context,
                               size: 11.5,
                               color: cs.onSurfaceVariant,
@@ -463,10 +522,10 @@ class _ReviewTile extends StatelessWidget {
                       height: 1.5,
                       color: cs.onSurface.withValues(alpha: 0.9))),
             ],
-            if (review.hidden)
+            if (review.hidden && isMine)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text('Gizlendi (yalnızca yöneticiler görür)',
+                child: Text(review.status == 'pending' ? 'İncelemede: onaylanınca yayınlanır' : 'Gizlendi (yalnızca sen görürsün)',
                     style: Sk.ui(context,
                         size: 12,
                         color: cs.error,
@@ -481,6 +540,8 @@ class _ReviewTile extends StatelessWidget {
                 ],
                 if (!isMine && onReport != null)
                   _TextAction('Şikâyet et', Icons.flag_outlined, onReport),
+                if (!isMine && onBlock != null)
+                  _TextAction('Engelle', Icons.block_rounded, onBlock),
                 if (!isMine && isAdmin && onToggleHidden != null)
                   _TextAction(review.hidden ? 'Göster' : 'Gizle',
                       Icons.visibility_off_outlined, onToggleHidden),
@@ -561,7 +622,6 @@ class _ComposerState extends ConsumerState<_Composer> {
       return;
     }
     final String? uid = ref.read(currentUserIdProvider);
-    final profile = ref.read(userProfileProvider).value;
     if (uid == null || uid.isEmpty) {
       setState(() => _error = 'Yorum için giriş yapmalısın.');
       return;
@@ -571,20 +631,19 @@ class _ComposerState extends ConsumerState<_Composer> {
       _error = null;
     });
     try {
-      await ref.read(reviewRepositoryProvider).upsert(
-            userId: uid,
+      final bool published = await ref.read(reviewRepositoryProvider).submit(
             showId: widget.showId,
-            userName: _shortName(profile?.firstName ?? '', profile?.lastName ?? ''),
-            userImage: profile?.imageUrl ?? '',
             rating: _rating,
             text: _text.text,
           );
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (_) {
+      if (mounted) Navigator.of(context).pop(published ? 'ok' : 'pending');
+    } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'Kaydedilemedi. Bağlantını kontrol edip tekrar dene.';
+          _error = e is ReviewException
+              ? e.message
+              : 'Kaydedilemedi. Bağlantını kontrol edip tekrar dene.';
         });
       }
     }

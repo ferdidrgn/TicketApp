@@ -5,6 +5,7 @@
  */
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { defineSecret, defineString, defineBoolean } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
@@ -18,9 +19,14 @@ const { err, makeAssertAdmin } = require('./src/util');
 const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
+const { createFollowNotifier } = require('./src/follow-notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createAccountDeletion } = require('./src/accountDeletion');
 const { createTeam } = require('./src/team');
+const { createReviews } = require('./src/reviews');
+const { createQuestions } = require('./src/questions');
+const { createPolls } = require('./src/polls');
+const { createPlans } = require('./src/plans');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -108,6 +114,22 @@ function getTeam() {
   return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), log: logger });
 }
 
+function getReviews() {
+  return createReviews({ db: getFirestore(), team: getTeam(), log: logger });
+}
+
+function getQuestions() {
+  return createQuestions({ db: getFirestore(), team: getTeam(), log: logger });
+}
+function getPolls() {
+  const db = getFirestore();
+  return createPolls({ db, salt: phoneSalt(), log: logger, assertAdmin: makeAssertAdmin(db) });
+}
+function getPlans() {
+  return createPlans({ db: getFirestore(), log: logger });
+}
+const isAnon = (req) => !!(req.auth && req.auth.token && req.auth.token.firebase && req.auth.token.firebase.sign_in_provider === 'anonymous');
+
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
   return async (request) => {
@@ -124,6 +146,7 @@ function guarded(fn) {
 }
 
 exports.holdSeats = onCall(salted, guarded((req) => getService(false).holdSeats(req.auth.uid, req.data, phoneCtx(req))));
+exports.getEventQuota = onCall(salted, guarded((req) => getService(false).getEventQuota(req.auth.uid, req.data, phoneCtx(req))));
 exports.releaseHold = onCall(salted, guarded((req) => getService(false).releaseHold(req.auth.uid, req.data)));
 exports.confirmFree = onCall(salted, guarded((req) => getService(false).confirmFree(req.auth.uid, req.data, phoneCtx(req))));
 exports.confirmReservation = onCall(salted, guarded((req) => getService(false).confirmReservation(req.auth.uid, req.data, phoneCtx(req))));
@@ -156,6 +179,45 @@ exports.teamSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded(
 exports.teamCheckIn = onCall(base, guarded((req) => getTeam().teamCheckIn(req.auth.uid, req.data)));
 exports.teamStats = onCall({ ...base, timeoutSeconds: 120 }, guarded((req) => getTeam().teamStats(req.auth.uid, req.data)));
 exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTeamManager(req.auth.uid, req.data)));
+// Doğrulanmış yorum + moderasyon (Review istemci yazımına KAPALI; yalnız bu callable'lar). docs/UGC-KURALLARI.md
+exports.canReview = onCall(base, guarded((req) => getReviews().canReview(req.auth.uid, req.data, phoneCtx(req))));
+exports.submitReview = onCall(base, guarded((req) => getReviews().submitReview(req.auth.uid, req.data, phoneCtx(req))));
+exports.deleteMyReview = onCall(base, guarded((req) => getReviews().deleteMyReview(req.auth.uid, req.data)));
+exports.reportContent = onCall(base, guarded((req) => (req.data && req.data.type === 'question'
+  ? getQuestions().reportQuestion(req.auth.uid, req.data, phoneCtx(req))
+  : getReviews().reportContent(req.auth.uid, req.data, phoneCtx(req)))));
+exports.blockUser = onCall(base, guarded((req) => (req.data && req.data.questionId != null
+  ? getQuestions().blockAskerOf(req.auth.uid, req.data.questionId)
+  : getReviews().blockUser(req.auth.uid, req.data))));
+exports.unblockUser = onCall(base, guarded((req) => getReviews().unblockUser(req.auth.uid, req.data)));
+exports.adminModerate = onCall(base, guarded((req) => getReviews().adminModerate(req.auth.uid, req.data)));
+exports.teamModerate = onCall(base, guarded((req) => getReviews().teamModerate(req.auth.uid, req.data)));
+exports.teamReviews = onCall(base, guarded((req) => getReviews().teamReviews(req.auth.uid, req.data)));
+// Ekibe soru sor (Q-2): ön onaylı Q&A. Question istemci yazımına KAPALI. docs/SSS-BOTU.md
+exports.askQuestion = onCall(base, guarded((req) => getQuestions().askQuestion(req.auth.uid, req.data, phoneCtx(req))));
+exports.myQuestions = onCall(base, guarded((req) => getQuestions().myQuestions(req.auth.uid, req.data)));
+exports.answerQuestion = onCall(base, guarded((req) => getQuestions().answerQuestion(req.auth.uid, req.data)));
+exports.rejectQuestion = onCall(base, guarded((req) => getQuestions().rejectQuestion(req.auth.uid, req.data)));
+exports.hideQuestion = onCall(base, guarded((req) => getQuestions().hideQuestion(req.auth.uid, req.data)));
+exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
+// Anket (F-5) + arkadaşa gönder / grup planı (F-6). Ayrıntı: docs/ANKET-PLAN.md
+exports.votePoll = onCall(salted, guarded((req) => getPolls().votePoll(req.auth.uid, req.data, phoneCtx(req))));
+exports.myPollVote = onCall(base, guarded((req) => getPolls().myVote(req.auth.uid, req.data)));
+exports.adminCreatePoll = onCall(base, guarded((req) => getPolls().adminCreatePoll(req.auth.uid, req.data)));
+exports.adminClosePoll = onCall(base, guarded((req) => getPolls().adminClosePoll(req.auth.uid, req.data)));
+exports.createPlan = onCall(base, guarded((req) => getPlans().createPlan(req.auth.uid, req.data, { anonymous: isAnon(req) })));
+exports.getPlanResponses = onCall(base, guarded((req) => getPlans().getPlanResponses(req.auth.uid, req.data)));
+// Plan yanıtı GİRİŞSİZ (kişisel veri yok; kötüye kullanım: günlük küresel tavan + plan başına tavan + metin süzgeci).
+exports.respondPlan = onCall({ ...base, maxInstances: 10 }, async (request) => {
+  if (ENFORCE_APP_CHECK.value() && !request.app) throw err('failed-precondition', 'Uygulama doğrulaması başarısız.');
+  try {
+    return await getPlans().respondPlan(request.data);
+  } catch (e) {
+    if (e && e.httpErrorCode) throw e;
+    logger.error('respondPlan hata', { name: e && e.name, code: e && e.code });
+    throw err('internal', 'Bir hata oluştu. Lütfen tekrar deneyin.');
+  }
+});
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,
@@ -214,6 +276,51 @@ exports.eventReminders = onSchedule(
     const r = await getNotifier().eventReminders();
     logger.info('eventReminders', r);
   });
+
+/**
+ * Seans iptal / erteleme -> aktif bilet sahiplerine otomatik bildirim (N-1a, docs/BILDIRIM-TERCIHLERI.md). Zamanlanmış iş DEĞİL.
+ * ÖNEMLİ: tetikleyici bölgesi Firestore veritabanı konumuyla aynı olmalı (varsayılan europe-west1; DB başka bölgedeyse `region` değiştirilmeli).
+ * İdempotent (kullanıcı başına kutu belgesi kilidi + tek NotificationLog), bu yüzden yeniden denemeler çift bildirim üretmez.
+ */
+exports.onEventChanged = onDocumentUpdated({ region: cfg.REGION, document: 'Event/{eventId}', maxInstances: 5, timeoutSeconds: 120 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await getNotifier().eventChanged(event.params.eventId, change.before.data(), change.after.data());
+    if (r && !r.skipped) logger.info('eventChanged', { eventId: event.params.eventId, ...r });
+  } catch (e) {
+    logger.error('eventChanged hata', { eventId: event.params.eventId, code: e && e.code, message: e && e.message });
+    throw e; // yeniden denenebilir hata: kilitler sayesinde güvenli
+  }
+});
+
+/**
+ * F-1 Takip et: yeni seans (Event) ya da Show.eventsId bağlanması -> oyuncu/topluluk/sahne takipçilerine `newShows` bildirimi.
+ * Zamanlanmış iş DEĞİL. İdempotent (Event.followNotified + kullanıcı başına kilit belgesi); docs/TAKIP-ET.md.
+ */
+const followNotifier = () => { const n = getNotifier(); return createFollowNotifier({ db: getFirestore(), notifier: n, log: logger }); };
+exports.onEventCreatedFollow = onDocumentWritten({ region: cfg.REGION, document: 'Event/{eventId}', maxInstances: 5, timeoutSeconds: 300 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await followNotifier().onEventWritten(event.params.eventId, change.before.exists ? change.before.data() : null, change.after.exists ? change.after.data() : null);
+    if (r && !r.skipped) logger.info('followNotify', { eventId: event.params.eventId, ...r });
+  } catch (e) {
+    logger.error('followNotify hata', { eventId: event.params.eventId, code: e && e.code, message: e && e.message });
+    throw e;
+  }
+});
+exports.onShowEventsLinkedFollow = onDocumentWritten({ region: cfg.REGION, document: 'Show/{showId}', maxInstances: 5, timeoutSeconds: 300 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await followNotifier().onShowWritten(event.params.showId, change.before.exists ? change.before.data() : null, change.after.exists ? change.after.data() : null);
+    if (r && !r.skipped) logger.info('followNotify(show)', { showId: event.params.showId, ...r });
+  } catch (e) {
+    logger.error('followNotify(show) hata', { showId: event.params.showId, code: e && e.code, message: e && e.message });
+    throw e;
+  }
+});
 
 /** Süresi (30 gün) dolan hesap silme taleplerini işler. Günde 1 (03:00 TR). Production'da Cloud Scheduler (Blaze) gerekir. docs/HESAP-SILME.md */
 exports.processAccountDeletions = onSchedule(

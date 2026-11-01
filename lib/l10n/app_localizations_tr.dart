@@ -418,4 +418,17 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsShareSubject => 'Sanat Serüveni';
+
+  @override
+  String get teamSupport => 'Ekibe destek ol';
+
+  @override
+  String get teamVolunteer => 'Gönüllü ol';
+
+  @override
+  String get teamExternalNote =>
+      'Harici bağlantı: topluluğun kendi seçtiği sayfa açılır; uygulama içinde ödeme alınmaz.';
+
+  @override
+  String get teamLinkOpenFailed => 'Bağlantı açılamadı.';
 }

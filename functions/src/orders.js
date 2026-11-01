@@ -12,6 +12,7 @@
  * Fiyat SADECE Event.price'tan, sunucuda hesaplanır. İstemciden tutar/fiyat alınmaz.
  */
 const { FieldPath, FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { HttpsError } = require('firebase-functions/v2/https');
 const cfg = require('./config');
 const { requirePhone } = require('./phone');
 const { deletionPendingError, isBlocking } = require('./accountDeletion');
@@ -78,7 +79,22 @@ function normalizeSatis(d) {
   const mode = cfg.SATIS_MODES.includes(d.mode) ? d.mode : cfg.SATIS_DEFAULT.mode;
   const lim = Number.isInteger(d.rezervasyonLimit) && d.rezervasyonLimit >= 0 && d.rezervasyonLimit <= 50 ? d.rezervasyonLimit : cfg.SATIS_DEFAULT.rezervasyonLimit;
   const iptal = typeof d.iptalSaat === 'number' && Number.isFinite(d.iptalSaat) && d.iptalSaat >= 0 && d.iptalSaat <= 24 * 90 ? d.iptalSaat : cfg.SATIS_DEFAULT.iptalSaat;
-  return { mode, rezervasyonLimit: lim, iptalSaat: iptal };
+  // Etkinlik başına limit (telefon bazlı): tamsayı 1-20; eksik/bozuk -> 3.
+  const evLim = Number.isInteger(d.etkinlikBasinaLimit) && d.etkinlikBasinaLimit >= cfg.EVENT_LIMIT_MIN && d.etkinlikBasinaLimit <= cfg.EVENT_LIMIT_MAX
+    ? d.etkinlikBasinaLimit : cfg.SATIS_DEFAULT.etkinlikBasinaLimit;
+  // Ücretsiz global toplam: 0 = KAPALI (yalnız etkinlik başına limit geçerli); 1-50 = tüm ücretsiz etkinliklerde toplam; eksik/bozuk -> 3 (mevcut davranış).
+  const frLim = Number.isInteger(d.ucretsizToplamLimit) && d.ucretsizToplamLimit >= 0 && d.ucretsizToplamLimit <= 50
+    ? d.ucretsizToplamLimit : cfg.SATIS_DEFAULT.ucretsizToplamLimit;
+  // rezervasyonLimit: 0 = global rezervasyon toplam limiti KAPALI (eskiden 0 = kimse rezervasyon yapamaz; bunun için mode kullanılır).
+  return { mode, rezervasyonLimit: lim, iptalSaat: iptal, etkinlikBasinaLimit: evLim, ucretsizToplamLimit: frLim };
+}
+
+/** Etkinlik başına limit hatası: details.code='EVENT_LIMIT' (istemci buna göre mesaj/yönlendirme yapar). */
+function eventLimitError({ limit, used, eventId }) {
+  const remaining = Math.max(0, limit - used);
+  return new HttpsError('resource-exhausted',
+    `Bu etkinlik için en fazla ${limit} bilet alabilirsin. Şu an ${used} biletin var; ${remaining} bilet daha alabilirsin.`,
+    { code: 'EVENT_LIMIT', limit, used, remaining, eventId });
 }
 
 /** Bilet fiilen "aktif rezervasyon" sayılır mı? (iptal ve gelmedi sayaçtan düşer) */
@@ -147,17 +163,76 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     return { uid, key, uidRef: limDoc(uid), phRef: limDoc(key), uidL: uSnap.data() || {}, phL: pSnap.data() || {} };
   }
 
-  async function checkRate(key) {
+  async function checkRate(key, rate = cfg.HOLD_RATE, fStart = 'holdWindowStart', fCount = 'holdCount') {
     const ref = limDoc(key); // hız sınırı telefona bağlı: yeni hesapla dolaşılamaz
     await db.runTransaction(async (tx) => {
       const d = (await tx.get(ref)).data() || {};
       const t = now();
-      let start = d.holdWindowStart || 0, count = d.holdCount || 0;
-      if (t - start >= cfg.HOLD_RATE.windowMs) { start = t; count = 0; }
+      let start = d[fStart] || 0, count = d[fCount] || 0;
+      if (t - start >= rate.windowMs) { start = t; count = 0; }
       count += 1;
-      if (count > cfg.HOLD_RATE.max) throw err('resource-exhausted', 'Çok fazla deneme yaptınız. Lütfen bir dakika sonra tekrar deneyin.');
-      tx.set(ref, { holdWindowStart: start, holdCount: count }, { merge: true });
+      if (count > rate.max) throw err('resource-exhausted', 'Çok fazla deneme yaptınız. Lütfen bir dakika sonra tekrar deneyin.');
+      tx.set(ref, { [fStart]: start, [fCount]: count }, { merge: true });
     });
+  }
+
+  // ---- Etkinlik başına limit (docs/ODEME-GUVENLIK.md "Etkinlik başına limit (telefon bazlı)")
+  // Kişi = doğrulanmış telefon özeti (phoneKey). Kaynak: o etkinliğe ait Order/Ticket kayıtları (uid yedeği: eski kayıtlar).
+  // Yarış: kişi+etkinlik başına KİLİT belgesi (UserLimits/evq_<eventId>_<phoneKey>) her hold/confirm transaction'ında okunup yazılır;
+  // aynı kişinin eşzamanlı iki işlemi çakışıp yeniden denenir -> toplam limit aşılamaz.
+  const quotaLock = (eventId, key) => limDoc(`evq_${eventId}_${key}`);
+  const DONE_ORDER = new Set(['paid', 'reserved', 'free_confirmed']);
+  const DEAD_TICKET = new Set(['cancelled', 'no_show']);
+  /**
+   * Transaction içinde (YAZIMDAN ÖNCE) kişinin bu etkinlikteki aktif koltuk sayısı.
+   * Aktif: satılmış/rezerve/ücretsiz bilet, ödemesi süren sipariş, süresi dolmamış tutma. İptal/gelmedi/süresi dolmuş/başarısız HARİÇ.
+   * excludeOrderId: sayıma girmeyecek sipariş (onaylanan kendisi). replaceOwnHeld: bu uid'in 'held' siparişleri yeni seçimle değişecek -> usedAll'a girmez.
+   */
+  async function eventUsage(tx, { uid, key, eventId, t, excludeOrderId = null, replaceOwnHeld = false, legacySeats = null }) {
+    const O = orders(), T = db.collection('Ticket');
+    const [oKey, oUid, tKey, tUid] = await Promise.all([
+      tx.get(O.where('phoneKey', '==', key).where('eventId', '==', eventId)),
+      tx.get(O.where('userId', '==', uid).where('eventId', '==', eventId)),
+      tx.get(T.where('phoneKey', '==', key).where('eventId', '==', eventId)),
+      tx.get(T.where('customerId', '==', uid).where('eventId', '==', eventId)),
+    ]);
+    const ord = new Map(), tick = new Map();
+    for (const d of [...oKey.docs, ...oUid.docs]) ord.set(d.id, d.data());
+    for (const d of [...tKey.docs, ...tUid.docs]) tick.set(d.id, d.data());
+    // Biten siparişin bileti sorgularda yoksa kimliğinden (bilet id = sipariş id) getir.
+    const need = [...ord].filter(([id, o]) => DONE_ORDER.has(o.status) && !tick.has(id)).map(([id]) => T.doc(id));
+    if (need.length) for (const sn of await tx.getAll(...need)) if (sn.exists) tick.set(sn.id, sn.data());
+
+    const u = { sold: 0, reserved: 0, free: 0, paying: 0, held: 0, heldOther: 0 };
+    for (const [id, o] of ord) {
+      if (id === excludeOrderId) continue;
+      const n = (o.seatIds || []).length;
+      if (o.status === 'held') {
+        if (!o.expiresAt || o.expiresAt.toMillis() <= t) continue;
+        u.held += n;
+        if (!(replaceOwnHeld && o.userId === uid)) u.heldOther += n;
+      } else if (o.status === 'paying') {
+        u.paying += n;
+      } else if (DONE_ORDER.has(o.status)) {
+        const tk = tick.get(id);
+        if (tk && DEAD_TICKET.has(ticketStatusOf(tk))) continue;
+        const cnt = tk ? (tk.buySeats || []).length : n;
+        if (o.status === 'reserved') u.reserved += cnt; else if (o.status === 'free_confirmed') u.free += cnt; else u.sold += cnt;
+      }
+    }
+    for (const [id, tk] of tick) { // siparişsiz (eski/mobil doğrudan yazılmış) biletler
+      if (ord.has(id) || id === excludeOrderId || DEAD_TICKET.has(ticketStatusOf(tk))) continue;
+      const cnt = (tk.buySeats || []).length;
+      if (tk.orderMethod === 'venue') u.reserved += cnt; else if (tk.orderMethod === 'free') u.free += cnt; else u.sold += cnt;
+    }
+    if (legacySeats) { // eski biçim: sahipli, siparişsiz 'reserved' koltuklar
+      for (const s of Object.values(legacySeats)) {
+        if (s && s.customerId === uid && s.status === 'reserved' && !s.orderId && seatHoldExpiry(s) > t) u.sold += 1;
+      }
+    }
+    u.used = u.sold + u.reserved + u.free + u.paying; // onaylı + ödemesi süren
+    u.usedAll = u.used + u.heldOther;                 // başkasının/başka cihazın tutmaları dahil (limit denetimi bunu kullanır)
+    return u;
   }
 
   async function seatsFromStage(tx, stageId) {
@@ -185,7 +260,8 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const { key } = who(ctx);
     const eventId = validateId(data && data.eventId, 'etkinlik');
     const seatIds = validateSeatIds(data && data.seatIds);
-    if ((await readSatis()).mode === 'kapali') throw err('failed-precondition', 'Bilet satışı şu anda kapalı.');
+    const satisH = await readSatis();
+    if (satisH.mode === 'kapali') throw err('failed-precondition', 'Bilet satışı şu anda kapalı.');
     await checkRate(key);
 
     const eventRef = db.collection('Event').doc(eventId);
@@ -193,12 +269,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
     return db.runTransaction(async (tx) => {
       const t = now();
-      const [evSnap, L, myOrdersSnap, myTicketsSnap, delSnap] = await Promise.all([
+      const [evSnap, L, myOrdersSnap, delSnap] = await Promise.all([
         tx.get(eventRef),
         loadLimits(tx, uid, key),
         tx.get(orders().where('userId', '==', uid).where('eventId', '==', eventId)),
-        tx.get(db.collection('Ticket').where('customerId', '==', uid).where('eventId', '==', eventId)),
         tx.get(delRef(uid)),
+        tx.get(quotaLock(eventId, key)), // kişi+etkinlik kilidi (yarış): okunur, aşağıda yazılır
       ]);
       checkDeletion(delSnap);
       const heldDocs = myOrdersSnap.docs.filter((d) => d.data().status === 'held');
@@ -228,8 +304,8 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         initialized = true;
       }
 
-      if (free && L.freeTickets + seatIds.length > cfg.FREE_TICKET_LIMIT) {
-        throw err('resource-exhausted', `Ücretsiz etkinliklerde toplam en fazla ${cfg.FREE_TICKET_LIMIT} bilet alabilirsiniz.`);
+      if (free && satisH.ucretsizToplamLimit > 0 && L.freeTickets + seatIds.length > satisH.ucretsizToplamLimit) {
+        throw new HttpsError('resource-exhausted', `Ücretsiz etkinliklerde toplam en fazla ${satisH.ucretsizToplamLimit} bilet alabilirsiniz.`, { code: 'FREE_LIMIT', limit: satisH.ucretsizToplamLimit });
       }
 
       // Kullanıcının bu etkinlikteki kendi bekleyen (held) tutmaları yeni seçimle değiştirilir.
@@ -254,17 +330,13 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         if (!takeable) throw err('failed-precondition', isBlocked(s) ? `Koltuk satışa kapalı: ${sid}` : `Koltuk artık müsait değil: ${sid}`);
       }
 
-      // Kullanıcının bu etkinlikteki koltukları: biletler (satılmış) + ödemesi süren (paying) siparişler.
+      // Etkinlik başına limit (telefon bazlı): aktif biletler + ödemesi süren + başkasının tutmaları; kendi eski tutmaları değişeceği için sayılmaz.
       // Kimlik koltukta tutulmadığından kaynak Ticket/Order'dır (ikisi de yalnızca sahibince okunur).
-      let mine = 0;
-      for (const d of myTicketsSnap.docs) if (d.data().paymentStatus !== 'cancelled') mine += (d.data().buySeats || []).length;
-      for (const d of myOrdersSnap.docs) if (d.data().status === 'paying') mine += (d.data().seatIds || []).length;
-      for (const s of Object.values(seats)) { // eski biçim: sahipli, siparişsiz 'reserved' kayıtları
-        if (s && s.customerId === uid && s.status === 'reserved' && !s.orderId && seatHoldExpiry(s) > t) mine += 1;
+      const usage = await eventUsage(tx, { uid, key, eventId, t, replaceOwnHeld: true, legacySeats: seats });
+      if (usage.usedAll + seatIds.length > satisH.etkinlikBasinaLimit) {
+        throw eventLimitError({ limit: satisH.etkinlikBasinaLimit, used: usage.usedAll, eventId });
       }
-      if (mine + seatIds.length > cfg.SEAT_LIMIT_PER_EVENT) {
-        throw err('resource-exhausted', `Bir etkinlikte en fazla ${cfg.SEAT_LIMIT_PER_EVENT} koltuk alabilirsiniz.`);
-      }
+      tx.set(quotaLock(eventId, key), { at: FieldValue.serverTimestamp() });
 
       // ---- yazımlar (tüm okumalar bitti)
       const expiresAtMs = t + cfg.HOLD_MS;
@@ -293,6 +365,30 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       return {
         orderId: orderRef.id, expiresAt: expiresAtMs, total: kurusToTl(totalKurus), currency: cfg.CURRENCY, free,
         seats: seatIds.map((id) => ({ id, price: kurusToTl(priceKurus) })),
+      };
+    });
+  }
+
+  // ------------------------------------------------------------------ ön sorgulama
+  /** UI'ın alıcıyı koltuk seçmeden ÖNCE uyarması için (sunucu otoritesi). Kişisel veri dönmez; yalnızca sayılar. */
+  async function getEventQuota(uid, data, ctx) {
+    await assertNotDeleting(uid);
+    const { key } = who(ctx);
+    const eventId = validateId(data && data.eventId, 'etkinlik');
+    await checkRate(key, cfg.QUOTA_RATE, 'quotaWindowStart', 'quotaCount');
+    const satis = await readSatis();
+    return db.runTransaction(async (tx) => {
+      const [evSnap, L] = await Promise.all([tx.get(db.collection('Event').doc(eventId)), loadLimits(tx, uid, key)]);
+      if (!evSnap.exists) throw err('not-found', 'Etkinlik bulunamadı.');
+      const u = await eventUsage(tx, { uid, key, eventId, t: now(), replaceOwnHeld: true });
+      const limit = satis.etkinlikBasinaLimit;
+      return {
+        eventId, limit, used: u.usedAll, remaining: Math.max(0, limit - u.usedAll),
+        held: u.held, sold: u.sold, reserved: u.reserved, free: u.free, paying: u.paying,
+        global: {
+          freeLimit: satis.ucretsizToplamLimit, freeUsed: L.freeTickets,
+          reservationLimit: satis.rezervasyonLimit, reservationUsed: L.reservations,
+        },
       };
     });
   }
@@ -391,6 +487,8 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     tx.create(ticketRef, {
       _id: orderId, _createdAt: iso, _updatedAt: iso,
       customerId: order.userId, showId: order.showId || '', stageId: order.stageId || '', eventId: order.eventId,
+      // phoneKey: yalnızca ÖZET (düz telefon yok). Etkinlik başına limit sayımı için (hesap silmede anonimleşirken silinir).
+      ...(((L && L.key) || order.phoneKey) ? { phoneKey: (L && L.key) || order.phoneKey } : {}),
       orderPrice: kurusStr(order.totalKurus), orderMethod: method,
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
@@ -429,6 +527,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     };
   }
 
+  /** confirm* anında etkinlik başına limit: kendi siparişi hariç aktif + tutulan; kilit belgesi yazılır (yarış). */
+  async function guardEventLimit(tx, { uid, key, c, satis }) {
+    const t = now();
+    await tx.get(quotaLock(c.order.eventId, key));
+    const usage = await eventUsage(tx, { uid, key, eventId: c.order.eventId, t, excludeOrderId: c.orderId });
+    if (usage.usedAll + c.order.seatIds.length > satis.etkinlikBasinaLimit) {
+      throw eventLimitError({ limit: satis.etkinlikBasinaLimit, used: usage.usedAll, eventId: c.order.eventId });
+    }
+    tx.set(quotaLock(c.order.eventId, key), { at: FieldValue.serverTimestamp() });
+  }
+
   const seatsOwned = (c) => !!c.ev && (c.order.seatIds || []).every((sid) => ownsSeat((c.ev.seats || {})[sid], c.orderId));
 
   // ------------------------------------------------------------------ ücretsiz onay
@@ -439,6 +548,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const orderRef = orders().doc(orderId);
     return db.runTransaction(async (tx) => {
       checkDeletion(await tx.get(delRef(uid)));
+      const satis = await readSatis(tx);
       const c = await readFulfillCtx(tx, orderRef, orderId, key);
       if (!c) throw err('not-found', 'Sipariş bulunamadı.');
       if (c.order.userId !== uid) throw err('permission-denied', 'Bu siparişe erişim izniniz yok.');
@@ -449,9 +559,10 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!seatsOwned(c)) throw err('failed-precondition', 'Koltuklar artık size ait değil. Lütfen yeniden seçin.');
       const dateMs = parseEventDateMs(c.ev.date);
       if (dateMs == null || dateMs <= now()) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
-      if (c.L.freeTickets + c.order.seatIds.length > cfg.FREE_TICKET_LIMIT) {
-        throw err('resource-exhausted', `Ücretsiz etkinliklerde toplam en fazla ${cfg.FREE_TICKET_LIMIT} bilet alabilirsiniz.`);
+      if (satis.ucretsizToplamLimit > 0 && c.L.freeTickets + c.order.seatIds.length > satis.ucretsizToplamLimit) {
+        throw new HttpsError('resource-exhausted', `Ücretsiz etkinliklerde toplam en fazla ${satis.ucretsizToplamLimit} bilet alabilirsiniz.`, { code: 'FREE_LIMIT', limit: satis.ucretsizToplamLimit });
       }
+      await guardEventLimit(tx, { uid, key, c, satis });
       writeFulfillment(tx, { ...c, method: 'free', status: 'free_confirmed' });
       return { ticketIds: [orderId] };
     });
@@ -477,9 +588,10 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!seatsOwned(c)) throw err('failed-precondition', 'Koltuklar artık size ait değil. Lütfen yeniden seçin.');
       const dateMs = parseEventDateMs(c.ev.date);
       if (dateMs == null || dateMs <= now()) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
-      if (c.L.reservations + c.order.seatIds.length > satis.rezervasyonLimit) {
-        throw err('resource-exhausted', `Toplam en fazla ${satis.rezervasyonLimit} rezervasyon yapabilirsiniz.`);
+      if (satis.rezervasyonLimit > 0 && c.L.reservations + c.order.seatIds.length > satis.rezervasyonLimit) {
+        throw new HttpsError('resource-exhausted', `Toplam en fazla ${satis.rezervasyonLimit} rezervasyon yapabilirsiniz.`, { code: 'RESERVATION_LIMIT', limit: satis.rezervasyonLimit });
       }
+      await guardEventLimit(tx, { uid, key, c, satis });
       writeFulfillment(tx, {
         ...c, method: 'venue', status: 'reserved',
         notifTitle: 'Rezervasyonun Onaylandı!', notifNote: 'için rezervasyonun onaylandı. Ödemeyi etkinlik gününde sahnede yapacaksın.',
@@ -859,10 +971,10 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   }
 
   return {
-    holdSeats, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket,
+    holdSeats, getEventQuota, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket,
     adminSetTicketStatus, adminCheckIn, adminHealth,
     handleProviderCallback, expireHolds, settle, verify,
   };
 }
 
-module.exports = { createService, normalizeSatis };
+module.exports = { createService, normalizeSatis, eventLimitError };

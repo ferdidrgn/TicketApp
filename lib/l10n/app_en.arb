@@ -164,5 +164,9 @@
       }
     }
   },
-  "settingsShareSubject": "Art Adventure"
+  "settingsShareSubject": "Art Adventure",
+  "teamSupport": "Support the team",
+  "teamVolunteer": "Volunteer",
+  "teamExternalNote": "External link: opens a page chosen by the team; no payment is taken inside the app.",
+  "teamLinkOpenFailed": "Could not open the link."
 }

@@ -190,5 +190,49 @@ document.addEventListener('click', (e) => {
   const id = b.dataset.fav, tur = b.dataset.favTur || 'oyun';
   const acik = favDegistir(id, tur);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((x) => { if ((x.dataset.favTur || 'oyun') !== tur) return; x.classList.remove('pat'); void x.offsetWidth; if (acik) x.classList.add('pat'); });
-  bildir(acik ? 'Favorilerine eklendi' : 'Favorilerden çıkarıldı');
+  if (tur === 'oyun') bildir(acik ? 'Favorilerine eklendi' : 'Favorilerden çıkarıldı');
+  else takipGeriBildirim(acik);
 }, true);
+
+// ---- Takip et (F-1): oyuncu / sahne / topluluk kalbi = "takip" (aynı favori alanları; yeni koleksiyon yok). Oyun kalbi "Favori" kalır.
+const TAKIP_ONERI = 'tiyatrol.takipOneri.v1'; // cihaz başına tek seferlik "Yeni oyun bildirimlerini açmak ister misin?" önerisi
+const TAKIP_ETIKET = (acik) => (acik ? 'Takiptesin' : 'Takip et');
+export const takipDugme = (id, tur) => {
+  const a = favMi(id, tur);
+  return `<button type="button" class="kalp-b ${a ? 'on' : ''}" data-fav="${id}" data-fav-tur="${tur}" data-takip="1" aria-pressed="${a}" aria-label="${a ? 'Takibi bırak' : 'Takip et'}">${KALP}<span class="tk-et">${TAKIP_ETIKET(a)}</span></button>`;
+};
+/** Sayfadaki takip düğmelerinin etiketini/aria'sını geçerli duruma eşler. */
+const boyaTakip = () => document.querySelectorAll('[data-takip]').forEach((x) => {
+  const a = favMi(x.dataset.fav, x.dataset.favTur);
+  const et = x.querySelector('.tk-et'); if (et) et.textContent = TAKIP_ETIKET(a);
+  x.setAttribute('aria-label', a ? 'Takibi bırak' : 'Takip et');
+});
+document.addEventListener('fav-degisti', boyaTakip);
+boyaTakip();
+
+function takipGeriBildirim(acik) {
+  if (!acik) { bildir('Takibi bıraktın'); return; }
+  if (!hesap || !uid) { bildir('Takip ediyorsun. Bildirim almak için hesabına giriş yap.'); return; }
+  bildir('Takip ediyorsun');
+  yeniOyunOner(uid);
+}
+/** Takip ilk kez açıldığında, yeni oyun bildirimi KAPALIYSA tek seferlik ve ONAYLI öneri. Varsayılanı kendiliğinden AÇMAZ. */
+async function yeniOyunOner(u) {
+  try { if (localStorage.getItem(TAKIP_ONERI)) return; } catch {}
+  try {
+    const m = await import('./bildirim-tercih.js');
+    const t = await m.tercihOku(u);
+    if (u !== uid || t.newShows) return;
+    try { localStorage.setItem(TAKIP_ONERI, '1'); } catch {}
+    const kutu = document.createElement('div');
+    kutu.className = 'takip-oneri'; kutu.setAttribute('role', 'dialog'); kutu.setAttribute('aria-label', 'Yeni oyun bildirimleri');
+    kutu.innerHTML = '<p><b>Yeni oyun bildirimlerini açmak ister misin?</b><br><span class="tiny">Takip ettiğin oyuncu, sahne ve toplulukların yeni oyunu ya da seansı olunca haber veririz. İstediğin zaman Ayarlar’dan kapatabilirsin.</span></p><div class="takip-oneri-ac"><button type="button" class="btn btn-primary" data-ac>Aç</button><button type="button" class="btn btn-ghost" data-kapat>Şimdi değil</button></div>';
+    document.body.append(kutu);
+    kutu.querySelector('[data-kapat]').addEventListener('click', () => kutu.remove());
+    kutu.querySelector('[data-ac]').addEventListener('click', async () => {
+      try { await m.tercihYaz(u, { ...t, newShows: true }); bildir('Yeni oyun bildirimleri açıldı'); }
+      catch { bildir('Kaydedilemedi. Ayarlar’dan tekrar deneyebilirsin.'); }
+      kutu.remove();
+    });
+  } catch (e) { console.warn('takip öneri', e?.code || ''); }
+}

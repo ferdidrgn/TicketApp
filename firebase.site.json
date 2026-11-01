@@ -12,6 +12,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/plan/**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/ekip",
           "headers": [
             {
@@ -121,8 +134,16 @@
           "destination": "/koltuk.html"
         },
         {
+          "source": "/plan/**",
+          "destination": "/plan.html"
+        },
+        {
           "source": "/odeme-sonuc",
           "destination": "/odeme-sonuc.html"
+        },
+        {
+          "source": "/pasaport",
+          "destination": "/pasaport.html"
         },
         {
           "source": "/biletlerim",
@@ -281,6 +302,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/plan/**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/ekip",
           "headers": [
             {
@@ -390,8 +424,16 @@
           "destination": "/koltuk.html"
         },
         {
+          "source": "/plan/**",
+          "destination": "/plan.html"
+        },
+        {
           "source": "/odeme-sonuc",
           "destination": "/odeme-sonuc.html"
+        },
+        {
+          "source": "/pasaport",
+          "destination": "/pasaport.html"
         },
         {
           "source": "/biletlerim",

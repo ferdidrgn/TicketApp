@@ -329,3 +329,45 @@ Hesap silme talebinde `User/{uid}` ve uid ayna belgesi silinebilir; telefon saya
 `functions/test/phone-gate.test.js` (PHONE_REQUIRED, ortak limit, silme/yeniden açma, geçiş, telefon değişimi, iptal/admin iadesi, yarış, hız sınırı, KVKK taraması, sync, uçtan uca SMS akışı)
 ve `rules.test.js` (User telefon alanları). `helpers.js`: `phoneFor(uid)` servis testlerinde `ctx.phone` verilmezse otomatik sahte doğrulanmış telefon ekler;
 `signInPhone(phone, linkIdToken?)` Auth emülatöründe gerçek SMS akışını (`sendVerificationCode` -> `verificationCodes` -> `signInWithPhoneNumber`) yürütür.
+
+## 16. Etkinlik başına limit (telefon bazlı) — İŞ L-1 (28.10.2026)
+
+**Kural:** bir kişi (doğrulanmış telefon özeti `phoneKey`), bir etkinlikte (Event) TÜM yöntemlerle (ücretsiz, rezervasyon, kart) toplamda en fazla
+`Config/satis.etkinlikBasinaLimit` (varsayılan **3**, geçerli aralık 1-20) koltuğa sahip olabilir. Hesap/uid değiştirmek limiti sıfırlamaz.
+
+**Sayım** (`orders.js` `eventUsage`, transaction içinde): o etkinliğe ait `Order` (`phoneKey==` ya da `userId==`) ve `Ticket` (`phoneKey==` ya da `customerId==`) kayıtları.
+Aktif sayılan: satılmış/rezerve/ücretsiz bilet, ödemesi süren (`paying`) sipariş, süresi dolmamış tutma (`held`; başka cihazın/uid'in tutması dahil,
+çünkü yarış; kullanıcının KENDİ eski tutması yeni seçimle değiştirildiği için sayılmaz). Sayılmayan: `cancelled` ve `no_show` bilet, süresi dolmuş/iptal/başarısız sipariş.
+Eski biçim (siparişsiz bilet, `Event.seats[*].customerId`) için uid yedeği vardır.
+
+**Yarış:** kişi+etkinlik başına kilit belgesi `UserLimits/evq_<eventId>_<phoneKey>` (içinde yalnız `at` zaman damgası; PII yok) her `holdSeats` ve `confirmFree/confirmReservation`
+transaction'ında okunup yazılır; aynı kişinin eşzamanlı işlemleri çakışıp yeniden denenir. Test: iki uid + tek telefon, eşzamanlı iki hold -> tam biri başarılı.
+`confirm*` anında da denetlenir (hold sonrası başka kanaldan bilet alınmışsa reddedilir; koltuklar boşuna tutulmaz).
+
+**Hata:** `resource-exhausted` + `details = { code:'EVENT_LIMIT', limit, used, remaining, eventId }`; mesaj: "Bu etkinlik için en fazla {limit} bilet alabilirsin. Şu an {used} biletin var; {remaining} bilet daha alabilirsin."
+Global limit hataları: `details.code = 'FREE_LIMIT' | 'RESERVATION_LIMIT'` (+ `limit`).
+
+**Ön sorgu:** `getEventQuota({eventId})` (giriş + doğrulanmış telefon; hesap silme beklemesinde ACCOUNT_DELETION_PENDING; telefon başına dakikada 30 sorgu):
+`{ eventId, limit, used, remaining, held, sold, reserved, free, paying, global:{freeLimit, freeUsed, reservationLimit, reservationUsed} }`. Yalnız sayılar; uid/telefon/özet dönmez.
+`used` = onaylı + ödemesi süren + başkasının tutmaları; `held` = süresi dolmamış tutmalar (yeni seçimle değişir).
+
+**Ticket.phoneKey (KVKK):** yeni biletlere yalnızca ÖZET (`ph_<sha256>`) yazılır, düz telefon asla. Eski biletler için `Order.phoneKey` ya da `customerId` yedeği kullanılır.
+Hesap silinirken (anonimleştirme) hem `Order` hem `Ticket`'tan `phoneKey` SİLİNİR (kişisel bağlantı kopar). Gelecek tarihli aktif bilet varken hesap silinemediği için
+(HESAP-SILME.md) "sil + yeniden aç ile limit sıfırlama" pratikte mümkün değildir; geçmiş etkinlikte zaten bilet alınamaz. Not: IS-PLANI F-9 (biletlerde phoneKey) bu işle fiilen yapıldı; destek/arama amaçlı kullanım için sahip onayı hâlâ gerekir.
+
+**Kötüye kullanım notu:** al-iptal-al ile hak tekrar tekrar kullanılabilir (iptal hak iade eder). Hız sınırı ve `iptalSaat` kuralı bunu yavaşlatır; gerekirse `cancelCount`
+(telefon+etkinlik başına iptal sayısı, eşik aşılınca yeni alım engeli) eklenebilir. Şimdilik YAPILMADI.
+
+### Global toplam limitler (KARAR BEKLİYOR)
+`Config/satis.ucretsizToplamLimit` (0 = KAPALI, 1-50; yoksa **3** = mevcut davranış) ve `rezervasyonLimit` (**0 = KAPALI** — eskiden 0 "kimse rezervasyon yapamaz" demekti; kapatmak için `mode` kullanılır; yoksa 3).
+Varsayılanlar DEĞİŞMEDİ. Çatışma: ücretsiz toplam 3 iken kullanıcı A etkinliğinde 3 ücretsiz bilet alırsa B etkinliğinde hiç alamaz; rezervasyon için de aynı.
+**Karar bekliyor:** global toplam limitleri etkinlik başına limitle birlikte mi çalışsın, kaldırılsın mı? (Kaldırmak için `ucretsizToplamLimit: 0`, `rezervasyonLimit: 0` yazmak yeterli; deploy gerekmez, ama rules önce deploy edilmeli.)
+`firestore.rules` Config/satis şeması yeni alanları (opsiyonel) doğrular. **Deploy sırası:** önce functions, sonra rules (bölüm 1 uyarısı).
+
+### Arayüz
+Web `koltuk.js` ve mobil `seat_details.dart`: koltuk ekranı açılınca `getEventQuota`; "Bu etkinlikte x/3 biletin var. y bilet daha alabilirsin." şeridi/ipucu, seçim `remaining` ile sınırlı,
+hak doldu ise seçim kapalı + (web) Biletlerim bağlantısı. Mobil hata eşleme tablosu: `mapPurchaseError` (`purchase_remote_data_source_and_impl.dart`; testli). Başarılı onaydan sonra mobil sayfa
+`go` ile Biletlerim'e/ana sayfaya DEĞİŞTİRİLİR (geri tuşu koltuk sayfasına dönmez; diyalog hangi yolla kapanırsa kapansın çıkış tek sefer yapılır).
+
+### Testler
+`functions/test/event-limit.test.js` (14 test), `test/purchase/event_limit_test.dart`.

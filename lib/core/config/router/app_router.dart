@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
 import 'package:ticketapp/features/admin/presentation/pages/admin_home_page.dart';
+import 'package:ticketapp/features/passport/presentation/pages/passport_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details_web.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
@@ -99,7 +100,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final path = state.uri.path;
 
       // Korumalı sayfalar
-      final protectedRoutes = ['/favorites', '/my-tickets', '/notifications'];
+      final protectedRoutes = ['/favorites', '/my-tickets', '/passport', '/notifications'];
 
       // Login değilse korumalı sayfaya giremez
       if (!loggedIn && protectedRoutes.any((final r) => path.startsWith(r)))
@@ -357,6 +358,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                   userId:
                       state.pathParameters['slugWithId']!.split('-').last)),
           transitionsBuilder: scrollSlideTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/passport/:userId',
+        name: 'passport',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: WebSiteFrame(
+              child: PassportPage(userId: state.pathParameters['userId']!)),
+          transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),

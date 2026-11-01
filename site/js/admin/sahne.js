@@ -36,10 +36,11 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
   // ---------------- otomatik hatırlatmalar
   async function otomatik() {
     const k = $('#sk-oto', m);
-    let acik = true, hb = null;
+    let acik = true, hb = null, conf = {};
     try {
       const [c, h] = await Promise.all([getDoc(doc(db, 'Config', 'bildirim')), getDoc(doc(db, 'System', 'eventReminders'))]);
-      if (c.exists() && c.data().autoReminders === false) acik = false;
+      if (c.exists()) conf = c.data();
+      if (conf.autoReminders === false) acik = false;
       hb = h.exists() ? h.data() : null;
     } catch (e) { k.innerHTML = `<h2>Otomatik hatırlatmalar</h2><div class="bk-alert" role="alert">${esc(hataMesaji(e))}</div>`; return; }
     const son = hb && hb.lastRunAt && hb.lastRunAt.toMillis ? hb.lastRunAt.toMillis() : null;
@@ -49,7 +50,18 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
         <p class="muted" style="margin:0">Seansa yaklaşık 24 saat ve 2 saat kala bilet sahiplerine bildirim gider.</p></div>
         <button class="sw-toggle ${acik ? 'on' : ''}" role="switch" aria-checked="${acik}" aria-label="Otomatik hatırlatmalar" id="sk-sw"><i></i><span>${acik ? 'Açık' : 'Kapalı'}</span></button></div>
       ${bayat ? `<div class="bk-alert" role="alert" style="margin-top:12px">⚠ Hatırlatma görevi ${son ? `${esc(gorece(son))} çalışmış` : 'hiç çalışmamış'}. Zamanlanmış görev (Cloud Scheduler) kurulu mu?</div>` : ''}
+      <div class="sk-oto-row" style="margin-top:12px"><div><strong>Seans sonrası teşekkür + yorum daveti</strong>
+        <p class="muted" style="margin:2px 0 0">Seans bittikten 1–12 saat sonra, kapıdan geçen bilet sahiplerine "Nasıldı?" bildirimi gider.</p></div>
+        <button class="sw-toggle ${conf.thankYou === false ? '' : 'on'}" role="switch" aria-checked="${conf.thankYou !== false}" aria-label="Teşekkür bildirimi" id="sk-sw-ty"><i></i><span>${conf.thankYou === false ? 'Kapalı' : 'Açık'}</span></button></div>
+      <div class="sk-oto-row" style="margin-top:12px"><div><strong>2 saat kala hatırlatma sessizde de çalsın</strong>
+        <p class="muted" style="margin:2px 0 0">Açıkken 2 saatlik hatırlatma, "sessizdeyken sesli hatırlat" izni veren kullanıcılara alarm kanalından gider; diğerleri normal bildirim alır.</p></div>
+        <button class="sw-toggle ${conf.alarm2h === true ? 'on' : ''}" role="switch" aria-checked="${conf.alarm2h === true}" aria-label="2 saatlik hatırlatma alarm" id="sk-sw-a2"><i></i><span>${conf.alarm2h === true ? 'Açık' : 'Kapalı'}</span></button></div>
       <p class="muted" style="margin:10px 0 0">${son ? `Son çalışma: ${esc(gorece(son))} · gönderilen: ${hb.sent24 || 0} (24 sa) + ${hb.sent2 || 0} (2 sa)` : 'Henüz çalışmadı.'}</p>`;
+    const bayrak = (id, alan, yeni, ad) => $(id, k).addEventListener('click', async () => {
+      try { await setDoc(doc(db, 'Config', 'bildirim'), { autoReminders: acik, [alan]: yeni, updatedAt: serverTimestamp() }, { merge: true }); bildir(`${ad}: ${yeni ? 'açık' : 'kapalı'}`); otomatik(); } catch (e) { bildir(hataMesaji(e), true); }
+    });
+    bayrak('#sk-sw-ty', 'thankYou', conf.thankYou === false, 'Teşekkür bildirimi');
+    bayrak('#sk-sw-a2', 'alarm2h', conf.alarm2h !== true, '2 saatlik alarm');
     $('#sk-sw', k).addEventListener('click', async () => {
       try { await setDoc(doc(db, 'Config', 'bildirim'), { autoReminders: !acik, updatedAt: serverTimestamp() }, { merge: true }); bildir(!acik ? 'Otomatik hatırlatmalar açıldı' : 'Otomatik hatırlatmalar kapatıldı'); otomatik(); } catch (e) { bildir(hataMesaji(e), true); }
     });
@@ -174,6 +186,7 @@ export function sahneKumandasi(m, { veri, bildir, hataMesaji }) {
         ${duzenle ? `<textarea id="o-govde" maxlength="240" placeholder="Mesajı yaz (en fazla 240 karakter)" aria-label="Mesaj">${esc(istek.body || '')}</textarea>` : `<p>${esc(p.body)}</p>`}</div>
       <p class="sk-hedef-satir"><b>${esc(r.target.label)}</b> · ${istek.target.type === 'all' ? `${r.recipients} kullanıcıya (uygulamayı yüklemiş herkese) gider` : `${r.recipients} kişi · ${r.withToken} push alabilir`}</p>
       ${(() => { const la = r.loudAlarm; return la && Number.isFinite(la.of) && Number.isFinite(la.optedIn) ? `<p class="bk-note" id="o-sessiz">🔕 ${la.of} kişiden ${la.optedIn}'si telefonu sessizdeyken sesli hatırlatmayı açtı.${p.kind === 'alarm' ? '' : ' (Yalnızca alarm bildiriminde geçerlidir.)'}</p>` : ''; })()}
+      ${r.prefs && (r.prefs.optedOut || r.prefs.quietNow) ? `<p class="muted" style="margin:6px 0 0">${r.prefs.of} kişiden ${r.prefs.optedOut} kişi bu bildirim türünü kapattı${r.prefs.quietNow ? `, ${r.prefs.quietNow} kişi şu an sessiz saatte` : ''} — bu kişilere push gitmez.</p>` : ''}
       ${istek.target.type === 'all' ? '<div class="bk-alert" role="alert">⚠ Bu bildirim TÜM kullanıcılara gider. Emin misin?</div>' : ''}
       ${p.kind === 'alarm' ? '<p class="muted">Alarm bildirimi yüksek öncelikle gider; telefon sessizde veya "Rahatsız Etme"deyse sesi çalmayabilir.</p>' : ''}
       <div id="o-sonuc" aria-live="polite"></div>

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/services/fcm_manager_service.dart';
 import 'loud_alarm_sheet.dart';
+import 'notification_prefs_rows.dart';
 import 'preference_widgets.dart';
 
 /// Ayarlar > İzinler grubuna eklenen iki satır (yalnız mobil):
@@ -15,6 +16,7 @@ List<Widget> announcementPreferenceRows(final BuildContext context) {
   return [
     const _AnnouncementSwitchRow(),
     const LoudAlarmSwitchRow(),
+    const NotificationPrefsRows(), // kategori anahtarları + sessiz saatler (oturum açıksa)
     PreferenceRow(
       icon: Icons.volume_up_outlined,
       title: prefText(context, 'Bildirim sesi ve sistem ayarları',

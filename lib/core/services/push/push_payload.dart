@@ -91,11 +91,17 @@ abstract final class PushRoutes {
   static final RegExp _detail =
       RegExp(r'^/(show|player|stage|team|my-tickets)/[A-Za-z0-9_-]{1,160}$');
 
+  /// Seans sonrası "Nasıldı?" bildirimi: oyun sayfası + yorum bölümü (`?yorum=1`). Yalnız bu tek sorgu biçimi kabul edilir.
+  static final RegExp _reviewInvite =
+      RegExp(r'^/show/[A-Za-z0-9_-]{1,160}\?yorum=1$');
+
   /// Geçerliyse [route], değilse `null`.
   static String? safeRoute(final String? route) {
     if (route == null) return null;
     final String r = route.trim();
-    if (_fixed.hasMatch(r) || _detail.hasMatch(r)) return r;
+    if (_fixed.hasMatch(r) || _detail.hasMatch(r) || _reviewInvite.hasMatch(r)) {
+      return r;
+    }
     return null;
   }
 

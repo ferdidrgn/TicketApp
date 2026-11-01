@@ -5,6 +5,8 @@ import { baslikYaz, bulunamadi, hata, etkilesimler, harita, takvimMenusu, dakika
 import { kalpDugme, favMi } from '../fav.js';
 import { paylasMenusu } from '../ozellik.js';
 import { dolulukHtml } from '../canli.js';
+import { yorumlarHtml, yorumlarBaglan } from '../yorumlar.js';
+import { sorularHtml, sorularBaglan } from '../sorular.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
@@ -144,12 +146,13 @@ function ciz(d) {
       return satir.length > 1 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
     })() },
     { id: 'sss', ad: 'Sık sorulanlar', html: (() => { const q = sssSorulari(s, yer, alan, SATIS.mode); window.__sss = q; return sssHtml(q); })() },
+    { id: 'sorular', ad: 'Ekibe sor', html: sorularHtml() },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
     { id: 'ekip', ad: 'Ekip hikâyesi', html: ekipHtml(s) },
     { id: 'mekan', ad: 'Mekân', html: yer ? `<p style="margin-bottom:14px"><a href="${linkOf('sahne', yer)}"><b>${esc(yer.name)}</b></a><br><span class="muted">${esc(yer.address || '')}</span></p>${harita(yer.lat, yer.lng)}` : (s.externalVenueName ? `<p><b>${esc(s.externalVenueName)}</b><br><span class="muted">${esc(s.externalVenueAddress || '')}</span></p>${harita(s.externalLat, s.externalLng)}` : '') },
     { id: 'galeri', ad: 'Galeri', html: galeri(s.photos, s.name) },
-    { id: 'yorumlar', ad: s.ratingCount ? `Yorumlar (${s.ratingCount})` : 'Yorumlar', html: yorumHtml },
+    { id: 'yorumlar', ad: s.ratingCount ? `Yorumlar (${s.ratingCount})` : 'Yorumlar', html: yorumlarHtml(s) },
     { id: 'eski', ad: 'Eski kadro', html: s.pastCast.length ? kadro(s.pastCast) : '' },
     { id: 'benzer', ad: 'Benzer oyunlar', html: benzer.length ? ray(benzer.map((x) => oyunKarti(x)).join('')) : '' },
   ].filter((b) => b.html);
@@ -175,7 +178,7 @@ function ciz(d) {
         ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${(() => { const dk = dakikaOku(s.duration); if (!s.duration) return ''; const bt = new Date(n.when.getTime() + dk * 60000); return `<div class="f"><small>Tahmini bitiş</small><b>${saat(bt)}</b></div>`; })()}${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
         <div class="op-act">
           ${s.external ? `<a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} al ${DIS_IKON.replace('<svg', '<svg width="16" height="16"')}</a>` : (n ? biletDugmesi(n) : `<a class="btn btn-primary" href="#seanslar">Seansları gör</a>`)}
-          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button><button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
+          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button>${n && !s.external ? '<button class="btn btn-ghost" id="birlikte">Birlikte gidelim</button>' : ''}<button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
       </div></div></section>
   <div class="mini-bar" id="mini"><div class="wrap" id="mini-w">${miniHtml()}</div></div>
   <div class="wrap"><nav class="bar-nav" id="bnav" aria-label="Sayfa bölümleri">${bolumler.map((b) => `<a href="#${b.id}">${esc(b.ad)}</a>`).join('')}</nav>
@@ -204,8 +207,11 @@ function ciz(d) {
     });
   };
   seansCiz(); baglan();
+  yorumlarBaglan(s);
+  sorularBaglan(s, yer, alan, SATIS.mode);
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
   $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
+  $('#birlikte')?.addEventListener('click', (ev) => import('../plan-olustur.js').then((m) => m.birlikteGidelim(ev.currentTarget, s, seanslar[st.i])));
   $('#yazdir')?.addEventListener('click', () => print());
   // üst çubuk: hero görünmezken
   const mini = $('#mini'), ust = $('#ust');

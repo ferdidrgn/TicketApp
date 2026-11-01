@@ -26,6 +26,8 @@ import '../../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../players/domain/entities/player.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
+import '../../../domain/faq_bot.dart';
+import '../show_questions_section.dart';
 import '../../../domain/next_session.dart';
 import '../../providers/show_detail_provider.dart';
 import '../../providers/show_provider.dart';
@@ -904,6 +906,29 @@ class _Content extends StatelessWidget {
             4,
             ReviewsSection(
                 showId: data.show.id, showName: data.show.name)),
+        section(
+            4,
+            ShowQuestionsSection(
+              showId: data.show.id,
+              facts: FaqFacts(
+                name: data.show.name,
+                duration: data.show.duration,
+                ageLimit: data.show.ageLimit,
+                interval: data.show.interval,
+                contentNotes: data.show.contentNotes,
+                accessCodes: data.show.access
+                    .split(RegExp(r'[,;\s]+'))
+                    .where((final x) => x.isNotEmpty)
+                    .toList(),
+                venueName: data.venues.isNotEmpty
+                    ? data.venues.first.name
+                    : data.show.externalVenueName,
+                venueAddress: data.venues.isNotEmpty
+                    ? data.venues.first.address
+                    : data.show.externalVenueAddress,
+                external: data.show.hasExternalTicketing,
+              ),
+            )),
         if (data.venues.isNotEmpty)
           section(4, _Venues(venues: data.venues)),
         for (final Widget g in gallery) section(5, g),

@@ -2,7 +2,7 @@
 // alanları (sıradaki seans, yaşam döngüsü, fiyat aralığı) hesaplar.
 // Mobil uygulamayla aynı kurallar: Event.showId tek doğruluk kaynağıdır,
 // Show.eventsId yalnızca yedektir; tarihi geçen kayıtlar silinmez, "bitti" sayılır.
-import { db, collection, getDocs, EMU } from './firebase.js';
+import { db, collection, getDocs, query, where, EMU } from './firebase.js';
 import { tarihAyristir, sayi, gunBasi } from './util.js';
 import { ilBul } from './iller.js';
 
@@ -44,7 +44,9 @@ async function hamAl() {
 
 const list = (v) => (Array.isArray(v) ? v.map(String) : []);
 async function oku(ad) {
-  const snap = await getDocs(collection(db, ad));
+  // Review: kurallar gizli yorumları yalnız yazarına/admine açar -> herkes için sorgu `hidden==false` ile kısıtlı olmalı (firestore.rules)
+  const ref = collection(db, ad);
+  const snap = await getDocs(ad === 'Review' ? query(ref, where('hidden', '==', false)) : ref);
   return snap.docs.map((d) => ({ ...d.data(), docId: d.id, id: d.data()._id || d.id }));
 }
 

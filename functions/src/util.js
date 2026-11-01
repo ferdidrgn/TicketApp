@@ -43,8 +43,9 @@ function validateId(v, name) {
 
 function validateSeatIds(v) {
   if (!Array.isArray(v) || v.length < 1) throw err('invalid-argument', 'En az bir koltuk seçmelisiniz.');
-  if (v.length > cfg.SEAT_LIMIT_PER_EVENT) {
-    throw err('resource-exhausted', `Bir etkinlikte en fazla ${cfg.SEAT_LIMIT_PER_EVENT} koltuk alabilirsiniz.`);
+  // Sert üst sınır (kötüye kullanım koruması); asıl etkinlik başına limit Config/satis.etkinlikBasinaLimit ile transaction içinde denetlenir.
+  if (v.length > cfg.EVENT_LIMIT_MAX) {
+    throw err('resource-exhausted', `Bir seferde en fazla ${cfg.EVENT_LIMIT_MAX} koltuk seçebilirsiniz.`);
   }
   const seen = new Set();
   for (const s of v) {

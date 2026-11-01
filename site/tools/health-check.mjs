@@ -44,7 +44,7 @@ export function jwtUret(sa, simdiSn = Math.floor(Date.now() / 1000), kapsam = 'h
   return `${baslik}.${talep}.${b64url(imza)}`;
 }
 
-async function zamanAsimiliFetch(fetchFn, url, secenek = {}) {
+export async function zamanAsimiliFetch(fetchFn, url, secenek = {}) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ZAMAN_ASIMI_MS);
   try { return await fetchFn(url, { ...secenek, signal: ac.signal, redirect: 'follow' }); } finally { clearTimeout(t); }
@@ -66,7 +66,7 @@ export async function siteKontrol(fetchFn, site = SITE) {
   return sorunlar;
 }
 
-async function erisimJetonu(fetchFn, sa) {
+export async function erisimJetonu(fetchFn, sa) {
   const r = await zamanAsimiliFetch(fetchFn, sa.token_uri || 'https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },

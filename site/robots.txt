@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /yonetim
 Disallow: /ekip
+Disallow: /pasaport
+Disallow: /plan

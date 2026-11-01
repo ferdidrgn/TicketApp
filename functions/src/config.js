@@ -3,7 +3,9 @@
 module.exports = {
   REGION: 'europe-west1',
   CURRENCY: 'TRY',
-  SEAT_LIMIT_PER_EVENT: 3, // bir kullanıcı bir etkinlikte en fazla (reserved+sold) koltuk
+  SEAT_LIMIT_PER_EVENT: 3, // VARSAYILAN: bir kişi (doğrulanmış telefon) bir etkinlikte en fazla (aktif bilet + tutulan) koltuk; Config/satis.etkinlikBasinaLimit ile 1-20 ayarlanır
+  EVENT_LIMIT_MIN: 1, EVENT_LIMIT_MAX: 20,
+  QUOTA_RATE: { max: 30, windowMs: 60 * 1000 }, // getEventQuota: telefon başına dakikada sorgu
   FREE_TICKET_LIMIT: 3, // TÜM ücretsiz etkinliklerde toplam bilet
   HOLD_MS: 10 * 60 * 1000, // koltuk tutma süresi
   PAYMENT_WINDOW_MS: 30 * 60 * 1000, // ödeme başlayınca tutma süresi (iyzico token ömrü)
@@ -13,7 +15,7 @@ module.exports = {
   EXPIRE_BATCH: 200,
   // Satış modu (Config/satis). 'kapali' | 'rezervasyon' (ödeme sahnede) | 'online' (iyzico). Belge yoksa varsayılan.
   SATIS_MODES: ['kapali', 'rezervasyon', 'online'],
-  SATIS_DEFAULT: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24 },
+  SATIS_DEFAULT: { mode: 'rezervasyon', rezervasyonLimit: 3, iptalSaat: 24, etkinlikBasinaLimit: 3, ucretsizToplamLimit: 3 },
   HEARTBEAT_STALE_MS: 15 * 60 * 1000, // expireHolds bu süredir çalışmadıysa panel kırmızı uyarır
   STUCK_GRACE_MS: 10 * 60 * 1000, // süresi bu kadar önce dolmuş ama hâlâ held/paying -> "takılı"
 
@@ -33,6 +35,27 @@ module.exports = {
     PER_TARGET: { max: 5, windowMs: 24 * 60 * 60 * 1000 }, // AYNI seansa/oyuna 24 saatte
     CHECKIN_WINDOW_MS: 24 * 60 * 60 * 1000, // kapı kontrolü yalnız seansa ±24 saat
     LIST_PAST_MS: 24 * 60 * 60 * 1000, LIST_FUTURE_MS: 90 * 24 * 60 * 60 * 1000, MAX_EVENTS_PER_SHOW: 40, MAX_SHOWS_PER_TEAM: 50,
+  },
+
+  // Doğrulanmış yorum + moderasyon (docs/UGC-KURALLARI.md)
+  REVIEW: {
+    TEXT_MAX: 600, DETAIL_MAX: 200, AUTO_HIDE_AT: 3, MAX_BLOCKS: 200, MAX_TICKETS_SCAN: 500,
+    SUBMIT: { perHour: 5, perDay: 20 }, REPORT: { perHour: 10, perDay: 40 },
+  },
+
+  // Ekibe soru sor (Q-2, docs/SSS-BOTU.md)
+  QUESTION: {
+    TEXT_MAX: 300, TEXT_MIN: 5, ANSWER_MAX: 600, DETAIL_MAX: 200, AUTO_HIDE_AT: 3,
+    ASK: { perHour: 3, perDay: 10 }, REPORT: { perHour: 10, perDay: 40 },
+  },
+
+  // Anket/oylama (F-5, docs/ANKET-PLAN.md)
+  POLL: { QUESTION_MAX: 140, OPTION_MAX: 60, MIN_OPTIONS: 2, MAX_OPTIONS: 6, MAX_DAYS: 120, VOTE: { perHour: 20, perDay: 60 } },
+
+  // Arkadaşa gönder / grup planı (F-6, docs/ANKET-PLAN.md). Yanıt girişsizdir -> IP/uid yok: günlük GLOBAL tavan + plan başına tavan + metin süzgeci.
+  PLAN: {
+    TTL_MS: 7 * 24 * 60 * 60 * 1000, MAX_RESPONSES: 50, NAME_MAX: 30, UPDATES_MAX: 10,
+    CREATE: { perHour: 5, perDay: 10 }, GLOBAL_DAILY: { plans: 1000, responses: 5000 },
   },
 
   // Hesap silme (docs/HESAP-SILME.md)

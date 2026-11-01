@@ -1,0 +1,50 @@
+{
+  "_not": "SSS botu ortak test vektörleri (docs/SSS-BOTU.md). Hem site/tools/ssb-test.mjs (node) hem test/faq_bot_test.dart bu dosyayı okur. intent '' = anlaşılmadı; answer null = bilgi yok.",
+  "facts": {
+    "tam": {
+      "name": "Hamlet", "duration": "110 dk", "ageLimit": "13+", "interval": "15 dk ara var", "contentNotes": "şiddet ve yüksek ses",
+      "accessCodes": ["AD", "CAP"], "venueName": "Kadıköy Sahnesi", "venueAddress": "Moda Cd. 12", "transit": "Metro ve otobüs; otopark yok",
+      "accessNotes": "Rampa ve asansör var", "external": false, "externalHost": "", "ended": false, "saleMode": "rezervasyon"
+    },
+    "bos": {
+      "name": "Boş", "duration": "", "ageLimit": "", "interval": "", "contentNotes": "", "accessCodes": [], "venueName": "", "venueAddress": "",
+      "transit": "", "accessNotes": "", "external": false, "externalHost": "", "ended": false, "saleMode": "online"
+    },
+    "dis": {
+      "name": "Dış", "duration": "1 saat", "ageLimit": "", "interval": "", "contentNotes": "", "accessCodes": [], "venueName": "Şehir Tiyatrosu", "venueAddress": "",
+      "transit": "", "accessNotes": "", "external": true, "externalHost": "biletinial.com", "ended": false, "saleMode": "rezervasyon"
+    }
+  },
+  "cases": [
+    {"f": "tam", "q": "Oyun kaç dakika sürüyor?", "intent": "sure", "answer": "Oyunun süresi 110 dk; 15 dk ara var."},
+    {"f": "tam", "q": "KAÇ SAAT SÜRER ACABA", "intent": "sure", "answer": "Oyunun süresi 110 dk; 15 dk ara var."},
+    {"f": "bos", "q": "kaç dakika sürüyor", "intent": "sure", "answer": null},
+    {"f": "tam", "q": "Yaş sınırı var mı?", "intent": "yas", "answer": "Önerilen yaş: 13+. İçerik uyarısı: şiddet ve yüksek ses."},
+    {"f": "tam", "q": "Kaç yaşından itibaren izleyebilir?", "intent": "yas", "answer": "Önerilen yaş: 13+. İçerik uyarısı: şiddet ve yüksek ses."},
+    {"f": "bos", "q": "yaş sınırı nedir", "intent": "yas", "answer": null},
+    {"f": "tam", "q": "Çocuğa uygun mu?", "intent": "cocuk", "answer": "Önerilen yaş: 13+. İçerik uyarısı: şiddet ve yüksek ses. Küçük çocuklarla gelmeden önce yaş önerisine ve içerik uyarısına bakmanı öneririz."},
+    {"f": "tam", "q": "ÇOCUKLA GİDİLİR Mİ", "intent": "cocuk", "answer": "Önerilen yaş: 13+. İçerik uyarısı: şiddet ve yüksek ses. Küçük çocuklarla gelmeden önce yaş önerisine ve içerik uyarısına bakmanı öneririz."},
+    {"f": "bos", "q": "bebekle gelebilir miyim", "intent": "cocuk", "answer": null},
+    {"f": "tam", "q": "Ara var mı?", "intent": "ara", "answer": "Ara bilgisi: 15 dk ara var."},
+    {"f": "bos", "q": "antrakt var mı", "intent": "ara", "answer": null},
+    {"f": "tam", "q": "Geç kalırsam salona alırlar mı?", "intent": "gec", "answer": "Geç kalanların salona alınıp alınmayacağı ve hangi arada alınacağı salona ve organizatöre göre değişir; garanti verilemez. Seanstan 20-30 dakika önce yerinde olmanı öneririz."},
+    {"f": "bos", "q": "geciktim girebilir miyim", "intent": "gec", "answer": "Geç kalanların salona alınıp alınmayacağı ve hangi arada alınacağı salona ve organizatöre göre değişir; garanti verilemez. Seanstan 20-30 dakika önce yerinde olmanı öneririz."},
+    {"f": "tam", "q": "Bileti iptal edebilir miyim?", "intent": "iade", "answer": "Şu an biletler rezervasyon olarak veriliyor; etkinlikten (varsayılan) 24 saat öncesine kadar Biletlerim sayfasından iptal edebilirsin. Ayrıntılar İade ve İptal Koşulları sayfasında."},
+    {"f": "bos", "q": "İade var mı", "intent": "iade", "answer": "İptal ve iade koşulları satış moduna ve etkinliğe göre değişir; güncel koşullar İade ve İptal Koşulları sayfasında yer alır. Organizatör etkinliği iptal ederse bilet bedelinin tamamı iade edilir."},
+    {"f": "dis", "q": "iade nasıl olur", "intent": "iade", "answer": "Bilet bu sitede değil biletinial.com satıldığı için iade ve iptal koşullarını satış yapılan platformdan öğrenmelisin."},
+    {"f": "tam", "q": "Nasıl bilet alırım?", "intent": "bilet", "answer": "Bu sayfada bir seans seçip Bilet al diyerek koltuğunu seçebilirsin; biletlerin hesabındaki Biletlerim sayfasında ve uygulamada görünür."},
+    {"f": "dis", "q": "Biletini nereden alırım", "intent": "bilet", "answer": "Biletler biletinial.com üzerinden satılıyor; TiyatRol seni doğru sayfaya yönlendirir."},
+    {"f": "tam", "q": "Engelli erişimi var mı?", "intent": "erisim", "answer": "Erişilebilir gösterim etiketleri: Sesli betimleme, Altyazılı. Mekân notu: Rampa ve asansör var."},
+    {"f": "tam", "q": "Tekerlekli sandalye ile girilir mi", "intent": "erisim", "answer": "Erişilebilir gösterim etiketleri: Sesli betimleme, Altyazılı. Mekân notu: Rampa ve asansör var."},
+    {"f": "bos", "q": "asansör var mı", "intent": "erisim", "answer": null},
+    {"f": "tam", "q": "Otopark var mı?", "intent": "ulasim", "answer": "Mekân: Kadıköy Sahnesi, Moda Cd. 12. Ulaşım: Metro ve otobüs; otopark yok."},
+    {"f": "tam", "q": "Oraya nasıl gelirim, metro var mı", "intent": "ulasim", "answer": "Mekân: Kadıköy Sahnesi, Moda Cd. 12. Ulaşım: Metro ve otobüs; otopark yok."},
+    {"f": "dis", "q": "Nerede oynanıyor?", "intent": "ulasim", "answer": "Mekân: Şehir Tiyatrosu."},
+    {"f": "bos", "q": "adres nedir", "intent": "ulasim", "answer": null},
+    {"f": "tam", "q": "İçerik uyarısı var mı?", "intent": "uyari", "answer": "İçerik uyarısı: şiddet ve yüksek ses."},
+    {"f": "bos", "q": "şiddet içeriyor mu", "intent": "uyari", "answer": null},
+    {"f": "tam", "q": "Bu oyunun yönetmeni kim?", "intent": "", "answer": null},
+    {"f": "tam", "q": "", "intent": "", "answer": null},
+    {"f": "tam", "q": "kanal 7 ile ilgisi var mı", "intent": "", "answer": null}
+  ]
+}

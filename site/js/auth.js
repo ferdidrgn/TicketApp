@@ -311,7 +311,7 @@ export function hesapDugmesi(kap) {
          ${u.phoneNumber
            ? `<div class="hesap-tel ok" role="note">Telefon doğrulandı ✓ <span>${esc(telefonMaske(u.phoneNumber))}</span></div>`
            : '<button type="button" role="menuitem" class="hesap-tel-btn" data-telefon>Telefonu doğrula</button>'}
-         <a role="menuitem" href="/biletlerim">Biletlerim</a><a role="menuitem" href="/favoriler">Favorilerim</a>
+         <a role="menuitem" href="/biletlerim">Biletlerim</a><a role="menuitem" href="/pasaport">Pasaportum</a><a role="menuitem" href="/favoriler">Favorilerim</a>
          <button type="button" role="menuitem" data-cikis>Çıkış yap</button>`
       : '';
   };

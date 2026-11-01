@@ -14,6 +14,8 @@ import { biletKapi } from './kapi.js';
 import { dashboard } from './dashboard.js';
 import { sahneKumandasi } from './sahne.js';
 import { ekipYoneticileri } from './ekipyonetici.js';
+import { moderasyon } from './moderasyon.js';
+import { anket } from './anket.js';
 
 const app = $('#app');
 let kullanici = null;
@@ -103,6 +105,8 @@ function iskeletCiz() {
     <button class="nv" data-g="biletler">🎟️ Biletler &amp; Kapı</button>
     <button class="nv" data-g="sahne">🎭 Sahne kumandası</button>
     <button class="nv" data-g="ekipyon">🧑‍🤝‍🧑 Ekip yöneticileri</button>
+    <button class="nv" data-g="moderasyon">🛡️ Moderasyon</button>
+    <button class="nv" data-g="anket">📊 Anket</button>
     <span class="sp"></span>
     <button class="nv" data-g="gorunum">🎨 Görünüm</button><button class="nv" data-g="yardim">❓ Yardım</button>
     <a class="nv btn" href="/" style="justify-content:flex-start;color:var(--ink-2)">↗ Siteyi aç</a>
@@ -118,6 +122,8 @@ function goster() {
   if (gorunum === 'ozet') return ozet(m);
   if (gorunum === 'biletler') return biletKapi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'sahne') return sahneKumandasi(m, { veri, bildir, hataMesaji });
+  if (gorunum === 'moderasyon') return moderasyon(m, { veri, bildir, hataMesaji });
+  if (gorunum === 'anket') return anket(m, { veri, bildir, hataMesaji });
   if (gorunum === 'ekipyon') return ekipYoneticileri(m, { veri, bildir, hataMesaji });
   if (gorunum === 'gorunum') return gorunumAyari(m);
   if (gorunum === 'yardim') return yardim(m);
@@ -170,6 +176,8 @@ function liste(m, c) {
 }
 
 // ---------- form ----------
+/** Harici bağlantı alanları: yalnız https:// (http, javascript:, data: vb. reddedilir). */
+export const httpsGecerli = (v) => { try { return new URL(v).protocol === 'https:'; } catch { return false; } };
 const ONAY_ACIK = /^(evet|true|1|e)$/i;
 function alanHtml(c, a, x) {
   const h = alanHtml0(c, a, x);
@@ -202,6 +210,7 @@ function alanHtml0(c, a, x) {
     case 'dt': return `<div class="fld-in${tam}">${L}<input id="${id}" type="datetime-local" value="${dtLokalden(v)}"></div>`;
     case 'day': return `<div class="fld-in${tam}">${L}<input id="${id}" type="date" value="${gunYaz(v)}"></div>`;
     case 'num': return `<div class="fld-in${tam}">${L}<input id="${id}" type="number" step="any" value="${v ?? ''}"></div>`;
+    case 'https': return `<div class="fld-in${tam}">${L}<input id="${id}" type="url" inputmode="url" placeholder="https://…" value="${esc(v ?? '')}"></div>`;
     default: return `<div class="fld-in${tam}">${L}<input id="${id}" type="text" value="${esc(v ?? '')}" ${a.liste ? `list="dl_${a.liste}"` : ''}>${a.liste === 'turler' ? `<datalist id="dl_turler">${[...new Set(veri.Show.map((s) => s.category).filter(Boolean))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>` : ''}</div>`;
   }
 }
@@ -242,6 +251,10 @@ function form(c, x = null) {
       else if (a.t === 'odul') v = el.value.split('\n').map((s) => s.trim()).filter(Boolean).map((s) => { const [y, t, ...r] = s.split('|').map((x) => x.trim()); return t === undefined ? { year: '', title: y, detail: '' } : { year: y, title: t, detail: r.join(' | ') }; });
       else if (a.t === 'dt') v = dtUygulamaya(el.value);
       else if (a.t === 'num') v = el.value === '' ? null : Number(el.value);
+      else if (a.t === 'https') {
+        v = el.value.trim();
+        if (v && !httpsGecerli(v)) { bildir(`${a.e}: yalnızca https:// ile başlayan geçerli bir adres girilebilir.`, true); el.focus(); return; }
+      }
       else v = el.value.trim();
       if (a.zorunlu && (v === '' || v == null)) { bildir(`${a.e} zorunlu.`, true); el.focus(); return; }
       veriObj[a.k] = v;

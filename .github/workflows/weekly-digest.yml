@@ -1,0 +1,38 @@
+# Haftalık özet — son 7 günün görüntülenme, yaklaşan seans ve doluluk TOPLU sayıları (kişisel veri yok) -> Telegram.
+# Secret'lar (isteğe bağlı): FIREBASE_SERVICE_ACCOUNT (Cloud Datastore Viewer yeter), TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+# Telegram yoksa özet yalnız log'a yazılır. Zamanlanmış çalışmalar yalnız varsayılan dalda (main) çalışır. Ayrıntı: docs/OTOMASYON.md
+name: Weekly Digest
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # pazartesi 06:00 UTC = 09:00 TR
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: true
+
+jobs:
+  digest:
+    name: Haftalık özet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: site/tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Kendi kendine sınama (sahte yanıtlar, ağ yok)
+        run: node site/tools/weekly-digest.mjs --dry-run
+
+      - name: Özet
+        run: node site/tools/weekly-digest.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

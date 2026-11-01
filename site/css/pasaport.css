@@ -1,0 +1,35 @@
+/* Tiyatro Pasaportu — yalnız tema belirteçleri (--accent, --surface, --ink …). */
+.ps-sayfa { padding-block: 36px 40px; display: grid; gap: 28px; }
+.ps-sayfa h1 { font-size: clamp(32px, 5vw, 52px); }
+.ps-kapak { border-radius: 22px; padding: 26px 24px; color: var(--accent-ink); background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000)); display: grid; gap: 18px; }
+.ps-kapak small { letter-spacing: .22em; font-weight: 700; font-size: 11px; opacity: .85; }
+.ps-kapak h2 { font-size: clamp(26px, 4vw, 36px); color: inherit; margin: 2px 0 0; }
+.ps-sayilar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.ps-sayilar b { display: block; font: 800 clamp(34px, 7vw, 52px)/1 var(--font-display); }
+.ps-sayilar span { font-weight: 600; opacity: .85; font-size: 14px; }
+.ps-kazanilan { font-weight: 600; opacity: .95; overflow-wrap: anywhere; }
+.ps-eylem { display: flex; gap: 10px; flex-wrap: wrap; }
+.ps-bolum h2 { font-size: 22px; margin-bottom: 14px; }
+.ps-damgalar { display: flex; flex-wrap: wrap; gap: 16px; }
+.ps-damga { width: 116px; height: 116px; border-radius: 50%; border: 3px solid var(--accent); color: var(--accent); background: var(--accent-soft); display: grid; place-content: center; text-align: center; padding: 10px; gap: 2px; transform: rotate(var(--egim, -4deg)); animation: psBas .5s var(--ease, ease-out) both; animation-delay: var(--gec, 0ms); }
+.ps-damga b { font-size: 12.5px; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ps-damga small { color: var(--ink-3); font-size: 10.5px; font-weight: 600; }
+.ps-damga i { font-style: normal; font-weight: 800; font-size: 12px; }
+@keyframes psBas { from { opacity: 0; transform: rotate(var(--egim, -4deg)) scale(1.4); } to { opacity: 1; transform: rotate(var(--egim, -4deg)) scale(1); } }
+.ps-liste { display: grid; gap: 12px; }
+.ps-oyun { display: flex; gap: 14px; align-items: center; }
+.ps-oyun img, .ps-oyun .ph { width: 52px; height: 70px; border-radius: 8px; object-fit: cover; background: var(--surface); flex: none; }
+.ps-oyun div { min-width: 0; }
+.ps-oyun b { display: block; overflow-wrap: anywhere; }
+.ps-oyun span { color: var(--ink-2); font-size: 14px; }
+.ps-rozetler { display: grid; gap: 10px; }
+.ps-rozet { display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.ps-rozet.acik { border-color: var(--accent); background: var(--accent-soft); }
+.ps-rozet .ik { font-size: 24px; flex: none; width: 32px; text-align: center; }
+.ps-rozet b { display: block; }
+.ps-rozet p { color: var(--ink-2); font-size: 14px; margin: 2px 0 6px; }
+.ps-rozet progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.ps-rozet .oran { margin-left: auto; color: var(--ink-3); font-size: 13px; font-weight: 600; flex: none; }
+.ps-not { color: var(--ink-3); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .ps-damga { animation: none; } }
+@media (max-width: 480px) { .ps-kapak { padding: 20px 16px; } .ps-damga { width: 104px; height: 104px; } }

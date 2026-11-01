@@ -24,11 +24,11 @@ Kaynak raporlar: telefon kimliği (docs/TELEFON-DOGRULAMA.md), hesap silme (docs
 ## DALGA 2 (Dalga 1 + rules birleşince)
 | ID | İş | Boyut | Bağımlılık |
 |---|---|---|---|
-| N-1 | Etkinliğe gelen kişilere mesaj/push: admin + ekip yöneticisi için seans bazlı gönderim ekranı (şablon + kısa metin, alıcı sayısı önizleme), otomatik "seans iptal" bildirimi, bilet sahiplerine seans sonrası teşekkür | M | T-1 |
-| N-2 | Bildirim tercihleri (`User.notifPrefs`: kategori aç/kapa, sessiz saat), işlemsel/pazarlama ayrımı | M | sessiz-alarm işi |
+| N-1 | Etkinliğe gelen kişilere mesaj/push: admin + ekip yöneticisi için seans bazlı gönderim ekranı (şablon + kısa metin, alıcı sayısı önizleme), otomatik "seans iptal" bildirimi, bilet sahiplerine seans sonrası teşekkür | M | T-1 · **REVIEW** (28.10: otomatik iptal/erteleme + teşekkür + alarm2h bayrağı; docs/BILDIRIM-TERCIHLERI.md) |
+| N-2 | Bildirim tercihleri (`User.notifPrefs`: kategori aç/kapa, sessiz saat), işlemsel/pazarlama ayrımı | M | sessiz-alarm işi · **REVIEW** (28.10: şema+kurallar+mobil+web+sunucu süzgeci) |
 | N-3 | `fcmTokens` çoklu cihaz (dizi), ölü token temizliği | S | — |
 | Q-1 | Doğrulanmış yorum (bilet sahibi, `verified`, sunucudan yazım) + seans sonrası "nasıldı?" | M | S-1 |
-| Q-2 | Ekibe soru sor (Q&A, ön onaylı) + kural tabanlı SSS botu | M | S-1, T-1 |
+| Q-2 | Ekibe soru sor (Q&A, ön onaylı) + kural tabanlı SSS botu — BİTTİ, bkz. docs/SSS-BOTU.md | M | S-1, T-1 |
 | M-1 | Moderasyon: şikâyet et, kullanıcı engelle, otomatik gizleme eşiği, panel, `ModerationLog` (Play/App Store UGC şartı) | M | Q-1 |
 
 ## DALGA 3
@@ -38,8 +38,8 @@ Kaynak raporlar: telefon kimliği (docs/TELEFON-DOGRULAMA.md), hesap silme (docs
 | F-2 | "Yer açılınca haber ver" bekleme listesi | M |
 | F-3 | İzledim koleksiyonu + Tiyatro Pasaportu + paylaşılabilir kart | M |
 | F-4 | "Senin için" kural tabanlı öneri | S |
-| F-5 | Anket/oylama (haftanın oyunu, hesap başına tek oy) | S |
-| F-6 | Arkadaşa gönder / grup planı linki | S |
+| F-5 | Anket/oylama (haftanın oyunu, hesap başına tek oy) | S | ✅ 01.11.2026 (docs/ANKET-PLAN.md)
+| F-6 | Arkadaşa gönder / grup planı linki | S | ✅ 01.11.2026 (docs/ANKET-PLAN.md)
 | F-7 | Bağış + gönüllü başvuru linkleri (Team alanları, harici bağlantı) | S |
 | F-8 | Google Cüzdan bileti | L |
 | A-1 | Haftalık özet raporu (Telegram/e-posta), TTL/yedekleme | M |
@@ -66,6 +66,7 @@ Canlı herkese açık sohbet (24 saat moderasyon sorumlusu gerekir), LLM botu, h
 | G-1 | Gizlilik/şartlar metinleri: telefon doğrulama, hesap silme (30 gün, anonimleştirme), bildirim tercihi, UGC/moderasyon, yurt dışı aktarım | — | BLOCKED (sahip+avukat) | taslaklar docs'ta |
 | G-2 | Mağaza formları: Play Data Safety/UGC, Apple App Privacy/inceleme notu | — | BLOCKED (sahip) | |
 | H-1 | Eksik sahip adımları listesi: Authorized domains, Phone provider, SHA, Blaze, bütçe (TL), PHONE_HASH_SALT, Storage kuralı kontrolü, 2FA | — | BLOCKED (sahip) | docs/GUVENLIK-DENETIMI.md (S-1) |
+| L-1 | Etkinlik başına bilet limiti (telefon bazlı, Config/satis.etkinlikBasinaLimit), getEventQuota, web+mobil uyarı şeridi, mobil onay sonrası çıkış, mobil hata eşleme tablosu | 2 | DONE (dalda; deploy yok) | docs/ODEME-GUVENLIK.md §16. KARAR BEKLİYOR: global toplam limitler (ücretsiz 3 / rezervasyon 3) etkinlik başına limitle birlikte mi? Tarayıcıda uçtan uca doğrulanmadı. |
 
 ## DURUM TABLOSU (ajan başına)
 Tamamlandı ve dalda: telefon kimliği (backend+web+mobil+denetim), hesap silme (backend+web+mobil+denetim), web favorileri hesaba bağlı (main'de), sessizde sesli hatırlatma (izinli, 869a9e2b), maliyet/güvenlik/UX/otomasyon araştırmaları.

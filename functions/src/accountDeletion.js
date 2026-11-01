@@ -13,10 +13,11 @@ const { HttpsError } = require('firebase-functions/v2/https');
 const cfg = require('./config');
 const { parseEventDateMs } = require('./util');
 const { userDraft, phoneKeyOf, normalizeE164 } = require('./phone');
+const { recomputeShowRating } = require('./reviewStats');
 
 const CFG = cfg.ACCOUNT_DELETION;
 // Eski/olası kişisel alanlar (şemada yok ama eski istemci kayıtlarında olabilir): anonimleştirmede silinir.
-const PERSONAL_KEYS = ['customerName', 'customerEmail', 'customerPhone', 'buyerName', 'buyerEmail', 'buyerPhone', 'name', 'firstName', 'lastName', 'email', 'eMail', 'phone', 'phoneNumber', 'userName'];
+const PERSONAL_KEYS = ['customerName', 'customerEmail', 'customerPhone', 'buyerName', 'buyerEmail', 'buyerPhone', 'name', 'firstName', 'lastName', 'email', 'eMail', 'phone', 'phoneNumber', 'phoneKey', 'userName'];
 const BLOCKING = new Set(['pending', 'deleting']);
 
 const iso = (ms) => new Date(ms).toISOString();
@@ -239,9 +240,59 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
     // yönetici ise gönderim kayıtlarındaki adı
     await chunked(db.collection('NotificationLog').where('sentBy', '==', uid), (b, d) => b.update(d.ref, { sentBy: anon, sentByName: '' }));
     // kişisel koleksiyonlar silinir
-    for (const [col, field] of [['Notification', 'userId'], ['Review', 'userId'], ['ReviewReport', 'userId']]) {
+    for (const [col, field] of [['Notification', 'userId'], ['ReviewReport', 'userId']]) {
       await chunked(db.collection(col).where(field, '==', uid), (b, d) => b.delete(d.ref));
     }
+    // Yorumlar (docs/HESAP-SILME.md "Yorum ve moderasyon"): metin/ad SİLİNİR. İSTİSNA: moderasyona/şikâyete konu olmuş ve gizli yorum
+    // (reportCount>0 ya da hiddenReason moderator/reports) delil olarak ANONİMLEŞTİRİLEREK gizli kalır (userId takma ad, ad/foto boş, metin kısaltılır).
+    const revShows = new Set();
+    // Delil kaydı yeni (uid içermeyen) kimlikle yazılır; eski kimliğe bağlı şikâyet belgeleri (kimlikleri uid içerir) silinir, ModerationLog yeni kimliğe taşınır.
+    const mine = await db.collection('Review').where('userId', '==', uid).get();
+    for (const d of mine.docs) {
+      const x = d.data();
+      if (x.showId) revShows.add(x.showId);
+      const evidence = x.hidden === true && (x.reportCount > 0 || x.hiddenReason === 'moderator' || x.hiddenReason === 'reports');
+      const newId = `${anon}_${x.showId}`;
+      await chunked(db.collection('ModerationLog').where('reviewId', '==', d.id), (b, l) => b.update(l.ref, { reviewId: newId }));
+      if (evidence) {
+        await db.collection('Review').doc(newId).set({ ...x, userId: anon, userName: '', userImage: '', text: String(x.text || '').slice(0, 120), anonymizedAt: anonAt, queue: false });
+        await chunked(db.collection('ReviewReport').where('reviewId', '==', d.id), (b, l) => b.delete(l.ref));
+      }
+      await d.ref.delete();
+    }
+    for (const sid of revShows) await recomputeShowRating(db, sid);
+    await chunked(db.collection('User').doc(uid).collection('blocks'), (b, d) => b.delete(d.ref)); // engel listesi
+    await db.collection('ReviewLimits').doc(uid).delete();
+    // Ekibe sorulan sorular (Q-2): sahiplik belgesi silinir. Soru metni silinir; şikâyete/moderasyona konu olmuş (delil) sorular yalnız
+    // anonimleştirilir (ad boş, metin kısaltılır, gizli). Soru belgesinde zaten uid yoktur.
+    const ownedQ = await db.collection('QuestionOwner').where('uid', '==', uid).get();
+    for (const o of ownedQ.docs) {
+      const qr = db.collection('Question').doc(o.id);
+      const qs = await qr.get();
+      if (qs.exists) {
+        const x = qs.data();
+        const evidence = (x.reportCount || 0) > 0 || x.hiddenReason === 'moderator' || x.hiddenReason === 'reports';
+        if (evidence) await qr.set({ ...x, askerName: '', askerKey: '', text: String(x.text || '').slice(0, 120), hidden: true, status: 'hidden', anonymizedAt: anonAt });
+        else await qr.delete();
+      }
+      await chunked(db.collection('ModerationLog').where('questionId', '==', o.id), (b, l) => b.update(l.ref, { textSnapshot: '' }));
+      await o.ref.delete();
+    }
+    await chunked(db.collection('QuestionReport').where('userId', '==', uid), (b, d) => b.delete(d.ref));
+    await db.collection('QuestionLimits').doc(uid).delete();
+    // Anket oyları (F-5): Poll/*/votes/{uid} SİLİNİR; Poll.counts/totalVotes ve phoneVotes (telefon özeti, uid içermez) KASITLI KALIR (aynı kişi yeni hesapla ikinci oy veremesin).
+    for (const pr of await db.collection('Poll').listDocuments()) await pr.collection('votes').doc(uid).delete();
+    await db.collection('PollLimits').doc(uid).delete();
+    const planIds = (await db.collection('PlanOwner').where('creatorUid', '==', uid).get()).docs.map((d) => d.id);
+    // Grup planları (F-6): kullanıcının oluşturduğu planlar yanıtlarıyla birlikte silinir (plan sahibi kaydı uid taşır).
+    for (const pd of planIds) {
+      await chunked(db.collection('Plan').doc(pd).collection('responses'), (b, d) => b.delete(d.ref));
+      await db.collection('Plan').doc(pd).delete();
+      await db.collection('PlanOwner').doc(pd).delete(); // sahip kaydı EN SON: hata olursa yeniden denemede planIds yine bulunur
+    }
+    await db.collection('PlanLimits').doc(uid).delete();
+    await chunked(db.collection('ModerationLog').where('targetUid', '==', uid), (b, d) => b.update(d.ref, { targetUid: anon, textSnapshot: '' }));
+    await chunked(db.collection('ModerationLog').where('by', '==', uid), (b, d) => b.update(d.ref, { by: anon }));
     await db.collection('UserLimits').doc(uid).delete(); // yalnız uid aynası; ph_* sayacı KASITLI kalır
     // kimlik EN SON: Auth, sonra profil belgesi (Auth hatasında User hâlâ durur)
     try { await auth.deleteUser(uid); } catch (e) {
