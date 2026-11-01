@@ -67,7 +67,9 @@ test('newShows kapalı / yok iken HİÇ gitmez (ne push ne kutu)', async () => {
   await seedUser('b', { token: tok(2), prefs: { newShows: false } }); await follows('b', { favoritePlayers: ['p1'] });
   await seedUser('c', { token: tok(3), prefs: { reminders: true } }); await follows('c', { favoritePlayers: ['p1'] });
   const r = await f.processEvent('ev1');
-  assert.equal(r.matched, 0); assert.equal((await inbox()).length, 0); assert.equal(msg.multicasts.length, 0);
+  // Kimse eşleşmediği için (hepsi newShows kapalı) hiçbir şey yazılmaz: günlük/kilit yok, sonuç 'no-followers'.
+  assert.equal(r.skipped, 'no-followers'); assert.equal(r.matched ?? 0, 0);
+  assert.equal((await inbox()).length, 0); assert.equal(msg.multicasts.length, 0);
 });
 
 test('tek kullanıcıya tek mesaj: oyuncu+topluluk+sahne kesişiminde oyuncu mesajı (oyuncu > topluluk > sahne)', async () => {

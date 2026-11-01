@@ -134,14 +134,10 @@ function createFollowNotifier({ db, notifier, now = Date.now, log = console, ign
 
     const key = `fol_${eventId}`;
     const logRef = col('NotificationLog').doc(key);
-    try {
-      await logRef.create({
-        sentBy: 'system', sentByName: 'Otomatik', auto: true, target: { type: 'event', id: eventId }, targetLabel: `Takip: ${clip(show.name || '', 40)}`,
-        template: 'takip_yeni_oyun', kind: 'normal', category: 'newShows', title: 'Takip edenlere yeni oyun/seans', body: '', recipients: 0, status: 'sending', createdAt: Timestamp.fromMillis(t),
-      });
-    } catch (e) {
-      if (!isExists(e)) throw e;
-      if ((await logRef.get()).data().status === 'done') return { duplicate: true, logId: key };
+    // Ön kontrol (yalnız okuma): bu seans için gönderim zaten tamamlandıysa tekrar etme.
+    {
+      const ls = await logRef.get();
+      if (ls.exists && (ls.data() || {}).status === 'done') return { duplicate: true, logId: key };
     }
 
     // 1) takipçileri topla (benzersiz; üst sınır 5.000)
@@ -158,6 +154,18 @@ function createFollowNotifier({ db, notifier, now = Date.now, log = console, ign
     for (const [uid, c] of cands) {
       const best = PRIORITY.map((k) => c.via.find((v) => v.kind === k)).find(Boolean);
       if (best) pick.set(uid, best);
+    }
+
+    // Takip eden kimse yoksa HİÇBİR ŞEY yazma (günlük/kilit yok): boşuna yazma ve test/log kirliliği olmasın.
+    if (!pick.size) return { skipped: 'no-followers', considered };
+    try {
+      await logRef.create({
+        sentBy: 'system', sentByName: 'Otomatik', auto: true, target: { type: 'event', id: eventId }, targetLabel: `Takip: ${clip(show.name || '', 40)}`,
+        template: 'takip_yeni_oyun', kind: 'normal', category: 'newShows', title: 'Takip edenlere yeni oyun/seans', body: '', recipients: 0, status: 'sending', createdAt: Timestamp.fromMillis(t),
+      });
+    } catch (e) {
+      if (!isExists(e)) throw e;
+      if ((await logRef.get()).data().status === 'done') return { duplicate: true, logId: key };
     }
 
     // 3) adlar (yalnız eşleşenler)
