@@ -31,6 +31,9 @@ class Show extends Equatable {
   /// var olan veriden türetilen tek kaynak).
   final String externalTicketUrl;
 
+  /// SSS botu için (yönetici girer): ara bilgisi, içerik uyarısı, erişilebilir gösterim kodları ("AD, CAP").
+  final String interval, contentNotes, access;
+
   /// Harici biletli oyunun OYNADIĞI mekân (yönetici girer; adresten konum
   /// bulma ücretsiz OpenStreetMap ile). Doluysa Yakındakiler haritasında şehir
   /// merkezi yerine bu gerçek konumda görünür.
@@ -70,6 +73,9 @@ class Show extends Equatable {
     required this.oldPlayersId,
     required this.photosShowId,
     this.externalTicketUrl = '',
+    this.interval = '',
+    this.contentNotes = '',
+    this.access = '',
     this.externalVenueName = '',
     this.externalVenueAddress = '',
     this.externalLat,
@@ -95,6 +101,9 @@ class Show extends Equatable {
         oldPlayersId,
         photosShowId,
         externalTicketUrl,
+        interval,
+        contentNotes,
+        access,
               externalVenueName,
         externalVenueAddress,
         externalLat,

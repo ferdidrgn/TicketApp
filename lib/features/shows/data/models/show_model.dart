@@ -17,6 +17,7 @@ class ShowModel {
   final List<String>? eventsId;
   final List<String>? photosShowId;
   final String? externalTicketUrl;
+  final String? interval, contentNotes, access;
   final String? externalVenueName;
   final String? externalVenueAddress;
   final double? externalLat;
@@ -40,6 +41,9 @@ class ShowModel {
     this.eventsId,
     this.photosShowId,
     this.externalTicketUrl,
+    this.interval,
+    this.contentNotes,
+    this.access,
     this.externalVenueName,
     this.externalVenueAddress,
     this.externalLat,
@@ -78,6 +82,9 @@ class ShowModel {
             ?.map((final e) => e.toString())
             .toList(),
         externalTicketUrl: data['externalTicketUrl'] as String?,
+        interval: data['interval']?.toString(),
+        contentNotes: data['contentNotes']?.toString(),
+        access: data['access']?.toString(),
         externalVenueName: data['externalVenueName'] as String?,
         externalVenueAddress: data['externalVenueAddress'] as String?,
         externalLat: _num(data['externalLat']),

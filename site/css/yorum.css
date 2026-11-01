@@ -17,3 +17,8 @@
 .yorum-alt { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .yorum-eylem { display: flex; gap: 8px; flex-wrap: wrap; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Ekibe sor (Q-2) */
+.soru-cevap { margin: 6px 0 0; padding: 8px 12px; border-left: 3px solid var(--accent, currentColor); background: var(--surface); border-radius: 8px; }
+.soru-bot { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); }
+.soru-bot p { margin: 4px 0 0; }

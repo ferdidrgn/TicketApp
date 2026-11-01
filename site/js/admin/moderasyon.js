@@ -13,7 +13,7 @@ export function moderasyon(m, { veri, bildir, hataMesaji }) {
   const oyunAdi = (id) => (veri.Show || []).find((s) => s.docId === id || s.id === id)?.name || id;
   m.innerHTML = `<div class="adm-top"><h1>🛡️ Moderasyon</h1></div>
     <section class="bk-card"><p class="muted" style="margin:0">Bekleyen (süzgece takılan), şikâyetli ve gizli yorumlar. Her işlem için sebep zorunludur ve kayda geçer. Silme geri alınamaz.</p>
-    <div class="acts" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-s="kuyruk">Kuyruk</button><button class="btn btn-sm btn-ghost" data-s="gizli">Gizli yorumlar</button><button class="btn btn-sm btn-ghost" data-s="kayit">İşlem kayıtları</button></div></section>
+    <div class="acts" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-s="kuyruk">Kuyruk</button><button class="btn btn-sm btn-ghost" data-s="gizli">Gizli yorumlar</button><button class="btn btn-sm btn-ghost" data-s="soru">Sorular</button><button class="btn btn-sm btn-ghost" data-s="kayit">İşlem kayıtları</button></div></section>
     <section class="bk-card" id="mod-liste" aria-live="polite"></section>`;
   const kap = $('#mod-liste', m);
 
@@ -26,6 +26,7 @@ export function moderasyon(m, { veri, bildir, hataMesaji }) {
         kap.innerHTML = l.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Zaman</th><th>Rol</th><th>İşlem</th><th>Oyun</th><th>Sebep</th></tr></thead><tbody>${l.map((x) => `<tr><td>${esc(tarih(x.at))}</td><td>${esc(x.byRole)}</td><td>${esc(x.action)}</td><td>${esc(oyunAdi(x.showId))}</td><td>${esc(x.reason)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Kayıt yok.</div>';
         return;
       }
+      if (sekme === 'soru') return await sorular();
       const q = sekme === 'kuyruk' ? query(collection(db, 'Review'), where('queue', '==', true), limit(200)) : query(collection(db, 'Review'), where('hidden', '==', true), limit(200));
       const l = (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() }));
       kap.innerHTML = l.length ? l.map((r) => `<div class="yorum" data-id="${esc(r.id)}"><div><b>${esc(r.userName || 'Seyirci')}</b> · ${esc(oyunAdi(r.showId))} · ${'★'.repeat(r.rating || 0)} · <span class="tag ${r.hidden ? 'warn' : 'ok'}">${esc(DURUM[r.status] || (r.hidden ? 'Gizli' : 'Yayında'))}</span>${r.hiddenReason ? ` <span class="muted">(${esc(SEBEP[r.hiddenReason] || r.hiddenReason)})</span>` : ''} · şikâyet: ${r.reportCount || 0} · ${esc(tarih(r.createdAt))}</div>
@@ -39,6 +40,27 @@ export function moderasyon(m, { veri, bildir, hataMesaji }) {
         try { await cagir('adminModerate', { reviewId: id, action: a, reason: sebep }); bildir('İşlem kaydedildi'); yukle(); } catch (e) { b.disabled = false; bildir(hataMesaji(e), true); }
       }));
     } catch (e) { kap.innerHTML = `<div class="bk-alert" role="alert">${esc(hataMesaji(e))}</div>`; }
+  }
+  // Ekibe sorulan sorular (Q-2): bekleyenleri yanıtla (= yayınla) / reddet; gizlenenleri geri aç. Yazma yalnız answerQuestion/rejectQuestion/hideQuestion.
+  async function sorular() {
+    const [bek, giz] = await Promise.all([getDocs(query(collection(db, 'Question'), where('status', '==', 'pending'), limit(100))), getDocs(query(collection(db, 'Question'), where('status', '==', 'hidden'), limit(100)))]);
+    const l = [...bek.docs, ...giz.docs].map((d) => ({ id: d.id, ...d.data() }));
+    kap.innerHTML = l.length ? l.map((q) => `<div class="yorum" data-id="${esc(q.id)}"><div><b>${esc(q.askerName || 'Seyirci')}</b> · ${esc(oyunAdi(q.showId))} · <span class="tag ${q.status === 'pending' ? 'ok' : 'warn'}">${q.status === 'pending' ? 'Onay bekliyor' : 'Gizli'}</span> · şikâyet: ${q.reportCount || 0} · ${esc(tarih(q.createdAt))}</div>
+      <p>${esc(q.text)}</p>${q.answer ? `<p class="muted">Cevap: ${esc(q.answer)}</p>` : ''}
+      ${q.status === 'pending' ? '<label class="sr-only">Cevap</label><textarea data-cevap rows="2" maxlength="600" placeholder="Cevap (en fazla 600 karakter; bağlantı yazılamaz)" style="width:100%"></textarea>' : ''}
+      <div class="acts">${q.status === 'pending' ? '<button class="btn btn-sm btn-primary" data-q="answer">Yanıtla ve yayınla</button><button class="btn btn-sm btn-ghost" data-q="reject">Reddet</button>' : '<button class="btn btn-sm btn-primary" data-q="restore">Geri aç</button>'}</div></div>`).join('') : '<div class="empty">Bekleyen ya da gizli soru yok.</div>';
+    $$('[data-q]', kap).forEach((b) => b.addEventListener('click', async () => {
+      const kutu = b.closest('[data-id]'), id = kutu.dataset.id, a = b.dataset.q;
+      b.disabled = true;
+      try {
+        if (a === 'answer') await cagir('answerQuestion', { id, answer: $('[data-cevap]', kutu).value });
+        else {
+          const sebep = prompt(`Sebep (zorunlu, 3-200 karakter) — ${a === 'reject' ? 'reddet' : 'geri aç'}:`); if (!sebep) { b.disabled = false; return; }
+          await cagir(a === 'reject' ? 'rejectQuestion' : 'hideQuestion', a === 'reject' ? { id, reason: sebep } : { id, reason: sebep, restore: true });
+        }
+        bildir('İşlem kaydedildi'); yukle();
+      } catch (e) { b.disabled = false; bildir(hataMesaji(e), true); }
+    }));
   }
   $$('[data-s]', m).forEach((b) => b.addEventListener('click', () => { sekme = b.dataset.s; $$('[data-s]', m).forEach((x) => { x.className = `btn btn-sm ${x === b ? 'btn-primary' : 'btn-ghost'}`; }); yukle(); }));
   yukle();

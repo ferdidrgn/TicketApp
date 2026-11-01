@@ -182,7 +182,7 @@ test('şikâyet: 3 FARKLI telefonlu kullanıcı -> otomatik gizleme (+puan düş
   const r1 = await phoneUser(), r2 = await phoneUser(), r3 = await phoneUser();
   assert.equal((await rep(author.token)).status, 400); // kendi yorumu
   assert.equal((await rep(r1.token, { reason: 'hack' })).status, 400);
-  assert.equal((await rep(r1.token, { type: 'question' })).status, 400);
+  assert.equal((await rep(r1.token, { type: 'question' })).status, 404); // Q-2: type question artık desteklenir; bu kimlikte soru yok
   assert.equal((await rep(r1.token, { detail: 'x'.repeat(201) })).status, 400);
   assert.equal((await call('reportContent', { type: 'review', id: 'yok_yok', reason: 'spam' }, r1.token)).status, 404);
   assert.equal((await rep(r1.token)).body.result.hidden, false);

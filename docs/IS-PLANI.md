@@ -28,7 +28,7 @@ Kaynak raporlar: telefon kimliği (docs/TELEFON-DOGRULAMA.md), hesap silme (docs
 | N-2 | Bildirim tercihleri (`User.notifPrefs`: kategori aç/kapa, sessiz saat), işlemsel/pazarlama ayrımı | M | sessiz-alarm işi · **REVIEW** (28.10: şema+kurallar+mobil+web+sunucu süzgeci) |
 | N-3 | `fcmTokens` çoklu cihaz (dizi), ölü token temizliği | S | — |
 | Q-1 | Doğrulanmış yorum (bilet sahibi, `verified`, sunucudan yazım) + seans sonrası "nasıldı?" | M | S-1 |
-| Q-2 | Ekibe soru sor (Q&A, ön onaylı) + kural tabanlı SSS botu | M | S-1, T-1 |
+| Q-2 | Ekibe soru sor (Q&A, ön onaylı) + kural tabanlı SSS botu — BİTTİ, bkz. docs/SSS-BOTU.md | M | S-1, T-1 |
 | M-1 | Moderasyon: şikâyet et, kullanıcı engelle, otomatik gizleme eşiği, panel, `ModerationLog` (Play/App Store UGC şartı) | M | Q-1 |
 
 ## DALGA 3

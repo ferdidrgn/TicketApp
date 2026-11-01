@@ -24,6 +24,7 @@ const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createAccountDeletion } = require('./src/accountDeletion');
 const { createTeam } = require('./src/team');
 const { createReviews } = require('./src/reviews');
+const { createQuestions } = require('./src/questions');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 

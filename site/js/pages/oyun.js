@@ -6,6 +6,7 @@ import { kalpDugme, favMi } from '../fav.js';
 import { paylasMenusu } from '../ozellik.js';
 import { dolulukHtml } from '../canli.js';
 import { yorumlarHtml, yorumlarBaglan } from '../yorumlar.js';
+import { sorularHtml, sorularBaglan } from '../sorular.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
@@ -145,6 +146,7 @@ function ciz(d) {
       return satir.length > 1 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
     })() },
     { id: 'sss', ad: 'Sık sorulanlar', html: (() => { const q = sssSorulari(s, yer, alan, SATIS.mode); window.__sss = q; return sssHtml(q); })() },
+    { id: 'sorular', ad: 'Ekibe sor', html: sorularHtml() },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
     { id: 'ekip', ad: 'Ekip hikâyesi', html: ekipHtml(s) },
@@ -206,6 +208,7 @@ function ciz(d) {
   };
   seansCiz(); baglan();
   yorumlarBaglan(s);
+  sorularBaglan(s, yer, alan, SATIS.mode);
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
   $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
   $('#yazdir')?.addEventListener('click', () => print());
