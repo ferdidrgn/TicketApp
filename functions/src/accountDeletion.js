@@ -280,6 +280,17 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
     }
     await chunked(db.collection('QuestionReport').where('userId', '==', uid), (b, d) => b.delete(d.ref));
     await db.collection('QuestionLimits').doc(uid).delete();
+    // Anket oyları (F-5): Poll/*/votes/{uid} SİLİNİR; Poll.counts/totalVotes ve phoneVotes (telefon özeti, uid içermez) KASITLI KALIR (aynı kişi yeni hesapla ikinci oy veremesin).
+    for (const pr of await db.collection('Poll').listDocuments()) await pr.collection('votes').doc(uid).delete();
+    await db.collection('PollLimits').doc(uid).delete();
+    const planIds = (await db.collection('PlanOwner').where('creatorUid', '==', uid).get()).docs.map((d) => d.id);
+    // Grup planları (F-6): kullanıcının oluşturduğu planlar yanıtlarıyla birlikte silinir (plan sahibi kaydı uid taşır).
+    for (const pd of planIds) {
+      await chunked(db.collection('Plan').doc(pd).collection('responses'), (b, d) => b.delete(d.ref));
+      await db.collection('Plan').doc(pd).delete();
+      await db.collection('PlanOwner').doc(pd).delete(); // sahip kaydı EN SON: hata olursa yeniden denemede planIds yine bulunur
+    }
+    await db.collection('PlanLimits').doc(uid).delete();
     await chunked(db.collection('ModerationLog').where('targetUid', '==', uid), (b, d) => b.update(d.ref, { targetUid: anon, textSnapshot: '' }));
     await chunked(db.collection('ModerationLog').where('by', '==', uid), (b, d) => b.update(d.ref, { by: anon }));
     await db.collection('UserLimits').doc(uid).delete(); // yalnız uid aynası; ph_* sayacı KASITLI kalır

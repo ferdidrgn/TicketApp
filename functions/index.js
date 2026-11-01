@@ -25,6 +25,8 @@ const { createAccountDeletion } = require('./src/accountDeletion');
 const { createTeam } = require('./src/team');
 const { createReviews } = require('./src/reviews');
 const { createQuestions } = require('./src/questions');
+const { createPolls } = require('./src/polls');
+const { createPlans } = require('./src/plans');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -119,6 +121,14 @@ function getReviews() {
 function getQuestions() {
   return createQuestions({ db: getFirestore(), team: getTeam(), log: logger });
 }
+function getPolls() {
+  const db = getFirestore();
+  return createPolls({ db, salt: phoneSalt(), log: logger, assertAdmin: makeAssertAdmin(db) });
+}
+function getPlans() {
+  return createPlans({ db: getFirestore(), log: logger });
+}
+const isAnon = (req) => !!(req.auth && req.auth.token && req.auth.token.firebase && req.auth.token.firebase.sign_in_provider === 'anonymous');
 
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
@@ -190,6 +200,24 @@ exports.answerQuestion = onCall(base, guarded((req) => getQuestions().answerQues
 exports.rejectQuestion = onCall(base, guarded((req) => getQuestions().rejectQuestion(req.auth.uid, req.data)));
 exports.hideQuestion = onCall(base, guarded((req) => getQuestions().hideQuestion(req.auth.uid, req.data)));
 exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
+// Anket (F-5) + arkadaşa gönder / grup planı (F-6). Ayrıntı: docs/ANKET-PLAN.md
+exports.votePoll = onCall(salted, guarded((req) => getPolls().votePoll(req.auth.uid, req.data, phoneCtx(req))));
+exports.myPollVote = onCall(base, guarded((req) => getPolls().myVote(req.auth.uid, req.data)));
+exports.adminCreatePoll = onCall(base, guarded((req) => getPolls().adminCreatePoll(req.auth.uid, req.data)));
+exports.adminClosePoll = onCall(base, guarded((req) => getPolls().adminClosePoll(req.auth.uid, req.data)));
+exports.createPlan = onCall(base, guarded((req) => getPlans().createPlan(req.auth.uid, req.data, { anonymous: isAnon(req) })));
+exports.getPlanResponses = onCall(base, guarded((req) => getPlans().getPlanResponses(req.auth.uid, req.data)));
+// Plan yanıtı GİRİŞSİZ (kişisel veri yok; kötüye kullanım: günlük küresel tavan + plan başına tavan + metin süzgeci).
+exports.respondPlan = onCall({ ...base, maxInstances: 10 }, async (request) => {
+  if (ENFORCE_APP_CHECK.value() && !request.app) throw err('failed-precondition', 'Uygulama doğrulaması başarısız.');
+  try {
+    return await getPlans().respondPlan(request.data);
+  } catch (e) {
+    if (e && e.httpErrorCode) throw e;
+    logger.error('respondPlan hata', { name: e && e.name, code: e && e.code });
+    throw err('internal', 'Bir hata oluştu. Lütfen tekrar deneyin.');
+  }
+});
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,

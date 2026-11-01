@@ -49,6 +49,15 @@ module.exports = {
     ASK: { perHour: 3, perDay: 10 }, REPORT: { perHour: 10, perDay: 40 },
   },
 
+  // Anket/oylama (F-5, docs/ANKET-PLAN.md)
+  POLL: { QUESTION_MAX: 140, OPTION_MAX: 60, MIN_OPTIONS: 2, MAX_OPTIONS: 6, MAX_DAYS: 120, VOTE: { perHour: 20, perDay: 60 } },
+
+  // Arkadaşa gönder / grup planı (F-6, docs/ANKET-PLAN.md). Yanıt girişsizdir -> IP/uid yok: günlük GLOBAL tavan + plan başına tavan + metin süzgeci.
+  PLAN: {
+    TTL_MS: 7 * 24 * 60 * 60 * 1000, MAX_RESPONSES: 50, NAME_MAX: 30, UPDATES_MAX: 10,
+    CREATE: { perHour: 5, perDay: 10 }, GLOBAL_DAILY: { plans: 1000, responses: 5000 },
+  },
+
   // Hesap silme (docs/HESAP-SILME.md)
   ACCOUNT_DELETION: {
     GRACE_MS: 30 * 24 * 60 * 60 * 1000, // bekleme süresi

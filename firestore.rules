@@ -283,6 +283,43 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
+    // -------------------------------------------------------------------
+    // Anket (F-5, docs/ANKET-PLAN.md). Poll herkese okunur; oluşturma/kapatma ve oy (counts) YALNIZ Cloud Functions
+    // (adminCreatePoll / adminClosePoll / votePoll; Admin SDK). votes/{uid}: yalnız sahibi okur (kendi oyunu görmek için).
+    // phoneVotes (telefon özetine bağlı tekil oy; uid içermez) ve PollLimits istemciye KAPALI.
+    // -------------------------------------------------------------------
+    match /Poll/{pollId} {
+      allow read: if true;
+      allow write: if false;
+      match /votes/{uid} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+      match /phoneVotes/{key} {
+        allow read, write: if false;
+      }
+    }
+    match /PollLimits/{uid} {
+      allow read, write: if false;
+    }
+
+    // Grup planı (F-6): Plan herkese okunur (id tahmin edilemez; oluşturan kimliği belgede YOK). Yazma yalnız createPlan/respondPlan.
+    // responses (takma adlar) istemciye kapalı: plan sahibi getPlanResponses callable'ıyla görür. PlanOwner/PlanLimits yalnız sunucu.
+    match /Plan/{planId} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if false;
+      match /responses/{key} {
+        allow read, write: if false;
+      }
+    }
+    match /PlanOwner/{id} {
+      allow read, write: if false;
+    }
+    match /PlanLimits/{id} {
+      allow read, write: if false;
+    }
+
     match /Show/{showId} {
       allow read: if true;
       allow write: if isAdmin();
