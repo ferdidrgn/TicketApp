@@ -338,7 +338,7 @@ test('(i) kural dosyası taraması: `allow write/create/update/delete: if true` 
     if (m) cur = m[1];
     if (/allow\s+(read|get|list)[^:]*:\s*if\s+true/.test(l)) open.push(cur);
   }
-  assert.deepEqual(open.sort(), ['/AppTools/{docId}', '/Campaign/{campaignId}', '/Config/{docId}', '/Event/{eventId}', '/Player/{playerId}', '/Seats/{stageId}', '/Show/{showId}', '/Stage/{stageId}', '/Team/{teamId}']);
+  assert.deepEqual(open.sort(), ['/AppTools/{docId}', '/Campaign/{campaignId}', '/Config/{docId}', '/Event/{eventId}', '/Plan/{planId}', '/Player/{playerId}', '/Poll/{pollId}', '/Seats/{stageId}', '/Show/{showId}', '/Stage/{stageId}', '/Team/{teamId}']);
   // 3) son kural tümüyle kapalı wildcard
   assert.match(text, /match\s+\/\{document=\*\*\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;\s*\}/);
   // 4) wildcard/recursive allow'lar: yalnız Stats (okuma admin, yazma false) ve son deny
@@ -460,7 +460,8 @@ test('(g) OTOMATİK TARAMA: index.js içindeki TÜM admin* callable\'ları yetki
 
 test('(g) tüm kullanıcı callable\'ları anonim çağrıda UNAUTHENTICATED; hata gövdesi iç ayrıntı/iz sızdırmaz', { skip: SKIP_FN, timeout: 280000 }, async () => {
   const src = fs.readFileSync(path.join(ROOT, 'functions', 'index.js'), 'utf8');
-  const names = [...src.matchAll(/^exports\.(\w+)\s*=\s*onCall\(/gm)].map((m) => m[1]);
+  // respondPlan KASITLI girişsizdir (F-6; korumaları plans.test.js'te)
+  const names = [...src.matchAll(/^exports\.(\w+)\s*=\s*onCall\(/gm)].map((m) => m[1]).filter((n) => n !== 'respondPlan');
   assert.ok(names.length >= 18, names.join(','));
   for (const n of names) {
     const r = await fnCall(n, { eventId: 'x', seatIds: ['A1'], orderId: 'x' });
