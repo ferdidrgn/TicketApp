@@ -7,6 +7,8 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/comminucation_actions.dart';
+import '../../../follow/follow_button.dart';
+import '../../../follow/follow_logic.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -104,7 +106,10 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
     return ProfileDetailLayout(
       controller: scrollController,
       footer: kIsWeb ? const Footer() : null,
-      actions: const ProfileActionsRow(),
+      actions: ProfileActionsRow(
+        leading: FollowButton(
+            kind: FollowKind.stage, id: widget.stageId, onImage: false),
+      ),
       ticket: (final layout) {
         final List<String> stagePhotos = [
           if (stage.imageUrl.trim().startsWith('http')) stage.imageUrl.trim(),

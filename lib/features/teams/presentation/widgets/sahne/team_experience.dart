@@ -17,6 +17,8 @@ import '../../../../players/domain/entities/player.dart';
 import '../../../../search/presentation/providers/search_query_provider.dart';
 import '../../../../shows/domain/entities/show.dart';
 import '../../../../shows/presentation/providers/show_provider.dart';
+import '../../../../follow/follow_button.dart';
+import '../../../../follow/follow_logic.dart';
 import '../../../../shows/presentation/widgets/detail/show_detail_actions.dart';
 import '../../../domain/entities/team.dart';
 import '../../providers/team_provider.dart';
@@ -243,6 +245,7 @@ class _TeamExperienceState extends ConsumerState<TeamExperience> {
       }
 
       final Widget topBar = _TopBar(
+        followId: widget.teamId,
         name: name,
         offset: _offset,
         gutter: wide ? gutter : 12,
@@ -421,12 +424,14 @@ class _TeamExperienceState extends ConsumerState<TeamExperience> {
 // ═════════════════════════════════════════════════════════════════════════════
 
 class _TopBar extends StatelessWidget {
+  final String followId;
   final String name;
   final ValueNotifier<double> offset;
   final double gutter;
   final VoidCallback? onShare;
 
   const _TopBar({
+    required this.followId,
     required this.name,
     required this.offset,
     required this.gutter,
@@ -468,6 +473,7 @@ class _TopBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                FollowButton(kind: FollowKind.team, id: followId),
                 if (onShare != null)
                   ShowQuietIconButton(
                     icon: Icons.ios_share_rounded,

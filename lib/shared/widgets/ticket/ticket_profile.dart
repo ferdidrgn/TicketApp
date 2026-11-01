@@ -76,8 +76,12 @@ class ProfileActionsRow extends StatelessWidget {
   final VoidCallback? onShare;
   final String shareLabel;
 
+  /// Paylaşımın solunda ek aksiyon (ör. Takip et).
+  final Widget? leading;
+
   const ProfileActionsRow({
     super.key,
+    this.leading,
     this.onShare,
     this.shareLabel = 'Paylaş',
   });
@@ -87,6 +91,7 @@ class ProfileActionsRow extends StatelessWidget {
         children: [
           const ShowBackButton(),
           const Spacer(),
+          if (leading != null) leading!,
           if (onShare != null)
             ShowQuietIconButton(
               icon: Icons.ios_share_rounded,

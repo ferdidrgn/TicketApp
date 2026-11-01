@@ -269,3 +269,8 @@
 .destek { display: grid; gap: 10px; margin-top: 12px; }
 .destek-act { display: flex; gap: 10px; flex-wrap: wrap; }
 .destek .tiny { color: var(--ink-2); }
+
+/* Takip et: yeni oyun bildirimi onerisi (tek seferlik, onayli) */
+.takip-oneri { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.22); z-index: 260; }
+.takip-oneri p { margin: 0 0 12px; }
+.takip-oneri-ac { display: flex; gap: 8px; justify-content: flex-end; }
