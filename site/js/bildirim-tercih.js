@@ -12,7 +12,7 @@ export const KATEGORILER = [
   ['reminders', 'Seans hatırlatmaları', 'Seansa yaklaşık 24 saat ve 2 saat kala.'],
   ['changes', 'İptal ve değişiklikler', 'Seans iptal, erteleme ve saat değişikliği. Önemli: açık bırakman önerilir.'],
   ['thankYou', 'Teşekkür ve yorum daveti', 'İzlediğin seanstan sonra "Nasıldı?" bildirimi.'],
-  ['newShows', 'Yeni oyunlar ve seanslar', 'Yeni oyun ya da seans eklendiğinde (varsayılan kapalı).'],
+  ['newShows', 'Yeni oyunlar ve seanslar', 'Takip ettiğin oyuncu, sahne ve toplulukların yeni oyunu ya da seansı için (varsayılan kapalı).'],
   ['marketing', 'Kampanya ve duyurular', 'İndirim ve kampanya haberleri (varsayılan kapalı).'],
 ];
 

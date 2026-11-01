@@ -5,7 +5,7 @@
  */
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { defineSecret, defineString, defineBoolean } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp, getApps } = require('firebase-admin/app');
@@ -19,6 +19,7 @@ const { err, makeAssertAdmin } = require('./src/util');
 const { createService } = require('./src/orders');
 const { createStats } = require('./src/stats');
 const { createNotifier } = require('./src/notify');
+const { createFollowNotifier } = require('./src/follow-notify');
 const { createPhoneSync, resolvePhoneSalt } = require('./src/phone');
 const { createAccountDeletion } = require('./src/accountDeletion');
 const { createTeam } = require('./src/team');
@@ -246,6 +247,34 @@ exports.onEventChanged = onDocumentUpdated({ region: cfg.REGION, document: 'Even
   } catch (e) {
     logger.error('eventChanged hata', { eventId: event.params.eventId, code: e && e.code, message: e && e.message });
     throw e; // yeniden denenebilir hata: kilitler sayesinde güvenli
+  }
+});
+
+/**
+ * F-1 Takip et: yeni seans (Event) ya da Show.eventsId bağlanması -> oyuncu/topluluk/sahne takipçilerine `newShows` bildirimi.
+ * Zamanlanmış iş DEĞİL. İdempotent (Event.followNotified + kullanıcı başına kilit belgesi); docs/TAKIP-ET.md.
+ */
+const followNotifier = () => { const n = getNotifier(); return createFollowNotifier({ db: getFirestore(), notifier: n, log: logger }); };
+exports.onEventCreatedFollow = onDocumentWritten({ region: cfg.REGION, document: 'Event/{eventId}', maxInstances: 5, timeoutSeconds: 300 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await followNotifier().onEventWritten(event.params.eventId, change.before.exists ? change.before.data() : null, change.after.exists ? change.after.data() : null);
+    if (r && !r.skipped) logger.info('followNotify', { eventId: event.params.eventId, ...r });
+  } catch (e) {
+    logger.error('followNotify hata', { eventId: event.params.eventId, code: e && e.code, message: e && e.message });
+    throw e;
+  }
+});
+exports.onShowEventsLinkedFollow = onDocumentWritten({ region: cfg.REGION, document: 'Show/{showId}', maxInstances: 5, timeoutSeconds: 300 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  try {
+    const r = await followNotifier().onShowWritten(event.params.showId, change.before.exists ? change.before.data() : null, change.after.exists ? change.after.data() : null);
+    if (r && !r.skipped) logger.info('followNotify(show)', { showId: event.params.showId, ...r });
+  } catch (e) {
+    logger.error('followNotify(show) hata', { showId: event.params.showId, code: e && e.code, message: e && e.message });
+    throw e;
   }
 });
 
