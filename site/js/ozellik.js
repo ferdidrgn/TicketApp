@@ -64,9 +64,9 @@ export const pwaKurulabilir = () => !!kurulum;
 export async function pwaKur() { if (!kurulum) return false; kurulum.prompt(); const r = await kurulum.userChoice; kurulum = null; return r.outcome === 'accepted'; }
 
 // ---------- Paylaş menüsü ----------
-export function paylasMenusu(btn, baslik, metin = '') {
+export function paylasMenusu(btn, baslik, metin = '', adres = '') {
   document.querySelector('.pm-menu')?.remove();
-  const url = location.href.split('#')[0], q = encodeURIComponent;
+  const url = adres || location.href.split('#')[0], q = encodeURIComponent;
   const m = document.createElement('div'); m.className = 'pm-menu';
   m.innerHTML = `<a target="_blank" rel="noopener" href="https://wa.me/?text=${q(baslik + ' ' + url)}">WhatsApp</a><a target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${q(baslik)}&url=${q(url)}">X (Twitter)</a><a target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u=${q(url)}">Facebook</a><a href="mailto:?subject=${q(baslik)}&body=${q(metin + '\n' + url)}">E-posta</a><button data-k>Bağlantıyı kopyala</button>${navigator.share ? '<button data-s>Diğer uygulamalar…</button>' : ''}`;
   const r = btn.getBoundingClientRect();

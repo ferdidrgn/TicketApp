@@ -15,6 +15,7 @@ import { dashboard } from './dashboard.js';
 import { sahneKumandasi } from './sahne.js';
 import { ekipYoneticileri } from './ekipyonetici.js';
 import { moderasyon } from './moderasyon.js';
+import { anket } from './anket.js';
 
 const app = $('#app');
 let kullanici = null;
@@ -105,6 +106,7 @@ function iskeletCiz() {
     <button class="nv" data-g="sahne">🎭 Sahne kumandası</button>
     <button class="nv" data-g="ekipyon">🧑‍🤝‍🧑 Ekip yöneticileri</button>
     <button class="nv" data-g="moderasyon">🛡️ Moderasyon</button>
+    <button class="nv" data-g="anket">📊 Anket</button>
     <span class="sp"></span>
     <button class="nv" data-g="gorunum">🎨 Görünüm</button><button class="nv" data-g="yardim">❓ Yardım</button>
     <a class="nv btn" href="/" style="justify-content:flex-start;color:var(--ink-2)">↗ Siteyi aç</a>
@@ -121,6 +123,7 @@ function goster() {
   if (gorunum === 'biletler') return biletKapi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'sahne') return sahneKumandasi(m, { veri, bildir, hataMesaji });
   if (gorunum === 'moderasyon') return moderasyon(m, { veri, bildir, hataMesaji });
+  if (gorunum === 'anket') return anket(m, { veri, bildir, hataMesaji });
   if (gorunum === 'ekipyon') return ekipYoneticileri(m, { veri, bildir, hataMesaji });
   if (gorunum === 'gorunum') return gorunumAyari(m);
   if (gorunum === 'yardim') return yardim(m);

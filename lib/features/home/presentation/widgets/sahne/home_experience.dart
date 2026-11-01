@@ -1,4 +1,5 @@
 import '../../../../reviews/data/review_repository.dart';
+import '../../../../polls/presentation/widgets/poll_card.dart';
 import '../../../../reviews/presentation/providers/review_providers.dart';
 import '../../../../reviews/presentation/widgets/review_widgets.dart';
 import '../../../../../core/util/recent_history.dart';
@@ -475,6 +476,9 @@ class _HomeExperienceState extends ConsumerState<HomeExperience> {
                 )),
               ),
             ),
+
+            // F-5: aktif anket varsa kart (yoksa görünmez)
+            SliverToBoxAdapter(child: pad(const PollCard())),
 
             // Işıyan kenar + daktilo ipucu — dokununca arama sayfası
             SliverToBoxAdapter(

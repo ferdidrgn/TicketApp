@@ -8,6 +8,7 @@ import { buAksamHtml, buAksamBaglan } from '../canli.js';
 import { temaYaz, temaOku, temaHesapla, temaSecenekleri } from '../theme.js';
 import { takvimMenusu, dakikaOku } from '../detay.js';
 import { kalpDugme } from '../fav.js';
+import { anketKur } from '../anket.js';
 import { oneriYerTutucu, oneriKur } from '../oneri.js';
 import { alanAdi, kabukCiz, bolumBasligi, oyunKarti, ray, kisi, resim, afis, kelimeKelime, hataKutusu, iskelet } from '../ui.js';
 import { $, $$, esc, linkOf, tl, tarihUzun, saat, gunKisa, gunAdi, ayniGun, gunBasi, kisalt, AY_KISA } from '../util.js';
@@ -163,6 +164,7 @@ function ciz(d0) {
   document.getElementById('il-tum')?.addEventListener('click', () => ilYaz(''));
   document.querySelectorAll('.il-cipler [data-il]').forEach((b) => b.addEventListener('click', () => ilYaz(b.dataset.il)));
   buAksamBaglan(home);
+  anketKur(home); // F-5: aktif anket varsa kart (oy: sunucu callable'ı)
   oneriKur(home, d, il);
   if (adaylar.length >= 2) moodKur(adaylar);
   if (gunler.length) ajandaKur(d);

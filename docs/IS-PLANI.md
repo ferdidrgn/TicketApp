@@ -38,8 +38,8 @@ Kaynak raporlar: telefon kimliği (docs/TELEFON-DOGRULAMA.md), hesap silme (docs
 | F-2 | "Yer açılınca haber ver" bekleme listesi | M |
 | F-3 | İzledim koleksiyonu + Tiyatro Pasaportu + paylaşılabilir kart | M |
 | F-4 | "Senin için" kural tabanlı öneri | S |
-| F-5 | Anket/oylama (haftanın oyunu, hesap başına tek oy) | S |
-| F-6 | Arkadaşa gönder / grup planı linki | S |
+| F-5 | Anket/oylama (haftanın oyunu, hesap başına tek oy) | S | ✅ 01.11.2026 (docs/ANKET-PLAN.md)
+| F-6 | Arkadaşa gönder / grup planı linki | S | ✅ 01.11.2026 (docs/ANKET-PLAN.md)
 | F-7 | Bağış + gönüllü başvuru linkleri (Team alanları, harici bağlantı) | S |
 | F-8 | Google Cüzdan bileti | L |
 | A-1 | Haftalık özet raporu (Telegram/e-posta), TTL/yedekleme | M |

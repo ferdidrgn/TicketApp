@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -13,6 +14,7 @@ import '../../../../auth/presentation/providers/auth_provider.dart'
 import '../../../../users/presentation/providers/user_mutation_provider.dart';
 import '../../../../users/presentation/providers/user_provider.dart'
     show userProfileProvider;
+import '../../../../polls/data/poll_repository.dart';
 import '../../../domain/entities/show.dart';
 
 /// İkincil aksiyonlar için sessiz, yuvarlak ikon butonu (geri, paylaş,
@@ -95,9 +97,48 @@ class ShowShareButton extends StatelessWidget {
         icon: Icons.ios_share_rounded,
         label: 'Bu oyunu paylaş',
         onImage: onImage,
-        onPressed: () =>
-            TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name),
+        onPressed: () => _openShareSheet(context, show),
       );
+}
+
+/// Paylaş sayfası: oyun bağlantısı ya da F-6 "Birlikte gidelim" planı (arkadaş gelirim/belki/gelemem yanıtlar, giriş gerekmez).
+Future<void> _openShareSheet(final BuildContext context, final Show show) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (final BuildContext sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.ios_share_rounded),
+            title: const Text('Oyunu paylaş'),
+            onTap: () {
+              Navigator.of(sheet).pop();
+              TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.groups_rounded),
+            title: const Text('Birlikte gidelim'),
+            subtitle: const Text('Arkadaşların tek dokunuşla gelip gelemeyeceğini bildirir'),
+            onTap: () async {
+              Navigator.of(sheet).pop();
+              final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(context);
+              try {
+                final String url = await PlanRepository().create(showId: show.id);
+                await Share.share('${show.name} için birlikte gidelim mi? Yanıtla: $url');
+              } on PollException catch (e) {
+                messenger?.showSnackBar(SnackBar(content: Text(e.message)));
+              } catch (_) {
+                messenger?.showSnackBar(const SnackBar(content: Text('Plan oluşturulamadı. Tekrar dene.')));
+              }
+            },
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Favori — önceden mobilde boş bir `onPressed: () {}` idi (sahte

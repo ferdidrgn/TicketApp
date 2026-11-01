@@ -12,6 +12,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/plan/**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/ekip",
           "headers": [
             {
@@ -119,6 +132,10 @@
         {
           "source": "/koltuk/**",
           "destination": "/koltuk.html"
+        },
+        {
+          "source": "/plan/**",
+          "destination": "/plan.html"
         },
         {
           "source": "/odeme-sonuc",
@@ -285,6 +302,19 @@
       "cleanUrls": true,
       "headers": [
         {
+          "source": "/plan/**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ]
+        },
+        {
           "source": "/ekip",
           "headers": [
             {
@@ -392,6 +422,10 @@
         {
           "source": "/koltuk/**",
           "destination": "/koltuk.html"
+        },
+        {
+          "source": "/plan/**",
+          "destination": "/plan.html"
         },
         {
           "source": "/odeme-sonuc",

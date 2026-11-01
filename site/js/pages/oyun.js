@@ -178,7 +178,7 @@ function ciz(d) {
         ${n ? `<div class="op-next"><div class="f"><small>Sıradaki seans</small><b>${tarihUzun(n.when)} · ${saat(n.when)}</b></div><div class="f"><small>Perdeye kalan</small><b class="sayac" id="sayac"></b></div>${(() => { const dk = dakikaOku(s.duration); if (!s.duration) return ''; const bt = new Date(n.when.getTime() + dk * 60000); return `<div class="f"><small>Tahmini bitiş</small><b>${saat(bt)}</b></div>`; })()}${n.stage ? `<div class="f"><small>Sahne</small><b>${esc(n.stage.name)}</b></div>` : ''}</div>` : ''}
         <div class="op-act">
           ${s.external ? `<a class="btn btn-primary" target="_blank" rel="noopener sponsored" href="${esc(s.externalTicketUrl)}">Bileti ${esc(alan || 'organizatörden')} al ${DIS_IKON.replace('<svg', '<svg width="16" height="16"')}</a>` : (n ? biletDugmesi(n) : `<a class="btn btn-primary" href="#seanslar">Seansları gör</a>`)}
-          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button><button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
+          ${n ? '<button class="btn btn-ghost" id="takvim2">Takvime ekle</button>' : ''}${kalpB(s.id)}<button class="btn btn-ghost" id="paylas">Paylaş</button>${n && !s.external ? '<button class="btn btn-ghost" id="birlikte">Birlikte gidelim</button>' : ''}<button class="btn btn-ghost" id="yazdir">Yazdır</button></div>
       </div></div></section>
   <div class="mini-bar" id="mini"><div class="wrap" id="mini-w">${miniHtml()}</div></div>
   <div class="wrap"><nav class="bar-nav" id="bnav" aria-label="Sayfa bölümleri">${bolumler.map((b) => `<a href="#${b.id}">${esc(b.ad)}</a>`).join('')}</nav>
@@ -211,6 +211,7 @@ function ciz(d) {
   sorularBaglan(s, yer, alan, SATIS.mode);
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
   $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
+  $('#birlikte')?.addEventListener('click', (ev) => import('../plan-olustur.js').then((m) => m.birlikteGidelim(ev.currentTarget, s, seanslar[st.i])));
   $('#yazdir')?.addEventListener('click', () => print());
   // üst çubuk: hero görünmezken
   const mini = $('#mini'), ust = $('#ust');
