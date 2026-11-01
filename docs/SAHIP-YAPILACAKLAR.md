@@ -1,6 +1,6 @@
 # Sahibin yapacakları — tek sayfa kontrol listesi
 
-Güncelleme: 28.10.2026. Sıra önemlidir. Kod tarafı hazır (dal `tiyatrol-web-perde`, `main` = 1.0.8+27). Aşağıdakiler yalnız SENİN yetkinle yapılabilir.
+Güncelleme: 28.10.2026. Sıra önemlidir. Kod tarafı hazır (dal `tiyatrol-web-perde`, `main` = 1.0.9+28). Aşağıdakiler yalnız SENİN yetkinle yapılabilir.
 PowerShell komutlarını repo klasöründe çalıştır: `cd "C:\Users\ferdi\OneDrive\Belgeler\GitHub\TicketApp"`
 
 ## 0. Neden bu liste kritik
@@ -41,7 +41,7 @@ GitHub → Actions → "Deploy Backend" çalışmasını izle. Hata verirse log'
 Doğrulama: `holdSeats` adresi 404 yerine başka bir cevap vermeli (benden kontrol etmemi iste).
 
 ## 4. Android paketini Play'e yükle (SON TARİH: 1 Kasım 2026)
-1. GitHub → Actions → **Deploy Android** (en son başarılı çalışma, sürüm 1.0.8+27) → **Artifacts → `app-release-bundle`** indir.
+1. GitHub → Actions → **Deploy Android** (en son başarılı çalışma, sürüm 1.0.9+28) → **Artifacts → `app-release-bundle`** indir.
 2. Play Console → Üretim (veya önce iç test) → yeni sürüm → `.aab` yükle. Hedef SDK 36 olmalı.
 3. Otomatik yükleme için: Google Cloud'da **Google Play Android Developer API**'yi etkinleştir:
    `https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=823869540671`
