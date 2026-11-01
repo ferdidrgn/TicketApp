@@ -292,7 +292,21 @@ async function sil(c, x) {
       if (n > 0) return bildir(`Bu ${S.tek.toLowerCase()} için ${n} bilet var; silinemez (biletler geçmişte buradan okunur).`, true);
     }
   } catch (e) { return bildir(hataMesaji(e), true); }
-  if (!confirm(`“${S.baslik(x)}” kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) return;
+  // Seans kaydı yalnız tarihle gösteriliyordu: yanlış seansı silmek kolaydı. Oyun + sahne + tarih yaz; geri alınamaz uyarısı ve "SİL" yazdırma.
+  let etiket = S.baslik(x);
+  if (c === 'Event') {
+    const oyun = (veri.Show.find((y) => y.id === x.showId) || {}).name || 'Oyun?';
+    const sahne = (veri.Stage.find((y) => y.id === x.stageId) || {}).name || 'Sahne?';
+    etiket = `${oyun} · ${sahne} · ${x.date}`;
+  }
+  if (!confirm(`“${etiket}” kalıcı olarak silinsin mi?
+
+Bu işlem GERİ ALINAMAZ (Firestore'da çöp kutusu yok).`)) return;
+  {
+    const yanit = prompt(`Silmeyi onaylamak için kutuya SİL yaz:
+${etiket}`);
+    if (String(yanit || '').trim().toLocaleUpperCase('tr') !== 'SİL') return bildir('Silme iptal edildi.');
+  }
   try {
     await deleteDoc(doc(db, c, x.docId));
     if (c === 'Event' && x.showId) { const s = veri.Show.find((y) => y.id === x.showId); if (s) await updateDoc(doc(db, 'Show', s.docId), { eventsId: arrayRemove(x.id) }); }
