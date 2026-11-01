@@ -43,6 +43,12 @@ module.exports = {
     SUBMIT: { perHour: 5, perDay: 20 }, REPORT: { perHour: 10, perDay: 40 },
   },
 
+  // Ekibe soru sor (Q-2, docs/SSS-BOTU.md)
+  QUESTION: {
+    TEXT_MAX: 300, TEXT_MIN: 5, ANSWER_MAX: 600, DETAIL_MAX: 200, AUTO_HIDE_AT: 3,
+    ASK: { perHour: 3, perDay: 10 }, REPORT: { perHour: 10, perDay: 40 },
+  },
+
   // Hesap silme (docs/HESAP-SILME.md)
   ACCOUNT_DELETION: {
     GRACE_MS: 30 * 24 * 60 * 60 * 1000, // bekleme süresi

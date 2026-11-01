@@ -115,6 +115,10 @@ function getReviews() {
   return createReviews({ db: getFirestore(), team: getTeam(), log: logger });
 }
 
+function getQuestions() {
+  return createQuestions({ db: getFirestore(), team: getTeam(), log: logger });
+}
+
 /** Ortak giriş kapısı: giriş zorunlu, (isteğe bağlı) App Check zorunlu, beklenmeyen hatalar sızdırılmaz. */
 function guarded(fn) {
   return async (request) => {
@@ -168,12 +172,23 @@ exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTe
 exports.canReview = onCall(base, guarded((req) => getReviews().canReview(req.auth.uid, req.data, phoneCtx(req))));
 exports.submitReview = onCall(base, guarded((req) => getReviews().submitReview(req.auth.uid, req.data, phoneCtx(req))));
 exports.deleteMyReview = onCall(base, guarded((req) => getReviews().deleteMyReview(req.auth.uid, req.data)));
-exports.reportContent = onCall(base, guarded((req) => getReviews().reportContent(req.auth.uid, req.data, phoneCtx(req))));
-exports.blockUser = onCall(base, guarded((req) => getReviews().blockUser(req.auth.uid, req.data)));
+exports.reportContent = onCall(base, guarded((req) => (req.data && req.data.type === 'question'
+  ? getQuestions().reportQuestion(req.auth.uid, req.data, phoneCtx(req))
+  : getReviews().reportContent(req.auth.uid, req.data, phoneCtx(req)))));
+exports.blockUser = onCall(base, guarded((req) => (req.data && req.data.questionId != null
+  ? getQuestions().blockAskerOf(req.auth.uid, req.data.questionId)
+  : getReviews().blockUser(req.auth.uid, req.data))));
 exports.unblockUser = onCall(base, guarded((req) => getReviews().unblockUser(req.auth.uid, req.data)));
 exports.adminModerate = onCall(base, guarded((req) => getReviews().adminModerate(req.auth.uid, req.data)));
 exports.teamModerate = onCall(base, guarded((req) => getReviews().teamModerate(req.auth.uid, req.data)));
 exports.teamReviews = onCall(base, guarded((req) => getReviews().teamReviews(req.auth.uid, req.data)));
+// Ekibe soru sor (Q-2): ön onaylı Q&A. Question istemci yazımına KAPALI. docs/SSS-BOTU.md
+exports.askQuestion = onCall(base, guarded((req) => getQuestions().askQuestion(req.auth.uid, req.data, phoneCtx(req))));
+exports.myQuestions = onCall(base, guarded((req) => getQuestions().myQuestions(req.auth.uid, req.data)));
+exports.answerQuestion = onCall(base, guarded((req) => getQuestions().answerQuestion(req.auth.uid, req.data)));
+exports.rejectQuestion = onCall(base, guarded((req) => getQuestions().rejectQuestion(req.auth.uid, req.data)));
+exports.hideQuestion = onCall(base, guarded((req) => getQuestions().hideQuestion(req.auth.uid, req.data)));
+exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
 exports.startPayment = onCall({ ...base, secrets: [IYZICO_API_KEY, IYZICO_SECRET_KEY, PHONE_HASH_SALT] },
   guarded((req) => getService(true).startPayment(req.auth.uid, req.data, {
     email: req.auth.token && req.auth.token.email,

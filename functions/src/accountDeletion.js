@@ -263,6 +263,23 @@ function createAccountDeletion({ db, auth, orderService = null, deleteProfileIma
     for (const sid of revShows) await recomputeShowRating(db, sid);
     await chunked(db.collection('User').doc(uid).collection('blocks'), (b, d) => b.delete(d.ref)); // engel listesi
     await db.collection('ReviewLimits').doc(uid).delete();
+    // Ekibe sorulan sorular (Q-2): sahiplik belgesi silinir. Soru metni silinir; şikâyete/moderasyona konu olmuş (delil) sorular yalnız
+    // anonimleştirilir (ad boş, metin kısaltılır, gizli). Soru belgesinde zaten uid yoktur.
+    const ownedQ = await db.collection('QuestionOwner').where('uid', '==', uid).get();
+    for (const o of ownedQ.docs) {
+      const qr = db.collection('Question').doc(o.id);
+      const qs = await qr.get();
+      if (qs.exists) {
+        const x = qs.data();
+        const evidence = (x.reportCount || 0) > 0 || x.hiddenReason === 'moderator' || x.hiddenReason === 'reports';
+        if (evidence) await qr.set({ ...x, askerName: '', askerKey: '', text: String(x.text || '').slice(0, 120), hidden: true, status: 'hidden', anonymizedAt: anonAt });
+        else await qr.delete();
+      }
+      await chunked(db.collection('ModerationLog').where('questionId', '==', o.id), (b, l) => b.update(l.ref, { textSnapshot: '' }));
+      await o.ref.delete();
+    }
+    await chunked(db.collection('QuestionReport').where('userId', '==', uid), (b, d) => b.delete(d.ref));
+    await db.collection('QuestionLimits').doc(uid).delete();
     await chunked(db.collection('ModerationLog').where('targetUid', '==', uid), (b, d) => b.update(d.ref, { targetUid: anon, textSnapshot: '' }));
     await chunked(db.collection('ModerationLog').where('by', '==', uid), (b, d) => b.update(d.ref, { by: anon }));
     await db.collection('UserLimits').doc(uid).delete(); // yalnız uid aynası; ph_* sayacı KASITLI kalır

@@ -261,6 +261,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Question — ekibe sorulan soru (Q-2, docs/SSS-BOTU.md). YAZMA İSTEMCİYE KAPALI (askQuestion/answerQuestion/... callable'ları). Belgede uid YOK
+    // (sahiplik QuestionOwner'da, yalnız sunucu). Herkese yalnız YAYINLANMIŞ (answered + hidden==false) sorular açık; sorgu
+    // `where('status','==','answered').where('hidden','==',false)` ile kısıtlanmalı. Sahibi bekleyen sorusunu `myQuestions` callable'ıyla görür.
+    match /Question/{qid} {
+      allow read: if (resource.data.status == 'answered' && resource.data.hidden == false) || isAdmin();
+      allow write: if false;
+    }
+    match /QuestionOwner/{id} { allow read, write: if false; }
+    match /QuestionReport/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /QuestionLimits/{uid} { allow read, write: if false; }
+
     // User/{me}/blocks/{blockedUid} — kullanıcı engelleme listesi: kullanıcı YALNIZCA kendi listesini okur/yazar
     // (blockUser/unblockUser callable'ları aynı belgeyi yazar). Belge yalnız { blockedAt: sunucu zamanı }; kendini engelleme yok.
     match /User/{userId}/blocks/{blockedUid} {
