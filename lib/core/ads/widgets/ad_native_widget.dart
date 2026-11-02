@@ -22,7 +22,7 @@ class _AdNativeWidgetState extends State<AdNativeWidget> {
   void initState() {
     super.initState();
     // Web'de Native reklam desteği olmadığı için sadece mobilde yükle
-    if (!kIsWeb) _load();
+    if (!kIsWeb && AdManager.canServe(AdUnitType.native)) _load();
   }
 
   void _load() => _ad = NativeAd(

@@ -135,7 +135,7 @@ jobs:
           EOF
 
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --dart-define=ADS_PROD=true
 
       - name: Upload App Bundle artifact
         uses: actions/upload-artifact@v4

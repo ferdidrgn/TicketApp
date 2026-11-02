@@ -1,6 +1,6 @@
 # Sahibin yapacakları — tek sayfa kontrol listesi
 
-Güncelleme: 28.10.2026. Sıra önemlidir. Kod tarafı hazır (dal `tiyatrol-web-perde`, `main` = 1.0.8+27). Aşağıdakiler yalnız SENİN yetkinle yapılabilir.
+Güncelleme: 28.10.2026. Sıra önemlidir. Kod tarafı hazır (dal `tiyatrol-web-perde`, `main` = 1.0.9+28). Aşağıdakiler yalnız SENİN yetkinle yapılabilir.
 PowerShell komutlarını repo klasöründe çalıştır: `cd "C:\Users\ferdi\OneDrive\Belgeler\GitHub\TicketApp"`
 
 ## 0. Neden bu liste kritik
@@ -41,7 +41,7 @@ GitHub → Actions → "Deploy Backend" çalışmasını izle. Hata verirse log'
 Doğrulama: `holdSeats` adresi 404 yerine başka bir cevap vermeli (benden kontrol etmemi iste).
 
 ## 4. Android paketini Play'e yükle (SON TARİH: 1 Kasım 2026)
-1. GitHub → Actions → **Deploy Android** (en son başarılı çalışma, sürüm 1.0.8+27) → **Artifacts → `app-release-bundle`** indir.
+1. GitHub → Actions → **Deploy Android** (en son başarılı çalışma, sürüm 1.0.9+28) → **Artifacts → `app-release-bundle`** indir.
 2. Play Console → Üretim (veya önce iç test) → yeni sürüm → `.aab` yükle. Hedef SDK 36 olmalı.
 3. Otomatik yükleme için: Google Cloud'da **Google Play Android Developer API**'yi etkinleştir:
    `https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=823869540671`
@@ -63,6 +63,15 @@ Kurallar (bölüm 5) yayınlandığında aşağıdakiler HAZIR olmalı, yoksa il
 
 ## 5c. Verilecek karar: toplam bilet limitleri
 Şu an etkinlik başına 3 bilet limiti (telefon bazlı) var. Ayrıca iki TOPLAM limit açık: ücretsiz etkinliklerde toplam 3 ve toplam 3 rezervasyon. "Etkinlik boyunca 3" istiyorsan toplamları kapat: `Config/satis` belgesine `ucretsizToplamLimit: 0` ve `rezervasyonLimit: 0` yaz (deploy gerekmez, kurallar yayınlandıktan sonra, yönetim paneli ya da Console'dan).
+
+## 9b. Reklam askıya alma (AdMob/AdSense geçersiz trafik) — YENİ
+Google hesabı (pub-5779807348211992) 29 gün askıya aldı; itiraz yok. Ayrıntı ve olası kaynaklar: `docs/REKLAM-POLITIKASI.md`.
+1. **Firebase Console → Remote Config:** `adsEnabled` = `false` yap ve **yayınla**.
+2. **AdMob → Politika merkezi / Geçersiz trafik** ve **Uygulamalar**: hangi uygulama/birim etkilenmiş bak.
+3. **AdSense (varsa) → Siteler:** eski Flutter web siteleri (`tiyatrol.web.app`, `ticketappflutter.web.app`, `tiyatroekip.web.app`) kayıtlıysa kaldır.
+4. Kendi telefonunda uygulamayı **hiç gerçek reklam tıklamadan** kullan; test cihaz kimliğini kaydet (politika dosyası bölüm 5).
+5. Play'e **yalnız CI'dan çıkan** paketi yükle (kendi `flutter build --release` paketini yükleme).
+6. 29 gün sonra reklamı **önce yalnız kendi cihazında** aç, Reklam Denetçisi ile bak, sonra herkese aç.
 
 ## 6. Canlı duman testi (30 dakika, kendin yap)
 1. Telefonla giriş (gerçek SMS) → web ve mobil.

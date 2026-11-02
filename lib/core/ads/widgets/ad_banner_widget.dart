@@ -26,6 +26,9 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
   void initState() {
     super.initState();
 
+    // Kapalıysa / birim geçersizse reklam İSTEĞİ hiç atılmaz (yalnız gizlemek yetmez).
+    if (!AdManager.canServe(AdUnitType.banner)) return;
+
     _ad = BannerAd(
       adUnitId: AdManager.getAdUnitId(AdUnitType.banner),
       size: widget.size,

@@ -11,11 +11,43 @@ final class AdManager {
 
   static bool _initialized = false;
 
+  // ── REKLAM POLİTİKASI (geçersiz trafik önlemi; bkz. docs/REKLAM-POLITIKASI.md) ──
+  /// Gerçek reklam birimleri YALNIZ mağaza derlemesinde kullanılır: CI release işi
+  /// `--dart-define=ADS_PROD=true` verir. Kendi telefonuna kurduğun release/profile
+  /// derlemeleri ve debug derlemeler Google TEST reklamlarını gösterir (kendi gerçek
+  /// reklamını görmek/tıklamak geçersiz trafik sayılır).
+  static const bool _adsProdBuild = bool.fromEnvironment('ADS_PROD');
+
+  /// Virgülle ayrılmış AdMob test cihazı kimlikleri: `--dart-define=ADMOB_TEST_DEVICES=ID1,ID2`.
+  static const String _testDevices = String.fromEnvironment('ADMOB_TEST_DEVICES');
+
+  static bool get usesProductionUnits => _adsProdBuild && !kDebugMode;
+
+  /// Gerçek bir AdMob birim kimliği mi? (yer tutucular ve boş değerler reklam isteği atmaz)
+  static bool isValidUnitId(final String id) =>
+      id.startsWith('ca-app-pub-') && !id.contains('IOS_') && id.contains('/');
+
+  /// Reklam isteği atmadan ÖNCE çağrılır: kapalıysa ya da birim geçersizse HİÇ istek yapılmaz.
+  static bool canServe(final AdUnitType type) =>
+      PlatformChecker.isMobile &&
+      RemoteConfigService.adsEnabled &&
+      isValidUnitId(getAdUnitId(type));
+
   /// 🔹 SADECE MOBİL
   static Future<void> initialize() async {
     if (_initialized) return;
-    if (PlatformChecker.isMobile && RemoteConfigService.adsEnabled)
+    if (PlatformChecker.isMobile && RemoteConfigService.adsEnabled) {
       await MobileAds.instance.initialize();
+      final ids = _testDevices
+          .split(',')
+          .map((final e) => e.trim())
+          .where((final e) => e.isNotEmpty)
+          .toList();
+      if (ids.isNotEmpty) {
+        await MobileAds.instance.updateRequestConfiguration(
+            RequestConfiguration(testDeviceIds: ids));
+      }
+    }
 
     _initialized = true;
   }
@@ -31,7 +63,7 @@ final class AdManager {
   // =====================
 
   static String _mobile(final AdUnitType type) =>
-      kDebugMode ? _debugMobile(type) : _prodMobile(type);
+      usesProductionUnits ? _prodMobile(type) : _debugMobile(type);
 
   static String _debugMobile(final AdUnitType type) {
     switch (type) {
@@ -53,12 +85,12 @@ final class AdManager {
       case AdUnitType.banner:
         return PlatformChecker.isAndroid
             ? 'ca-app-pub-5779807348211992/6454721883'
-            : 'IOS_BANNER_ID';
+            : ''; // iOS gerçek birim kimliği henüz yok: boş = reklam isteği atılmaz
 
       case AdUnitType.native:
         return PlatformChecker.isAndroid
             ? 'ca-app-pub-5779807348211992/2655077678'
-            : 'IOS_NATIVE_ID';
+            : '';
 
       default:
         return '';

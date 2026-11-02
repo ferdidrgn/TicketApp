@@ -5,12 +5,12 @@ abstract final class RemoteConfigService {
   static final _remoteConfig = FirebaseRemoteConfig.instance;
 
   // 🔔 UI'ı tetikleyecek olan notifier
-  static final ValueNotifier<bool> adsEnabledNotifier = ValueNotifier(true);
+  static final ValueNotifier<bool> adsEnabledNotifier = ValueNotifier(false); // varsayılan KAPALI (güvenli taraf): Console'dan adsEnabled=true ile açılır
 
   static Future<void> init() async {
     try {
       // Varsayılan değerler
-      await _remoteConfig.setDefaults({'adsEnabled': true});
+      await _remoteConfig.setDefaults({'adsEnabled': false});
 
       await _remoteConfig.setConfigSettings(RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 10),

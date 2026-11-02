@@ -71,3 +71,16 @@ Canlı herkese açık sohbet (24 saat moderasyon sorumlusu gerekir), LLM botu, h
 ## DURUM TABLOSU (ajan başına)
 Tamamlandı ve dalda: telefon kimliği (backend+web+mobil+denetim), hesap silme (backend+web+mobil+denetim), web favorileri hesaba bağlı (main'de), sessizde sesli hatırlatma (izinli, 869a9e2b), maliyet/güvenlik/UX/otomasyon araştırmaları.
 Çalışıyor (Dalga 1): S-1, T-1, O-1, U-1; (1b): N-3 + M-3.
+
+## KALAN ADIMLAR (1 Kasım 2026 itibarıyla; sahip ve ben)
+| ID | Adım | Kim | Durum |
+|---|---|---|---|
+| K-1 | Secret'ları kaydet (`PHONE_HASH_SALT`, `IYZICO_API_KEY`, `IYZICO_SECRET_KEY` yer tutucu) ve `gh workflow run "Deploy Backend" --ref main -f target=functions` — canlıda fonksiyonlar yok (holdSeats 404) | Sahip | BLOCKED |
+| K-2 | Android paketini Play'e yükle (SDK 36; son tarih 1 Kasım 2026) + Google Play Android Developer API'yi etkinleştir | Sahip | BLOCKED |
+| K-3 | Kurallar ve dizinler (EN SON): `-f target=rules-and-indexes` (önce güncel web + yeni mobil sürüm yayında olmalı) | Sahip | BLOCKED (K-1, K-2 sonrası) |
+| K-4 | Silinen "Herkes Farklı Ölür" seanslarını panelden yeniden ekle (16.10.2026 20:30 O Sahne; 18.12.2026 20:00 Caddebostan A Salonu; fiyat boş) | Sahip | BLOCKED |
+| K-5 | Gerçek salon koltuk planı (kapasite 313 mü 331 mi?) → `/yonetim/koltuk-plani` | Sahip (+ ben satırları hazırlarım) | BLOCKED |
+| K-6 | Toplam bilet limitleri kararı (ücretsiz toplam 3 / rezervasyon toplam 3: kapat/kalsın) | Sahip | BLOCKED (karar) |
+| K-7 | Reklam askıya alma: Remote Config `adsEnabled=false`, AdMob/AdSense kontrolü, test cihazı kaydı (docs/REKLAM-POLITIKASI.md) | Sahip | BLOCKED |
+| K-8 | Reklam politikası kodu (varsayılan kapalı, test birimleri, istek öncesi kontrol, hassas ekran testi, AdSense betiği kapatıldı) | Ben | DONE (testli) |
+| K-9 | Fonksiyonlar çıkınca canlı doğrulama (404 kalktı mı; duman testi listesi docs/SAHIP-YAPILACAKLAR.md §6) | Ben (+ sahip SMS/cihaz) | BLOCKED (K-1 sonrası) |
