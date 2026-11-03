@@ -63,7 +63,8 @@ jobs:
           missing=0
           for S in PHONE_HASH_SALT IYZICO_API_KEY IYZICO_SECRET_KEY; do
             # `secrets:get` yalnızca meta veri döner; DEĞER yazdırılmaz.
-            if ! npx -y "$FIREBASE_TOOLS" functions:secrets:get "$S" --project "$FIREBASE_PROJECT" --non-interactive >/dev/null 2>&1; then
+            if ! npx -y "$FIREBASE_TOOLS" functions:secrets:get "$S" --project "$FIREBASE_PROJECT" --non-interactive >"$RUNNER_TEMP/sg.out" 2>&1; then
+              echo "--- '$S' için CLI çıktısı (yalnız meta veri/hata) ---"; sed -e 's/\[[0-9;]*m//g' "$RUNNER_TEMP/sg.out" | tail -8
               echo "::error::Secret Manager'da '$S' yok ya da servis hesabı okuyamıyor. Bir kez girin: firebase functions:secrets:set $S --project $FIREBASE_PROJECT"
               missing=1
             fi
