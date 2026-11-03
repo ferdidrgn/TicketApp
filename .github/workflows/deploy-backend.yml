@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: functions/package-lock.json
       - name: Write service account
@@ -47,6 +47,8 @@ jobs:
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
           node -e "const j=require(process.argv[1]); if(!j.client_email||!j.private_key){process.exit(1)}" "$RUNNER_TEMP/sa.json" \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT geçerli bir servis hesabı JSON'u değil."; exit 1; }
+          # Hangi hesapla çalışıldığı görünsün (yalnız e-posta ve proje kimliği; anahtar YAZILMAZ).
+          node -e "const j=require(process.argv[1]); console.log('Servis hesabı:', j.client_email, '| proje:', j.project_id)" "$RUNNER_TEMP/sa.json"
 
       # ---- functions ---------------------------------------------------------------------------------------------
       - name: Install functions deps
@@ -63,7 +65,8 @@ jobs:
           missing=0
           for S in PHONE_HASH_SALT IYZICO_API_KEY IYZICO_SECRET_KEY; do
             # `secrets:get` yalnızca meta veri döner; DEĞER yazdırılmaz.
-            if ! npx -y "$FIREBASE_TOOLS" functions:secrets:get "$S" --project "$FIREBASE_PROJECT" --non-interactive >/dev/null 2>&1; then
+            if ! npx -y "$FIREBASE_TOOLS" functions:secrets:get "$S" --project "$FIREBASE_PROJECT" --non-interactive >"$RUNNER_TEMP/sg.out" 2>&1; then
+              echo "--- '$S' için CLI çıktısı (yalnız meta veri/hata) ---"; tail -8 "$RUNNER_TEMP/sg.out"
               echo "::error::Secret Manager'da '$S' yok ya da servis hesabı okuyamıyor. Bir kez girin: firebase functions:secrets:set $S --project $FIREBASE_PROJECT"
               missing=1
             fi

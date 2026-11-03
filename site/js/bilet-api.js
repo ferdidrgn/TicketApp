@@ -33,6 +33,10 @@ export function apiHata(e) {
     const h = new Error(String(e?.message || '').startsWith('Bu etkinlik için') ? e.message : `Bu etkinlik için en fazla ${d.limit} bilet alabilirsin. Şu an ${d.used} biletin var; ${d.remaining} bilet daha alabilirsin.`);
     h.kod = 'EVENT_LIMIT'; h.limit = d.limit; h.used = d.used; h.remaining = d.remaining; return h;
   }
+  // Fonksiyon hiç yayında değilse SDK jenerik "NOT_FOUND" döner (sunucunun kendi not-found mesajları Türkçe ve ayrıntılı).
+  if (kod === 'not-found' && /^not[_ ]?found\.?$/i.test(String(e?.message || '').trim())) {
+    const h = new Error('Satış servisi şu an hazır değil. Lütfen biraz sonra tekrar dene.'); h.kod = 'unavailable'; return h;
+  }
   // Sunucunun yazdığı Türkçe mesaj yalnızca bilinen iş hatalarında gösterilir; "internal" vb. genel mesaja düşer.
   if (SUNUCU_MESAJI.has(kod)) {
     const m = String(e?.message || '').trim();

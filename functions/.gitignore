@@ -3,3 +3,4 @@ node_modules/
 .secret.local
 .env*
 !.env.local
+!.env.ticketappflutter

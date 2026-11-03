@@ -3,7 +3,7 @@
   "private": true,
   "description": "TiyatRol güvenli bilet satış backend'i (Cloud Functions 2nd gen)",
   "main": "index.js",
-  "engines": { "node": "20" },
+  "engines": { "node": "22" },
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=60000 test/*.test.js",
     "test:emulator": "firebase emulators:exec --project ticketappflutter --only firestore,auth,functions,storage \"npm test\"",

@@ -1,7 +1,7 @@
 # Ödeme ve bilet satış güvenliği (TiyatRol)
 
 Durum: kod + kurallar + otomatik testler hazır. **Henüz deploy EDİLMEDİ** (ne fonksiyonlar ne kurallar).
-Web ve mobil aynı backend'i kullanır: `functions/` (Cloud Functions 2nd gen, Node 20, `europe-west1`).
+Web ve mobil aynı backend'i kullanır: `functions/` (Cloud Functions 2nd gen, Node 22, `europe-west1`).
 
 ## 1. UYARI: mobil uygulama kırılır
 
