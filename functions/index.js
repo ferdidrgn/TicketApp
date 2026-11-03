@@ -1,6 +1,6 @@
 'use strict';
 /**
- * TiyatRol güvenli bilet satış backend'i — Cloud Functions 2nd gen, Node 20, europe-west1.
+ * TiyatRol güvenli bilet satış backend'i — Cloud Functions 2nd gen, Node 22, europe-west1.
  * Ayrıntı ve kurulum: docs/ODEME-GUVENLIK.md
  */
 const { onCall, onRequest } = require('firebase-functions/v2/https');
