@@ -144,18 +144,15 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
-      # Play Console'a otomatik yükleme — tüm gerekli secret'lar
-      # (ANDROID_KEYSTORE_BASE64, PLAY_STORE_SERVICE_ACCOUNT_JSON vb.)
-      # eklendi, artık aktif. `continue-on-error: true` bilerek kalıyor:
-      # bu adım (ör. Play Console'da uygulama henüz hiç manuel
-      # yayınlanmamışsa "no application found" gibi) başarısız olsa bile
-      # asıl appbundle build+upload-artifact adımları etkilenmesin diye.
-      - name: Upload to Play Console (internal track)
-        continue-on-error: true
+      # Play Console'a OTOMATİK YAYIN: main'e push edilen her sürüm doğrudan production kanalına gider (elle "yayınla" yok).
+      # Hata olursa adım KIRMIZI olur (eskiden continue-on-error ile sessizce geçiyordu).
+      # Gereken: Google Play Android Developer API açık + PLAY_STORE_SERVICE_ACCOUNT_JSON hesabı Play Console'da yetkili.
+      # Her yayında pubspec.yaml build numarası (+N) bir öncekinden büyük olmalı, yoksa Play reddeder.
+      - name: Publish to Play Console (production)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}"
           packageName: com.ferdidrgn.ticketapp
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: internal
-          status: draft
+          tracks: production
+          status: completed
