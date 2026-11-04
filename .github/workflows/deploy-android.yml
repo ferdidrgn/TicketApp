@@ -63,6 +63,14 @@ on:
   push:
     branches:
       - main
+    # Yalnız uygulama (Android/Flutter) kodu değişince derle ve Play'e gönder; web/docs/functions push'ları sürüm numarasını boşuna denemesin.
+    paths:
+      - "lib/**"
+      - "android/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/deploy-android.yml"
 
 jobs:
   build-appbundle:
