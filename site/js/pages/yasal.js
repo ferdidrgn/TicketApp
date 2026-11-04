@@ -26,6 +26,8 @@ function temizle(html) {
   return d.body.innerHTML;
 }
 (async () => {
+  // Gizlilik politikası STATİKTİR (Play Console politika denetimi: uygulama/geliştirici adı eşleşmeli, TR+EN); yalnız şartlar canlı okunur.
+  if (alan === 'privacyPolicy') return;
   try {
     const s = await getDoc(doc(db, 'AppTools', 'bgVYTTauB9gwd1qOyjix'));
     const t = s.exists() ? s.data()[alan] : '';
