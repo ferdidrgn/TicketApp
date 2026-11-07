@@ -910,13 +910,13 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   /** Sonucu tek transaction'da uygular. İdempotent. -> 'paid' | 'already' | 'failed' | 'anomaly' | 'ignored' */
   async function settle(orderId, det) {
     const orderRef = orders().doc(orderId);
-    let outcome;
+    let outcome, pendingReview = false;
     await db.runTransaction(async (tx) => {
       const c = await readFulfillCtx(tx, orderRef, orderId);
       if (!c) { outcome = 'ignored'; return; }
       const { order } = c;
       if (order.status === 'paid') { outcome = 'already'; return; }
-      if (det && det.pending && !det.paid) { outcome = 'ignored'; return; } // sahtecilik incelemesi (fraudStatus 0): karar beklenir
+      if (det && det.pending && !det.paid) { outcome = 'ignored'; pendingReview = true; return; } // sahtecilik incelemesi (fraudStatus 0): karar beklenir
       const v = verify(order, orderId, order.providerToken, det);
       const releaseOwn = () => {
         const a = [];
@@ -946,6 +946,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       outcome = 'anomaly';
     });
     if (outcome === 'anomaly') log.error('ÖDEME ANOMALİSİ: manuel inceleme/iade gerekli', { orderId });
+    // GÖZLEMLENEBİLİRLİK (saf ekleme, davranış DEĞİŞMEDİ): sahtecilik incelemesi süren ödemeler
+    // sessizce 'ignored' dönüyordu — expireHolds/callback bunu tekrar deneyecek ama panelde iz kalmıyordu.
+    else if (pendingReview) log.info('iyzico ödeme incelemede (fraudStatus beklemede)', { orderId });
     return outcome;
   }
 
@@ -953,6 +956,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   async function handleProviderCallback({ providerName, token }) {
     if (typeof token !== 'string' || token.length < 8 || token.length > 256) return { ok: false, orderId: null };
     const q = await orders().where('providerToken', '==', token).limit(2).get();
+    // GÖZLEMLENEBİLİRLİK (saf ekleme, davranış DEĞİŞMEDİ): q.size>1 teorik olarak imkânsız olmalı
+    // (providerToken sağlayıcıdan tek sipariş için alınır) — olursa manuel inceleme için loglanır.
+    if (q.size > 1) log.error('iyzicoCallback anomali: token birden fazla siparişte', { tokenLen: token.length });
     if (q.size !== 1) return { ok: false, orderId: null };
     const d = q.docs[0], orderId = d.id, o = d.data();
     if (o.provider !== providerName) return { ok: false, orderId };
