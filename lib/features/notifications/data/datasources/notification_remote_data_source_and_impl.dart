@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/notification_model.dart';
 
 abstract class NotificationRemoteDataSource {
-  Future<bool> createNotification(final NotificationModel notification);
+  // NOT (13.11.2026): create YOK — bkz. notification_repository.dart notu.
+  // Notification yazımı yalnız sunucuda (Cloud Functions); istemci
+  // firestore.rules'ta `allow create: if false` ile zaten reddedilir.
   Stream<List<NotificationModel>> watchNotificationsForUser(
       final String userId);
   Future<bool> markNotificationRead(final String notificationId);
@@ -15,25 +17,6 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   NotificationRemoteDataSourceImpl(
       {required final FirebaseFirestore firestore})
       : _firestore = firestore;
-
-  @override
-  Future<bool> createNotification(final NotificationModel notification) async {
-    try {
-      // Yeni bir document ID oluştur (Ticket/User datasource'larıyla aynı desen)
-      final docRef = _firestore.collection(_collection).doc();
-
-      final notificationMap = {
-        ...notification.toFirestore(),
-        '_id': docRef.id,
-        '_createdAt': notification.createdAt ?? FieldValue.serverTimestamp(),
-      };
-
-      await docRef.set(notificationMap);
-      return true;
-    } catch (e) {
-      throw Exception('Failed to create notification: $e');
-    }
-  }
 
   @override
   Stream<List<NotificationModel>> watchNotificationsForUser(
