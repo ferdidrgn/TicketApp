@@ -4,9 +4,6 @@ import '../../domain/entities/seat_plan_meta.dart';
 abstract class SeatRemoteDataSource {
   Future<Map<String, List<String?>?>?> getSeatsByStage(final String stageId);
 
-  /// Kalıcı kapalı koltuklar (`closedSeatsId`) — balkon vb. asla satılmaz.
-  Future<List<String>> getClosedSeatsByStage(final String stageId);
-
   /// `Seats/{stageId}` meta verisi (hangi sahne, adres, oluşturma/güncelleme
   /// zamanı) — koltuk DÜZENİNİ etkilemez, yalnızca izlenebilirlik/gösterim.
   Future<SeatPlanMeta> getSeatPlanMeta(final String stageId);
@@ -71,20 +68,6 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
       throw Exception('Firestore hatası (getSeatsByStage): ${e.message}');
     } catch (e) {
       throw Exception('Koltuklar alınamadı: $e');
-    }
-  }
-
-  @override
-  Future<List<String>> getClosedSeatsByStage(final String stageId) async {
-    if (stageId.isEmpty) return const [];
-    try {
-      final doc = await _firestore.collection(_collection).doc(stageId).get();
-      if (!doc.exists) return const [];
-      final raw = doc.data()?['closedSeatsId'];
-      if (raw is! List) return const [];
-      return raw.whereType<String>().toList();
-    } on FirebaseException catch (e) {
-      throw Exception('Firestore hatası (getClosedSeatsByStage): ${e.message}');
     }
   }
 

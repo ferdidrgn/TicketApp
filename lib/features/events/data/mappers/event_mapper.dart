@@ -9,6 +9,8 @@ extension EventModelMapper on EventModel {
         date: date ?? 'Tarih bulunamadı',
         price: price ?? '0',
         seats: seats ?? {},
+        createdAt: createdAt ?? '',
+        updatedAt: updatedAt ?? '',
       );
 }
 
@@ -20,5 +22,7 @@ extension EventEntityMapper on Event {
         date: date,
         price: price,
         seats: seats,
+        createdAt: createdAt.isEmpty ? null : createdAt,
+        updatedAt: updatedAt.isEmpty ? null : updatedAt,
       );
 }

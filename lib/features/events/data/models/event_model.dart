@@ -6,6 +6,7 @@ class EventModel {
   final String? date;
   final String? price;
   final Map<String, dynamic>? seats;
+  final String? createdAt, updatedAt;
 
   const EventModel({
     this.id,
@@ -14,7 +15,13 @@ class EventModel {
     this.date,
     this.price,
     this.seats,
+    this.createdAt,
+    this.updatedAt,
   });
+
+  static String? _iso(final dynamic v) => v is Timestamp
+      ? v.toDate().toIso8601String()
+      : v?.toString();
 
   factory EventModel.fromFirestore(final Map<String, dynamic> data) =>
       EventModel(
@@ -27,6 +34,8 @@ class EventModel {
         date: data['date'] is Timestamp
             ? (data['date'] as Timestamp).toDate().toIso8601String()
             : data['date']?.toString(),
+        createdAt: _iso(data['_createdAt']),
+        updatedAt: _iso(data['_updatedAt']),
       );
 
   Map<String, dynamic> toFirestore() => {
@@ -36,5 +45,7 @@ class EventModel {
         'date': date,
         'price': price,
         'seats': seats,
+        if (createdAt != null) '_createdAt': createdAt,
+        if (updatedAt != null) '_updatedAt': updatedAt,
       };
 }

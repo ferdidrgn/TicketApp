@@ -58,7 +58,13 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       // Show'daki addShow ile aynı desen: önce dökümanı oluştur, sonra
       // Firestore'un verdiği gerçek ID'yi dökümanın kendisine yazar.
-      final data = event.toFirestore()..remove('_id');
+      // _createdAt/_updatedAt diğer koleksiyonlarla (Stage/Show/Ticket)
+      // aynı sözleşme — oluşturma anında burada damgalanır (13.11.2026).
+      final now = DateTime.now().toUtc().toIso8601String();
+      final data = event.toFirestore()
+        ..remove('_id')
+        ..['_createdAt'] = now
+        ..['_updatedAt'] = now;
       final docRef = await _eventCollection.add(data);
       await docRef.update({'_id': docRef.id});
       return true;
@@ -188,6 +194,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
             'seats.$seatId.status': 'sold',
             'seats.$seatId.customerId': kAdminBlockCustomerId,
             'seats.$seatId.soldAt': FieldValue.serverTimestamp(),
+            '_updatedAt': FieldValue.serverTimestamp(),
           });
         } else {
           // Sadece BİZİM koyduğumuz admin bloğu geri alınabilir — gerçek bir
@@ -202,6 +209,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
             'seats.$seatId.status': 'available',
             'seats.$seatId.customerId': null,
             'seats.$seatId.soldAt': null,
+            '_updatedAt': FieldValue.serverTimestamp(),
           });
         }
       });
