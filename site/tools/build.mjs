@@ -4,7 +4,7 @@
 // Böylece Google JavaScript çalıştırmadan da içeriği görür; tarayıcıda site.js yine
 // sayfayı canlı veriyle yeniden çizer. Firestore okuması herkese açık REST ile yapılır.
 //
-// Kullanım:  node site/tools/build.mjs        (SITE_URL=https://tiyatrol.com ile alan adı verilebilir)
+// Kullanım:  node site/tools/build.mjs        (SITE_URL=https://alanadi.com ile özel alan adı verilebilir; varsayılan tiyatrol.web.app)
 import { cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +13,7 @@ import { MAKALELER } from '../js/rehber-data.js';
 
 const KOK = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CIKTI = join(KOK, '..', 'site-dist');
-const SITE = (process.env.SITE_URL || 'https://tiyatrol.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || 'https://tiyatrol.web.app').replace(/\/$/, '');
 const PROJE = 'ticketappflutter';
 
 // ---------- Firestore REST ----------

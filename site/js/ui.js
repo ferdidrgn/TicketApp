@@ -29,7 +29,7 @@ export function kabukCiz(aktif = '') {
   const nav = (id, href, ad, cls = '') => `<a href="${href}" class="${cls} ${aktif === id ? 'on' : ''}">${ad}</a>`;
   $('#hdr').outerHTML = `
   <div class="util"><div class="wrap"><span>Tiyatro bileti ve program rehberi</span>
-    <div class="util-r"><a href="/">Ekibimiz</a><a href="/biletlerim">Biletlerim</a><a href="/yardim">Yardım</a><a href="mailto:info@tiyatrol.com">info@tiyatrol.com</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Uygulamayı indir</a></div></div></div>
+    <div class="util-r"><a href="/">Ekibimiz</a><a href="/biletlerim">Biletlerim</a><a href="/yardim">Yardım</a><a href="mailto:ferdidurgun34@gmail.com">ferdidurgun34@gmail.com</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Uygulamayı indir</a></div></div></div>
   <header class="hdr" id="hdr">
     <div class="wrap hdr-main">
       <a href="/vitrin" class="brand" aria-label="TiyatRol ana sayfa"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
@@ -57,7 +57,7 @@ export function kabukCiz(aktif = '') {
       <div><a href="/vitrin" class="brand"><img src="/img/logo.png" alt=""><span>TİYATROL</span></a>
         <p class="muted" style="margin-top:14px;max-width:34ch">Türkiye'nin tiyatro oyunlarını, sahnelerini ve topluluklarını tek yerde buluşturan program rehberi.</p></div>
       <div><h4>Keşfet</h4><a href="/kesfet">Tüm oyunlar</a><a href="/kesfet?zaman=hafta">Bu hafta</a><a href="/harita">Harita</a><a href="/takvim">Takvim</a><a href="/kampanyalar">Kampanyalar</a><a href="/favoriler">Favorilerim</a><a href="/biletlerim">Biletlerim</a><a href="/kesfet?tur=sahneler">Sahneler</a><a href="/kesfet?tur=topluluklar">Topluluklar</a></div>
-      <div><h4>Destek</h4><a href="/">Ekibimiz</a><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Mobil uygulama</a><a href="mailto:info@tiyatrol.com">İletişim</a></div>
+      <div><h4>Destek</h4><a href="/">Ekibimiz</a><a href="/yardim">Yardım</a><a href="/ayarlar">Ayarlar</a><a href="https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp" target="_blank" rel="noopener">Mobil uygulama</a><a href="mailto:ferdidurgun34@gmail.com">İletişim</a></div>
       <div><h4>Kurumsal</h4><a href="/gizlilik">Gizlilik</a><a href="/sartlar">Kullanım şartları</a><a href="/mesafeli-satis">Mesafeli satış sözleşmesi</a><a href="/iade-iptal">İade ve iptal</a><a href="/guvenli-odeme">Güvenli ödeme</a><a href="/hakkimizda">Hakkımızda</a><a href="/iletisim">İletişim</a><a href="/yonetim">Yönetim</a></div>
     </div>
     <div class="ftr-ad" aria-hidden="true">TİYATROL</div>
@@ -272,3 +272,6 @@ export const KAMPANYA_SANAT = `<svg class="kamp-sanat" viewBox="0 0 640 420" pre
     <g fill="#1d1410" fill-opacity=".8">${[...Array(14)].map((_, i) => `<rect x="${304 + i * 5}" y="${40 + (i % 3) * 2}" width="${i % 3 ? 2 : 3}" height="${96 - (i % 3) * 4}"/>`).join('')}</g></g>
   <g class="ks-yildiz" fill="#ffd166">${[[70, 60], [560, 80], [90, 330], [540, 320]].map(([x, y], i) => `<path d="M${x} ${y - 14}L${x + 4} ${y - 4}L${x + 14} ${y}L${x + 4} ${y + 4}L${x} ${y + 14}L${x - 4} ${y + 4}L${x - 14} ${y}L${x - 4} ${y - 4}Z" style="--d:${i * 0.4}s"/>`).join('')}</g>
 </svg>`;
+
+// Web reklamı: /reklam.json anahtarına bağlı, varsayılan KAPALI (docs/REKLAM-POLITIKASI.md).
+import('./reklam.js').catch(() => {});

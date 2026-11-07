@@ -183,7 +183,7 @@ function ciz(d) {
   <div class="mini-bar" id="mini"><div class="wrap" id="mini-w">${miniHtml()}</div></div>
   <div class="wrap"><nav class="bar-nav" id="bnav" aria-label="Sayfa bölümleri">${bolumler.map((b) => `<a href="#${b.id}">${esc(b.ad)}</a>`).join('')}</nav>
   <div class="op-body"><div class="op-main">${bolumler.map((b) => `<section class="block" id="${b.id}"><h2>${esc(b.ad)}</h2>${b.html}</section>`).join('')}</div>
-  <aside class="op-side" id="panel">${panel()}<a class="tiny" style="text-align:center" href="mailto:info@tiyatrol.com?subject=${encodeURIComponent('Hata bildir: ' + s.name)}&body=${encodeURIComponent(location.href)}">Bilgi hatalı mı? Bize bildir</a></aside></div></div>`;
+  <aside class="op-side" id="panel">${panel()}<a class="tiny" style="text-align:center" href="mailto:ferdidurgun34@gmail.com?subject=${encodeURIComponent('Hata bildir: ' + s.name)}&body=${encodeURIComponent(location.href)}">Bilgi hatalı mı? Bize bildir</a></aside></div></div>`;
 
   // ---------- canlı davranışlar ----------
   etkilesimler();
