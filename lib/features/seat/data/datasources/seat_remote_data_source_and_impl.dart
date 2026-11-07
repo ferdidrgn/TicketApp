@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../domain/entities/seat_plan_meta.dart';
 
 abstract class SeatRemoteDataSource {
   Future<Map<String, List<String?>?>?> getSeatsByStage(final String stageId);
 
-  /// Kalıcı kapalı koltuklar (`closedSeatsId`) — balkon vb. asla satılmaz.
-  Future<List<String>> getClosedSeatsByStage(final String stageId);
+  /// `Seats/{stageId}` meta verisi (hangi sahne, adres, oluşturma/güncelleme
+  /// zamanı) — koltuk DÜZENİNİ etkilemez, yalnızca izlenebilirlik/gösterim.
+  Future<SeatPlanMeta> getSeatPlanMeta(final String stageId);
 }
 
 class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
@@ -17,6 +19,9 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
     '_id',
     '_createdAt',
     '_updatedAt',
+    'stageId',
+    'stageName',
+    'address',
   };
 
   const SeatRemoteDataSourceImpl({required final FirebaseFirestore firestore})
@@ -67,16 +72,27 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
   }
 
   @override
-  Future<List<String>> getClosedSeatsByStage(final String stageId) async {
-    if (stageId.isEmpty) return const [];
+  Future<SeatPlanMeta> getSeatPlanMeta(final String stageId) async {
+    if (stageId.isEmpty) return SeatPlanMeta.empty;
     try {
       final doc = await _firestore.collection(_collection).doc(stageId).get();
-      if (!doc.exists) return const [];
-      final raw = doc.data()?['closedSeatsId'];
-      if (raw is! List) return const [];
-      return raw.whereType<String>().toList();
+      if (!doc.exists) return SeatPlanMeta.empty;
+      final data = doc.data();
+      if (data == null) return SeatPlanMeta.empty;
+
+      String iso(final dynamic v) => v is Timestamp
+          ? v.toDate().toIso8601String()
+          : (v?.toString() ?? '');
+
+      return SeatPlanMeta(
+        stageId: (data['stageId'] as String?) ?? doc.id,
+        stageName: (data['stageName'] as String?) ?? '',
+        address: (data['address'] as String?) ?? '',
+        createdAt: iso(data['_createdAt']),
+        updatedAt: iso(data['_updatedAt']),
+      );
     } on FirebaseException catch (e) {
-      throw Exception('Firestore hatası (getClosedSeatsByStage): ${e.message}');
+      throw Exception('Firestore hatası (getSeatPlanMeta): ${e.message}');
     }
   }
 }

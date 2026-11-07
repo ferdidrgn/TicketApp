@@ -13,12 +13,6 @@ class NotificationRepositoryImpl extends BaseRepository
   NotificationRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, bool>> createNotification(
-          final AppNotification notification) =>
-      execute(() async =>
-          remoteDataSource.createNotification(notification.toModel()));
-
-  @override
   Stream<List<AppNotification>> watchNotificationsForUser(
       final String userId) {
     // Stream'ler 'execute' bloğuna sarılmaz çünkü anlık veri akışıdırlar

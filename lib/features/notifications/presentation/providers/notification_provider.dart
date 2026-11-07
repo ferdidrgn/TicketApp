@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../data/repositories/notification_repository_provider.dart';
 import '../../domain/entities/app_notification.dart';
-import '../../domain/usecases/create_notification_use_case.dart';
 import '../../domain/usecases/get_notifications_for_user_use_case.dart';
 import '../../domain/usecases/mark_notification_read_use_case.dart';
 
@@ -13,11 +12,10 @@ import '../../domain/usecases/mark_notification_read_use_case.dart';
 // build_runner çalıştırılamıyor, elle .g.dart üretmek riskli olurdu. Düz
 // (generator'sız) Provider/StreamProvider kullanımı da tamamen geçerli ve
 // aynı davranışı sağlıyor.
+//
+// NOT (13.11.2026): `createNotificationUseCaseProvider` BİLEREK yok — kaldırılan
+// ölü istemci yazma yolu (bkz. notification_repository.dart notu).
 // ==============================================================================
-
-final createNotificationUseCaseProvider =
-    Provider<CreateNotificationUseCase>((final ref) =>
-        CreateNotificationUseCaseImpl(ref.watch(notificationRepositoryProvider)));
 
 final getNotificationsForUserUseCaseProvider =
     Provider<GetNotificationsForUserUseCase>((final ref) =>

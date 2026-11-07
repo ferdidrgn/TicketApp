@@ -352,6 +352,13 @@ service cloud.firestore {
     // `EventRemoteDataSourceImpl.initializeAndGetEventSeats` tarafından
     // OKUNUYOR; kod tabanında client-side hiçbir yazma yok — admin/seed
     // script'i tarafından doldurulduğu varsayılıyor.
+    // Diğer koleksiyonlarla (Stage/Show/Event/Ticket) aynı meta alan
+    // sözleşmesi (13.11.2026): `_id` (= stageId), `stageId`, `stageName`,
+    // `address` (Stage'den denormalize), `_createdAt`/`_updatedAt` (ISO
+    // string). Bunlar yalnızca izlenebilirlik/admin gösterimi içindir —
+    // koltuk durumunu etkilemez; layout alanları (`seatsId`/`closedSeatsId`
+    // ya da eski satır->liste biçimi) ve okuyucudaki `_metaKeys` listesi
+    // değişmedi. Admin yazıcı: site/js/admin/koltuk-plani.js.
     match /Seats/{stageId} {
       allow read: if true;
       allow write: if isAdmin();

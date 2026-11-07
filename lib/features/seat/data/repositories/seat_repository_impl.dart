@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
+import '../../domain/entities/seat_plan_meta.dart';
 import '../../domain/repositories/seat_repository.dart';
 import '../datasources/seat_remote_data_source_and_impl.dart';
 
@@ -23,5 +24,13 @@ class SeatRepositoryImpl extends BaseRepository implements SeatRepository {
               return MapEntry(key, value?.whereType<String>().toList() ?? []);
             }) ??
             {};
+      });
+
+  @override
+  Future<Either<Failure, SeatPlanMeta>> getSeatPlanMeta(
+          final String stageId) async =>
+      execute(() async {
+        if (stageId.isEmpty) return SeatPlanMeta.empty;
+        return remoteDataSource.getSeatPlanMeta(stageId);
       });
 }

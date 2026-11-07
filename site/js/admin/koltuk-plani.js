@@ -92,7 +92,14 @@ BB:15</textarea>
   };
   const mevcutYaz = async () => {
     const s = $('sahne').value; const d = await getDoc(doc(db, 'Seats', s)).catch(() => null);
-    $('mevcut').textContent = d && d.exists() ? `Şu an kayıtlı plan: ${(d.data().seatsId || []).length} koltuk (${(d.data().closedSeatsId || []).length} kapalı).` : 'Bu sahne için kayıtlı koltuk planı yok.';
+    if (!d || !d.exists()) { $('mevcut').textContent = 'Bu sahne için kayıtlı koltuk planı yok.'; return; }
+    const v = d.data();
+    const tarihYaz = (iso) => { try { return new Date(iso).toLocaleString('tr-TR'); } catch { return iso; } };
+    const parcalar = [`Şu an kayıtlı plan: ${(v.seatsId || []).length} koltuk (${(v.closedSeatsId || []).length} kapalı).`];
+    if (v.address) parcalar.push(`Adres: ${v.address}`);
+    if (v._createdAt) parcalar.push(`Oluşturma: ${tarihYaz(v._createdAt)}`);
+    if (v._updatedAt) parcalar.push(`Son güncelleme: ${tarihYaz(v._updatedAt)}`);
+    $('mevcut').textContent = parcalar.join(' · ');
   };
   ['zemin', 'balkon', 'hedef'].forEach((k) => $(k).addEventListener('input', hesapla));
   $('onay').addEventListener('change', hesapla);
@@ -101,12 +108,25 @@ BB:15</textarea>
   $('kaydet').addEventListener('click', async () => {
     if (!sonuc) return;
     if (!$('onay').checked) { bildir('Önce "Satır uzunluklarını … karşılaştırdım" kutusunu işaretle.'); $('onay').focus(); return; }
-    const s = $('sahne').value, ad = (sahneler.find((x) => x.id === s) || {}).name || s;
+    const s = $('sahne').value, sahne = sahneler.find((x) => x.id === s) || {}, ad = sahne.name || s;
     if (!confirm(`"${ad}" için ${sonuc.length} koltuk yazılacak. Emin misin?`)) return;
     $('kaydet').disabled = true;
     try {
-      await setDoc(doc(db, 'Seats', s), { seatsId: sonuc }, { merge: true });
-      if ($('kap').checked) await updateDoc(doc(db, 'Stage', s), { capacity: String(sonuc.length), _updatedAt: new Date().toISOString() });
+      // İzlenebilirlik (13.11.2026): Stage/Show/Event/Ticket ile aynı meta sözleşmesi —
+      // _id/stageId/stageName/address + _createdAt (korunur) / _updatedAt (her yazımda).
+      const oncekiSnap = await getDoc(doc(db, 'Seats', s)).catch(() => null);
+      const simdi = new Date().toISOString();
+      const eskiOlusturma = oncekiSnap && oncekiSnap.exists() ? oncekiSnap.data()._createdAt : null;
+      await setDoc(doc(db, 'Seats', s), {
+        seatsId: sonuc,
+        _id: s,
+        stageId: s,
+        stageName: ad,
+        address: sahne.address || '',
+        _createdAt: eskiOlusturma || simdi,
+        _updatedAt: simdi,
+      }, { merge: true });
+      if ($('kap').checked) await updateDoc(doc(db, 'Stage', s), { capacity: String(sonuc.length), _updatedAt: simdi });
       bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${sonuc.length} koltuk yazıldı.</span>`; await mevcutYaz();
     } catch (e) { const m = e?.code === 'permission-denied' ? 'Yetki reddedildi: bu hesap yönetici değil ya da Firestore kuralları izin vermiyor.' : 'Kaydedilemedi.'; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
     finally { hesapla(); }

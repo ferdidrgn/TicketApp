@@ -14,6 +14,7 @@ import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../events/domain/repositories/event_repository.dart'
     show kAdminBlockCustomerId;
 import '../../../users/presentation/providers/user_provider.dart';
+import '../../domain/entities/seat_plan_meta.dart';
 import '../providers/seats_provider.dart';
 
 /// Küratör/yönetici koltuk denetimi: bir seansın basılı oturma planı
@@ -175,6 +176,8 @@ class _CuratorSeatingAuditPageState
       final BuildContext context, final EventSeatingState state) {
     final cs = Theme.of(context).colorScheme;
     final parsed = DateFormatter.parseDateString(state.event.date);
+    final metaAsync = ref.watch(seatPlanMetaProvider(state.event.stageId));
+    final meta = metaAsync.value;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.xs, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
@@ -209,12 +212,42 @@ class _CuratorSeatingAuditPageState
                       : 'Koltuk denetimi',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                 ),
+                if (meta != null && meta.hasData) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _stagePlanMetaLine(meta),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontSize: 11.5),
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// "Sahne · Adres · Son güncelleme" — koltuk planının izlenebilirlik
+  /// satırı (13.11.2026). Herhangi biri boşsa atlanır.
+  String _stagePlanMetaLine(final SeatPlanMeta meta) {
+    final parts = <String>[
+      if (meta.stageName.isNotEmpty) meta.stageName,
+      if (meta.address.isNotEmpty) meta.address,
+      if (meta.updatedAt.isNotEmpty)
+        'Plan güncelleme: ${_shortDate(meta.updatedAt)}',
+    ];
+    return parts.join('  ·  ');
+  }
+
+  String _shortDate(final String iso) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return iso;
+    final p = (final int n) => n.toString().padLeft(2, '0');
+    return '${p(d.day)}.${p(d.month)}.${d.year}';
   }
 
   Widget _buildSeatDetailPanel(
