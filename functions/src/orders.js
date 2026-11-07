@@ -242,7 +242,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     if (!snap.exists) return null;
     const d = snap.data();
     const closed = new Set(Array.isArray(d.closedSeatsId) ? d.closedSeatsId : []);
-    const meta = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt']);
+    const meta = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt', 'stageId', 'stageName', 'address']);
     const ids = [];
     if (Array.isArray(d.seatsId)) ids.push(...d.seatsId);
     else for (const [k, v] of Object.entries(d)) if (!meta.has(k) && Array.isArray(v)) ids.push(...v);

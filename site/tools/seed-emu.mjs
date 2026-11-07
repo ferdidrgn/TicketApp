@@ -14,7 +14,11 @@ const temizle = async () => { for (const k of ['Show', 'Event', 'Stage', 'Seats'
 await temizle();
 
 await yaz('Stage/stage-test', { _id: 'stage-test', name: 'Test Sahnesi', address: 'Çankaya, Ankara', city: 'Ankara', lat: 39.92, long: 32.85, imageUrl: '' });
-await yaz('Seats/stage-test', duzen);
+await yaz('Seats/stage-test', {
+  ...duzen,
+  _id: 'stage-test', stageId: 'stage-test', stageName: 'Test Sahnesi', address: 'Çankaya, Ankara',
+  _createdAt: '2026-01-01T00:00:00.000Z', _updatedAt: '2026-01-01T00:00:00.000Z',
+});
 
 const oyun = (id, ad, ev) => yaz(`Show/${id}`, { _id: id, name: ad, description: 'Sentetik test oyunu. Gerçek veri değildir.', category: 'Komedi', imageUrl: '', duration: '90 dk', eventsId: ev, featured: 'hayır', photosShowId: [], nowPlayersId: [], oldPlayersId: [] });
 await oyun('showpaid', 'Sentetik Oyun (Ücretli)', ['ev-paid', 'ev-past']);

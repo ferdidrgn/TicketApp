@@ -322,6 +322,41 @@ exports.onShowEventsLinkedFollow = onDocumentWritten({ region: cfg.REGION, docum
   }
 });
 
+/**
+ * Sahne adı/adresi değişince, o sahnenin koltuk planı dökümanına (Seats/{stageId}, bkz.
+ * firestore.rules + seat_remote_data_source_and_impl.dart) denormalize edilmiş `stageName`/
+ * `address` taze tutulur (13.11.2026). Yalnızca Seats dökümanı ZATEN varsa yazar — admin henüz
+ * koltuk planı oluşturmadıysa yeni döküman AÇMAZ. Seats'e yazmak Stage'i tetiklemediği için
+ * döngü riski yok; hiçbir ilgili alan değişmemişse hiçbir şey yazmaz (gereksiz güncelleme yok).
+ */
+exports.onStageChanged = onDocumentUpdated({ region: cfg.REGION, document: 'Stage/{stageId}', maxInstances: 5, timeoutSeconds: 60 }, async (event) => {
+  const change = event.data;
+  if (!change) return;
+  const before = change.before.data() || {};
+  const after = change.after.data() || {};
+  const name = typeof after.name === 'string' ? after.name : '';
+  const address = typeof after.address === 'string' ? after.address : '';
+  if (before.name === after.name && before.address === after.address) return;
+  const stageId = event.params.stageId;
+  try {
+    const ref = getFirestore().collection('Seats').doc(stageId);
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    const d = snap.data() || {};
+    if (d.stageName === name && d.address === address) return;
+    await ref.set({
+      stageId,
+      stageName: name,
+      address,
+      _updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    logger.info('stageChanged -> Seats senkron', { stageId });
+  } catch (e) {
+    logger.error('stageChanged Seats senkron hata', { stageId, code: e && e.code, message: e && e.message });
+    throw e;
+  }
+});
+
 /** Süresi (30 gün) dolan hesap silme taleplerini işler. Günde 1 (03:00 TR). Production'da Cloud Scheduler (Blaze) gerekir. docs/HESAP-SILME.md */
 exports.processAccountDeletions = onSchedule(
   { region: cfg.REGION, schedule: '0 3 * * *', timeZone: 'Europe/Istanbul', timeoutSeconds: 540, memory: '512MiB', secrets: [PHONE_HASH_SALT] },
