@@ -2,7 +2,7 @@
 // Güvenlik: durum değişimi ve kapı okuması SUNUCU callable'larıyla yapılır (adminSetTicketStatus / adminCheckIn /
 // adminHealth; yetki sunucuda User/{uid}.role ile denetlenir). Bu dosya yalnızca arayüzdür.
 import { db, doc, getDoc, setDoc, collection, getDocs, query, limit, serverTimestamp, fonksiyon } from '../firebase.js';
-import { $, $$, esc } from '../util.js';
+import { $, $$, esc, tarihAyristir } from '../util.js';
 
 const MODLAR = [
   ['kapali', 'Kapalı', 'Satış durur; yeni koltuk tutulamaz.'],
@@ -203,7 +203,8 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
     return `<tr><td><code title="${esc(t.docId)}">${esc(t.docId.slice(0, 8))}…</code></td><td>${esc(t.showName || '—')}<br><span class="muted">${esc(t.eventDate || '')}</span></td>
           <td>${esc([].concat(t.buySeats || []).join(', '))}</td><td>${esc(t.orderPrice ?? '')}</td>
           <td><span class="tag ${sinif}">${esc(ad)}</span>${t.usedAt ? ' <span class="tag ok">Girdi</span>' : ''}</td>
-          <td><div class="acts">${aktif ? `${t.orderMethod === 'venue' && d !== 'paid' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="paid">Ödendi</button>` : ''}
+          <td><div class="acts">${aktif ? `${t.orderMethod === 'venue' && d !== 'pay_at_venue' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="pay_at_venue">Rezervasyon</button>` : ''}
+            ${t.orderMethod === 'venue' && d !== 'paid' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="paid">Ödendi</button>` : ''}
             ${d !== 'no_show' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="no_show">Gelmedi</button>` : ''}
             ${t.orderMethod !== 'card' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="cancelled">İptal</button>` : ''}` : ''}</div></td></tr>`;
   }).join('') || '<tr><td colspan="6"><div class="empty">Bilet yok.</div></td></tr>'}</tbody></table></div>`;
@@ -213,6 +214,15 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
     $$('[data-t]', k).forEach((b) => b.addEventListener('click', async () => {
       const hedef = b.dataset.s, id = b.dataset.t;
       if (hedef === 'cancelled' && !confirm('Bilet iptal edilsin mi? Koltuklar başkasına açılır, geri alınamaz.')) return;
+      if (hedef === 'no_show') {
+        const t = biletler.find((x) => x.docId === id);
+        const ms = t && tarihAyristir(t.eventDate);
+        const gelecek = ms && ms.getTime() > Date.now();
+        const uyari = gelecek
+          ? `⚠ Bu seans henüz olmadı (${esc(t.eventDate || '')}). "Gelmedi" işaretlenirse bu kişi bildirim/hatırlatmalardan düşer ama bilet iptal olmaz. Emin misin?`
+          : 'Bu bilet "gelmedi" olarak işaretlensin mi? Bildirim/hatırlatmalardan düşer, bilet iptal olmaz.';
+        if (!confirm(uyari)) return;
+      }
       b.disabled = true;
       try {
         const r = await cagir('adminSetTicketStatus', { ticketId: id, paymentStatus: hedef });

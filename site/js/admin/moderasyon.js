@@ -48,16 +48,16 @@ export function moderasyon(m, { veri, bildir, hataMesaji }) {
     kap.innerHTML = l.length ? l.map((q) => `<div class="yorum" data-id="${esc(q.id)}"><div><b>${esc(q.askerName || 'Seyirci')}</b> · ${esc(oyunAdi(q.showId))} · <span class="tag ${q.status === 'pending' ? 'ok' : 'warn'}">${q.status === 'pending' ? 'Onay bekliyor' : 'Gizli'}</span> · şikâyet: ${q.reportCount || 0} · ${esc(tarih(q.createdAt))}</div>
       <p>${esc(q.text)}</p>${q.answer ? `<p class="muted">Cevap: ${esc(q.answer)}</p>` : ''}
       ${q.status === 'pending' ? '<label class="sr-only">Cevap</label><textarea data-cevap rows="2" maxlength="600" placeholder="Cevap (en fazla 600 karakter; bağlantı yazılamaz)" style="width:100%"></textarea>' : ''}
-      <div class="acts">${q.status === 'pending' ? '<button class="btn btn-sm btn-primary" data-q="answer">Yanıtla ve yayınla</button><button class="btn btn-sm btn-ghost" data-q="reject">Reddet</button>' : '<button class="btn btn-sm btn-primary" data-q="restore">Geri aç</button>'}</div></div>`).join('') : '<div class="empty">Bekleyen ya da gizli soru yok.</div>';
+      <div class="acts">${q.status === 'pending' ? '<button class="btn btn-sm btn-primary" data-q="answer">Yanıtla ve yayınla</button><button class="btn btn-sm btn-ghost" data-q="reject">Reddet</button>' : '<button class="btn btn-sm btn-primary" data-q="restore">Geri aç</button>'}<button class="btn btn-sm btn-ghost" data-q="delete">Sil</button></div></div>`).join('') : '<div class="empty">Bekleyen ya da gizli soru yok.</div>';
     $$('[data-q]', kap).forEach((b) => b.addEventListener('click', async () => {
       const kutu = b.closest('[data-id]'), id = kutu.dataset.id, a = b.dataset.q;
+      if (a === 'answer') { b.disabled = true; try { await cagir('answerQuestion', { id, answer: $('[data-cevap]', kutu).value }); bildir('İşlem kaydedildi'); yukle(); } catch (e) { b.disabled = false; bildir(hataMesaji(e), true); } return; }
+      const sebep = prompt(`Sebep (zorunlu, 3-200 karakter) — ${a === 'reject' ? 'reddet' : a === 'delete' ? 'KALICI SİL' : 'geri aç'}:`); if (!sebep) return;
+      if (a === 'delete' && !confirm('Soru kalıcı olarak silinsin mi?')) return;
       b.disabled = true;
       try {
-        if (a === 'answer') await cagir('answerQuestion', { id, answer: $('[data-cevap]', kutu).value });
-        else {
-          const sebep = prompt(`Sebep (zorunlu, 3-200 karakter) — ${a === 'reject' ? 'reddet' : 'geri aç'}:`); if (!sebep) { b.disabled = false; return; }
-          await cagir(a === 'reject' ? 'rejectQuestion' : 'hideQuestion', a === 'reject' ? { id, reason: sebep } : { id, reason: sebep, restore: true });
-        }
+        if (a === 'delete') await cagir('deleteQuestion', { id, reason: sebep });
+        else await cagir(a === 'reject' ? 'rejectQuestion' : 'hideQuestion', a === 'reject' ? { id, reason: sebep } : { id, reason: sebep, restore: true });
         bildir('İşlem kaydedildi'); yukle();
       } catch (e) { b.disabled = false; bildir(hataMesaji(e), true); }
     }));

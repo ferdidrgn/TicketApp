@@ -205,6 +205,7 @@ exports.myQuestions = onCall(base, guarded((req) => getQuestions().myQuestions(r
 exports.answerQuestion = onCall(base, guarded((req) => getQuestions().answerQuestion(req.auth.uid, req.data)));
 exports.rejectQuestion = onCall(base, guarded((req) => getQuestions().rejectQuestion(req.auth.uid, req.data)));
 exports.hideQuestion = onCall(base, guarded((req) => getQuestions().hideQuestion(req.auth.uid, req.data)));
+exports.deleteQuestion = onCall(base, guarded((req) => getQuestions().deleteQuestion(req.auth.uid, req.data)));
 exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
 // Anket (F-5) + arkadaşa gönder / grup planı (F-6). Ayrıntı: docs/ANKET-PLAN.md
 exports.votePoll = onCall(salted, guarded((req) => getPolls().votePoll(req.auth.uid, req.data, phoneCtx(req))));

@@ -146,6 +146,24 @@ test('reddet/gizle/geri aç: sebep zorunlu, ModerationLog yazılır; reddedilen 
   assert.deepEqual(acts, ['question_reject', 'question_answer', 'question_hide', 'question_restore']);
 });
 
+test('silme: yalnız admin siler (ekip yöneticisi PERMISSION_DENIED), sebep zorunlu, belge + rapor + sahiplik silinir, ModerationLog yazılır', async () => {
+  const u = await phoneUser(); const id = (await ask(u.token)).body.result.id;
+  const mgr = await manager('tA'); const adm = await admin();
+  await publish(mgr, id);
+  const r1 = await phoneUser();
+  await call('reportContent', { type: 'question', id, reason: 'spam' }, r1.token);
+  assert.equal(errOf(await call('deleteQuestion', { id }, mgr.token)).status, 'PERMISSION_DENIED');
+  assert.equal((await get('Question', id)) != null, true, 'ekip yöneticisi silemediği için belge hâlâ duruyor');
+  assert.equal((await call('deleteQuestion', { id }, adm.token)).status, 400); // sebep yok
+  assert.equal((await call('deleteQuestion', { id, reason: 'küfürlü içerik' }, adm.token)).status, 200);
+  assert.equal(await get('Question', id), null);
+  assert.equal(await get('QuestionOwner', id), null);
+  assert.equal((await db.collection('QuestionReport').where('questionId', '==', id).get()).size, 0);
+  const log = (await db.collection('ModerationLog').where('action', '==', 'question_delete').get()).docs[0].data();
+  assert.equal(log.byRole, 'admin'); assert.equal(log.reason, 'küfürlü içerik');
+  assert.equal((await call('deleteQuestion', { id, reason: 'tekrar' }, adm.token)).status, 404);
+});
+
 test('şikâyet (type question): 3 FARKLI telefonlu -> otomatik gizleme; 2 yetmez; kendi/tekrar/telefonsuz sayılmaz; yalnız yayındaki soru; geçersiz neden', async () => {
   const u = await phoneUser(); const id = (await ask(u.token)).body.result.id;
   const rep = (token, o = {}) => call('reportContent', { type: 'question', id, reason: 'spam', ...o }, token);

@@ -113,6 +113,10 @@ function createQuestions({ db, team, now = Date.now }) {
     if (s.length < 3 || s.length > 200) throw err('invalid-argument', 'Sebep 3-200 karakter olmalı.');
     return s;
   };
+  async function isAdminUser(uid) {
+    const u = await col('User').doc(uid).get();
+    return u.exists && u.data().role === 'admin';
+  }
   async function loadForManage(uid, data) {
     if (!data || typeof data !== 'object') throw err('invalid-argument', 'Geçersiz istek.');
     const id = validateId(data.id, 'soru');
@@ -232,7 +236,29 @@ function createQuestions({ db, team, now = Date.now }) {
     return { ok: true, askerKey: askerKeyOf(target) };
   }
 
-  return { askQuestion, myQuestions, answerQuestion, rejectQuestion, hideQuestion, teamQuestions, reportQuestion, blockAskerOf };
+  /** Soruyu KALICI siler — yalnız app admini (ekip yöneticisi silemez, yalnız gizleyebilir/reddedebilir).
+   * Review'daki aynı desen (bkz. reviews.js `moderate`, action==='delete'): küfürlü/uygunsuz içerik yanlışlıkla
+   * onaylanmış olabilir, silme yetkisi tek elde (admin) kalır — ekip yöneticisi her şeyi silebilir olmasın. */
+  async function deleteQuestion(uid, data) {
+    if (!(await isAdminUser(uid))) throw err('permission-denied', 'Bu işlem için yönetici yetkisi gerekir.');
+    if (!data || typeof data !== 'object') throw err('invalid-argument', 'Geçersiz istek.');
+    const id = validateId(data.id, 'soru');
+    const reason = reasonOf(data.reason);
+    const ref = col('Question').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) throw err('not-found', 'Soru bulunamadı.');
+    const d = snap.data();
+    await ref.delete();
+    await col('QuestionOwner').doc(id).delete().catch(() => {});
+    const reps = await col('QuestionReport').where('questionId', '==', id).get();
+    for (let i = 0; i < reps.docs.length; i += 400) {
+      const b = db.batch(); reps.docs.slice(i, i + 400).forEach((x) => b.delete(x.ref)); await b.commit();
+    }
+    await logMod(uid, 'admin', 'delete', id, d, reason);
+    return { ok: true };
+  }
+
+  return { askQuestion, myQuestions, answerQuestion, rejectQuestion, hideQuestion, teamQuestions, reportQuestion, blockAskerOf, deleteQuestion };
 }
 
 module.exports = { createQuestions, askerKeyOf };
