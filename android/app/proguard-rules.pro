@@ -162,3 +162,17 @@
 # R8: androidx.window opsiyonel (cihaz uzantısı) sınıfları — çalışma zamanında yoksa sorun değil
 -dontwarn androidx.window.extensions.**
 -dontwarn androidx.window.sidecar.**
+
+# ------------------------------------------------------------------------------
+# 🧵 14. JNI / NATIVE METOT KORUMASI (UnsatisfiedLinkError, 08.11.2026)
+# ------------------------------------------------------------------------------
+# Crashlytics: "UnsatisfiedLinkError: No implementation found for int j0.n0.d" —
+# androidx.datastore.core.NativeSharedCounter.nativeTruncateFile (Firebase'in
+# transitive bağımlılığı). Varsayılan "-keepclasseswithmembernames native
+# <methods>" kuralı (proguard-android-optimize.txt) bu sınıfı R8'in agresif
+# optimizasyon/sınıf birleştirme geçişlerinden korumaya yetmedi — native
+# metodun JNI'da aradığı isim (orijinal) ile R8'in kararttığı isim (j0.n0.d)
+# uyuşmuyor, 1.0.11 ve 1.0.12'de kullanıcıların oturumlarının tamamına yakınını
+# çökertiyordu. Native köprüsü olan bu paket tamamen R8 dışında tutulur.
+-keep class androidx.datastore.core.** { *; }
+-keepclassmembers class androidx.datastore.core.** { *; }
