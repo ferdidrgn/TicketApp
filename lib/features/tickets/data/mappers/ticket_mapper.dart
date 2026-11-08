@@ -22,5 +22,6 @@ extension TicketModelMapper on TicketModel {
         paymentStatus: paymentStatus ?? '',
         usedAt: usedAt ?? '',
         cancelledAt: cancelledAt ?? '',
+        note: note ?? '',
       );
 }

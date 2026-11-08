@@ -45,3 +45,22 @@
 .ek-act { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 @media (max-width: 480px) { .ek-act .btn { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .ek-btn { transition: none; } }
+
+/* ---------- Koltuklar (İş T-2: satışa kapatma / protokol bileti) — biletal.css'teki salon planıyla aynı görsel dil ---------- */
+.ek-plan { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.ek-plan-gorus { overflow-x: auto; padding: 20px 14px 22px; }
+.ek-plan-ic { width: max-content; min-width: 100%; margin-inline: auto; display: grid; justify-items: center; gap: 18px; --z: 1; --b: 28px; --k: calc(var(--b) * var(--z)); --a: calc(6px * var(--z)); }
+.satirlar { display: grid; gap: var(--a); justify-items: center; }
+.satir { display: flex; align-items: center; gap: var(--a); }
+.satir-ad { width: 26px; text-align: center; font: 700 12px var(--font-body); color: var(--ink-3); flex: none; user-select: none; }
+.bosluk { width: calc(var(--k) * .8); flex: none; }
+.koltuk { position: relative; width: var(--k); height: var(--k); flex: none; padding: 0; border-radius: 9px 9px 6px 6px; font: 600 calc(var(--k) * .36) var(--font-body); color: var(--ink-2); background: var(--surface-2); border: 1.5px solid var(--line); display: grid; place-items: center; font-variant-numeric: tabular-nums; transition: transform .14s var(--ease), background .18s, border-color .18s; }
+.koltuk.bos:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); transform: translateY(-1px); }
+.koltuk.dolu { background: color-mix(in srgb, var(--ink) 12%, var(--surface)); border-color: transparent; color: var(--ink-3); cursor: not-allowed; }
+.koltuk.rezerve { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--warn) 28%, var(--surface)) 0 4px, var(--surface-2) 4px 8px); border-color: color-mix(in srgb, var(--warn) 65%, transparent); color: var(--ink-2); cursor: not-allowed; }
+.koltuk.kapali { background: transparent; border: 1.5px dashed var(--line); color: var(--ink-3); cursor: pointer; opacity: .75; }
+.koltuk:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; z-index: 2; }
+.lejant { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px 18px 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+.lejant span { display: inline-flex; align-items: center; gap: 8px; }
+.lejant .koltuk { --k: 18px; font-size: 0; pointer-events: none; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .koltuk { transition: none; } }

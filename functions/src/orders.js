@@ -476,7 +476,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
 
   // ------------------------------------------------------------------ bilet üretimi (ortak)
   /** Transaction içinde çağrılır; TÜM okumalar (order/event/show/stage/limits) önceden yapılmış olmalı. */
-  function writeFulfillment(tx, { orderRef, orderId, order, evRef, ev, show, stage, L, method, status, extraOrder, notifTitle, notifNote }) {
+  function writeFulfillment(tx, { orderRef, orderId, order, evRef, ev, show, stage, L, method, status, extraOrder, extraTicket, skipNotification, notifTitle, notifNote }) {
     const args = [];
     for (const sid of order.seatIds) args.push(...soldArgs(sid, orderId));
     tx.update(evRef, ...args);
@@ -493,19 +493,26 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
       stageName: (stage && stage.name) || '', eventDate, orderId,
-      paymentStatus: method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : 'paid',
+      paymentStatus: method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : method === 'protokol' ? 'protokol' : 'paid',
+      ...(extraTicket || {}),
     });
-    tx.set(db.collection('Notification').doc(`order_${orderId}`), {
-      _id: `order_${orderId}`, userId: order.userId,
-      title: notifTitle || 'Biletin Onaylandı!',
-      body: `${(show && show.name) || 'Gösteri'}${eventDate ? ' — ' + eventDate : ''} — Koltuklar: ${order.seatIds.join(', ')} ${notifNote || 'için biletin onaylandı.'}`,
-      type: 'bookingConfirmation', showId: order.showId || '', showName: (show && show.name) || '',
-      eventDate, seats: order.seatIds, isRead: false, _createdAt: iso,
-    });
+    // skipNotification: alıcı gerçek bir hesap değilse (protokol/davetiye) kimseye gitmeyecek bir bildirim yazılmaz.
+    if (!skipNotification) {
+      tx.set(db.collection('Notification').doc(`order_${orderId}`), {
+        _id: `order_${orderId}`, userId: order.userId,
+        title: notifTitle || 'Biletin Onaylandı!',
+        body: `${(show && show.name) || 'Gösteri'}${eventDate ? ' — ' + eventDate : ''} — Koltuklar: ${order.seatIds.join(', ')} ${notifNote || 'için biletin onaylandı.'}`,
+        type: 'bookingConfirmation', showId: order.showId || '', showName: (show && show.name) || '',
+        eventDate, seats: order.seatIds, isRead: false, _createdAt: iso,
+      });
+    }
     if ((order.free || method === 'venue') && L && L.phRef) {
       incLimits(tx, L, { free: order.free ? order.seatIds.length : 0, res: method === 'venue' ? order.seatIds.length : 0 });
     }
-    tx.update(orderRef, { ...(L && L.key ? { phoneKey: L.key } : {}), status, ticketIds: [orderId], paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), ...extraOrder });
+    // `set(...,{merge:true})`: `confirmFree`/`confirmReservation` akışında sipariş zaten `holdSeats`'te var (update ile aynı sonuç);
+    // `grantFreeSeat` gibi sipariş belgesinin AYNI transaction içinde ilk kez yazıldığı çağrılarda `update()`'in "belge var mı" ön
+    // koşulunu beklememek için kasıtlı olarak `update` değil `set` kullanılır.
+    tx.set(orderRef, { ...(L && L.key ? { phoneKey: L.key } : {}), status, ticketIds: [orderId], paidAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), ...extraOrder }, { merge: true });
   }
 
   async function readFulfillCtx(tx, orderRef, orderId, key = null) {
@@ -663,7 +670,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (cur === 'cancelled') throw err('failed-precondition', 'İptal edilmiş bilet yeniden açılamaz.');
       const method = t.orderMethod;
       const allowed = method === 'venue' ? ['paid', 'pay_at_venue', 'no_show', 'cancelled']
-        : method === 'free' ? ['no_show', 'cancelled'] : ['no_show'];
+        : method === 'free' || method === 'protokol' ? ['no_show', 'cancelled'] : ['no_show'];
       if (!allowed.includes(target)) {
         throw err('failed-precondition', method === 'card'
           ? 'Online ödenmiş biletlerde yalnızca "gelmedi" işaretlenebilir; iade ödeme panelinden yapılır.'
@@ -980,7 +987,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     holdSeats, getEventQuota, releaseHold, startPayment, confirmFree, confirmReservation, cancelTicket,
     adminSetTicketStatus, adminCheckIn, adminHealth,
     handleProviderCallback, expireHolds, settle, verify,
+    // Diğer modüllerin (team.js) yeniden kullanması için (notify.js'nin internals desenindeki gibi).
+    internals: { writeFulfillment },
   };
 }
 
-module.exports = { createService, normalizeSatis, eventLimitError };
+module.exports = { createService, normalizeSatis, eventLimitError, seatPath, isBlocked };

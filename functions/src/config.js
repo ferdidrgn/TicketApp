@@ -12,6 +12,11 @@ module.exports = {
   HOLD_RATE: { max: 8, windowMs: 60 * 1000 }, // kullanıcı başına dakikada hold denemesi
   MAX_SEAT_ID_LENGTH: 16,
   ADMIN_BLOCK_CUSTOMER_ID: '__ADMIN_BLOCKED__',
+  // Admin/ekip yöneticisinin verdiği ücretsiz "protokol" biletlerinin customerId'si (gerçek hesaba bağlı değil).
+  // Firestore `__.*__` kalıbındaki belge kimliklerini AYIRIR (reserved); bu değer de `UserLimits/{customerId}`
+  // yolunda kullanılabildiğinden (adminSetTicketStatus -> loadLimitsForTicket) o kalıba uymamalı.
+  PROTOKOL_CUSTOMER_ID: 'protokol_misafir',
+  PROTOKOL_MAX_SEATS: 10, // bir teamGrantFreeSeat çağrısında en fazla kaç koltuk
   EXPIRE_BATCH: 200,
   // Satış modu (Config/satis). 'kapali' | 'rezervasyon' (ödeme sahnede) | 'online' (iyzico). Belge yoksa varsayılan.
   SATIS_MODES: ['kapali', 'rezervasyon', 'online'],

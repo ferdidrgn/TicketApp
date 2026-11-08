@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:ticketapp/features/events/data/models/event_model.dart';
+import '../../../purchase/data/datasources/purchase_remote_data_source_and_impl.dart'
+    show kPurchaseFunctionsRegion;
 import '../../domain/repositories/event_repository.dart' show kAdminBlockCustomerId;
 
 abstract class EventRemoteDataSource {
@@ -20,6 +23,10 @@ abstract class EventRemoteDataSource {
   /// 🛠️ Admin koltuk denetimi (Phase 2).
   Future<bool> adminSetSeatBlocked(
       final String eventId, final String seatId, final bool blocked);
+
+  /// 🎟️ Ücretsiz "protokol" bileti — sunucu `teamGrantFreeSeat` callable'ı.
+  Future<String> grantFreeSeat(
+      final String eventId, final List<String> seatIds, final String note);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -199,8 +206,11 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         } else {
           // Sadece BİZİM koyduğumuz admin bloğu geri alınabilir — gerçek bir
           // satışı (gerçek customerId'li 'sold') yanlışlıkla asla serbest
-          // bırakmaz.
-          if (seat['customerId'] != kAdminBlockCustomerId)
+          // bırakmaz. `status == 'blocked'`: /ekip takım yöneticisi panelinden
+          // (teamSetSeatBlocked) gelen yeni biçim de burada tanınır.
+          final isBlocked = seat['status'] == 'blocked' ||
+              seat['customerId'] == kAdminBlockCustomerId;
+          if (!isBlocked)
             throw Exception(
                 'Bu koltuk bir admin bloğu değil, gerçek bir satış/'
                 'rezervasyon içeriyor — buradan serbest bırakılamaz.');
@@ -217,6 +227,36 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     } catch (e) {
       print('adminSetSeatBlocked failed: $e');
       rethrow;
+    }
+  }
+
+  @override
+  Future<String> grantFreeSeat(
+      final String eventId, final List<String> seatIds, final String note) async {
+    _validateParams({'Event ID': eventId});
+    if (seatIds.isEmpty) throw Exception('En az bir koltuk seçmelisiniz.');
+    try {
+      final callable = FirebaseFunctions.instanceFor(
+              region: kPurchaseFunctionsRegion)
+          .httpsCallable('teamGrantFreeSeat');
+      final res = await callable.call<Map<String, dynamic>>(
+          {'eventId': eventId, 'seatIds': seatIds, 'note': note});
+      final ticketId = res.data['ticketId'] as String?;
+      if (ticketId == null || ticketId.isEmpty) {
+        throw Exception('Protokol bileti oluşturulamadı.');
+      }
+      return ticketId;
+    } on FirebaseFunctionsException catch (e) {
+      final msg = (e.message ?? '').trim();
+      throw Exception(msg.isNotEmpty && msg.length <= 240
+          ? msg
+          : switch (e.code) {
+              'permission-denied' => 'Bu işlem için yetkin yok.',
+              'failed-precondition' =>
+                'Koltuk artık müsait değil ya da seans başladı/geçti.',
+              'invalid-argument' => 'Geçersiz koltuk bilgisi.',
+              _ => 'İşlem şu anda tamamlanamadı. Lütfen tekrar dene.',
+            });
     }
   }
 }

@@ -5,10 +5,12 @@ const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { getAuth } = require('firebase-admin/auth');
 const H = require('./helpers');
+const cfg = require('../src/config');
 const { createTeam, freeTextProblem } = require('../src/team');
+const { createService } = require('../src/orders');
 const { createAccountDeletion } = require('../src/accountDeletion');
 const { fakeMessaging, makeNotifier, seedUser, seedTicket, tok } = require('./notify-helpers');
-const { db, clearDb, makeAdmin, expectCode, eventDate, clock, Timestamp, TEST_SALT } = H;
+const { db, clearDb, makeAdmin, makeService, phoneFor, expectCode, eventDate, clock, Timestamp, TEST_SALT } = H;
 
 const auth = getAuth();
 const HOUR = 3600e3;
@@ -18,7 +20,8 @@ beforeEach(async () => { await clearDb(); });
 
 function sut({ now, messaging } = {}) {
   const { n, msg } = makeNotifier({ now, messaging });
-  const team = createTeam({ db, auth, notifier: n, now: now || Date.now, log: silent });
+  const orders = createService({ db, now: now || Date.now, log: silent });
+  const team = createTeam({ db, auth, notifier: n, orders, now: now || Date.now, log: silent });
   return { team, msg, n };
 }
 const mkAuth = async (o) => { try { await auth.deleteUser(o.uid); } catch { /* yoktu */ } return auth.createUser(o); };
@@ -459,4 +462,76 @@ test('hiçbir yanıtta kişisel veri yok (ad, soyad, uid listesi, token, e-posta
   out.push(await team.teamStats('mgrA', {}));
   const s = JSON.stringify(out);
   for (const bad of ['c1"', 'c2"', 'c3"', 'c9', 'Musteri', 'musteri1', '+9055', 'fcm_token', 'customerId', 'firstName', 'lastName', 'mgrA', '"userIds"']) assert.ok(!s.includes(bad), `sızıntı: ${bad}`);
+});
+
+// ------------------------------------------------------------------ KOLTUK BLOĞU / PROTOKOL BİLETİ (İş T-2)
+test('setSeatBlocked: admin her oyunda boş koltuğu bloklar/kaldırır; satılmış/rezerve koltuk bloklanamaz; zaten o durumdaysa reddedilir', async () => {
+  await world();
+  const { team } = sut();
+  const seatOf = async (id) => (await get('Event', 'eA')).seats[id];
+  await team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A4', blocked: true });
+  assert.equal((await seatOf('A4')).status, 'blocked');
+  await expectCode(team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A1', blocked: true }), 'failed-precondition'); // sold
+  await expectCode(team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A3', blocked: true }), 'failed-precondition'); // reserved
+  await expectCode(team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A4', blocked: true }), 'failed-precondition'); // zaten blocked
+  await team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A4', blocked: false });
+  assert.equal((await seatOf('A4')).status, 'available');
+  await expectCode(team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'A4', blocked: false }), 'failed-precondition'); // zaten available
+  await expectCode(team.setSeatBlocked('admin1', { eventId: 'eA', seatId: 'yok_boyle', blocked: true }), 'invalid-argument');
+});
+
+test('setSeatBlocked: aktif ekip yöneticisi yalnız kendi ekibinin seansında; başka ekip/yetkisiz kullanıcı permission-denied', async () => {
+  await world();
+  await db.collection('Event').doc('eB').update({ 'seats.A2': { status: 'available' } });
+  const { team } = sut();
+  await expectCode(team.setSeatBlocked('mgrB', { eventId: 'eA', seatId: 'A4', blocked: true }), 'permission-denied');
+  await seedUser('nobody');
+  await expectCode(team.setSeatBlocked('nobody', { eventId: 'eB', seatId: 'A2', blocked: true }), 'permission-denied');
+  await team.setSeatBlocked('mgrB', { eventId: 'eB', seatId: 'A2', blocked: true }); // kendi ekibi -> olur
+  assert.equal((await get('Event', 'eB')).seats.A2.status, 'blocked');
+});
+
+test('grantFreeSeat: admin/ekip yöneticisi boş koltuğa protokol bileti verir; koltuk satılır, bilet orderMethod=protokol, kota/ücretsiz-toplam sayaçlarına GİRMEZ', async () => {
+  await world();
+  const { team } = sut();
+  const { svc } = makeService({ satis: { mode: 'rezervasyon', etkinlikBasinaLimit: 2, ucretsizToplamLimit: 2 } });
+  const quotaCtx = { phone: phoneFor('musteriX') };
+  const quotaBefore = await svc.getEventQuota('musteriX', { eventId: 'eA' }, quotaCtx);
+  const r = await team.grantFreeSeat('admin1', { eventId: 'eA', seatIds: ['A4'], note: '  Ahmet — arkadaş davetiyesi  ' });
+  assert.ok(r.ticketId); assert.deepEqual(r.seatIds, ['A4']);
+  const ev = await get('Event', 'eA');
+  assert.equal(ev.seats.A4.status, 'sold'); assert.equal(ev.seats.A4.orderId, r.ticketId);
+  const t = await get('Ticket', r.ticketId);
+  assert.equal(t.orderMethod, 'protokol'); assert.equal(t.paymentStatus, 'protokol');
+  assert.equal(t.customerId, cfg.PROTOKOL_CUSTOMER_ID); assert.equal(t.issuedBy, 'admin1');
+  assert.equal(t.note, 'Ahmet — arkadaş davetiyesi'); assert.deepEqual(t.buySeats, ['A4']);
+  const o = await get('Order', r.ticketId);
+  assert.equal(o.status, 'free_confirmed'); assert.equal(o.free, false); assert.equal(o.totalKurus, 0);
+  // kota/ücretsiz-toplam sayaçları hiç değişmedi (bu bir müşterinin kendi hakkı değil, yönetici tahsisi)
+  const quotaAfter = await svc.getEventQuota('musteriX', { eventId: 'eA' }, quotaCtx);
+  assert.equal(quotaAfter.used, quotaBefore.used);
+  assert.equal((await get('UserLimits', cfg.PROTOKOL_CUSTOMER_ID)), null);
+  // artık müsait değil
+  await expectCode(team.grantFreeSeat('admin1', { eventId: 'eA', seatIds: ['A4'] }), 'failed-precondition');
+});
+
+test('grantFreeSeat: aktif ekip yöneticisi yalnız kendi ekibinde; başka ekip permission-denied; bir seferde en fazla PROTOKOL_MAX_SEATS', async () => {
+  await world();
+  const { team } = sut();
+  await expectCode(team.grantFreeSeat('mgrB', { eventId: 'eA', seatIds: ['A4'] }), 'permission-denied');
+  await team.grantFreeSeat('mgrA', { eventId: 'eA', seatIds: ['A4'] }); // kendi ekibi -> olur
+  assert.equal((await get('Event', 'eA')).seats.A4.status, 'sold');
+  const tooMany = Array.from({ length: cfg.PROTOKOL_MAX_SEATS + 1 }, (_, i) => `S${i}`);
+  await expectCode(team.grantFreeSeat('admin1', { eventId: 'eA', seatIds: tooMany }), 'invalid-argument');
+});
+
+test('grantFreeSeat: geçmiş/başlamış seans ve geçersiz koltuk reddedilir; hesap silme pending ise ACCOUNT_DELETION_PENDING', async () => {
+  await world({ dateA: eventDate(-HOUR) });
+  const { team } = sut();
+  await expectCode(team.grantFreeSeat('admin1', { eventId: 'eA', seatIds: ['A4'] }), 'failed-precondition');
+  await db.collection('Event').doc('eC').set({ _id: 'eC', showId: 'sA', stageId: 'st1', date: eventDate(HOUR), price: '100', seats: { A1: { status: 'available' } } });
+  await expectCode(team.grantFreeSeat('admin1', { eventId: 'eC', seatIds: ['yok_boyle'] }), 'invalid-argument');
+  await db.collection('AccountDeletion').doc('admin1').set({ uid: 'admin1', status: 'pending', scheduledAt: Timestamp.fromMillis(Date.now() + 864e5) });
+  const e = await expectCode(team.grantFreeSeat('admin1', { eventId: 'eC', seatIds: ['A1'] }), 'failed-precondition');
+  assert.equal(e.message, 'ACCOUNT_DELETION_PENDING');
 });

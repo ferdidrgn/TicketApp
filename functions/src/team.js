@@ -8,11 +8,12 @@
  * Yanıtlarda kişisel veri (ad, telefon, e-posta, uid listesi) DÖNMEZ; yalnız sayılar ve seans/oyun bilgisi.
  */
 const crypto = require('crypto');
-const { Timestamp } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const cfg = require('./config');
-const { err, parseEventDateMs, validateId } = require('./util');
+const { err, parseEventDateMs, validateId, validateSeatIds } = require('./util');
 const { isBlocking, deletionPendingError } = require('./accountDeletion');
 const { TEMPLATES, templateList, buildMessage } = require('./notify');
+const { seatPath, isBlocked } = require('./orders');
 
 const T = cfg.TEAM;
 const N = cfg.NOTIFY;
@@ -60,10 +61,12 @@ function seatTally(seats) {
  * @param {FirebaseFirestore.Firestore} o.db
  * @param {import('firebase-admin/auth').Auth} o.auth  adminSetTeamManager için (e-postadan uid)
  * @param {{internals:object}} o.notifier  createNotifier() sonucu (hedef/şablon/gönderim çekirdeği)
+ * @param {{internals:object}} o.orders  createService() sonucu (bilet üretim çekirdeği — koltuk bloğu/protokol bileti için)
  */
-function createTeam({ db, auth, notifier, messaging, now = Date.now, log = console }) {
+function createTeam({ db, auth, notifier, orders, messaging, now = Date.now, log = console }) {
   const col = (n) => db.collection(n);
   const X = notifier.internals;
+  const O = orders.internals;
   const permDenied = () => err('permission-denied', 'Bu işlem için yetkin yok.');
 
   // ---------------------------------------------------------------- hesap / rol
@@ -350,6 +353,96 @@ function createTeam({ db, auth, notifier, messaging, now = Date.now, log = conso
     return { ok: r.ok, ...(r.already ? { already: true } : {}), ticket: summary(r.t, r.cur) };
   }
 
+  // ---------------------------------------------------------------- koltuk bloğu / protokol bileti (İş T-2)
+  /**
+   * Koltuğu satışa kapatır/açar (admin: her oyun; aktif ekip yöneticisi: yalnız kendi ekibinin seansı).
+   * Satılmış/tutulan koltuk bloklanamaz. Kaldırma, admin mobil panelinin eski biçimini de (`sold` +
+   * `kAdminBlockCustomerId`) tanır (`isBlocked`) — hangi panelden bloklandığı önemli değildir.
+   */
+  async function setSeatBlocked(uid, data) {
+    await assertAccountActive(uid);
+    data = data || {};
+    const eventId = validateId(data.eventId, 'etkinlik');
+    const [seatId] = validateSeatIds([data.seatId]);
+    const blocked = data.blocked === true;
+    await assertCanManageEvent(uid, eventId);
+    const evRef = col('Event').doc(eventId);
+    return db.runTransaction(async (tx) => {
+      const snap = await tx.get(evRef);
+      if (!snap.exists) throw err('not-found', 'Seans bulunamadı.');
+      const s = (snap.data().seats || {})[seatId];
+      if (!s || typeof s !== 'object') throw err('invalid-argument', `Koltuk bulunamadı: ${seatId}`);
+      if (blocked) {
+        if (s.status !== 'available') throw err('failed-precondition', 'Yalnızca boş koltuklar satışa kapatılabilir.');
+        tx.update(evRef, seatPath(seatId, 'status'), 'blocked');
+      } else {
+        if (!isBlocked(s)) throw err('failed-precondition', 'Bu koltuk satışa kapalı değil.');
+        // Eski biçim (`sold` + kAdminBlockCustomerId) ile bloklanmışsa artık kalıntıları (customerId/soldAt) da temizlenir.
+        tx.update(
+          evRef,
+          seatPath(seatId, 'status'), 'available',
+          seatPath(seatId, 'customerId'), FieldValue.delete(),
+          seatPath(seatId, 'soldAt'), FieldValue.delete(),
+        );
+      }
+      return { ok: true, seatId, blocked };
+    });
+  }
+
+  /**
+   * Ücretsiz "protokol" bileti (davetiye/ağırlama) — admin her oyunda, aktif ekip yöneticisi yalnız kendi ekibinin seansında
+   * verebilir. Kota/gün sınırlarına (etkinlikBasinaLimit, ucretsizToplamLimit) GİRMEZ: bu, bir müşterinin kendi hakkını kullanması
+   * değil, yönetici/ekibin kendi tahsisidir. Alıcının uygulama hesabı YOKTUR (customerId sabit `PROTOKOL_CUSTOMER_ID`); kapıda
+   * giriş normal biletler gibi `teamCheckIn`/`adminCheckIn` ile dönen bilet koduyla yapılır.
+   */
+  async function grantFreeSeat(uid, data) {
+    await assertAccountActive(uid);
+    data = data || {};
+    const eventId = validateId(data.eventId, 'etkinlik');
+    const seatIds = validateSeatIds(data.seatIds);
+    if (seatIds.length > cfg.PROTOKOL_MAX_SEATS) {
+      throw err('invalid-argument', `Bir seferde en fazla ${cfg.PROTOKOL_MAX_SEATS} koltuk için protokol bileti verebilirsiniz.`);
+    }
+    const note = typeof data.note === 'string' ? data.note.replace(ZERO_WIDTH, '').trim().slice(0, 140) : '';
+    const { scope } = await assertCanManageEvent(uid, eventId);
+    const evRef = col('Event').doc(eventId);
+    const orderRef = col('Order').doc();
+    return db.runTransaction(async (tx) => {
+      const snap = await tx.get(evRef);
+      if (!snap.exists) throw err('not-found', 'Seans bulunamadı.');
+      const ev = snap.data();
+      const dateMs = parseEventDateMs(ev.date);
+      if (dateMs == null || dateMs <= now()) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
+      const seats = ev.seats || {};
+      for (const sid of seatIds) {
+        const s = seats[sid];
+        if (!s || typeof s !== 'object') throw err('invalid-argument', `Koltuk bulunamadı: ${sid}`);
+        if (s.status !== 'available') throw err('failed-precondition', `Koltuk artık müsait değil: ${sid}`);
+      }
+      const stageSnap = ev.stageId ? await tx.get(col('Stage').doc(ev.stageId)) : null;
+      const stage = stageSnap && stageSnap.exists ? stageSnap.data() : null;
+      const order = {
+        userId: cfg.PROTOKOL_CUSTOMER_ID, phoneKey: null, eventId,
+        showId: scope.showId || null, stageId: ev.stageId || null, seatIds, totalKurus: 0, free: false,
+      };
+      // Sipariş belgesi bu transaction içinde İLK KEZ yazılıyor (holdSeats akışı yok) — writeFulfillment'ın
+      // `set(...,{merge:true})` ile yama yapacağı tüm temel alanlar burada önceden oluşturulur.
+      tx.set(orderRef, {
+        userId: order.userId, phoneKey: null, eventId, showId: order.showId, stageId: order.stageId, seatIds,
+        total: 0, totalKurus: 0, currency: cfg.CURRENCY, free: false,
+        provider: null, providerToken: null, conversationId: orderRef.id,
+        createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+      });
+      O.writeFulfillment(tx, {
+        orderRef, orderId: orderRef.id, order, evRef, ev, show: scope.show, stage, L: null,
+        method: 'protokol', status: 'free_confirmed', skipNotification: true,
+        extraOrder: { issuedBy: uid, note },
+        extraTicket: { issuedBy: uid, note },
+      });
+      return { ticketId: orderRef.id, seatIds };
+    });
+  }
+
   /** Kendi oyun/seansları: satılan/tutulan/doluluk/giriş sayısı. Kişisel veri YOK. */
   async function teamStats(uid, data) {
     await assertAccountActive(uid);
@@ -442,6 +535,7 @@ function createTeam({ db, auth, notifier, messaging, now = Date.now, log = conso
 
   return {
     getMyManagedTeams, teamNotifyPreview, teamSendNotification, teamCheckIn, teamStats, adminSetTeamManager,
+    setSeatBlocked, grantFreeSeat,
     resolveEventTeam, resolveEventScope, assertCanManageEvent, assertCanManageShow,
   };
 }

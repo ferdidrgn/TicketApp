@@ -85,6 +85,7 @@ String ticketSeatsValue(final DetailedTicket t) =>
 String ticketPaymentLabel(final String method) => switch (method) {
       'card' => 'Kart',
       'free' => 'Ücretsiz',
+      'protokol' => 'Protokol',
       'venue' => 'Sahnede ödeme',
       'iban' => 'Havale / EFT',
       '' => '—',

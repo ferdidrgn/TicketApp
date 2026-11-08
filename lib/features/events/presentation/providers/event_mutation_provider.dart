@@ -5,6 +5,8 @@ import '../../data/repositories/event_repository_provider.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/add_event_use_case_impl.dart';
 import '../../domain/usecases/admin_set_seat_blocked_use_case_impl.dart';
+import '../../domain/usecases/grant_free_seat_use_case_impl.dart';
+import '../../../tickets/presentation/providers/admin_ticket_provider.dart';
 import 'event_provider.dart';
 
 // 🔧 KODLAMA NOTU (Event Mutation — codegen'siz):
@@ -22,6 +24,9 @@ final addEventUseCaseProvider = Provider<AddEventUseCase>(
 final adminSetSeatBlockedUseCaseProvider =
     Provider<AdminSetSeatBlockedUseCase>((final ref) =>
         AdminSetSeatBlockedUseCaseImpl(ref.watch(eventRepositoryProvider)));
+
+final grantFreeSeatUseCaseProvider = Provider<GrantFreeSeatUseCase>(
+    (final ref) => GrantFreeSeatUseCaseImpl(ref.watch(eventRepositoryProvider)));
 
 final eventMutationProvider =
     NotifierProvider<EventMutationNotifier, AsyncValue<void>>(
@@ -61,5 +66,24 @@ class EventMutationNotifier extends Notifier<AsyncValue<void>> {
       // invalidate ediyoruz.
       ref.invalidate(eventSeatsProvider);
     });
+  }
+
+  /// 🎟️ Ücretsiz "protokol" bileti (İş T-2): admin her oyunda, aktif ekip
+  /// yöneticisi yalnız kendi ekibinin seansında müsait koltuklara doğrudan
+  /// bilet verir (bkz. `EventRepository.grantFreeSeat`). Başarılıysa oluşan
+  /// bilet kimliğini döner; hata durumunda `null` (ayrıntı `state.error`'da).
+  Future<String?> grantFreeSeat(final String eventId,
+      final List<String> seatIds, final String note) async {
+    state = const AsyncLoading();
+    String? ticketId;
+    state = await AsyncValue.guard(() async {
+      ticketId = await ref
+          .read(grantFreeSeatUseCaseProvider)
+          .call(eventId, seatIds, note)
+          .getOrThrow();
+      ref.invalidate(eventSeatsProvider);
+      ref.invalidate(ticketsByEventIdProvider);
+    });
+    return ticketId;
   }
 }

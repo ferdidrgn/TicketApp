@@ -2,7 +2,7 @@
 // bu dosya yalnız arayüzdür ve admin modüllerini içe aktarmaz. Kişisel veri gösterilmez: yalnız sayılar ve bilet kodu.
 import { kabukCiz } from '../ui.js';
 import { girisGerekli, oturumDinle } from '../auth.js';
-import { fonksiyon } from '../firebase.js';
+import { db, doc, getDoc, onSnapshot, fonksiyon } from '../firebase.js';
 import { $, $$, esc } from '../util.js';
 
 kabukCiz('');
@@ -64,7 +64,7 @@ function iskelet() {
       <div class="ek-alan"><label for="ek-seans">Seans</label><select id="ek-seans">${(oyun()?.events || []).map((x) => `<option value="${esc(x.eventId)}" ${x.eventId === st.eventId ? 'selected' : ''}>${esc(saatYaz(x.ms))}${x.stage ? ` · ${esc(x.stage)}` : ''}</option>`).join('') || '<option value="">Yaklaşan seans yok</option>'}</select></div>
     </div><div id="ek-doluluk"></div></div>
     <div class="ek-sekmeler" role="tablist" aria-label="Ekip paneli bölümleri">
-      ${[['bildirim', 'Bildirim'], ['kapi', 'Kapı'], ['yorum', 'Yorumlar'], ['soru', 'Sorular'], ['ozet', 'Özet']].map(([k, a]) => `<button type="button" role="tab" class="ek-sekme" id="tab-${k}" aria-selected="${st.sekme === k}" data-s="${k}">${a}</button>`).join('')}</div>
+      ${[['bildirim', 'Bildirim'], ['kapi', 'Kapı'], ['koltuk', 'Koltuklar'], ['yorum', 'Yorumlar'], ['soru', 'Sorular'], ['ozet', 'Özet']].map(([k, a]) => `<button type="button" role="tab" class="ek-sekme" id="tab-${k}" aria-selected="${st.sekme === k}" data-s="${k}">${a}</button>`).join('')}</div>
     <div id="ek-govde" role="tabpanel" aria-live="polite"></div></section>`);
   $('#ek-ekip')?.addEventListener('change', (ev) => { st.ti = +ev.target.value; st.showId = ''; st.eventId = ''; seansSec(); st.kitle = null; iskelet(); });
   $('#ek-oyun').addEventListener('change', (ev) => { st.showId = ev.target.value; st.eventId = ''; seansSec(); st.kitle = null; iskelet(); });
@@ -83,10 +83,12 @@ function doluluk() {
 }
 
 function sekmeCiz() {
+  if (st.sekme !== 'koltuk') koltukAboneKapat();
   if (st.sekme === 'kapi') return kapi();
   if (st.sekme === 'ozet') return ozet();
   if (st.sekme === 'yorum') return yorumlar();
   if (st.sekme === 'soru') return sorular();
+  if (st.sekme === 'koltuk') return koltuklar();
   return bildirim();
 }
 
@@ -260,6 +262,150 @@ function kapi() {
     st.kapiSon.unshift({ saat: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }), kod: kod.slice(0, 8), sonuc });
     st.kapiSon = st.kapiSon.slice(0, 10);
     inp.value = ''; inp.focus();
+  });
+}
+
+// ---------------------------------------------------------------- koltuklar (İş T-2: satışa kapatma / protokol bileti)
+// Yetki ve sınır tamamen sunucuda (team.js: assertCanManageEvent) — bu dosya yalnız arayüzdür. Canlı durum (kim şu an
+// alıyor/tutuyor) Event.seats'in herkese açık onSnapshot akışından gelir; aynı akış `/koltuk` satın alma sayfasında da kullanılır.
+const ADMIN_BLOK = '__ADMIN_BLOCKED__'; // eski yönetici bloğu işareti; yeni biçim status:'blocked'
+let koltukAbone = null;
+const koltukAboneKapat = () => { try { koltukAbone?.(); } catch { /* yoktu */ } koltukAbone = null; };
+const koltukAyir = (id) => { const m = /^(.*?)(\d+)$/.exec(id); return m ? [m[1].trim().replace(/[\s\-_.:]+$/, ''), +m[2]] : ['', NaN]; };
+
+/** `Seats/{stageId}` + canlı `Event.seats`'ten sıra/koltuk düzeni (biletal.css'teki satın alma sayfasıyla aynı algoritma). */
+function koltukDuzenKur(sd, esMap) {
+  const META = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt']);
+  const grup = new Map();
+  const ekle = (etiket, id) => { if (!grup.has(etiket)) grup.set(etiket, []); grup.get(etiket).push(id); };
+  if (sd && Array.isArray(sd.seatsId)) sd.seatsId.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(koltukAyir(id)[0], id));
+  else if (sd) for (const [k, v] of Object.entries(sd)) { if (!META.has(k) && Array.isArray(v)) v.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(k, id)); }
+  if (!grup.size) Object.keys(esMap || {}).forEach((id) => ekle(koltukAyir(id)[0], id));
+  const anahtarlar = [...grup.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr', { numeric: true }));
+  let satirlar = anahtarlar.map((k) => ({ ad: k, koltuklar: grup.get(k).map((id) => ({ id, num: koltukAyir(id)[1] })).sort((a, b) => (isNaN(a.num) || isNaN(b.num) ? 0 : a.num - b.num)) }));
+  if (satirlar.length === 1 && satirlar[0].ad === '' && satirlar[0].koltuklar.length > 14) {
+    const hepsi = satirlar[0].koltuklar; satirlar = [];
+    for (let i = 0; i < hepsi.length; i += 12) satirlar.push({ ad: String(i / 12 + 1), koltuklar: hepsi.slice(i, i + 12) });
+  }
+  return satirlar;
+}
+const koltukKapaliMi = (info) => !!info && (info.status === 'blocked' || (info.status === 'sold' && info.customerId === ADMIN_BLOK));
+function koltukDurum(info) {
+  if (!info) return 'bos';
+  switch (info.status) {
+    case 'available': return 'bos';
+    case 'reserved': return 'rezerve';
+    case 'sold': return info.customerId === ADMIN_BLOK ? 'kapali' : 'dolu';
+    case 'blocked': return 'kapali';
+    default: return 'kapali';
+  }
+}
+const KOLTUK_METNI = { bos: 'boş', dolu: 'satıldı', rezerve: 'tutuluyor', kapali: 'satışa kapalı' };
+
+function koltukGrid(satirlar, seats) {
+  if (!satirlar.length) return '<p class="ek-muted">Bu sahne için koltuk düzeni tanımlı değil.</p>';
+  const html = satirlar.map((s) => {
+    let onceki = null;
+    const hucre = s.koltuklar.map((k) => {
+      const bosluk = onceki != null && !isNaN(k.num) && k.num - onceki > 1 ? '<span class="bosluk" aria-hidden="true"></span>' : '';
+      onceki = isNaN(k.num) ? onceki : k.num;
+      const d = koltukDurum(seats[k.id]);
+      return `${bosluk}<button type="button" class="koltuk ${d}" data-id="${esc(k.id)}" aria-label="${esc(k.id)}, ${KOLTUK_METNI[d]}">${esc(isNaN(k.num) ? k.id : k.num)}</button>`;
+    }).join('');
+    return `<div class="satir" role="group" aria-label="${s.ad ? `Sıra ${esc(s.ad)}` : 'Koltuklar'}"><span class="satir-ad" aria-hidden="true">${esc(s.ad)}</span>${hucre}<span class="satir-ad" aria-hidden="true">${esc(s.ad)}</span></div>`;
+  }).join('');
+  return `<div class="ek-plan"><div class="ek-plan-gorus"><div class="ek-plan-ic"><div class="satirlar">${html}</div></div></div>
+    <div class="lejant"><span><button type="button" class="koltuk bos" tabindex="-1" aria-hidden="true"></button>Boş</span><span><button type="button" class="koltuk dolu" tabindex="-1" aria-hidden="true"></button>Satıldı (protokol bileti de buraya düşer)</span><span><button type="button" class="koltuk rezerve" tabindex="-1" aria-hidden="true"></button>Tutuluyor</span><span><button type="button" class="koltuk kapali" tabindex="-1" aria-hidden="true"></button>Satışa kapalı</span></div></div>`;
+}
+
+function koltukTikla(root, eventId, seats) {
+  $$('.koltuk[data-id]', root).forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.id, info = seats[id], d = koltukDurum(info);
+    if (d === 'bos') return koltukEylemSec(eventId, id);
+    if (d === 'kapali' && koltukKapaliMi(info)) return koltukBlogKaldir(eventId, id);
+  }));
+}
+
+async function koltuklar() {
+  koltukAboneKapat();
+  const g = $('#ek-govde'), e = seans();
+  if (!e) { g.innerHTML = '<div class="ek-kart"><p class="ek-muted">Önce bir seans seç.</p></div>'; return; }
+  g.innerHTML = '<div class="ek-kart"><h2>Koltuklar</h2><p class="ek-muted">Boş bir koltuğa dokunarak satışa kapatabilir ya da doğrudan ücretsiz protokol bileti verebilirsin. Durum canlıdır.</p><div id="ek-koltuk-govde"><div class="skel" style="height:220px"></div></div></div>';
+  const eid = e.eventId;
+  let satirlar = null, seats = {};
+  const cizGovde = () => {
+    if (st.eventId !== eid || st.sekme !== 'koltuk') return;
+    const h = $('#ek-koltuk-govde');
+    if (h) { h.innerHTML = koltukGrid(satirlar || [], seats); koltukTikla(h, eid, seats); }
+  };
+  koltukAbone = onSnapshot(doc(db, 'Event', eid), async (snap) => {
+    if (st.eventId !== eid || st.sekme !== 'koltuk' || !snap.exists()) return;
+    const veri = snap.data();
+    seats = veri.seats && typeof veri.seats === 'object' ? veri.seats : {};
+    if (!satirlar) {
+      const sid = String(veri.stageId || '');
+      const ss = sid ? await getDoc(doc(db, 'Seats', sid)) : null;
+      satirlar = koltukDuzenKur(ss && ss.exists() ? ss.data() : null, seats);
+    }
+    cizGovde();
+  }, (er) => { const h = $('#ek-koltuk-govde'); if (h) h.innerHTML = `<div class="ek-hata" role="alert">Koltuklar yüklenemedi: ${esc(er?.message || '')}</div>`; });
+}
+
+function koltukModalAc(html) {
+  const onceki = document.activeElement;
+  const bg = document.createElement('div'); bg.className = 'ek-modal-bg';
+  bg.innerHTML = `<div class="ek-modal" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.append(bg);
+  const modal = bg.firstElementChild;
+  const tus = (ev) => { if (ev.key === 'Escape') kapat(); };
+  const kapat = () => { document.removeEventListener('keydown', tus, true); bg.remove(); onceki?.focus?.(); };
+  document.addEventListener('keydown', tus, true);
+  bg.addEventListener('mousedown', (ev) => { if (ev.target === bg) kapat(); });
+  return { modal, kapat };
+}
+
+function koltukEylemSec(eventId, seatId) {
+  const { modal, kapat } = koltukModalAc(`<h2>Koltuk ${esc(seatId)}</h2>
+    <p class="ek-muted">Bu koltuk şu an boş. Satışa kapatabilir ya da doğrudan ücretsiz protokol bileti verebilirsin.</p>
+    <div id="ek-ke-s"></div>
+    <div class="ek-act"><button type="button" class="btn btn-ghost" id="ek-ke-v">Vazgeç</button>
+      <button type="button" class="btn btn-ghost" id="ek-ke-bloke">Satışa kapat</button>
+      <button type="button" class="btn btn-primary" id="ek-ke-prot">Protokol bileti ver</button></div>`);
+  $('#ek-ke-v', modal).addEventListener('click', kapat);
+  $('#ek-ke-bloke', modal).addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget; btn.disabled = true;
+    try { await cagir('teamSetSeatBlocked', { eventId, seatId, blocked: true }); kapat(); }
+    catch (er) { btn.disabled = false; $('#ek-ke-s', modal).innerHTML = `<div class="ek-hata" role="alert">${esc(hata(er))}</div>`; }
+  });
+  $('#ek-ke-prot', modal).addEventListener('click', () => { kapat(); koltukProtokolModal(eventId, seatId); });
+}
+
+function koltukProtokolModal(eventId, seatId) {
+  const { modal, kapat } = koltukModalAc(`<h2>Koltuk ${esc(seatId)} — protokol bileti</h2>
+    <p class="ek-muted">Bu koltuk ücretsiz olarak ayrılır; ödeme/kota denetimine girmez. Kapıda giriş bilet koduyla yapılır.</p>
+    <div class="ek-alan"><label for="ek-prot-not">Not (kime/ne için — opsiyonel)</label><textarea id="ek-prot-not" maxlength="140" placeholder="Örn. Ahmet Yılmaz — arkadaş davetiyesi"></textarea></div>
+    <div id="ek-prot-s"></div>
+    <div class="ek-act"><button type="button" class="btn btn-ghost" id="ek-p-v">Vazgeç</button><button type="button" class="btn btn-primary" id="ek-p-g">Protokol bileti ver</button></div>`);
+  $('#ek-p-v', modal).addEventListener('click', kapat);
+  $('#ek-p-g', modal).addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Veriliyor…';
+    try {
+      await cagir('teamGrantFreeSeat', { eventId, seatIds: [seatId], note: $('#ek-prot-not', modal).value.trim() });
+      kapat();
+    } catch (er) { btn.disabled = false; btn.textContent = 'Protokol bileti ver'; $('#ek-prot-s', modal).innerHTML = `<div class="ek-hata" role="alert">${esc(hata(er))}</div>`; }
+  });
+}
+
+function koltukBlogKaldir(eventId, seatId) {
+  const { modal, kapat } = koltukModalAc(`<h2>Koltuk ${esc(seatId)}</h2>
+    <p class="ek-muted">Bu koltuk satışa kapalı. Bloğu kaldırıp yeniden satışa açmak istiyor musun?</p>
+    <div id="ek-bk-s"></div>
+    <div class="ek-act"><button type="button" class="btn btn-ghost" id="ek-bk-v">Vazgeç</button><button type="button" class="btn btn-primary" id="ek-bk-g">Bloğu kaldır</button></div>`);
+  $('#ek-bk-v', modal).addEventListener('click', kapat);
+  $('#ek-bk-g', modal).addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget; btn.disabled = true;
+    try { await cagir('teamSetSeatBlocked', { eventId, seatId, blocked: false }); kapat(); }
+    catch (er) { btn.disabled = false; $('#ek-bk-s', modal).innerHTML = `<div class="ek-hata" role="alert">${esc(hata(er))}</div>`; }
   });
 }
 

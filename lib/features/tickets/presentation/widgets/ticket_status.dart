@@ -13,7 +13,7 @@ import '../providers/my_ticket_provider.dart';
 
 /// Biletin ödeme/kullanım durumu (rozet + iptal kuralı). Yalnızca gösterim;
 /// kesin kural (iptal edilebilir mi) sunucuda denetlenir.
-enum TicketPayState { free, venue, paid, noShow, cancelled, unknown }
+enum TicketPayState { free, venue, paid, protokol, noShow, cancelled, unknown }
 
 TicketPayState ticketPayState(final DetailedTicket t) {
   final tk = t.ticket;
@@ -21,6 +21,7 @@ TicketPayState ticketPayState(final DetailedTicket t) {
   if (tk.isNoShow) return TicketPayState.noShow;
   if (tk.paymentStatus == 'paid') return TicketPayState.paid;
   if (tk.isPayAtVenue) return TicketPayState.venue;
+  if (tk.isProtokol) return TicketPayState.protokol;
   if (tk.orderMethod == 'free') return TicketPayState.free;
   if (tk.orderMethod == 'card') return TicketPayState.paid;
   return TicketPayState.unknown;
@@ -30,6 +31,7 @@ String ticketPayStateLabel(final TicketPayState s) => switch (s) {
       TicketPayState.free => 'Ücretsiz',
       TicketPayState.venue => 'Rezervasyon · ödeme sahnede',
       TicketPayState.paid => 'Ödendi',
+      TicketPayState.protokol => 'Protokol',
       TicketPayState.noShow => 'Gelmedi',
       TicketPayState.cancelled => 'İptal',
       TicketPayState.unknown => '',

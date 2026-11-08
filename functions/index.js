@@ -111,7 +111,11 @@ function getNotifier() {
 }
 
 function getTeam() {
-  return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), log: logger });
+  // NOT: `getService(false)` değil — o, hiçbir team.js callable'ında bağlı olmayan PHONE_HASH_SALT sırrını
+  // (`phoneSalt()`) gereksiz okur ve her çağrıda uyarı loglar. `createService` burada doğrudan, sırsız/
+  // sağlayıcısız çağrılır; `team.js`'in kullandığı tek şey `internals.writeFulfillment` (telefon/ödeme dokunmaz).
+  const orders = createService({ db: getFirestore(), log: logger });
+  return createTeam({ db: getFirestore(), auth: getAuth(), notifier: getNotifier(), orders, log: logger });
 }
 
 function getReviews() {
@@ -179,6 +183,8 @@ exports.teamSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded(
 exports.teamCheckIn = onCall(base, guarded((req) => getTeam().teamCheckIn(req.auth.uid, req.data)));
 exports.teamStats = onCall({ ...base, timeoutSeconds: 120 }, guarded((req) => getTeam().teamStats(req.auth.uid, req.data)));
 exports.adminSetTeamManager = onCall(base, guarded((req) => getTeam().adminSetTeamManager(req.auth.uid, req.data)));
+exports.teamSetSeatBlocked = onCall(base, guarded((req) => getTeam().setSeatBlocked(req.auth.uid, req.data)));
+exports.teamGrantFreeSeat = onCall(base, guarded((req) => getTeam().grantFreeSeat(req.auth.uid, req.data)));
 // Doğrulanmış yorum + moderasyon (Review istemci yazımına KAPALI; yalnız bu callable'lar). docs/UGC-KURALLARI.md
 exports.canReview = onCall(base, guarded((req) => getReviews().canReview(req.auth.uid, req.data, phoneCtx(req))));
 exports.submitReview = onCall(base, guarded((req) => getReviews().submitReview(req.auth.uid, req.data, phoneCtx(req))));

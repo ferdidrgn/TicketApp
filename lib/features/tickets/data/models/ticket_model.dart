@@ -10,6 +10,7 @@ class TicketModel {
   final bool? isPast;
   final String? showName, showImageUrl, stageName, eventDate;
   final String? paymentStatus, usedAt, cancelledAt;
+  final String? note;
 
   const TicketModel({
     this.id,
@@ -30,6 +31,7 @@ class TicketModel {
     this.paymentStatus,
     this.usedAt,
     this.cancelledAt,
+    this.note,
   });
 
   /// Zaman damgası -> ISO metin. Timestamp UTC'ye çevrilir (saat dilimi
@@ -96,5 +98,6 @@ class TicketModel {
         paymentStatus: _s(data['paymentStatus']),
         usedAt: _ts(data['usedAt']),
         cancelledAt: _ts(data['cancelledAt']),
+        note: _s(data['note']),
       );
 }

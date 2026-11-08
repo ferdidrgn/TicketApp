@@ -39,4 +39,11 @@ abstract class EventRepository {
   /// edilir — bkz. `kAdminBlockCustomerId`.
   Future<Either<Failure, bool>> adminSetSeatBlocked(
       final String eventId, final String seatId, final bool blocked);
+
+  /// 🎟️ Ücretsiz "protokol" bileti (İş T-2): admin her oyunda, aktif ekip
+  /// yöneticisi yalnız kendi ekibinin seansında müsait koltuklara doğrudan
+  /// (ödemesiz) bilet verir — sunucu `teamGrantFreeSeat` callable'ı
+  /// (`functions/src/team.js`). Döndürülen değer oluşan bilet kimliğidir.
+  Future<Either<Failure, String>> grantFreeSeat(
+      final String eventId, final List<String> seatIds, final String note);
 }

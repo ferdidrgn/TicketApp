@@ -14,9 +14,13 @@ class Ticket extends Equatable {
   /// okunabilir kalır. Eski biletlerde boş olabilir.
   final String showName, showImageUrl, stageName, eventDate;
 
-  /// Ödeme durumu: `pay_at_venue` | `paid` | `no_show` | `cancelled`.
+  /// Ödeme durumu: `pay_at_venue` | `paid` | `no_show` | `cancelled` | `protokol`.
   /// Eski biletlerde boş. `usedAt` (girişte okutuldu) ve `cancelledAt` ISO metin.
   final String paymentStatus, usedAt, cancelledAt;
+
+  /// `orderMethod == 'protokol'` biletlerde: admin/ekip yöneticisinin elle
+  /// yazdığı not (kime/ne için verildi). Diğer biletlerde boş.
+  final String note;
 
   const Ticket({
     required this.id,
@@ -37,11 +41,13 @@ class Ticket extends Equatable {
     this.paymentStatus = '',
     this.usedAt = '',
     this.cancelledAt = '',
+    this.note = '',
   });
 
   bool get isCancelled => paymentStatus == 'cancelled' || cancelledAt.isNotEmpty;
   bool get isNoShow => paymentStatus == 'no_show';
   bool get isPayAtVenue => paymentStatus == 'pay_at_venue';
+  bool get isProtokol => orderMethod == 'protokol';
 
 
   @override
@@ -64,5 +70,6 @@ class Ticket extends Equatable {
         paymentStatus,
         usedAt,
         cancelledAt,
+        note,
       ];
 }

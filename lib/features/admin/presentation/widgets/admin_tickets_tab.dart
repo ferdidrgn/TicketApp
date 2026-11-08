@@ -414,8 +414,17 @@ class _TicketBuyerLabel extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final userAsync = ref.watch(userByIdProvider(ticket.customerId));
     final colors = context.colors;
+    // Protokol biletinin gerçek bir kullanıcı hesabı yok (bkz. teamGrantFreeSeat);
+    // alıcı yerine admin/ekip yöneticisinin yazdığı not gösterilir.
+    if (ticket.isProtokol) {
+      return Text(
+        'Protokol${ticket.note.isNotEmpty ? ' — ${ticket.note}' : ''}',
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      );
+    }
+    final userAsync = ref.watch(userByIdProvider(ticket.customerId));
     return userAsync.when(
       loading: () => Text('Yükleniyor…',
           style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
@@ -465,25 +474,31 @@ class _TicketRow extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                userAsync.when(
-                  loading: () => Text('Yükleniyor…',
-                      style: TextStyle(
-                          fontSize: 13, color: colors.onSurfaceVariant)),
-                  error: (final e, final st) => Text(
-                      'Kullanıcı: ${ticket.customerId}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 13)),
-                  data: (final user) => Text(
-                    user != null
-                        ? '${user.firstName} ${user.lastName} · ${user.eMail}'
-                        // 🔥 DÜRÜSTLÜK: Kullanıcı dökümanı bulunamazsa
-                        // (silinmiş hesap vb.) sahte bir isim UYDURULMAZ —
-                        // ham uid gösterilir.
-                        : 'Kullanıcı bulunamadı (uid: ${ticket.customerId})',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13),
-                  ),
-                ),
+                ticket.isProtokol
+                    ? Text(
+                        'Protokol${ticket.note.isNotEmpty ? ' — ${ticket.note}' : ''}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13),
+                      )
+                    : userAsync.when(
+                        loading: () => Text('Yükleniyor…',
+                            style: TextStyle(
+                                fontSize: 13, color: colors.onSurfaceVariant)),
+                        error: (final e, final st) => Text(
+                            'Kullanıcı: ${ticket.customerId}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 13)),
+                        data: (final user) => Text(
+                          user != null
+                              ? '${user.firstName} ${user.lastName} · ${user.eMail}'
+                              // 🔥 DÜRÜSTLÜK: Kullanıcı dökümanı bulunamazsa
+                              // (silinmiş hesap vb.) sahte bir isim UYDURULMAZ —
+                              // ham uid gösterilir.
+                              : 'Kullanıcı bulunamadı (uid: ${ticket.customerId})',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ),
                 const SizedBox(height: AppSpacing.xs),
                 Text('Koltuklar: ${ticket.buySeats.join(', ')}',
                     style: TextStyle(
@@ -654,8 +669,10 @@ class _SeatCell extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final status = info?['status'] as String? ?? 'available';
     final customerId = info?['customerId'] as String?;
-    final isAdminBlocked =
-        status == 'sold' && customerId == kAdminBlockCustomerId;
+    // `blocked`: /ekip takım yöneticisi panelinden (teamSetSeatBlocked) gelen yeni biçim;
+    // `sold` + kAdminBlockCustomerId: bu ekranın kendi (eski) bloklama yolu — ikisi de "admin bloğu".
+    final isAdminBlocked = status == 'blocked' ||
+        (status == 'sold' && customerId == kAdminBlockCustomerId);
 
     final Color color;
     if (isAdminBlocked)
@@ -714,7 +731,7 @@ class _SeatCell extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xs),
               Text('Durum: ${isAdminBlocked ? 'Admin bloğu' : status}'),
               const SizedBox(height: AppSpacing.lg),
-              if (status == 'available')
+              if (status == 'available') ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -728,7 +745,20 @@ class _SeatCell extends ConsumerWidget {
                         backgroundColor: Colors.black54,
                         foregroundColor: Colors.white),
                   ),
-                )
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _grantFreeSeat(context, ref);
+                    },
+                    icon: const Icon(Icons.card_giftcard_rounded),
+                    label: const Text('Protokol bileti ver'),
+                  ),
+                ),
+              ]
               else if (isAdminBlocked)
                 SizedBox(
                   width: double.infinity,
@@ -779,4 +809,87 @@ class _SeatCell extends ConsumerWidget {
       ));
     }
   }
+
+  /// Not giriş diyaloğu → `teamGrantFreeSeat` (admin her oyun; ekip
+  /// yöneticisi yalnız kendi ekibinin seansında — sunucuda denetlenir).
+  Future<void> _grantFreeSeat(
+      final BuildContext context, final WidgetRef ref) async {
+    final note = await showDialog<String>(
+      context: context,
+      builder: (final dialogContext) => _ProtokolNoteDialog(seatId: seatId),
+    );
+    if (note == null || !context.mounted) return;
+    final ticketId = await ref
+        .read(eventMutationProvider.notifier)
+        .grantFreeSeat(eventId, [seatId], note);
+    if (!context.mounted) return;
+    if (ticketId == null) {
+      final state = ref.read(eventMutationProvider);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Protokol bileti verilemedi: ${state.error}'),
+        backgroundColor: Colors.red,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Koltuk $seatId için protokol bileti verildi.'),
+        backgroundColor: Colors.green,
+      ));
+    }
+  }
+}
+
+/// "Protokol bileti ver" için küçük not girişi (kime/ne için — opsiyonel).
+/// `pop(null)` = vazgeçildi; `pop('')`/`pop(metin)` = onaylandı.
+class _ProtokolNoteDialog extends StatefulWidget {
+  final String seatId;
+
+  const _ProtokolNoteDialog({required this.seatId});
+
+  @override
+  State<_ProtokolNoteDialog> createState() => _ProtokolNoteDialogState();
+}
+
+class _ProtokolNoteDialogState extends State<_ProtokolNoteDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => AlertDialog(
+        title: Text('Koltuk ${widget.seatId} — protokol bileti'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Bu koltuk ücretsiz olarak ayrılır; ödeme/kota denetimine '
+                'girmez. Kapıda giriş bilet koduyla yapılır.'),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              maxLength: 140,
+              decoration: const InputDecoration(
+                labelText: 'Not (kime/ne için — opsiyonel)',
+                hintText: 'Örn. Ahmet Yılmaz — arkadaş davetiyesi',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(context).pop(_controller.text.trim()),
+            child: const Text('Protokol bileti ver'),
+          ),
+        ],
+      );
 }
