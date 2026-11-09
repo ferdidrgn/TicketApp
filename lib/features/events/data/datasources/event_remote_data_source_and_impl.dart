@@ -13,6 +13,19 @@ abstract class EventRemoteDataSource {
   /// düzeninden doldurulur (bkz. `_ensureSeatsInitialized`).
   Future<bool> addEvent(final EventModel event);
 
+  /// ✏️ Bağımsız "Seanslar" sekmesi VE oyuna gömülü Seanslar bölümü AYNI
+  /// bu metodu çağırır (bkz. `EventRepository.updateEvent`). `updatedData`
+  /// yalnızca gerçek alanları içerir; `seats` buradan ASLA yazılmaz —
+  /// koltuk durumu sadece Cloud Functions/`adminSetSeatBlocked` tarafından
+  /// değiştirilir.
+  Future<bool> updateEvent(
+      final String eventId, final Map<String, dynamic> updatedData);
+
+  /// 🗑️ Bir seansı siler. Bilet varsa silinmemesi çağıran admin UI'ın
+  /// sorumluluğu (`blockDeleteIfTickets`) — burada ikinci bir kontrol
+  /// YOK (web admin panelinin `sil()`'i ile aynı sorumluluk ayrımı).
+  Future<bool> deleteEvent(final String eventId);
+
   Future<List<EventModel>> getEventsByIds(final List<String> eventIds);
 
   Future<List<EventModel>> getEventsByShowIds(final List<String> showIds);
@@ -77,6 +90,30 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return true;
     } catch (e) {
       throw Exception('Add event failed: $e');
+    }
+  }
+
+  @override
+  Future<bool> updateEvent(
+      final String eventId, final Map<String, dynamic> updatedData) async {
+    try {
+      await _eventCollection.doc(eventId).update({
+        ...updatedData,
+        '_updatedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Update event failed: $e');
+    }
+  }
+
+  @override
+  Future<bool> deleteEvent(final String eventId) async {
+    try {
+      await _eventCollection.doc(eventId).delete();
+      return true;
+    } catch (e) {
+      throw Exception('Delete event failed: $e');
     }
   }
 
