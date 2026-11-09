@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -18,4 +19,26 @@ class CampaignRepositoryImpl extends BaseRepository
         final models = await remoteDataSource.getCampaigns();
         return models.map((final m) => m.toEntity()).toList();
       });
+
+  @override
+  Future<Either<Failure, bool>> addCampaign(
+          final Campaign campaign, final File? imageFile) =>
+      execute(() async {
+        final model = campaign.toModel();
+        return remoteDataSource.addCampaign(model, imageFile);
+      });
+
+  @override
+  Future<Either<Failure, bool>> updateCampaign(final String campaignId,
+          final Map<String, dynamic> updatedData, final File? imageFile) =>
+      execute(() => remoteDataSource.updateCampaign(
+          campaignId, updatedData, imageFile));
+
+  @override
+  Future<Either<Failure, bool>> deleteCampaign(final String campaignId) {
+    if (campaignId.isEmpty) {
+      return Future.value(const Left(ServerFailure('Invalid ID')));
+    }
+    return execute(() => remoteDataSource.deleteCampaign(campaignId));
+  }
 }
