@@ -5,7 +5,9 @@ import '../../data/repositories/event_repository_provider.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/add_event_use_case_impl.dart';
 import '../../domain/usecases/admin_set_seat_blocked_use_case_impl.dart';
+import '../../domain/usecases/delete_event_use_case_impl.dart';
 import '../../domain/usecases/grant_free_seat_use_case_impl.dart';
+import '../../domain/usecases/update_event_use_case_impl.dart';
 import '../../../tickets/presentation/providers/admin_ticket_provider.dart';
 import 'event_provider.dart';
 
@@ -20,6 +22,12 @@ import 'event_provider.dart';
 
 final addEventUseCaseProvider = Provider<AddEventUseCase>(
     (final ref) => AddEventUseCaseImpl(ref.watch(eventRepositoryProvider)));
+
+final updateEventUseCaseProvider = Provider<UpdateEventUseCase>((final ref) =>
+    UpdateEventUseCaseImpl(ref.watch(eventRepositoryProvider)));
+
+final deleteEventUseCaseProvider = Provider<DeleteEventUseCase>((final ref) =>
+    DeleteEventUseCaseImpl(ref.watch(eventRepositoryProvider)));
 
 final adminSetSeatBlockedUseCaseProvider =
     Provider<AdminSetSeatBlockedUseCase>((final ref) =>
@@ -46,7 +54,43 @@ class EventMutationNotifier extends Notifier<AsyncValue<void>> {
       // `show_provider.dart`) — family'nin tamamı invalidate edilir.
       ref.invalidate(eventsByShowIdsProvider);
       ref.invalidate(eventsForShowProvider);
+      ref.invalidate(eventsByShowMapProvider);
     });
+  }
+
+  /// ✏️ Admin panelinden (gömülü Seanslar bölümü VEYA bağımsız "Seanslar"
+  /// sekmesi — AYNI metot, mantık tek yerde) bir seansı düzenler.
+  /// `updatedData` yalnızca gerçek alanları içerir (`showId`/`stageId`/
+  /// `date`/`price`/`cancelled`); `seats` buradan ASLA yazılmaz.
+  Future<bool> updateEvent(
+      final String eventId, final Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading();
+    var ok = false;
+    state = await AsyncValue.guard(() async {
+      ok = await ref
+          .read(updateEventUseCaseProvider)
+          .call(eventId, updatedData)
+          .getOrThrow();
+      ref.invalidate(eventsByShowIdsProvider);
+      ref.invalidate(eventsForShowProvider);
+      ref.invalidate(eventsByShowMapProvider);
+    });
+    return ok;
+  }
+
+  /// 🗑️ Admin panelinden bir seansı siler. Bilet varsa silinmemesi
+  /// çağıran UI'ın sorumluluğu (`blockDeleteIfTickets`) — burada ikinci
+  /// bir kontrol YOK.
+  Future<bool> deleteEvent(final String eventId) async {
+    state = const AsyncLoading();
+    var ok = false;
+    state = await AsyncValue.guard(() async {
+      ok = await ref.read(deleteEventUseCaseProvider).call(eventId).getOrThrow();
+      ref.invalidate(eventsByShowIdsProvider);
+      ref.invalidate(eventsForShowProvider);
+      ref.invalidate(eventsByShowMapProvider);
+    });
+    return ok;
   }
 
   /// 🛠️ Admin koltuk denetimi (Phase 2): bir koltuğu operasyonel
