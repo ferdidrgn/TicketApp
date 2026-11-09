@@ -13,6 +13,12 @@
     "dis": {
       "name": "Dış", "duration": "1 saat", "ageLimit": "", "interval": "", "contentNotes": "", "accessCodes": [], "venueName": "Şehir Tiyatrosu", "venueAddress": "",
       "transit": "", "accessNotes": "", "external": true, "externalHost": "biletinial.com", "ended": false, "saleMode": "rezervasyon"
+    },
+    "zengin": {
+      "name": "Kadro Oyunu", "duration": "90 dk", "ageLimit": "7+", "interval": "", "contentNotes": "", "accessCodes": [], "venueName": "Moda Sahne", "venueAddress": "",
+      "transit": "", "accessNotes": "", "external": false, "externalHost": "", "ended": false, "saleMode": "rezervasyon",
+      "castNames": ["Ayşe Kaya", "Mert Demir"], "teamName": "Tiyatro Kafa", "price": 250, "nextDate": "15 Kasım Cumartesi saat 20:00",
+      "description": "İki kardeşin yıllar sonra karşılaşmasını anlatan bir aile dramı."
     }
   },
   "cases": [
@@ -45,6 +51,14 @@
     {"f": "bos", "q": "şiddet içeriyor mu", "intent": "uyari", "answer": null},
     {"f": "tam", "q": "Bu oyunun yönetmeni kim?", "intent": "", "answer": null},
     {"f": "tam", "q": "", "intent": "", "answer": null},
-    {"f": "tam", "q": "kanal 7 ile ilgisi var mı", "intent": "", "answer": null}
+    {"f": "tam", "q": "kanal 7 ile ilgisi var mı", "intent": "", "answer": null},
+    {"f": "zengin", "q": "Kimler oynuyor?", "intent": "kadro", "answer": "Kadroda: Ayşe Kaya, Mert Demir. Oyunu sahneleyen topluluk: Tiyatro Kafa."},
+    {"f": "bos", "q": "kadroda kimler var", "intent": "kadro", "answer": null},
+    {"f": "zengin", "q": "Bilet fiyatı ne kadar?", "intent": "fiyat", "answer": "En yakın seans için bilet fiyatı: 250 ₺."},
+    {"f": "dis", "q": "Fiyatı ne kadar?", "intent": "fiyat", "answer": "Bilet fiyatını biletinial.com görebilirsin."},
+    {"f": "zengin", "q": "Bir sonraki seans ne zaman?", "intent": "tarih", "answer": "En yakın seans: 15 Kasım Cumartesi saat 20:00, Moda Sahne."},
+    {"f": "bos", "q": "ne zaman oynuyor", "intent": "tarih", "answer": null},
+    {"f": "zengin", "q": "Oyunun konusu nedir?", "intent": "konu", "answer": "İki kardeşin yıllar sonra karşılaşmasını anlatan bir aile dramı."},
+    {"f": "bos", "q": "özet nedir", "intent": "konu", "answer": null}
   ]
 }

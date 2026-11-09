@@ -20,6 +20,11 @@ class FaqFacts {
     this.externalHost = '',
     this.ended = false,
     this.saleMode = 'rezervasyon',
+    this.castNames = const <String>[],
+    this.teamName = '',
+    this.price,
+    this.nextDate = '',
+    this.description = '',
   });
 
   final String name,
@@ -32,9 +37,14 @@ class FaqFacts {
       transit,
       accessNotes,
       externalHost,
-      saleMode;
+      saleMode,
+      teamName,
+      nextDate,
+      description;
   final List<String> accessCodes;
+  final List<String> castNames;
   final bool external, ended;
+  final double? price;
 
   factory FaqFacts.fromJson(final Map<String, dynamic> j) => FaqFacts(
         name: (j['name'] ?? '') as String,
@@ -51,6 +61,11 @@ class FaqFacts {
         externalHost: (j['externalHost'] ?? '') as String,
         ended: j['ended'] == true,
         saleMode: (j['saleMode'] ?? 'rezervasyon') as String,
+        castNames: [for (final c in (j['castNames'] as List? ?? const [])) c.toString()],
+        teamName: (j['teamName'] ?? '') as String,
+        price: (j['price'] as num?)?.toDouble(),
+        nextDate: (j['nextDate'] ?? '') as String,
+        description: (j['description'] ?? '') as String,
       );
 }
 
@@ -86,6 +101,10 @@ class FaqBot {
     _Niyet('erisim', ['engelli', 'erisil', 'tekerlek', 'rampa', 'asansor', 'sesli betimleme', 'isaret dili', 'altyazi', 'isitme', 'gorme', 'kolay erisim']),
     _Niyet('ulasim', ['park', 'otopark', 'ulasim', 'metro', 'otobus', 'nasil gid', 'nasil gel', 'yol tarif', 'adres', 'nerede\$', 'nerde\$', 'konum', 'mekan']),
     _Niyet('uyari', ['icerik uyari', 'uyari', 'siddet', 'kufur', 'argo', 'korku', 'cinsel', 'strobo', 'isik efekt', 'yuksek ses', 'silah', 'kan\$']),
+    _Niyet('kadro', ['kim oynuyor', 'kimler oynuyor', 'kim oynar', 'oyuncu', 'oyuncular', 'kadro', 'ekip kim', 'oyun ekibi', 'kim var\$', 'kimler var\$', 'kim rol']),
+    _Niyet('fiyat', ['fiyat', 'ucret', 'kac para', 'bilet fiyat', 'ne kadar tutuyor', 'kaca']),
+    _Niyet('tarih', ['ne zaman oynuyor', 'ne zaman var', 'hangi tarih', 'sonraki seans', 'bir sonraki seans', 'yaklasan seans', 'bugun var mi', 'bu hafta var mi']),
+    _Niyet('konu', ['konu', 'ozet', 'ne anlatiyor', 'hikayesi ne', 'nedir bu oyun', 'ne hakkinda']),
   ];
 
   static const Map<String, String> _erisAd = {
@@ -192,6 +211,23 @@ class FaqBot {
         return p.isEmpty ? null : p.join(' ');
       case 'uyari':
         return _dolu(f.contentNotes) ? 'İçerik uyarısı: ${_nokta(f.contentNotes.trim())}' : null;
+      case 'kadro':
+        final isimler = f.castNames.where(_dolu).toList();
+        if (isimler.isEmpty) return null;
+        final takim = _dolu(f.teamName) ? ' Oyunu sahneleyen topluluk: ${f.teamName.trim()}.' : '';
+        return 'Kadroda: ${isimler.join(', ')}.$takim';
+      case 'fiyat':
+        if (f.ended) return null;
+        if (f.external) {
+          return 'Bilet fiyatını ${_dolu(f.externalHost) ? f.externalHost.trim() : 'organizatörün sitesinde'} görebilirsin.';
+        }
+        if (f.price == null) return null;
+        return f.price! > 0 ? 'En yakın seans için bilet fiyatı: ${f.price!.round()} ₺.' : 'En yakın seans ücretsiz.';
+      case 'tarih':
+        if (!_dolu(f.nextDate)) return f.ended ? 'Bu oyunun planlanmış, tarihi geçmemiş bir seansı görünmüyor.' : null;
+        return 'En yakın seans: ${f.nextDate.trim()}${_dolu(f.venueName) ? ', ${f.venueName.trim()}' : ''}.';
+      case 'konu':
+        return _dolu(f.description) ? f.description.trim() : null;
     }
     return null;
   }

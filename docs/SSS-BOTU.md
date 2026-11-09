@@ -28,11 +28,17 @@ Normalizasyon: küçük harf, `ı/İ/I→i, ğ→g, ş→s, ü→u, ö→o, ç�
 | erisim | engelli, erisil, tekerlek, rampa, asansor, sesli betimleme, isaret dili, altyazi, isitme, gorme, kolay erisim | `access` kodları (AD, CAP, BSL, R, TS) + `Stage.accessNotes` | bilgi yok |
 | ulasim | park, otopark, ulasim, metro, otobus, nasil gid/gel, yol tarif, adres, nerede$, nerde$, konum, mekan | mekân adı/adresi + `Stage.transit` | bilgi yok |
 | uyari | icerik uyari, uyari, siddet, kufur, argo, korku, cinsel, strobo, isik efekt, yuksek ses, silah, kan$ | `contentNotes` | bilgi yok |
+| kadro | kim oynuyor, kimler oynuyor, kim oynar, oyuncu(lar), kadro, ekip kim, oyun ekibi, kim/kimler var$, kim rol | `castNames[]` (+ `teamName`) | bilgi yok |
+| fiyat | fiyat, ucret, kac para, bilet fiyat, ne kadar tutuyor, kaca | en yakın seansın `price`'ı (harici: sabit cümle) | bitmiş oyunda / fiyat yoksa bilgi yok |
+| tarih | ne zaman oynuyor/var, hangi tarih, (bir) sonraki seans, yaklasan seans, bugun/bu hafta var mi | `nextDate` (+ `venueName`) | bilgi yok (seans yoksa + bitmişse sabit cümle) |
+| konu | konu, ozet, ne anlatiyor, hikayesi ne, nedir bu oyun, ne hakkinda | `description` | bilgi yok |
 
 Cevap boşsa arayüz öneri göstermez; kullanıcı doğrudan "Ekibe sor" gönderir. Bot hiçbir zaman alan dışı bilgi üretmez. Mobilde `Stage.transit/accessNotes` henüz entity'de yok (yalnız mekân adı/adres kullanılır).
 
+Web sohbet balonu (`site/js/sohbet-botu.js`) ayrıca: oturum başına **5 soru / 20 dakika soğuma** sınırı (localStorage, sayfa yenilense de sıfırlanmaz — "yapay zeka gibi" sınırsız sohbet hissi vermesin) ve her bot cevabından sonra öneri çiplerinin (`ONERI`) tekrar görünmesi (yalnız ilk mesajda değil).
+
 ## Test vektörleri
-`docs/ssb-vectors.json` (30 vaka) iki tarafı da sınar: `node site/tools/ssb-test.mjs` ve `flutter test test/faq_bot_test.dart`. Kuralı değiştirirsen iki dosyayı, bu tabloyu ve vektörleri birlikte güncelle.
+`docs/ssb-vectors.json` (38 vaka) iki tarafı da sınar: `node site/tools/ssb-test.mjs` ve `flutter test test/faq_bot_test.dart`. Kuralı değiştirirsen iki dosyayı, bu tabloyu ve vektörleri birlikte güncelle.
 
 ## Sunucu testleri
 `functions/test/questions.test.js` (doğrulanmamış reddi, filtre, hız sınırı, ön onay, ekip kapsamı, şikâyet eşiği, engelle, hesap silme + uid sızıntı taraması) ve `questions-rules.test.js` (rules).

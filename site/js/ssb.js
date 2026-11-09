@@ -1,7 +1,10 @@
 // Kural tabanlı SSS botu (Q-2, docs/SSS-BOTU.md). YAPAY ZEKA YOK: Türkçe normalizasyon + anahtar sözcük (kök) eşleşmesi.
 // Cevap YALNIZ oyunun gerçek alanlarından ya da sabit politika cümlesinden üretilir; alan yoksa cevap null (uydurma yok).
-// Aynı kural tablosu mobilde lib/features/shows/presentation/faq_bot.dart içinde; ortak test vektörleri docs/ssb-vectors.json.
-// Bu dosyayı değiştirirsen Dart karşılığını ve docs/SSS-BOTU.md tablosunu BİRLİKTE güncelle.
+// Aynı kural tablosu mobilde lib/features/shows/domain/faq_bot.dart içinde (soru formundaki "Cevap burada
+// olabilir" önizlemesi için); ortak test vektörleri docs/ssb-vectors.json. Mobildeki ayrı sohbet balonu
+// (lib/features/chatbot/.../show_faq_matcher.dart) BAŞKA, daha zengin bir uygulama — bu iki Dart dosyası
+// birbirinden bağımsız, kasıtlı olarak ayrı tutuldu. Bu dosyayı değiştirirsen faq_bot.dart'ı ve
+// docs/SSS-BOTU.md tablosunu BİRLİKTE güncelle.
 
 /** Türkçe normalizasyon: küçük harf, ı/ğ/ş/ü/ö/ç -> i/g/s/u/o/c, harf-rakam dışı -> boşluk. */
 export function norm(s) {
@@ -32,9 +35,20 @@ export const NIYETLER = [
   { id: 'erisim', kw: ['engelli', 'erisil', 'tekerlek', 'rampa', 'asansor', 'sesli betimleme', 'isaret dili', 'altyazi', 'isitme', 'gorme', 'kolay erisim'] },
   { id: 'ulasim', kw: ['park', 'otopark', 'ulasim', 'metro', 'otobus', 'nasil gid', 'nasil gel', 'yol tarif', 'adres', 'nerede$', 'nerde$', 'konum', 'mekan'] },
   { id: 'uyari', kw: ['icerik uyari', 'uyari', 'siddet', 'kufur', 'argo', 'korku', 'cinsel', 'strobo', 'isik efekt', 'yuksek ses', 'silah', 'kan$'] },
+  { id: 'kadro', kw: ['kim oynuyor', 'kimler oynuyor', 'kim oynar', 'oyuncu', 'oyuncular', 'kadro', 'ekip kim', 'oyun ekibi', 'kim var$', 'kimler var$', 'kim rol'] },
+  { id: 'fiyat', kw: ['fiyat', 'ucret', 'kac para', 'bilet fiyat', 'ne kadar tutuyor', 'kaca'] },
+  { id: 'tarih', kw: ['ne zaman oynuyor', 'ne zaman var', 'hangi tarih', 'sonraki seans', 'bir sonraki seans', 'yaklasan seans', 'bugun var mi', 'bu hafta var mi'] },
+  { id: 'konu', kw: ['konu', 'ozet', 'ne anlatiyor', 'hikayesi ne', 'nedir bu oyun', 'ne hakkinda'] },
 ];
 
 export const YOK = 'Bu konuda bilgi yok, ekibe sorabilirsin.';
+const GUNLER = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+/** Bağımsız (import'suz) tarih biçimi: "15 Kasım Pazar saat 20:00" — site/js/util.js'teki tarihUzun/saat ile aynı mantık. */
+function tarihSaat(d) {
+  const gun = GUNLER[(d.getDay() + 6) % 7];
+  return `${d.getDate()} ${AYLAR[d.getMonth()]} ${gun} saat ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 const ERIS_AD = { AD: 'Sesli betimleme', CAP: 'Altyazılı', BSL: 'İşaret dili', R: 'Rahat gösterim', TS: 'İşaret dili' };
 const nokta = (s) => (/[.!?]$/.test(s) ? s : `${s}.`);
 const dolu = (v) => typeof v === 'string' && v.trim() !== '';
@@ -97,6 +111,22 @@ function cevap(id, f) {
     }
     case 'uyari':
       return dolu(f.contentNotes) ? `İçerik uyarısı: ${nokta(f.contentNotes.trim())}` : null;
+    case 'kadro': {
+      const isimler = (f.castNames || []).filter(dolu);
+      if (!isimler.length) return null;
+      const takim = dolu(f.teamName) ? ` Oyunu sahneleyen topluluk: ${f.teamName.trim()}.` : '';
+      return `Kadroda: ${isimler.join(', ')}.${takim}`;
+    }
+    case 'fiyat':
+      if (f.ended) return null;
+      if (f.external) return `Bilet fiyatını ${dolu(f.externalHost) ? f.externalHost.trim() : 'organizatörün sitesinde'} görebilirsin.`;
+      if (f.price == null) return null;
+      return f.price > 0 ? `En yakın seans için bilet fiyatı: ${Math.round(f.price)} ₺.` : 'En yakın seans ücretsiz.';
+    case 'tarih':
+      if (!dolu(f.nextDate)) return f.ended ? 'Bu oyunun planlanmış, tarihi geçmemiş bir seansı görünmüyor.' : null;
+      return `En yakın seans: ${f.nextDate.trim()}${dolu(f.venueName) ? `, ${f.venueName.trim()}` : ''}.`;
+    case 'konu':
+      return dolu(f.description) ? f.description.trim() : null;
     default:
       return null;
   }
@@ -108,5 +138,8 @@ export function factsOf(s, yer, { alan = '', mod = 'rezervasyon' } = {}) {
     name: s.name || '', duration: s.duration || '', ageLimit: s.ageLimit || '', interval: s.interval || '', contentNotes: s.contentNotes || '',
     accessCodes: s.accessKodlari || [], venueName: (yer && yer.name) || s.externalVenueName || '', venueAddress: (yer && yer.address) || s.externalVenueAddress || '',
     transit: (yer && yer.transit) || '', accessNotes: (yer && yer.accessNotes) || '', external: !!s.external, externalHost: alan, ended: s.state === 'bitti', saleMode: mod,
+    castNames: (s.cast || []).map((p) => p.fullName).filter(Boolean), teamName: (s.team && s.team.name) || '',
+    price: s.next && s.next.priceNum != null ? s.next.priceNum : null,
+    nextDate: s.next ? tarihSaat(s.next.when) : '', description: s.description || '',
   };
 }
