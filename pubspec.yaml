@@ -58,7 +58,7 @@ dependencies:
   # bkz. lib/core/services/location_service.dart
   geolocator: ^13.0.2
 
-  app_links: ^6.1.1
+  app_links: ^7.2.2
   package_info_plus: ^8.1.2
 
   # UI Components
