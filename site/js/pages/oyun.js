@@ -7,6 +7,7 @@ import { paylasMenusu } from '../ozellik.js';
 import { dolulukHtml } from '../canli.js';
 import { yorumlarHtml, yorumlarBaglan } from '../yorumlar.js';
 import { sorularHtml, sorularBaglan } from '../sorular.js';
+import { sohbetBaglan } from '../sohbet-botu.js';
 import { $, $$, esc, idFromPath, linkOf, tl, tarihUzun, saat, gunKisa, AYLAR, kisalt, baslangic } from '../util.js';
 
 kabukCiz('kesfet');
@@ -52,23 +53,6 @@ function ekipHtml(s) {
   return `<div class="ekip-kart">${t.imageUrl ? `<img src="${esc(t.imageUrl)}" alt="" loading="lazy" width="96" height="96">` : `<div class="ekip-bas">${esc(baslangic(t.name))}</div>`}
     <div><h3><a href="${linkOf('topluluk', t)}">${esc(t.name)}</a></h3><p>${esc(t.description)}</p>${diger.length ? `<p class="tiny">Topluluğun ${diger.length} oyunu daha var: ${diger.slice(0, 3).map((x) => `<a href="${linkOf('oyun', x)}">${esc(x.name)}</a>`).join(', ')}</p>` : ''}</div></div>`;
 }
-
-/** SSS: yalnızca Show/Event/Stage alanlarından ve /iade-iptal metninden; veri yoksa soru eklenmez. */
-function sssSorulari(s, yer, alan, mod) {
-  const q = [];
-  if (s.duration) q.push([`${s.name} kaç dakika sürüyor?`, `Oyunun süresi ${s.duration}${s.interval ? `; ${s.interval}` : ''}.`]);
-  if (s.ageLimit) q.push([`${s.name} için yaş sınırı var mı?`, `Önerilen yaş: ${s.ageLimit}.${s.contentNotes ? ` İçerik uyarısı: ${s.contentNotes}.` : ''}`]);
-  if (yer && yer.name) q.push([`${s.name} nerede oynanıyor?`, `${yer.name}${yer.address ? `, ${yer.address}` : ''}.`]);
-  if (s.next) q.push([`${s.name} bir sonraki seansı ne zaman?`, `${tarihUzun(s.next.when)} saat ${saat(s.next.when)}${s.next.stage ? `, ${s.next.stage.name}` : ''}.`]);
-  q.push([`${s.name} biletini nereden alırım?`, s.external ? `Biletler ${alan || 'organizatörün sitesi'} üzerinden satılıyor; TiyatRol seni doğru sayfaya yönlendirir.` : 'Bu sayfada bir seans seçip Bilet al diyerek koltuğunu seçebilirsin; biletlerin hesabındaki Biletlerim sayfasında ve uygulamada görünür.']);
-  if (s.state !== 'bitti') q.push([`${s.name} seansına geç kalırsam ne olur?`, 'Geç kalanların salona alınıp alınmayacağı ve hangi arada alınacağı salona ve organizatöre göre değişir; garanti verilemez. Seanstan 20-30 dakika önce yerinde olmanı öneririz.']);
-  if (!s.external && s.state !== 'bitti') q.push([`${s.name} biletini iptal edebilir miyim?`, mod === 'rezervasyon' ? 'Şu an biletler rezervasyon olarak veriliyor; etkinlikten (varsayılan) 24 saat öncesine kadar Biletlerim sayfasından iptal edebilirsin. Ayrıntılar İade ve İptal Koşulları sayfasında.' : 'İptal ve iade koşulları satış moduna ve etkinliğe göre değişir; güncel koşullar İade ve İptal Koşulları sayfasında yer alır. Organizatör etkinliği iptal ederse bilet bedelinin tamamı iade edilir.', '/iade-iptal']);
-  if (s.external) q.push([`${s.name} için iade ve iptal nasıl işliyor?`, `Bilet bu sitede değil ${alan || 'organizatörün sitesinde'} satıldığı için iade ve iptal koşullarını satış yapılan platformdan öğrenmelisin.`]);
-  const er = (s.accessKodlari || []).filter((k) => ERIS_AD[k]);
-  if (er.length || (yer && yer.accessNotes)) q.push([`${s.name} erişilebilir mi?`, [er.length && `Erişilebilir gösterim etiketleri: ${[...new Set(er.map((k) => ERIS_AD[k]))].join(', ')}.`, yer && yer.accessNotes && `Mekân notu: ${yer.accessNotes}.`].filter(Boolean).join(' ')]);
-  return q;
-}
-const sssHtml = (q) => `<div>${q.map(([a, b, l]) => `<details><summary>${esc(a)}</summary><p>${esc(b)}${l ? ` <a href="${l}">İade ve İptal Koşulları</a>` : ''}</p></details>`).join('')}</div>`;
 
 /** Seans seçici: tarih çipleri (yatay kaydırmalı). Seçim st.i ile eşleşir. */
 function tarihCipleriHtml(seanslar, secili) {
@@ -148,7 +132,6 @@ function ciz(d) {
       const er = (s.accessKodlari || []).filter((k) => ERIS[k]);
       return satir.length > 1 ? `<div class="bilgi-kutu">${satir.map(([a, b]) => `<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>${er.length ? `<p class="tiny" style="margin-top:12px">Erişilebilir performans: ${er.map((k) => `<span class="er-yan">${k} · ${ERIS[k]}</span>`).join(' ')}</p>` : ''}` : '';
     })() },
-    { id: 'sss', ad: 'Sık sorulanlar', html: (() => { const q = sssSorulari(s, yer, alan, SATIS.mode); window.__sss = q; return sssHtml(q); })() },
     { id: 'sorular', ad: 'Ekibe sor', html: sorularHtml() },
     { id: 'seanslar', ad: 'Seanslar', html: seanslar.length || s.sessions.length ? `<div id="seans-kutu"></div>` : '' },
     { id: 'kadro', ad: 'Kadro', html: s.cast.length ? kadro(s.cast) : '' },
@@ -212,6 +195,7 @@ function ciz(d) {
   seansCiz(); baglan();
   yorumlarBaglan(s);
   sorularBaglan(s, yer, alan, SATIS.mode);
+  sohbetBaglan(s, yer, alan, SATIS.mode);
   $('#takvim2')?.addEventListener('click', (ev) => takvimAc(ev.currentTarget));
   $('#paylas')?.addEventListener('click', (ev) => paylasMenusu(ev.currentTarget, s.name, kisalt(s.description, 120)));
   $('#birlikte')?.addEventListener('click', (ev) => import('../plan-olustur.js').then((m) => m.birlikteGidelim(ev.currentTarget, s, seanslar[st.i])));
@@ -223,9 +207,6 @@ function ciz(d) {
   const bg = $('.op-bg img');
   if (bg && !matchMedia('(prefers-reduced-motion: reduce)').matches) addEventListener('scroll', () => { if (scrollY < 900) bg.style.transform = `translateY(${scrollY * 0.18}px) scale(1.2)`; }, { passive: true });
 
-  if (window.__sss && window.__sss.length) { const fq = document.createElement('script'); fq.type = 'application/ld+json';
-    fq.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: window.__sss.map(([a, b]) => ({ '@type': 'Question', name: a, acceptedAnswer: { '@type': 'Answer', text: b } })) });
-    document.head.append(fq); }
   { const bc = document.createElement('script'); bc.type = 'application/ld+json';
     bc.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Vitrin', item: location.origin + '/' }, { '@type': 'ListItem', position: 2, name: s.cat, item: location.origin + '/kesfet?tur=' + encodeURIComponent(s.cat) }, { '@type': 'ListItem', position: 3, name: s.name }] });
     document.head.append(bc); }

@@ -1,0 +1,28 @@
+/* Oyun sayfası: yüzen "Bu oyun hakkında sor" sohbet botu (js/sohbet-botu.js, docs/SSS-BOTU.md) */
+.sb-dugme { position: fixed; right: 18px; bottom: 104px; z-index: 90; width: 52px; height: 52px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow); transition: transform .2s var(--ease); -webkit-tap-highlight-color: transparent; }
+.sb-dugme:hover { transform: scale(1.06); }
+.sb-dugme:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.sb-panel { position: fixed; right: 18px; bottom: 168px; z-index: 91; width: min(360px, calc(100vw - 32px)); max-height: min(560px, calc(100vh - 210px)); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; animation: sbGir .2s var(--ease); }
+.sb-panel[hidden] { display: none; }
+@keyframes sbGir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.sb-ust { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.sb-ust b { display: block; font-size: 15px; font-weight: 700; }
+.sb-ust small { color: var(--ink-2); }
+.sb-kapat { border: 0; background: none; color: var(--ink-2); font-size: 15px; line-height: 1; cursor: pointer; padding: 6px; min-width: 36px; min-height: 36px; border-radius: 8px; }
+.sb-kapat:hover, .sb-kapat:focus-visible { background: var(--bg); }
+.sb-liste { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.sb-balon { max-width: 85%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.45; }
+.sb-balon p { margin: 0; }
+.sb-balon.bot { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); }
+.sb-balon.ben { align-self: flex-end; background: var(--accent); color: #fff; }
+.sb-balon [data-ekibe-sor] { display: block; margin-top: 8px; }
+.sb-oneri { display: flex; flex-wrap: wrap; gap: 8px; }
+.sb-form { display: flex; gap: 8px; align-items: flex-end; padding: 12px; border-top: 1px solid var(--line); }
+.sb-girdi { flex: 1; resize: none; max-height: 96px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); font: inherit; }
+.sb-gonder { width: 38px; height: 38px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; cursor: pointer; flex-shrink: 0; }
+.sb-gonder:hover { filter: brightness(1.08); }
+
+@media (max-width: 640px) {
+  .sb-panel { right: 10px; left: 10px; bottom: 88px; width: auto; max-height: min(70vh, 520px); }
+}
