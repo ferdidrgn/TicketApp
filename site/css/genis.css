@@ -32,6 +32,7 @@
 .pf-info h1 { font-size: clamp(40px, 6.4vw, 108px); }
 .pf-iki { grid-template-columns: 1fr clamp(320px, 22vw, 400px); }
 .gal2 { max-width: none; }
+.gal2 .g-track { max-height: clamp(360px, 62vh, 640px); }
 .hr-wrap { grid-template-columns: clamp(400px, 26vw, 520px) 1fr; }
 .kupon-izgara { grid-template-columns: repeat(auto-fill, minmax(clamp(340px, 26vw, 480px), 1fr)); }
 
