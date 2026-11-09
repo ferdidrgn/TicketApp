@@ -72,7 +72,7 @@ dependencies:
   url_launcher:
   share_plus: ^12.0.1
   add_2_calendar: ^3.0.1
-  go_router:
+  go_router: 18.1.3
   dynamic_color: ^1.8.1
   visibility_detector: ^0.4.0+2
   flutter_native_splash: ^2.4.7
