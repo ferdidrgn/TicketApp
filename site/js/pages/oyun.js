@@ -130,7 +130,10 @@ function ciz(d) {
   // ---------- gövde bölümleri ----------
   const kadro = (l) => `<div class="cast">${l.map((p) => `<a href="${linkOf('oyuncu', p)}"><div class="arch">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="${esc(p.fullName)}" loading="lazy">` : esc(baslangic(p.fullName))}</div><b>${esc(p.fullName)}</b>${p.quote ? `<small>“${esc(kisalt(p.quote, 40))}”</small>` : ''}</a>`).join('')}</div>`;
   const skor = (x) => (x.cat === s.cat ? 3 : 0) + (s.teamId && x.teamId === s.teamId ? 3 : 0) + (x.iller.some((i) => s.iller.includes(i)) ? 2 : 0) + (x.ageLimit && x.ageLimit === s.ageLimit ? 1 : 0) + (x.cast.some((p) => s.cast.includes(p)) ? 2 : 0) + (x.state === 'aktif' ? 1 : 0);
-  const benzer = d.shows.filter((x) => x.id !== s.id && x.state !== 'bitti' && skor(x) >= 3).sort((a, b) => skor(b) - skor(a)).slice(0, 10);
+  // En yakın zamanda seansı olan benzer oyun başa gelsin (seansı olmayanlar en sona); eşitlikte skor belirler.
+  const benzer = d.shows.filter((x) => x.id !== s.id && x.state !== 'bitti' && skor(x) >= 3)
+    .sort((a, b) => (a.next ? a.next.when.getTime() : Infinity) - (b.next ? b.next.when.getTime() : Infinity) || skor(b) - skor(a))
+    .slice(0, 10);
   const yil = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
   const yorumHtml = s.ratingCount ? `<div class="yorum-ozet"><div><div class="buyuk">${s.ratingAvg.toFixed(1)}</div><div class="yil">${yil(Math.round(s.ratingAvg))}</div><div class="tiny">${s.ratingCount} yorum</div></div>
       <div class="dag">${s.ratingDist.map((n, i) => `<div><span>${5 - i}</span><i><b style="width:${(n / s.ratingCount) * 100}%"></b></i><span>${n}</span></div>`).join('')}</div></div>
