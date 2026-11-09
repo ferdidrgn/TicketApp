@@ -92,7 +92,12 @@ ve mobil AYRI tasarımdır: web = mağaza/bilet sitesi düzeni (`home_page_web.d
   (`_showLifecycle` / `activeShowsProvider`): gelecek seansı olan = aktif;
   seansları var ama hepsi geçmiş = bitti (ana sayfa + Keşfet'ten düşer, Keşfet
   "Geçmiş" modunda ve aramada durur); harici linkli + hiç seansı yok =
-  vitrinde. Admin'de bileti olan oyun/sahne silinemez (`delete_guard.dart`).
+  vitrinde. Admin'de bileti olan oyun/sahne/seans silinemez — hem istemci
+  ön-uyarısı (`delete_guard.dart`) hem de **09.11.2026'dan beri asıl sınır**:
+  `firestore.rules`'da Show/Stage/Event'in `delete`'i `false`, tek silme yolu
+  `adminDeleteShow/Stage/Event` callable'ları (`functions/src/catalog.js`) —
+  bilet kontrolünü sunucuda tekrar yapar, çalıntı bir admin hesabı Firestore
+  Console'dan doğrudan silemez.
 - Flutter SDK sandbox'ta hazır gelmiyor ama KURULABİLİYOR (30.09.2026'da
   yapıldı): storage.googleapis.com'dan stable linux tarball'ı scratchpad'e
   indir → `flutter pub get` → `flutter analyze` (derleme hatası 0 olmalı)

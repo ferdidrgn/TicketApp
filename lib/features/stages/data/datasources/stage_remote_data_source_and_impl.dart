@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../purchase/data/datasources/purchase_remote_data_source_and_impl.dart'
+    show kPurchaseFunctionsRegion;
 import '../models/stage_model.dart';
 
 abstract class StageRemoteDataSource {
@@ -222,16 +225,17 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
 
   @override
   Future<bool> deleteStage(final String stageId) async {
+    // Silme artık yalnızca sunucuda (bkz. functions/src/catalog.js,
+    // firestore.rules'da Stage.delete kapalı) — biletli bir sahne doğrudan
+    // Firestore'dan silinemesin diye (09.11.2026 güvenlik denetimi). Görsel
+    // de aynı callable içinde sunucuda siliniyor.
     try {
-      try {
-        await _storage.ref('StageImages/$stageId.jpg').delete();
-      } catch (_) {
-        // Resim yoksa hatayı yut, sorun değil (addStage/deleteShow ile aynı desen).
-      }
-      await _stageCollection.doc(stageId).delete();
+      await FirebaseFunctions.instanceFor(region: kPurchaseFunctionsRegion)
+          .httpsCallable('adminDeleteStage')
+          .call<Map<String, dynamic>>({'stageId': stageId});
       return true;
-    } on FirebaseException catch (e) {
-      throw Exception('Firestore hatası (deleteStage): ${e.message}');
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception(e.message ?? 'Sahne silinemedi: ${e.code}');
     } catch (e) {
       throw Exception('Sahne silinemedi: $e');
     }

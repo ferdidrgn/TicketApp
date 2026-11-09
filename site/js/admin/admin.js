@@ -5,7 +5,7 @@ import '../theme.js';
 import {
   auth, db, storage, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut,
   sendPasswordResetEmail, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, limit,
-  arrayUnion, arrayRemove, getCountFromServer, sRef, uploadBytes, getDownloadURL,
+  arrayUnion, arrayRemove, getCountFromServer, sRef, uploadBytes, getDownloadURL, fonksiyon,
 } from '../firebase.js';
 import { KOLEKSIYONLAR, SUTUN_ADI } from './schema.js';
 import { temaOku, temaYaz, temaSecenekleri } from '../theme.js';
@@ -321,7 +321,13 @@ ${etiket}`);
     if (String(yanit || '').trim().toLocaleUpperCase('tr') !== 'SİL') return bildir('Silme iptal edildi.');
   }
   try {
-    await deleteDoc(doc(db, c, x.docId));
+    // Show/Stage/Event artık yalnızca sunucuda silinebiliyor (firestore.rules'da delete
+    // kapalı, bkz. functions/src/catalog.js) — biletli bir kayıt doğrudan Firestore'dan
+    // silinemesin diye (09.11.2026 güvenlik denetimi). Diğer koleksiyonlar (Team/Player/
+    // Campaign) değişmedi, doğrudan deleteDoc.
+    const CAGRI = { Show: ['adminDeleteShow', 'showId'], Stage: ['adminDeleteStage', 'stageId'], Event: ['adminDeleteEvent', 'eventId'] }[c];
+    if (CAGRI) await (await fonksiyon(CAGRI[0]))({ [CAGRI[1]]: x.id });
+    else await deleteDoc(doc(db, c, x.docId));
     if (c === 'Event' && x.showId) { const s = veri.Show.find((y) => y.id === x.showId); if (s) await updateDoc(doc(db, 'Show', s.docId), { eventsId: arrayRemove(x.id) }); }
     await hepsiniYukle(); goster(); bildir('Silindi');
   } catch (e) { bildir(hataMesaji(e), true); }

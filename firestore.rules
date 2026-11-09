@@ -320,14 +320,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Silme (delete) SADECE adminDeleteShow callable'ı üzerinden (functions/src/catalog.js) —
+    // biletli bir oyun doğrudan Firestore'dan silinemesin diye (09.11.2026 güvenlik denetimi;
+    // o callable "bu oyunda bilet var mı" kontrolünü sunucuda tekrar yapar). create/update admin
+    // için hâlâ doğrudan açık.
     match /Show/{showId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     match /Stage/{stageId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     match /Team/{teamId} {
@@ -382,9 +388,11 @@ service cloud.firestore {
     // rezervasyon/satın alma yalnızca Cloud Functions (holdSeats/startPayment/confirmFree/
     // iyzicoCallback/expireHolds) üzerinden, Admin SDK ile yapılır; istemci koltuk yazımı KAPALI.
     // -------------------------------------------------------------------
+    // Silme SADECE adminDeleteEvent callable'ı üzerinden (functions/src/catalog.js) — bkz. Show/Stage.
     match /Event/{eventId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------------

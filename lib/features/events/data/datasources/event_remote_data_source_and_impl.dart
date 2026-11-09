@@ -109,9 +109,16 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
   @override
   Future<bool> deleteEvent(final String eventId) async {
+    // Silme artık yalnızca sunucuda (bkz. functions/src/catalog.js,
+    // firestore.rules'da Event.delete kapalı) — biletli bir seans doğrudan
+    // Firestore'dan silinemesin diye (09.11.2026 güvenlik denetimi).
     try {
-      await _eventCollection.doc(eventId).delete();
+      await FirebaseFunctions.instanceFor(region: kPurchaseFunctionsRegion)
+          .httpsCallable('adminDeleteEvent')
+          .call<Map<String, dynamic>>({'eventId': eventId});
       return true;
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception(e.message ?? 'Delete event failed: ${e.code}');
     } catch (e) {
       throw Exception('Delete event failed: $e');
     }

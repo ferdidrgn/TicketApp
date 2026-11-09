@@ -27,6 +27,7 @@ const { createReviews } = require('./src/reviews');
 const { createQuestions } = require('./src/questions');
 const { createPolls } = require('./src/polls');
 const { createPlans } = require('./src/plans');
+const { createCatalog } = require('./src/catalog');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -125,6 +126,9 @@ function getReviews() {
 function getQuestions() {
   return createQuestions({ db: getFirestore(), team: getTeam(), log: logger });
 }
+function getCatalog() {
+  return createCatalog({ db: getFirestore(), storage: getStorage() });
+}
 function getPolls() {
   const db = getFirestore();
   return createPolls({ db, salt: phoneSalt(), log: logger, assertAdmin: makeAssertAdmin(db) });
@@ -206,6 +210,9 @@ exports.answerQuestion = onCall(base, guarded((req) => getQuestions().answerQues
 exports.rejectQuestion = onCall(base, guarded((req) => getQuestions().rejectQuestion(req.auth.uid, req.data)));
 exports.hideQuestion = onCall(base, guarded((req) => getQuestions().hideQuestion(req.auth.uid, req.data)));
 exports.deleteQuestion = onCall(base, guarded((req) => getQuestions().deleteQuestion(req.auth.uid, req.data)));
+exports.adminDeleteShow = onCall(base, guarded((req) => getCatalog().adminDeleteShow(req.auth.uid, req.data)));
+exports.adminDeleteStage = onCall(base, guarded((req) => getCatalog().adminDeleteStage(req.auth.uid, req.data)));
+exports.adminDeleteEvent = onCall(base, guarded((req) => getCatalog().adminDeleteEvent(req.auth.uid, req.data)));
 exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
 // Anket (F-5) + arkadaşa gönder / grup planı (F-6). Ayrıntı: docs/ANKET-PLAN.md
 exports.votePoll = onCall(salted, guarded((req) => getPolls().votePoll(req.auth.uid, req.data, phoneCtx(req))));
