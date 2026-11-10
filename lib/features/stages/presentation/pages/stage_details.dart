@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -14,6 +13,7 @@ import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
+import '../../../../shared/widgets/map/stage_map.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../../../shared/widgets/ticket/ticket_listing.dart';
 import '../../../../shared/widgets/ticket/ticket_profile.dart';
@@ -119,47 +119,48 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
               s.imageUrl.trim(),
         ];
         return ProfileTicket(
-        layout: layout,
-        kind: 'SAHNE',
-        name: stage.name,
-        heroTag: resolveTiyatrolHeroTag(
-            context, TiyatrolHeroTags.stage(stage.id)),
-        imageUrl: stage.imageUrl,
-        imageLabel: '${stage.name} fotoğrafı',
-        onImageTap: stagePhotos.isEmpty
-            ? null
-            : () => GalleryViewerDialog.open(context, stagePhotos),
-        placeholderIcon: Icons.theaters_rounded,
-        tagline: stage.address,
-        seed: stage.id,
-        fields: [
-          if (capacity.isNotEmpty)
-            TicketField(
-              label: 'KAPASİTE',
-              value: RegExp(r'^\d+$').hasMatch(capacity)
-                  ? '$capacity kişi'
-                  : capacity,
-            ),
-        ],
-        stubFields: [
-          if (next != null) ...[
-            TicketField(
-              label: 'SIRADAKİ SEANS',
-              value: '${next.dateTime.day} ${ticketMonthShort(next.dateTime)}, '
-                  '${ticketTime(next.dateTime)}',
-            ),
-            TicketField(label: 'OYUN', value: next.show.name),
-          ] else if (sessions != null)
-            const TicketField(label: 'SEANS', value: 'Satışta seans yok'),
-        ],
-        action: next == null
-            ? null
-            : TicketStampButton(
-                label: 'Seansları gör',
-                leading: const Icon(Icons.event_seat_rounded),
-                onTap: () => profileScrollTo(context, _sessionsKey),
+          layout: layout,
+          kind: 'SAHNE',
+          name: stage.name,
+          heroTag:
+              resolveTiyatrolHeroTag(context, TiyatrolHeroTags.stage(stage.id)),
+          imageUrl: stage.imageUrl,
+          imageLabel: '${stage.name} fotoğrafı',
+          onImageTap: stagePhotos.isEmpty
+              ? null
+              : () => GalleryViewerDialog.open(context, stagePhotos),
+          placeholderIcon: Icons.theaters_rounded,
+          tagline: stage.address,
+          seed: stage.id,
+          fields: [
+            if (capacity.isNotEmpty)
+              TicketField(
+                label: 'KAPASİTE',
+                value: RegExp(r'^\d+$').hasMatch(capacity)
+                    ? '$capacity kişi'
+                    : capacity,
               ),
-      );
+          ],
+          stubFields: [
+            if (next != null) ...[
+              TicketField(
+                label: 'SIRADAKİ SEANS',
+                value:
+                    '${next.dateTime.day} ${ticketMonthShort(next.dateTime)}, '
+                    '${ticketTime(next.dateTime)}',
+              ),
+              TicketField(label: 'OYUN', value: next.show.name),
+            ] else if (sessions != null)
+              const TicketField(label: 'SEANS', value: 'Satışta seans yok'),
+          ],
+          action: next == null
+              ? null
+              : TicketStampButton(
+                  label: 'Seansları gör',
+                  leading: const Icon(Icons.event_seat_rounded),
+                  onTap: () => profileScrollTo(context, _sessionsKey),
+                ),
+        );
       },
       programme: (final compact) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -333,7 +334,7 @@ class _StageLocation extends StatelessWidget {
         stageName: stage.name,
       );
     } else {
-      TiyatrolCommunicationActions.openAddressOnGoogleMaps(_mapsQuery);
+      TiyatrolCommunicationActions.openAddressOnMap(_mapsQuery);
     }
   }
 
@@ -382,20 +383,10 @@ class _StageLocation extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(stage.locationLat, stage.locationLng),
-                    zoom: 15,
-                  ),
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('stage'),
-                      position: LatLng(stage.locationLat, stage.locationLng),
-                    ),
-                  },
-                  zoomControlsEnabled: false,
-                  // Sayfa kaydırmasıyla çakışmasın.
-                  scrollGesturesEnabled: false,
+                child: StageMap(
+                  latitude: stage.locationLat,
+                  longitude: stage.locationLng,
+                  stageName: stage.name,
                 ),
               ),
             ),

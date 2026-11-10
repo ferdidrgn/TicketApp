@@ -48,12 +48,13 @@ final class TiyatrolCommunicationActions {
     required final double lng,
     final String? stageName,
   }) async {
-    // Google Maps (Android/iOS)
-    final Uri googleMapsUrl =
-        Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
-    // Apple Maps (Sadece iOS)
+    final String label = Uri.encodeComponent(stageName ?? 'Sahne');
+    // Android'de kullanıcının varsayılan harita uygulamasını açar.
+    final Uri geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng($label)');
     final Uri appleMapsUrl = Uri.parse(
         "https://maps.apple.com/?q=${stageName ?? 'Sahne'}&ll=$lat,$lng");
+    final Uri openStreetMapUrl = Uri.parse(
+        'https://www.openstreetmap.org/?mlat=$lat&mlon=$lng#map=17/$lat/$lng');
 
     try {
       if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -63,31 +64,26 @@ final class TiyatrolCommunicationActions {
         }
       }
 
-      if (await canLaunchUrl(googleMapsUrl))
-        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-      else
-        throw 'Harita uygulaması bulunamadı.';
-    } catch (e) {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        if (await canLaunchUrl(geoUrl)) {
+          await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+      await _launch(openStreetMapUrl);
+    } on Exception catch (e) {
       debugPrint("Harita açılırken hata oluştu: $e");
     }
   }
 
-  // --- 🔎 SAHNEYİ GOOGLE'DA (ADRESİYLE) AÇ ---
-  // `openStageLocation` enlem/boylam ile Google Maps'i navigasyon niyetiyle
-  // açıyor; bu ise "Yakınımdakiler" kartlarındaki "Google'da Gör/Fotoğraflar"
-  // aksiyonu için ayrı bir GERÇEK giriş noktası — sahnenin gerçek adıyla
-  // gerçek adresini bir Google Maps arama URL'sine (`/maps/search`) taşıyor.
-  // Stage entity'sinde bir Google Place ID alanı YOK (bkz.
-  // `lib/features/stages/domain/entities/stage.dart`) — uydurma bir Place
-  // ID icat etmek yerine, Google'ın kendi arama/eşleştirmesine bırakılıyor;
-  // Google o adresi kendi kayıtlı bir işletmeyle eşleştirirse kullanıcı
-  // orada Google'ın kendi (gerçek, bizim üretmediğimiz) fotoğraflarını da
-  // görebilir.
-  static Future<void> openAddressOnGoogleMaps(final String query) async {
-    if (query.trim().isEmpty) return;
-    final Uri googleMapsUrl = Uri.parse(
-        "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}");
-    await _launch(googleMapsUrl);
+  // --- 🔎 SAHNEYİ OPENSTREETMAP'TE ARA ---
+  static Future<void> openAddressOnMap(final String query) async {
+    if (query.trim().isEmpty) {
+      return;
+    }
+    final Uri mapUrl = Uri.parse(
+        'https://www.openstreetmap.org/search?query=${Uri.encodeComponent(query)}');
+    await _launch(mapUrl);
   }
 
   // --- 🛠 YARDIMCI METOTLAR ---
@@ -97,12 +93,16 @@ final class TiyatrolCommunicationActions {
     try {
       final launched = await launchUrl(
         url,
-        mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+        mode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
         // mailto yeni sekmede açılırsa arkada boş bir sekme kalıyor.
         webOnlyWindowName: url.scheme == 'mailto' ? '_self' : '_blank',
       );
-      if (!launched) debugPrint("URL başlatılamadı: $url");
-    } catch (e) {
+      if (!launched) {
+        debugPrint("URL başlatılamadı: $url");
+      }
+    } on Exception catch (e) {
       debugPrint("Hata: $e");
     }
   }
