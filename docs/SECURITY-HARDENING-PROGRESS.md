@@ -1,6 +1,6 @@
 # Güvenlik ve Bilet Yaşam Döngüsü İlerlemesi
 
-Son güncelleme: 2026-11-10
+Son güncelleme: 2026-11-11
 
 Bu dosya; bilet silinmezliği, iptal/koltuk serbest bırakma, uygulama kredisi, koltuk başına QR ve Firebase kurtarma planının tek takip noktasıdır.
 
@@ -24,10 +24,14 @@ Bu dosya; bilet silinmezliği, iptal/koltuk serbest bırakma, uygulama kredisi, 
 - [x] Mobil bilet ekranı koltuk başına QR gösterecek şekilde güncellendi.
 - [x] Mobil iptal metni kredi politikasını açıklar; ücretli kart biletlerinde de iptal görünür.
 - [x] Firestore kuralları `TicketAudit`, `UserCredit`, `UserCreditEvent` yazımlarını istemciye kapattı.
+- [x] Functions bağımlılıkları lockfile’a göre yeniden kuruldu; emulator testlerinde eksik `protobufjs` dosyası giderildi.
+- [x] Rezervasyon/iptal/QR testleri: 23/23 geçti.
+- [x] Ödeme E2E testleri: 9/9 geçti; yerel sahte iyzico secret’ları yalnız emulator için kullanılıyor.
 - [ ] Uygulama kredisi ödeme ekranında indirim olarak kullanılacak; bakiye düşümü ve harcama hareketi aynı transaction içinde yapılacak.
 - [ ] Admin QR tarayıcısı yeni payload'ı ayrıştırıp `seatId` ve `qrToken` alanlarını ayrı gönderecek.
 - [ ] Audit koleksiyonu için admin timeline ekranı ve CSV dışa aktarma eklenecek.
-- [ ] Functions testleri: 3 koltuk / yalnızca 2 check-in, ikinci taramada idempotency, iptal kredisi idempotency, eski bilet uyumluluğu.
+- [x] Functions testleri: 3 koltuk / yalnızca 2 check-in, ikinci taramada idempotency ve iptal kredisi idempotency doğrulandı.
+- [ ] Eski bilet uyumluluğu için üretimden örnek veriyle migration/read-only doğrulaması yapılacak.
 - [ ] App Check enforcement canlıda kademeli açılacak.
 - [ ] PITR ve delete protection canlı veritabanında yetkili onayıyla açılacak.
 - [ ] Scheduled backup günlük oluşturulacak ve geri yükleme tatbikatı yapılacak.
