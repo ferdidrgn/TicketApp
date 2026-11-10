@@ -15,10 +15,18 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
 
   /// Layout dışı meta alanlar — satır gibi okunmaz.
   static const _metaKeys = {
+    'seatIds',
     'closedSeatsId',
+    'closedSeatIds',
     '_id',
     '_createdAt',
     '_updatedAt',
+    'createdAt',
+    'updatedAt',
+    'createdBy',
+    'updatedBy',
+    'schemaVersion',
+    'seatCount',
     'stageId',
     'stageName',
     'address',
@@ -32,7 +40,15 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
     if (stageId.isEmpty) throw Exception('Stage ID boş olamaz.');
 
     try {
-      final doc = await _firestore.collection(_collection).doc(stageId).get();
+      var doc = await _firestore.collection(_collection).doc(stageId).get();
+      if (!doc.exists) {
+        final legacy = await _firestore
+            .collection(_collection)
+            .where('stageId', isEqualTo: stageId)
+            .limit(1)
+            .get();
+        if (legacy.docs.isNotEmpty) doc = legacy.docs.first;
+      }
 
       if (!doc.exists) throw Exception('Belirtilen sahne bulunamadı.');
 
@@ -43,8 +59,8 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
 
       final seats = <String, List<String>>{};
 
-      // Yeni şema: tek düz dizi `seatsId` (Halit / SES).
-      final dynamic flat = data['seatsId'];
+      // Yeni şema: tek düz dizi `seatIds`; `seatsId` eski istemci uyumluluğu.
+      final dynamic flat = data['seatIds'] ?? data['seatsId'];
       if (flat is List) {
         seats['seatsId'] = flat.whereType<String>().toList();
       } else {
@@ -75,7 +91,15 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
   Future<SeatPlanMeta> getSeatPlanMeta(final String stageId) async {
     if (stageId.isEmpty) return SeatPlanMeta.empty;
     try {
-      final doc = await _firestore.collection(_collection).doc(stageId).get();
+      var doc = await _firestore.collection(_collection).doc(stageId).get();
+      if (!doc.exists) {
+        final legacy = await _firestore
+            .collection(_collection)
+            .where('stageId', isEqualTo: stageId)
+            .limit(1)
+            .get();
+        if (legacy.docs.isNotEmpty) doc = legacy.docs.first;
+      }
       if (!doc.exists) return SeatPlanMeta.empty;
       final data = doc.data();
       if (data == null) return SeatPlanMeta.empty;
@@ -88,8 +112,8 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
         stageId: (data['stageId'] as String?) ?? doc.id,
         stageName: (data['stageName'] as String?) ?? '',
         address: (data['address'] as String?) ?? '',
-        createdAt: iso(data['_createdAt']),
-        updatedAt: iso(data['_updatedAt']),
+        createdAt: iso(data['createdAt'] ?? data['_createdAt']),
+        updatedAt: iso(data['updatedAt'] ?? data['_updatedAt']),
       );
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getSeatPlanMeta): ${e.message}');

@@ -38,7 +38,7 @@ before(async () => {
 beforeEach(async () => { await clearDb(); });
 
 test('yetkisiz çağrı reddedilir (hepsi UNAUTHENTICATED)', { timeout: 240000 }, async () => {
-  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree', 'confirmReservation', 'cancelTicket', 'adminSetTicketStatus', 'adminCheckIn', 'adminHealth', 'adminStats', 'adminCancelled', 'adminNotifyPreview', 'adminSendNotification']) {
+  for (const n of ['holdSeats', 'releaseHold', 'startPayment', 'confirmFree', 'confirmReservation', 'cancelTicket', 'adminSetTicketStatus', 'adminCheckIn', 'adminHealth', 'adminStats', 'adminCancelled', 'adminNotifyPreview', 'adminSendNotification', 'adminUpsertSeatPlan']) {
     const r = await call(n, { eventId: 'e', seatIds: ['A1'], orderId: 'o', provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app' });
     assert.equal(r.status, 401, n);
     assert.equal(r.body.error.status, 'UNAUTHENTICATED', n);

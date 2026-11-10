@@ -92,3 +92,36 @@ test('bilet iptal edilmiş olsa bile sayılır (güvenli taraf — iptal edilmi�
   await seedTicket({ customerId: 'u1', eventId: 'e1', showId: 's3', paymentStatus: 'cancelled' });
   await expectCode(c.adminDeleteShow(admin, { showId: 's3' }), 'failed-precondition');
 });
+
+test('adminUpsertSeatPlan: canonical metadata, server timestamps ve random-ID migration', async () => {
+  const { c } = makeCatalog();
+  const admin = await makeAdmin();
+  await db.collection('Stage').doc('st1').set({ name: 'Sahne Bir', address: 'Kadıköy' });
+  await db.collection('Seats').doc('randomLegacy').set({
+    stageId: 'st1', seatsId: ['A1'], closedSeatsId: [], _createdAt: '2026-01-01T00:00:00.000Z',
+  });
+
+  const result = await c.adminUpsertSeatPlan(admin, {
+    stageId: 'st1', seatIds: ['A1', 'A2'], closedSeatIds: ['A2'], updateStageCapacity: true,
+  });
+  assert.deepEqual(result, { stageId: 'st1', seatCount: 2, migrated: true });
+  const canonical = (await db.collection('Seats').doc('st1').get()).data();
+  assert.equal(canonical.stageId, 'st1');
+  assert.deepEqual(canonical.seatIds, ['A1', 'A2']);
+  assert.deepEqual(canonical.closedSeatIds, ['A2']);
+  assert.equal(canonical.schemaVersion, 2);
+  assert.equal(typeof canonical.createdAt.toMillis, 'function');
+  assert.equal(typeof canonical.updatedAt.toMillis, 'function');
+  assert.equal((await db.collection('Seats').doc('randomLegacy').get()).exists, false);
+  assert.equal((await db.collection('Stage').doc('st1').get()).data().capacity, '2');
+});
+
+test('adminUpsertSeatPlan: admin olmayan ve duplicate/bozuk plan reddedilir', async () => {
+  const { c } = makeCatalog();
+  const usr = await normalUser();
+  await db.collection('Stage').doc('st1').set({ name: 'Sahne Bir' });
+  await expectCode(c.adminUpsertSeatPlan(usr, { stageId: 'st1', seatIds: ['A1'] }), 'permission-denied');
+  const admin = await makeAdmin();
+  await expectCode(c.adminUpsertSeatPlan(admin, { stageId: 'st1', seatIds: ['A1', 'A1'] }), 'invalid-argument');
+  await expectCode(c.adminUpsertSeatPlan(admin, { stageId: 'st1', seatIds: ['A.1'] }), 'invalid-argument');
+});

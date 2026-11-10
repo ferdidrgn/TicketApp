@@ -238,13 +238,18 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   async function seatsFromStage(tx, stageId) {
     // Event.seats henüz oluşmamışsa sahne planından üret (mobil initializeAndGetEventSeats ile aynı).
     if (!stageId) return null;
-    const snap = await tx.get(db.collection('Seats').doc(stageId));
-    if (!snap.exists) return null;
+    let snap = await tx.get(db.collection('Seats').doc(stageId));
+    if (!snap.exists) {
+      const legacy = await tx.get(db.collection('Seats').where('stageId', '==', stageId).limit(1));
+      if (legacy.empty) return null;
+      snap = legacy.docs[0];
+    }
     const d = snap.data();
-    const closed = new Set(Array.isArray(d.closedSeatsId) ? d.closedSeatsId : []);
+    const closed = new Set(Array.isArray(d.closedSeatIds) ? d.closedSeatIds : (Array.isArray(d.closedSeatsId) ? d.closedSeatsId : []));
     const meta = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt', 'stageId', 'stageName', 'address']);
     const ids = [];
-    if (Array.isArray(d.seatsId)) ids.push(...d.seatsId);
+    if (Array.isArray(d.seatIds)) ids.push(...d.seatIds);
+    else if (Array.isArray(d.seatsId)) ids.push(...d.seatsId);
     else for (const [k, v] of Object.entries(d)) if (!meta.has(k) && Array.isArray(v)) ids.push(...v);
     const out = {};
     for (const s of ids) {

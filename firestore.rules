@@ -356,18 +356,17 @@ service cloud.firestore {
     // bkz. seat_remote_data_source_and_impl.dart (_collection = 'Seats',
     // doküman ID'si = stageId). Sadece
     // `EventRemoteDataSourceImpl.initializeAndGetEventSeats` tarafından
-    // OKUNUYOR; kod tabanında client-side hiçbir yazma yok — admin/seed
-    // script'i tarafından doldurulduğu varsayılıyor.
+    // OKUNUYOR; istemci doğrudan yazamaz. Yönetim paneli callable üzerinden,
+    // bakım/migration işleri ise Admin SDK ile doldurulur.
     // Diğer koleksiyonlarla (Stage/Show/Event/Ticket) aynı meta alan
     // sözleşmesi (13.11.2026): `_id` (= stageId), `stageId`, `stageName`,
-    // `address` (Stage'den denormalize), `_createdAt`/`_updatedAt` (ISO
-    // string). Bunlar yalnızca izlenebilirlik/admin gösterimi içindir —
-    // koltuk durumunu etkilemez; layout alanları (`seatsId`/`closedSeatsId`
-    // ya da eski satır->liste biçimi) ve okuyucudaki `_metaKeys` listesi
-    // değişmedi. Admin yazıcı: site/js/admin/koltuk-plani.js.
+    // `address` (Stage'den denormalize), `createdAt`/`updatedAt` ve eski
+    // `_createdAt`/`_updatedAt` uyumluluk alanları. Yazma yalnızca
+    // adminUpsertSeatPlan callable'ı üzerinden yapılır; server timestamp,
+    // Stage ilişkisi ve eski random-ID migration'ı sunucuda doğrulanır.
     match /Seats/{stageId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     // AppTools: gizlilik politikası / kullanım koşulları gibi statik uygulama

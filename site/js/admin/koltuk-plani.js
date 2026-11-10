@@ -1,8 +1,8 @@
-// Yönetim: sahne koltuk planı oluşturucu. Seats/{sahneId} = { seatsId: [...], closedSeatsId?: [...] }.
-// Yalnız admin (Firestore rules: Seats yazma = isAdmin). Giriş: Google (admin hesabı). Üretim yazımı kullanıcının kendi oturumuyla yapılır.
+// Yönetim: sahne koltuk planı oluşturucu. Canonical belge Seats/{stageId};
+// yazma adminUpsertSeatPlan callable'ı üzerinden yapılır.
 import {
   auth, db, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut,
-  doc, getDoc, setDoc, updateDoc, collection, getDocs,
+  doc, getDoc, collection, getDocs, query, where, limit, fonksiyon,
 } from '../firebase.js';
 
 const app = document.getElementById('app');
@@ -49,6 +49,12 @@ async function panelCiz(user) {
   if (rol !== 'admin') { app.innerHTML = `<h1>Koltuk planı</h1><p class="uyari">Bu hesap yönetici değil.</p><button class="btn btn-ghost" id="cik" type="button">Çıkış</button>`; document.getElementById('cik').onclick = () => signOut(auth); return; }
 
   const sahneler = (await getDocs(collection(db, 'Stage'))).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name), 'tr'));
+  const seatSnapshot = async (stageId) => {
+    const canonical = await getDoc(doc(db, 'Seats', stageId)).catch(() => null);
+    if (canonical && canonical.exists()) return canonical;
+    const legacy = await getDocs(query(collection(db, 'Seats'), where('stageId', '==', stageId), limit(1))).catch(() => null);
+    return legacy && !legacy.empty ? legacy.docs[0] : null;
+  };
   const varsayilan = sahneler.find((s) => /mustafa saffet/i.test(s.name || '')) || sahneler[0];
   app.innerHTML = `<h1>Koltuk planı</h1>
     <p class="muted">Sahnenin koltuk kimliklerini (<code>A1, A2…</code>) üretip <code>Seats</code> koleksiyonuna yazar. Mevcut kapalı koltuk listesi (<code>closedSeatsId</code>) korunur. Daha önce oluşturulmuş seansların koltuk durumu değişmez.</p>
@@ -91,14 +97,15 @@ BB:15</textarea>
     $('kaydet').disabled = !(hedef ? ids.length === hedef : true);
   };
   const mevcutYaz = async () => {
-    const s = $('sahne').value; const d = await getDoc(doc(db, 'Seats', s)).catch(() => null);
+    const s = $('sahne').value; const d = await seatSnapshot(s);
     if (!d || !d.exists()) { $('mevcut').textContent = 'Bu sahne için kayıtlı koltuk planı yok.'; return; }
     const v = d.data();
     const tarihYaz = (iso) => { try { return new Date(iso).toLocaleString('tr-TR'); } catch { return iso; } };
-    const parcalar = [`Şu an kayıtlı plan: ${(v.seatsId || []).length} koltuk (${(v.closedSeatsId || []).length} kapalı).`];
+    const parcalar = [`Şu an kayıtlı plan: ${(v.seatIds || v.seatsId || []).length} koltuk (${(v.closedSeatIds || v.closedSeatsId || []).length} kapalı).`];
     if (v.address) parcalar.push(`Adres: ${v.address}`);
-    if (v._createdAt) parcalar.push(`Oluşturma: ${tarihYaz(v._createdAt)}`);
-    if (v._updatedAt) parcalar.push(`Son güncelleme: ${tarihYaz(v._updatedAt)}`);
+    const created = v.createdAt || v._createdAt, updated = v.updatedAt || v._updatedAt;
+    if (created) parcalar.push(`Oluşturma: ${tarihYaz(created?.toDate ? created.toDate() : created)}`);
+    if (updated) parcalar.push(`Son güncelleme: ${tarihYaz(updated?.toDate ? updated.toDate() : updated)}`);
     $('mevcut').textContent = parcalar.join(' · ');
   };
   ['zemin', 'balkon', 'hedef'].forEach((k) => $(k).addEventListener('input', hesapla));
@@ -113,20 +120,12 @@ BB:15</textarea>
     $('kaydet').disabled = true;
     try {
       // İzlenebilirlik (13.11.2026): Stage/Show/Event/Ticket ile aynı meta sözleşmesi —
-      // _id/stageId/stageName/address + _createdAt (korunur) / _updatedAt (her yazımda).
-      const oncekiSnap = await getDoc(doc(db, 'Seats', s)).catch(() => null);
-      const simdi = new Date().toISOString();
-      const eskiOlusturma = oncekiSnap && oncekiSnap.exists() ? oncekiSnap.data()._createdAt : null;
-      await setDoc(doc(db, 'Seats', s), {
-        seatsId: sonuc,
-        _id: s,
-        stageId: s,
-        stageName: ad,
-        address: sahne.address || '',
-        _createdAt: eskiOlusturma || simdi,
-        _updatedAt: simdi,
-      }, { merge: true });
-      if ($('kap').checked) await updateDoc(doc(db, 'Stage', s), { capacity: String(sonuc.length), _updatedAt: simdi });
+      // _id/stageId/stageName/address + server-owned createdAt/updatedAt.
+      const oncekiSnap = await seatSnapshot(s);
+      const onceki = oncekiSnap && oncekiSnap.exists() ? oncekiSnap.data() : {};
+      const closedSeatIds = onceki.closedSeatIds || onceki.closedSeatsId || [];
+      const saveSeatPlan = await fonksiyon('adminUpsertSeatPlan');
+      await saveSeatPlan({ stageId: s, seatIds: sonuc, closedSeatIds, updateStageCapacity: $('kap').checked });
       bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${sonuc.length} koltuk yazıldı.</span>`; await mevcutYaz();
     } catch (e) { const m = e?.code === 'permission-denied' ? 'Yetki reddedildi: bu hesap yönetici değil ya da Firestore kuralları izin vermiyor.' : 'Kaydedilemedi.'; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
     finally { hesapla(); }
