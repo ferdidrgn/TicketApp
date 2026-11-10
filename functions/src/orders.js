@@ -382,9 +382,15 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!evSnap.exists) throw err('not-found', 'Etkinlik bulunamadı.');
       const u = await eventUsage(tx, { uid, key, eventId, t: now(), replaceOwnHeld: true });
       const limit = satis.etkinlikBasinaLimit;
+      const priceKurus = parsePriceKurus(evSnap.data().price);
+      const freeEvent = priceKurus === 0;
       return {
         eventId, limit, used: u.usedAll, remaining: Math.max(0, limit - u.usedAll),
         held: u.held, sold: u.sold, reserved: u.reserved, free: u.free, paying: u.paying,
+        freeEvent,
+        freeRemaining: freeEvent && satis.ucretsizToplamLimit > 0
+          ? Math.max(0, satis.ucretsizToplamLimit - L.freeTickets)
+          : null,
         global: {
           freeLimit: satis.ucretsizToplamLimit, freeUsed: L.freeTickets,
           reservationLimit: satis.rezervasyonLimit, reservationUsed: L.reservations,

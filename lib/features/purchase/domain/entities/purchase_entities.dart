@@ -221,12 +221,16 @@ class EventQuota extends Equatable {
   final int used;
   final int remaining;
   final int held;
+  final bool freeEvent;
+  final int? freeRemaining;
 
   const EventQuota({
     required this.limit,
     required this.used,
     required this.remaining,
     this.held = 0,
+    this.freeEvent = false,
+    this.freeRemaining,
   });
 
   /// Sunucu cevabından; eksik/bozuksa `null` (arayüz varsayılana düşer).
@@ -242,20 +246,36 @@ class EventQuota extends Equatable {
       used: used < 0 ? 0 : used,
       remaining: remaining < 0 ? 0 : remaining,
       held: n(m['held']) ?? 0,
+      freeEvent: m['freeEvent'] == true,
+      freeRemaining: n(m['freeRemaining'])?.clamp(0, 20).toInt(),
     );
   }
 
   /// Hak doldu: koltuk seçimi kapalı.
   bool get isFull => remaining <= 0;
 
+  /// Ücretsiz seanslarda etkinlik kotası ile global ücretsiz kotanın
+  /// kesişimi. `null`, eski/eksik sunucu cevabında global limit bilinmiyor
+  /// demektir; bu durumda yalnızca etkinlik kotası kullanılır.
+  int get selectableRemaining => freeEvent && freeRemaining != null
+      ? remaining < freeRemaining! ? remaining : freeRemaining!
+      : remaining;
+
+  bool get selectableFull => selectableRemaining <= 0;
+
+  bool get freeLimitFull => freeEvent && freeRemaining == 0;
+
   /// "Bu etkinlikte 1/3 biletin var. 2 bilet daha alabilirsin."
-  String get summary => isFull
-      ? 'Bu etkinlik için bilet hakkını doldurdun ($used/$limit).'
-      : 'Bu etkinlikte $used/$limit biletin var. $remaining bilet daha '
-          'alabilirsin.';
+  String get summary => freeLimitFull
+      ? 'Bu etkinlikte ücretsiz bilet hakkın kalmadı.'
+      : selectableFull
+          ? 'Bu etkinlik için bilet hakkını doldurdun ($used/$limit).'
+          : 'Bu etkinlikte $used/$limit biletin var. '
+              '$selectableRemaining bilet daha alabilirsin.';
 
   @override
-  List<Object?> get props => [limit, used, remaining, held];
+  List<Object?> get props =>
+      [limit, used, remaining, held, freeEvent, freeRemaining];
 }
 
 /// Kullanıcıya gösterilebilir satın alma hatası. [message] her zaman

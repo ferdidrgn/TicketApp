@@ -154,6 +154,11 @@ test('getEventQuota: sayılar doğru, kişisel veri sızmaz, telefonsuz PHONE_RE
   assert.equal(json.includes(u), false); assert.equal(json.includes('5552220001'), false); assert.equal(json.includes('ph_'), false);
   const qf = await svc.getEventQuota(u, { eventId: free }, { phone: P1 });
   assert.equal(qf.free, 2); assert.equal(qf.remaining, 1);
+  assert.equal(qf.freeEvent, true);
+  assert.equal(qf.freeRemaining, 2);
+  const qp = await svc.getEventQuota(u, { eventId: ev }, { phone: P1 });
+  assert.equal(qp.freeEvent, false);
+  assert.equal(qp.freeRemaining, null);
 
   const e = await expectCode(svc.getEventQuota(u, { eventId: ev }, { phone: null }), 'failed-precondition');
   assert.equal(e.details.code, 'PHONE_REQUIRED');
