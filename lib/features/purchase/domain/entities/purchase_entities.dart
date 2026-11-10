@@ -254,6 +254,9 @@ class EventQuota extends Equatable {
   /// Hak doldu: koltuk seçimi kapalı.
   bool get isFull => remaining <= 0;
 
+  /// Ücretsiz seanslarda etkinlik kotası ile global ücretsiz kotanın
+  /// kesişimi. `null`, eski/eksik sunucu cevabında global limit bilinmiyor
+  /// demektir; bu durumda yalnızca etkinlik kotası kullanılır.
   int get selectableRemaining => freeEvent && freeRemaining != null
       ? remaining < freeRemaining! ? remaining : freeRemaining!
       : remaining;

@@ -130,12 +130,16 @@ function createStats({ db, now = Date.now, log = console }) {
     const pick = (obj, kind) => Object.entries(obj).filter(([k]) => k.startsWith(`${kind}_`) && k !== `${kind}_total`).map(([k, v]) => [k.slice(kind.length + 1), v]);
     const days = daySnap.docs.map((d) => ({ day: d.id, views: d.data().total || 0 })).sort((a, b) => (a.day < b.day ? -1 : 1));
 
-    // --- içerik: oyunlar, sahneler, seanslar
-    const [shows, stages, events] = await Promise.all([
+    // --- içerik: oyunlar, sahneler, seanslar, oyuncular, topluluklar
+    const [shows, stages, events, players, teams] = await Promise.all([
       readAll('Show', ['name', 'eventsId'], 1000), readAll('Stage', ['name', 'capacity'], 1000), readAll('Event', ['showId', 'stageId', 'date', 'seats'], 2000),
+      readAll('Player', ['firstName', 'lastName', 'name'], 1000), readAll('Team', ['name'], 500),
     ]);
     const showName = new Map(shows.map((s) => [s.id, s.name || s.id]));
     const stageName = new Map(stages.map((s) => [s.id, s.name || s.id]));
+    // 09.11.2026: "Öne çıkanlar" önceden boş Map ile çağrılıp ham doküman ID'si gösteriyordu (bkz. topPlayers/topTeams altta).
+    const playerName = new Map(players.map((p) => [p.id, `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.name || p.id]));
+    const teamName = new Map(teams.map((t) => [t.id, t.name || t.id]));
     const evShow = new Map(); // Event.showId tek doğruluk kaynağı; boşsa Show.eventsId yedek
     for (const s of shows) for (const e of s.eventsId || []) if (!evShow.has(e)) evShow.set(e, s.id);
 
@@ -236,7 +240,7 @@ function createStats({ db, now = Date.now, log = console }) {
       },
       days, trend,
       topShows: showRows,
-      topPlayers: named('player', new Map()), topStages: named('stage', stageName), topTeams: named('team', new Map()),
+      topPlayers: named('player', playerName), topStages: named('stage', stageName), topTeams: named('team', teamName),
       sessions: upcomingList.slice(0, 60),
       venues: venueRows,
       limits: { events: events.length, shows: shows.length, showRowsCapped: ranked.length > top.length },
