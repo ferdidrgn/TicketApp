@@ -193,6 +193,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Bilet yaşam döngüsünün değişmez denetim izi. Yalnızca sunucu yazar;
+    // müşteri kendi biletinin olaylarını, yönetici tüm olayları okuyabilir.
+    match /TicketAudit/{auditId} {
+      allow read: if isSignedIn() && (isAdmin() ||
+        (resource.data.ticketId != null &&
+          get(/databases/$(database)/documents/Ticket/$(resource.data.ticketId)).data.customerId == request.auth.uid));
+      allow write: if false;
+    }
+
+    // İptal sonrası para iadesi yerine verilen uygulama kredisi. Bakiye ve
+    // hareketler Admin SDK ile güncellenir; istemci yalnızca kendi bakiyesini
+    // ve kendi hareketlerini okuyabilir.
+    match /UserCredit/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if false;
+    }
+    match /UserCreditEvent/{eventId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
     // -------------------------------------------------------------------
     // Notification — lib/features/notifications/domain/entities/
     // app_notification.dart (bu oturumda eklendi). Koleksiyon adı:

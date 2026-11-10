@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../domain/entities/ticket.dart';
 
 class TicketModel {
   final String? id;
@@ -7,6 +8,7 @@ class TicketModel {
   final String? showId, stageId, eventId;
   final String? orderPrice, orderMethod;
   final List<String>? buySeats;
+  final List<TicketSeat>? seatTickets;
   final bool? isPast;
   final String? showName, showImageUrl, stageName, eventDate;
   final String? paymentStatus, usedAt, cancelledAt;
@@ -23,6 +25,7 @@ class TicketModel {
     this.orderMethod,
     this.orderPrice,
     this.buySeats,
+    this.seatTickets,
     this.isPast,
     this.showName,
     this.showImageUrl,
@@ -89,6 +92,14 @@ class TicketModel {
         orderPrice: _s(data['orderPrice']),
         buySeats: data['buySeats'] is List
             ? (data['buySeats'] as List).map((e) => e.toString()).toList()
+            : null,
+        seatTickets: data['seatTickets'] is List
+            ? (data['seatTickets'] as List).whereType<Map>().map((e) => TicketSeat(
+                  seatId: _s(e['seatId']) ?? '',
+                  qrToken: _s(e['qrToken']) ?? '',
+                  status: _s(e['status']) ?? 'active',
+                  usedAt: _ts(e['usedAt']) ?? '',
+                )).where((e) => e.seatId.isNotEmpty).toList()
             : null,
         isPast: _b(data['isPast']),
         showName: _s(data['showName']),

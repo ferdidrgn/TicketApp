@@ -502,28 +502,45 @@ class _MomentStub extends StatelessWidget {
         id.length > 10 ? id.substring(0, 10).toUpperCase() : id.toUpperCase();
     final double qrSize = wide ? 196 : 184;
 
-    // QR: siyah modül / beyaz zemin — tarayıcıların güvenilir okuması için
-    // temadan bağımsız, en yüksek kontrast. Yük (payload) değişmedi:
-    // biletin kimliği.
-    final Widget qr = Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        border: Border.all(color: TicketInk.inkSoft(0.15)),
-      ),
-      child: QrImageView(
-        data: id,
-        version: QrVersions.auto,
-        size: qrSize,
-        padding: EdgeInsets.zero,
-        backgroundColor: Colors.white,
-        eyeStyle: const QrEyeStyle(
-            eyeShape: QrEyeShape.square, color: TicketInk.ink),
-        dataModuleStyle: const QrDataModuleStyle(
-            dataModuleShape: QrDataModuleShape.square, color: TicketInk.ink),
-      ),
-    );
+    // Yeni biletlerde QR payload'ı bilet kimliği değil, koltuk bazlı opak
+    // token'dır: ticketId:seatId:randomToken. Eski biletler için id fallback'i
+    // korunur; böylece geçmiş bilet ekranı bozulmaz.
+    Widget makeQr(final String data) => Container(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+            border: Border.all(color: TicketInk.inkSoft(0.15)),
+          ),
+          child: QrImageView(
+            data: data,
+            version: QrVersions.auto,
+            size: qrSize,
+            padding: EdgeInsets.zero,
+            backgroundColor: Colors.white,
+            eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square, color: TicketInk.ink),
+            dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square, color: TicketInk.ink),
+          ),
+        );
+
+    final seats = ticket.ticket.seatTickets;
+    final List<Widget> qrCards = seats.isEmpty
+        ? [makeQr(id)]
+        : seats.map((seat) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('KOLTUK ${seat.seatId}', style: TicketInk.label()),
+                const SizedBox(height: AppSpacing.xs),
+                makeQr('$id:${seat.seatId}:${seat.qrToken}'),
+                if (seat.isCheckedIn) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  const Text('GİRİŞ YAPILDI'),
+                ],
+                const SizedBox(height: AppSpacing.md),
+              ],
+            )).toList();
 
     final Widget revealedQr = AnimatedBuilder(
       animation: reveal,
@@ -541,7 +558,10 @@ class _MomentStub extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Opacity(opacity: past ? 0.3 : 1, child: qr),
+            Opacity(
+              opacity: past ? 0.3 : 1,
+              child: Column(mainAxisSize: MainAxisSize.min, children: qrCards),
+            ),
             if (past)
               ExcludeSemantics(
                 child: TicketInkStamp(

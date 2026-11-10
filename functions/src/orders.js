@@ -1,4 +1,5 @@
 'use strict';
+const crypto = require('crypto');
 /**
  * Bilet satış çekirdeği. Firebase'e bağımlılıkları (db, sağlayıcı, saat) enjekte edilir; böylece
  * testler emülatörde gerçek Firestore ile, sahte ödeme sağlayıcısıyla çalışır.
@@ -104,6 +105,17 @@ const ticketStatusOf = (t) => t.paymentStatus || (t.orderMethod === 'venue' ? 'p
 function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console, settings = null, phoneSalt = null }) {
   const orders = () => db.collection('Order');
   const satisRef = () => db.collection('Config').doc('satis');
+  const ticketAuditRef = () => db.collection('TicketAudit').doc();
+  const creditRef = (uid) => db.collection('UserCredit').doc(uid);
+  const creditEventRef = (ticketId, seatId) => db.collection('UserCreditEvent').doc(`cancel_${ticketId}_${seatId}`);
+  const seatQrToken = () => crypto.randomBytes(24).toString('base64url');
+  function writeTicketAudit(tx, { ticketId, action, actorType, actorUid = null, seatId = null, fromStatus = null, toStatus = null, reason = null, at = null }) {
+    tx.create(ticketAuditRef(), {
+      ticketId, action, actorType, ...(actorUid ? { actorUid } : {}), ...(seatId ? { seatId } : {}),
+      ...(fromStatus ? { fromStatus } : {}), ...(toStatus ? { toStatus } : {}), ...(reason ? { reason } : {}),
+      createdAt: at || Timestamp.fromMillis(now()),
+    });
+  }
   /** Sunucu her çağrıda Config/satis'i okur. `settings` yalnızca testlerde sabitlemek içindir. */
   async function readSatis(tx) {
     if (settings) return normalizeSatis(await settings());
@@ -495,6 +507,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const iso = new Date(now()).toISOString();
     const eventDate = toIso(ev.date);
     const ticketRef = db.collection('Ticket').doc(orderId); // deterministik id -> yinelenen bilet imkânsız
+    const ticketStatus = method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : method === 'protokol' ? 'protokol' : 'paid';
     tx.create(ticketRef, {
       _id: orderId, _createdAt: iso, _updatedAt: iso,
       customerId: order.userId, showId: order.showId || '', stageId: order.stageId || '', eventId: order.eventId,
@@ -504,9 +517,12 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
       stageName: (stage && stage.name) || '', eventDate, orderId,
-      paymentStatus: method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : method === 'protokol' ? 'protokol' : 'paid',
+      paymentStatus: ticketStatus,
+      seatTickets: order.seatIds.map((seatId) => ({ seatId, qrToken: seatQrToken(), status: 'active' })),
+      seatCount: order.seatIds.length, checkedInCount: 0,
       ...(extraTicket || {}),
     });
+    writeTicketAudit(tx, { ticketId: orderId, action: 'created', actorType: 'system', toStatus: ticketStatus });
     // skipNotification: alıcı gerçek bir hesap değilse (protokol/davetiye) kimseye gitmeyecek bir bildirim yazılmaz.
     if (!skipNotification) {
       tx.set(db.collection('Notification').doc(`order_${orderId}`), {
@@ -627,7 +643,25 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (s && s.status === 'sold' && s.orderId === ticketId) args.push(...releaseArgs(sid));
     }
     if (args.length) tx.update(evRef, ...args);
-    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt: Timestamp.fromMillis(now()), cancelledBy: by, ...(byUid ? { cancelledByUid: byUid } : {}), _updatedAt: new Date(now()).toISOString() });
+    const cancelledAt = Timestamp.fromMillis(now());
+    const seatTickets = Array.isArray(t.seatTickets)
+      ? t.seatTickets.map((st) => ({ ...st, status: st.status === 'checked_in' ? st.status : 'cancelled', cancelledAt }))
+      : null;
+    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt, cancelledBy: by, ...(byUid ? { cancelledByUid: byUid } : {}), ...(seatTickets ? { seatTickets } : {}), _updatedAt: new Date(now()).toISOString() });
+    writeTicketAudit(tx, { ticketId, action: 'cancelled', actorType: by === 'admin' ? 'admin' : 'customer', actorUid: byUid || (by === 'customer' ? t.customerId : null), fromStatus: ticketStatusOf(t), toStatus: 'cancelled', reason: 'seat_release_without_refund' });
+    const totalKurus = parsePriceKurus(t.orderPrice);
+    const seatCount = Math.max(1, (t.buySeats || []).length);
+    const creditKurus = totalKurus && totalKurus > 0 ? Math.floor(totalKurus / seatCount) : 0;
+    if (creditKurus > 0 && t.customerId) {
+      tx.set(creditRef(t.customerId), { balanceKurus: FieldValue.increment(creditKurus * Math.max(1, dec || seatCount)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      for (const sid of (t.buySeats || [])) {
+        tx.create(creditEventRef(ticketId, sid), {
+          userId: t.customerId, ticketId, seatId: sid, type: 'ticket_cancel_credit',
+          amountKurus: creditKurus, currency: 'TRY', reason: 'ticket_cancelled_no_refund',
+          createdAt: cancelledAt, actorType: by === 'admin' ? 'admin' : 'customer', ...(byUid ? { actorUid: byUid } : {}),
+        });
+      }
+    }
     if (counterField && dec > 0) addLimits(tx, L, counterField, -dec);
     if (orderSnap && orderSnap.exists) tx.update(orderSnap.ref, { status: 'ticket_cancelled', updatedAt: FieldValue.serverTimestamp() });
   }
@@ -646,11 +680,8 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const [evSnap, orderSnap] = await Promise.all([tx.get(evRef), tx.get(orders().doc(ticketId))]);
       const L = await loadLimitsForTicket(tx, uid, orderSnap);
       const cur = ticketStatusOf(t);
-      if (t.orderMethod === 'card' || cur === 'paid') {
-        throw err('failed-precondition', 'Online ödenmiş biletler uygulamadan iptal edilemez. İade için bizimle iletişime geçin.');
-      }
-      if (!['pay_at_venue', 'free'].includes(cur)) throw err('failed-precondition', 'Bu bilet iptal edilemez.');
-      if (t.usedAt) throw err('failed-precondition', 'Kullanılmış bilet iptal edilemez.');
+      if (!['paid', 'pay_at_venue', 'free', 'protokol'].includes(cur)) throw err('failed-precondition', 'Bu bilet iptal edilemez.');
+      if (t.usedAt || (Array.isArray(t.seatTickets) && t.seatTickets.some((s) => s.status === 'checked_in'))) throw err('failed-precondition', 'Giriş yapılmış bilet iptal edilemez.');
       const ev = evSnap.exists ? evSnap.data() : null;
       const dateMs = parseEventDateMs(ev ? ev.date : t.eventDate);
       if (dateMs == null) throw err('failed-precondition', 'Bu biletin seans tarihi okunamadı; iptal için iletişime geçin.');
@@ -681,7 +712,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (cur === 'cancelled') throw err('failed-precondition', 'İptal edilmiş bilet yeniden açılamaz.');
       const method = t.orderMethod;
       const allowed = method === 'venue' ? ['paid', 'pay_at_venue', 'no_show', 'cancelled']
-        : method === 'free' || method === 'protokol' ? ['no_show', 'cancelled'] : ['no_show'];
+        : method === 'free' || method === 'protokol' || method === 'card' ? ['no_show', 'cancelled'] : ['no_show'];
       if (!allowed.includes(target)) {
         throw err('failed-precondition', method === 'card'
           ? 'Online ödenmiş biletlerde yalnızca "gelmedi" işaretlenebilir; iade ödeme panelinden yapılır.'
@@ -705,13 +736,18 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         }
       }
       tx.update(ticketRef, { paymentStatus: target, _updatedAt: new Date(now()).toISOString() });
+      writeTicketAudit(tx, { ticketId, action: target === 'no_show' ? 'no_show' : 'status_changed', actorType: 'admin', actorUid: uid, fromStatus: cur, toStatus: target });
       return { ok: true, paymentStatus: target };
     });
   }
 
   async function adminCheckIn(uid, data) {
     await assertAdmin(uid);
-    const ticketId = validateId(data && data.ticketId, 'bilet');
+    const raw = validateId(data && data.ticketId, 'bilet');
+    const parts = raw.split(':');
+    const ticketId = validateId(parts[0], 'bilet');
+    const seatId = data && data.seatId ? validateId(data.seatId, 'koltuk') : (parts.length >= 3 ? validateId(parts[1], 'koltuk') : null);
+    const qrToken = data && data.qrToken ? String(data.qrToken) : (parts.length >= 3 ? parts.slice(2).join(':') : null);
     const ticketRef = db.collection('Ticket').doc(ticketId);
     const r = await db.runTransaction(async (tx) => {
       const tSnap = await tx.get(ticketRef);
@@ -719,9 +755,24 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const t = tSnap.data();
       const cur = ticketStatusOf(t);
       if (cur === 'cancelled' || cur === 'no_show') return { t, cur, ok: false, already: false };
+      if (seatId && Array.isArray(t.seatTickets)) {
+        const index = t.seatTickets.findIndex((s) => s.seatId === seatId);
+        if (index < 0) throw err('not-found', 'Koltuk bileti bulunamadı.');
+        const st = t.seatTickets[index];
+        if (qrToken && st.qrToken !== qrToken) throw err('permission-denied', 'QR kod geçersiz.');
+        if (st.status === 'checked_in') return { t, cur, ok: false, already: true };
+        if (st.status !== 'active') return { t, cur, ok: false, already: false };
+        const usedAt = Timestamp.fromMillis(now());
+        const next = t.seatTickets.map((s, i) => i === index ? { ...s, status: 'checked_in', usedAt } : s);
+        const count = next.filter((s) => s.status === 'checked_in').length;
+        tx.update(ticketRef, { seatTickets: next, checkedInCount: count, ...(count === next.length ? { usedAt } : {}), _updatedAt: new Date(now()).toISOString() });
+        writeTicketAudit(tx, { ticketId, action: 'check_in', actorType: 'admin', actorUid: uid, seatId, fromStatus: 'active', toStatus: 'checked_in' });
+        return { t: { ...t, seatTickets: next, checkedInCount: count, ...(count === next.length ? { usedAt } : {}) }, cur, ok: true, already: false };
+      }
       if (t.usedAt) return { t, cur, ok: false, already: true };
       const usedAt = Timestamp.fromMillis(now());
       tx.update(ticketRef, { usedAt, _updatedAt: new Date(now()).toISOString() });
+      writeTicketAudit(tx, { ticketId, action: 'check_in', actorType: 'admin', actorUid: uid, fromStatus: cur, toStatus: 'checked_in' });
       return { t: { ...t, usedAt }, cur, ok: true, already: false };
     });
     let customerName;
