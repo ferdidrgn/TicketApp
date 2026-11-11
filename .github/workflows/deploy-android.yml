@@ -98,6 +98,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Verify Google Play target API
+        shell: bash
+        run: |
+          grep -Eq 'compileSdk.*36' android/app/build.gradle
+          grep -Eq 'targetSdk[[:space:]]*=[[:space:]]*36' android/app/build.gradle
+          echo "Android target API 36 doğrulandı."
+
       # google-services.json BİLEREK .gitignore'da (Firebase config dosyası,
       # repo'ya commit edilmiyor) — bu yüzden CI runner'ında hiç yok ve
       # Google Services Gradle plugin'i onsuz derleyemiyor ("File
