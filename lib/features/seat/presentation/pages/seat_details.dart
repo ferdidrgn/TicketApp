@@ -528,7 +528,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage>
       return;
     }
     if (session.creditOnly) {
-      if (tear) tear.reverse();
+      if (tear) _tear.reverse();
       return;
     }
     await _openPaymentSession(session);
