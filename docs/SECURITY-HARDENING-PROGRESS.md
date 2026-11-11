@@ -29,7 +29,7 @@ Bu dosya; bilet silinmezliği, iptal/koltuk serbest bırakma, uygulama kredisi, 
 - [x] Ödeme E2E testleri: 9/9 geçti; yerel sahte iyzico secret’ları yalnız emulator için kullanılıyor.
 - [ ] Uygulama kredisi ödeme ekranında indirim olarak kullanılacak; bakiye düşümü ve harcama hareketi aynı transaction içinde yapılacak.
 - [ ] Admin QR tarayıcısı yeni payload'ı ayrıştırıp `seatId` ve `qrToken` alanlarını ayrı gönderecek.
-- [ ] Audit koleksiyonu için admin timeline ekranı ve CSV dışa aktarma eklenecek.
+- [x] Admin bilet ekranında server-only audit timeline görüntülendi; CSV dışa aktarma hâlâ yapılacak.
 - [x] Functions testleri: 3 koltuk / yalnızca 2 check-in, ikinci taramada idempotency ve iptal kredisi idempotency doğrulandı.
 - [ ] Eski bilet uyumluluğu için üretimden örnek veriyle migration/read-only doğrulaması yapılacak.
 - [ ] App Check enforcement canlıda kademeli açılacak.

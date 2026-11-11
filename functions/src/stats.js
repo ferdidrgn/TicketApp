@@ -278,7 +278,27 @@ function createStats({ db, now = Date.now, log = console }) {
     };
   }
 
-  return { trackView, adminStats, adminCancelled };
+  /** Biletin değişmez audit geçmişi. İstemci Ticket dokümanını değiştiremez;
+   * bu callable yalnızca yöneticinin operasyon ekranı için güvenli alanları döner. */
+  async function adminTicketAudit(assertAdmin, uid, data) {
+    await assertAdmin(uid);
+    const ticketId = data && typeof data.ticketId === 'string' ? data.ticketId.trim() : '';
+    if (!/^[A-Za-z0-9_-]{1,120}$/.test(ticketId)) throw err('invalid-argument', 'Geçersiz bilet kodu.');
+    const lim = Math.min(200, Math.max(1, Number.isInteger(data && data.limit) ? data.limit : 100));
+    const snap = await db.collection('TicketAudit').where('ticketId', '==', ticketId).limit(lim).get();
+    const toMs = (v) => v && typeof v.toMillis === 'function' ? v.toMillis() : (typeof v === 'number' ? v : null);
+    const audit = snap.docs.map((d) => {
+      const r = d.data() || {};
+      return {
+        id: d.id, ticketId, action: r.action || '', actorType: r.actorType || '', actorUid: r.actorUid || null,
+        seatId: r.seatId || null, fromStatus: r.fromStatus || null, toStatus: r.toStatus || null,
+        reason: r.reason || null, createdAt: toMs(r.createdAt),
+      };
+    }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    return { ticketId, audit };
+  }
+
+  return { trackView, adminStats, adminCancelled, adminTicketAudit };
 }
 
 module.exports = { createStats, dayKey, monthKey, KINDS, MONTH_RE };

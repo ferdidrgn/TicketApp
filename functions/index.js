@@ -178,6 +178,7 @@ exports.adminHealth = onCall(salted, guarded((req) => getService(false).adminHea
 exports.adminStats = onCall({ ...base, timeoutSeconds: 120, memory: '512MiB' },
   guarded((req) => getStats().adminStats(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
 exports.adminCancelled = onCall(base, guarded((req) => getStats().adminCancelled(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
+exports.adminTicketAudit = onCall(base, guarded((req) => getStats().adminTicketAudit(makeAssertAdmin(getFirestore()), req.auth.uid, req.data)));
 exports.adminNotifyPreview = onCall(base, guarded((req) => getNotifier().adminNotifyPreview(req.auth.uid, req.data)));
 exports.adminSendNotification = onCall({ ...base, timeoutSeconds: 300 }, guarded((req) => getNotifier().adminSendNotification(req.auth.uid, req.data)));
 // Ekip yöneticisi (admin DEĞİL; yalnız kendi ekibinin oyunu/seansı). Kapsam sunucuda hesaplanır, istemci teamId'si kabul edilmez. docs/EKIP-YONETICISI.md
