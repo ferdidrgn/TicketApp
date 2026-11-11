@@ -1,0 +1,134 @@
+# TicketApp (TiyatRol) — proje hafızası
+
+Bu dosya her Codex oturumunun başında otomatik okunur. Buraya yazılanlar
+tekrar anlatılmasına gerek kalmadan hatırlanır — yeni bir agent/subagent
+başlatıldığında bile (prompt içine ayrıca özetlenerek) bu kurallar geçerli
+kalmalı.
+
+## Senior Prompt Engineer — daima açık
+
+Agent her işte Senior Prompt Engineer rolündedir.
+Skill: `.Codex/skills/senior-prompt-engineer/SKILL.md` (Cursor:
+`.cursor/skills/senior-prompt-engineer/`, kural:
+`.cursor/rules/senior-prompt-engineer.mdc` `alwaysApply: true`).
+Plan, subagent brief ve belirsiz isteklerde
+`GOAL / CONSTRAINTS / SUCCESS / DO NOT / CONTEXT FILES / OUTPUT` iskeleti;
+referanslar `references/`. TiyatRol tasarım/mimari kurallarını ezmez.
+
+## Tasarım — önce skill'i oku
+
+**Her arayüz işinde (yeni ekran, redesign, kart, animasyon, responsive,
+renk/tema) önce `.Codex/skills/tiyatrol-design/SKILL.md` ve
+`references/history.md` okunur.** Skill; frontend-design,
+premium-web-design ve mobile-design skill'lerinin Flutter'a uyarlanmış
+hâli + bu projede denenip reddedilen her şeyin kaydı. Süreç: tasarım planı
+→ brief'e karşı gözden geçirme → (büyük kararlarda) HTML maketi ekran
+görüntüsüyle sahibine onaylatma → Flutter kodu → eleştiri.
+
+Sahibinin güncel kararları (28.09.2026):
+- **5 tema korunur** (appLight, appDark, system, materialLight,
+  materialDark, custom). Tema değiştirme asla bozulmaz; yeni renkler
+  `context.colors.*` / `ThemeExtension` üzerinden gelir, ekrana sabit
+  `WebColors.x` gömülmez.
+- **Renkler değişebilir** (eski "renkler asla değişmez" kuralı kaldırıldı).
+  Yeni palet önce önerilir ve onaylatılır.
+- **Sadelik ve gerçek ürün hissi:** her ekranın tek net birincil aksiyonu
+  var; kart/detayda buton kalabalığı yok; "firmalara sunulabilir" görünüm.
+- **Yasak:** "D harfi" asimetrik köşe (`AppRadius.asymSm/asymLg`), vesica
+  kart, her ekranda perde/spot/parlama süsü, hotlink stok fotoğraf.
+
+- **Etkileşim zorunlu (04.10.2026):** statik ekran yetersiz; her ekranda
+  gerçek veriye bağlı etkileşim + hazır eklentiler + net işlem akışı
+  (bkz. skill `references/interaction.md`).
+
+Token dosyaları (`lib/core/theme/`) geçerli: `AppSpacing`, `AppRadius`
+(asymSm/asymLg 30.09.2026'da tamamen kaldırıldı), `AppMotion`,
+`AppShadows.levelN(tint)` — ham
+`EdgeInsets`/`BorderRadius.circular(N)`/`BoxShadow`/`Duration` yerine bunlar.
+
+## Tasarım skill'leri (kurulu, kullanıcı düzeyinde)
+
+Emil Kowalski (animasyon), Taste (şablon hissine karşı), Impeccable (denetim/cila — yalnızca belgeler) skill'leri
+kuruludur; kullanım: `docs/TASARIM-SKILLERI.md`. Çakışmada bu dosya ve `tiyatrol-design` önce gelir. Web (kIsWeb)
+ve mobil AYRI tasarımdır: web = mağaza/bilet sitesi düzeni (`home_page_web.dart`, `show_detail_page_web.dart`,
+`search_page_web.dart`, `player_details_web.dart`, `web_site_header.dart`), mobil = "Sahne" deneyimi.
+
+## Yerleşik desenler
+
+- **Bilet dili (onaylı imza):** `lib/shared/widgets/ticket/` — `ticket_kit.dart`
+  (temel parçalar), `ticket_listing.dart` (oyun/seans bilet satırları, boş/hata
+  durumu), `seat_plan.dart` (salon planı), `ticket_profile.dart` (oyuncu/sahne/
+  topluluk künye sayfaları). Oyun kartı: `lib/shared/widgets/theatre_show_card.dart`.
+  Yeni ekran bunları kullanır; yeni bir görsel dil icat edilmez.
+
+- **Footer**: `lib/shared/widgets/footers/footer.dart` — web sayfalarının
+  kayan içeriğinin en altına `const Footer()`. Sabit viewport'lu sayfalara
+  (favoriler, biletlerim) eklenmez.
+- **İletişim aksiyonları**: `lib/core/util/comminucation_actions.dart`
+  (`TiyatrolCommunicationActions`) — gerçek e-posta/WhatsApp/Instagram/
+  Facebook/konum; sahte `onTap` yok. WhatsApp numarası hâlâ yer tutucu
+  (`905XXXXXXXXX`) — sahibinden gerçek numara bekleniyor.
+- **Web sayfası = kendi `Scaffold`'u**: `BasePageWrapper` kullanmayan web
+  sayfaları `Scaffold` kurar (yoksa TextField çöker).
+- **Erişilebilirlik**: ikon-only butonlara ve etkileşimli kartlara
+  `Semantics(label: ...)`.
+
+## Mimari notlar
+
+- Riverpod `@riverpod` codegen kullanılıyor (`part '*.g.dart'`) ama bu
+  sandbox'ta `build_runner` ÇALIŞTIRILAMIYOR. Mevcut `.g.dart`'ı olan bir
+  dosyaya yeni bir `@riverpod` provider EKLENEMEZ — klasik
+  `Provider`/`FutureProvider.family` API'si kullan (örnek:
+  `show_provider.dart`'taki `eventsByShowIdsProvider`).
+- `flutter_riverpod: ^3.0.3` — `AsyncValue.valueOrNull` YOK, nullable
+  `.value` kullan.
+- Show↔Event ilişkisi iki bağımsız yönde tutuluyor: `Show.eventsId`
+  (dizi) ve `Event.showId` (alan). `Event.showId` doluysa TEK doğruluk
+  kaynağı odur; dizi sadece o alan boşsa yedek. Bu, "yanlış oyun
+  gösteriliyor" tarzı bug'ların en sık kök nedeni — önce buraya bak.
+- **Oyun yaşam döngüsü (13.10.2026):** `Event` ve `Show` kayıtları tarih
+  geçince SİLİNMEZ — biletler `eventId/showId/stageId` ile bağlı, "Biletlerim
+  → Geçmiş" bunlardan okur. "Bitti" durumu tarihten türetilir
+  (`_showLifecycle` / `activeShowsProvider`): gelecek seansı olan = aktif;
+  seansları var ama hepsi geçmiş = bitti (ana sayfa + Keşfet'ten düşer, Keşfet
+  "Geçmiş" modunda ve aramada durur); harici linkli + hiç seansı yok =
+  vitrinde. Admin'de bileti olan oyun/sahne silinemez (`delete_guard.dart`).
+- Flutter SDK sandbox'ta hazır gelmiyor ama KURULABİLİYOR (30.09.2026'da
+  yapıldı): storage.googleapis.com'dan stable linux tarball'ı scratchpad'e
+  indir → `flutter pub get` → `flutter analyze` (derleme hatası 0 olmalı)
+  → `flutter build web --profile --no-web-resources-cdn`. Chromium
+  (Playwright) ile sayfaları açıp ekran görüntüsü alarak doğrula.
+  Sandbox ağ notları: gstatic (Firebase JS SDK) ve www.google.com
+  (reCAPTCHA) engelli, proxy Firestore'un akış bağlantısını tamponluyor —
+  bu yüzden test, Firestore/Auth EMÜLATÖRÜ + uydurma (sentetik) veriyle
+  yapılır; üretim verisi kopyalanmaz. Emülatöre bağlanan satırlar sadece
+  test derlemesinde geçici eklenir, asla commit edilmez.
+- Derleyiciyle doğrulanmamış büyük değişiklik "bitti" sayılmaz: 62
+  commit'lik rollout'ta alt menüdeki tek bir `Center` (heightFactor yok)
+  mobilde tüm sekmeleri boş gösterdi — ancak tarayıcıda açınca görüldü.
+
+## Agent/subagent kullanımı
+
+Büyük işler paralel background agent'lara (`isolation: "worktree"`)
+bölünüyor. Her UI agent'ının prompt'una "önce
+`.Codex/skills/tiyatrol-design/SKILL.md` ve `references/history.md`'yi
+oku" talimatı ve yukarıdaki güncel kararlar (5 tema, yasaklar, token
+kullanımı) açıkça yazılır — agent'lar kendi worktree'lerinde başlıyor ve
+bunu otomatik görmeyebilir. Agent önce `git fetch` + dalın ucuna
+`reset --hard` ile başlar, push'tan hemen önce yeniden rebase eder.
+
+## Web sitesi — `site/` (HTML/CSS/JS, dal `tiyatrol-web-perde`, 25.10.2026)
+
+Sahibi Flutter web'i bıraktırdı: **web sitesi artık `site/` klasöründe saf HTML + CSS + ES modülleri**
+(derleme yok), aynı Firestore'u okur; mobil uygulama Flutter'da kalır. Satın alma yok (bilet uygulamada /
+harici link). Giriş sadece mobilde + web yönetim paneli (`/yonetim`, Firebase Auth + `User.role == admin`,
+asıl güvenlik `firestore.rules`). Tema: `site/js/theme.js` (mod × palet × özel renk, ayar paneli başlıkta).
+Ayrıntı: `docs/WEB-SITESI.md`. Web tasarımı yaparken önce bu klasörü genişlet; Flutter `*_web.dart` sayfalarına yeni iş yazma.
+
+## Satış / ödeme (26.10.2026)
+Bilet satışı **güvenli Cloud Functions** üzerinden (`functions/`, `docs/ODEME-GUVENLIK.md`): holdSeats / confirmReservation / confirmFree / cancelTicket /
+startPayment (iyzico) / iyzicoCallback / expireHolds + admin callable'ları. Satış modu `Config/satis` (kapali | rezervasyon | online; varsayılan **rezervasyon**,
+ödeme sahnede; iyzico "çalışmıyor" gösterilir). İstemci `Event.seats` / `Ticket` / `Order` YAZAMAZ (rules). **`firestore.rules` ve functions deploy edilmeden
+mobil/web satın alma çalışmaz; rules'u fonksiyonlardan ÖNCE deploy etme.** Yeni site hosting'i ayrı config: `firebase.site.json`
+(`firebase deploy --only hosting:web --config firebase.site.json`); `firebase.json` hosting'i (ana/ekip) CI için değişmedi.
+
