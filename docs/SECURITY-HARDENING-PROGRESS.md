@@ -28,11 +28,12 @@ Bu dosya; bilet silinmezliği, iptal/koltuk serbest bırakma, uygulama kredisi, 
 - [x] Rezervasyon/iptal/QR testleri: 23/23 geçti.
 - [x] Ödeme E2E testleri: 9/9 geçti; yerel sahte iyzico secret’ları yalnız emulator için kullanılıyor.
 - [x] Uygulama kredisi ödeme ekranına bağlandı: bakiye transaction içinde ayrılıyor, başarısız/expired ödemede geri bırakılıyor; ödeme hareketi `UserCreditEvent` ile kaydediliyor. Emulator doğrulaması port çakışması nedeniyle bekliyor.
-- [ ] Admin QR tarayıcısı yeni payload'ı ayrıştırıp `seatId` ve `qrToken` alanlarını ayrı gönderecek.
+- [x] Web admin kapı ekranına kamera QR taraması eklendi; kamera yoksa USB okuyucu/manuel giriş yedeği korunuyor. Server yeni `ticketId:seatId:qrToken` payload'ını doğruluyor.
 - [x] Admin bilet ekranında server-only audit timeline görüntülendi; CSV dışa aktarma hâlâ yapılacak.
 - [x] Functions testleri: 3 koltuk / yalnızca 2 check-in, ikinci taramada idempotency ve iptal kredisi idempotency doğrulandı.
 - [ ] Eski bilet uyumluluğu için üretimden örnek veriyle migration/read-only doğrulaması yapılacak.
 - [ ] App Check enforcement canlıda kademeli açılacak.
+- [x] Web hosting için HSTS, nosniff, Referrer-Policy, Permissions-Policy ve CSP Report-Only başlıkları iki site hedefinde hazırlandı.
 - [ ] PITR ve delete protection canlı veritabanında yetkili onayıyla açılacak.
 - [ ] Scheduled backup günlük oluşturulacak ve geri yükleme tatbikatı yapılacak.
 
