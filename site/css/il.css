@@ -4,8 +4,10 @@
 .il-btn:active { transform: scale(.97); }
 .il-btn svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
 .il-btn span { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
-.hdr-main { grid-template-columns: auto auto 1fr auto; }
-@media (max-width: 820px) { .hdr-main { grid-template-columns: auto auto 1fr auto; } .il-btn { padding: 0 12px; } .il-btn span { max-width: 74px; } }
+@media (max-width: 820px) {
+  .il-btn { padding: 0 12px; }
+  .il-btn span { max-width: 74px; }
+}
 @media (max-width: 520px) { .il-btn span { display: none; } .il-btn { padding: 0 11px; } }
 
 .il-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 120; display: none; place-items: center; padding: 16px; }

@@ -1,0 +1,264 @@
+/* Keşif, detay ve bilet akışları için mobil/tablet kompozisyonu.
+   Masaüstü kuralları mevcut sayfa stillerinde kalır. */
+
+.filter-open,
+.filter-close,
+.filter-backdrop { display: none; }
+
+@media (max-width: 1024px) {
+  #main,
+  #icerik,
+  .cat-layout > section,
+  .op-info,
+  .pf-info,
+  .k-sol { min-width: 0; }
+
+  .cat-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+    padding-top: 20px;
+  }
+
+  .side {
+    position: static;
+    top: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .side .box { padding: 16px; }
+  .side label { min-height: 44px; padding-block: 8px; }
+
+  .bar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .bar label { margin-left: auto; }
+  .bar select { min-height: 44px; max-width: 100%; }
+
+  .hero-grid,
+  .op-grid,
+  .pf-grid,
+  .pf-iki,
+  .op-body,
+  .k-izgara,
+  .pano-govde,
+  .harita-bant {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .hero-grid { min-height: 0 !important; }
+  .hero-art { width: min(72vw, 360px); margin-inline: auto; }
+  .op-poster,
+  .pf-foto { width: min(52vw, 300px); }
+  .op-side,
+  .yan-kart,
+  .pano-takvim,
+  .k-sag { position: static; }
+
+  .pf-sayilar { flex-wrap: wrap; }
+  .pf-sayilar > div { flex: 1 1 130px; }
+  .op-act,
+  .destek-act,
+  .s-act { flex-wrap: wrap; }
+
+  .op-act .btn,
+  .destek-act .btn,
+  .s-act .btn { min-height: 44px; }
+
+  .kupon-izgara,
+  .rehber-izgara,
+  .grid,
+  .venues { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .kupon,
+  .venue,
+  .rehber-kart { min-width: 0; }
+
+  .hr-wrap {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: min(56vh, 520px) auto;
+    height: auto;
+  }
+
+  .hr-harita { order: -1; min-height: 360px; }
+  .hr-liste { border-right: 0; max-height: none; }
+
+  .k-ust { flex-wrap: wrap; }
+  .plan-kutu,
+  .plan-gorus { max-width: 100%; }
+  .plan-arac { flex-wrap: wrap; gap: 10px; }
+  .plan-zoom { margin-left: auto; }
+  .k-sag { width: 100%; }
+
+  .s-sayfa { padding-block: 32px; }
+  .s-kart,
+  .odeme-vurgu,
+  .s-biletler { width: min(100%, 640px); }
+}
+
+@media (max-width: 640px) {
+  .cat-layout { padding-top: 12px; }
+
+  .filter-open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 700 15px/1 var(--font-body);
+    cursor: pointer;
+  }
+
+  .filter-close {
+    display: inline-grid;
+    place-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    width: 48px;
+    height: 48px;
+    margin-left: auto;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 25px;
+    cursor: pointer;
+  }
+
+  .filter-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    border: 0;
+    background: rgba(0, 0, 0, .42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+
+  .side {
+    display: grid;
+    position: fixed;
+    z-index: 90;
+    inset: auto 0 0;
+    grid-template-columns: 1fr;
+    max-height: min(86vh, 760px);
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 22px 22px 0 0;
+    background: var(--bg);
+    box-shadow: 0 -18px 48px rgba(0, 0, 0, .2);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform .24s ease, visibility 0s linear .24s;
+  }
+
+  .filters-open .side {
+    transform: translateY(0);
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .filters-open .filter-backdrop { opacity: 1; pointer-events: auto; }
+  body.filters-open { overflow: hidden; }
+
+  .bar { align-items: stretch; }
+  .bar > *,
+  .bar label { width: 100%; margin-left: 0; }
+  .bar select { width: 100%; }
+
+  .grid,
+  .kupon-izgara,
+  .rehber-izgara,
+  .venues { grid-template-columns: minmax(0, 1fr) !important; gap: 18px; }
+
+  .card { width: min(74vw, 270px); }
+  .rail { scroll-padding-inline: 16px; }
+  .rail .card { scroll-snap-align: start; }
+
+  .hero-grid { padding-block: 24px 50px; }
+  .hero h1,
+  .op-info h1,
+  .pf-info h1 { font-size: clamp(34px, 12vw, 54px) !important; overflow-wrap: anywhere; }
+  .hero-art { width: min(68vw, 270px); }
+  .hero-meta { grid-template-columns: 1fr; }
+  .hero-cta,
+  .op-act,
+  .destek-act,
+  .s-act { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .hero-cta .btn,
+  .op-act .btn,
+  .destek-act .btn,
+  .s-act .btn { width: 100%; justify-content: center; }
+
+  .op-poster,
+  .pf-foto { width: min(72vw, 260px); }
+  .pf-sayilar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-sayilar > div { min-width: 0; }
+  .pf-sayilar b { font-size: clamp(24px, 8vw, 34px); }
+  .pf-sayilar span { overflow-wrap: anywhere; }
+
+  .tabs { overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { flex: 0 0 auto; min-height: 48px; scroll-snap-align: start; }
+
+  .cast { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cast > a { min-width: 0; }
+
+  .kupon { grid-template-columns: minmax(0, 1fr); }
+  .kupon::before,
+  .kupon::after { display: none; }
+  .kupon .k { min-height: 92px; border-left: 0; border-top: 2px dashed rgba(29, 20, 16, .28); }
+
+  .hr-wrap { grid-template-rows: 52vh auto; }
+  .hr-harita { min-height: 300px; }
+  .hr-ust,
+  .hr-filtre { padding-inline: 14px; }
+
+  .pano-ust { gap: 12px; }
+  .pano-hizli,
+  .pano-tur { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; scrollbar-width: none; }
+  .pano-hizli .chip,
+  .pano-tur .chip { flex: 0 0 auto; min-height: 44px; }
+  .bilet2 { grid-template-columns: minmax(0, 1fr); }
+  .b2-sag { width: 100% !important; border-left: 0; border-top: 1px dashed var(--line); }
+  .bilet2::before,
+  .bilet2::after { display: none; }
+
+  .k-sayfa { padding-block: 20px 112px; }
+  .k-ust .btn { width: 100%; margin-left: 0 !important; }
+  .plan-arac { align-items: stretch; }
+  .plan-zoom { width: 100%; margin-left: 0; display: grid; grid-template-columns: 44px 1fr 44px; }
+  .plan-zoom .btn { grid-column: 1 / -1; min-height: 44px; }
+  .plan-gorus { min-height: 300px; }
+  .lejant { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .k-alt { padding-inline: 12px; }
+  .k-alt .btn { min-height: 48px; }
+
+  .plan-kart { margin-block: 18px; padding: 16px; }
+  .plan-say { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .plan-say b { font-size: clamp(22px, 8vw, 32px); }
+  .plan-sec { display: grid; grid-template-columns: 1fr; }
+  .plan-sec .btn { width: 100%; min-height: 48px; }
+
+  .s-sayfa { padding-block: 20px; gap: 20px; }
+  .s-kart { padding: 22px 16px; }
+  .s-kart h1 { font-size: clamp(28px, 9vw, 40px); }
+  .odeme-vurgu { padding: 18px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side,
+  .filter-backdrop { transition: none; }
+}

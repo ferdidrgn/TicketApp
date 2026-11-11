@@ -1,0 +1,111 @@
+/* Kurumsal, yardım ve yasal metinler: mobil/tablet okuma düzeni. */
+.metin {
+  width: min(100%, 760px);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.metin > :first-child { margin-top: 0; }
+.metin h1, .metin h2, .metin h3 { scroll-margin-top: 112px; }
+.metin ul, .metin ol { padding-inline-start: 1.35em; }
+.metin li::marker { color: var(--accent); }
+.metin a { overflow-wrap: anywhere; }
+
+.metin-icindekiler {
+  margin: 24px 0 32px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.metin-icindekiler details { border: 0; padding: 0; }
+.metin-icindekiler summary {
+  min-height: 48px;
+  align-items: center;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-size: 15px;
+}
+.metin-icindekiler ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 14px 14px 38px;
+}
+.metin-icindekiler li { margin: 0; }
+.metin-icindekiler a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.metin-icindekiler a:hover { color: var(--accent); }
+.metin-icindekiler a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.metin-tabla-kaydir {
+  max-width: 100%;
+  margin-block: 20px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.metin-tabla-kaydir table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+.metin-tabla-kaydir th, .metin-tabla-kaydir td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.hata-sahnesi { text-align: center; padding-block: clamp(60px, 10vw, 140px); }
+.hata-kod {
+  color: transparent;
+  font: 800 clamp(90px, 16vw, 220px)/1 var(--font-display);
+  -webkit-text-stroke: 2px var(--accent);
+}
+.hata-sahnesi h1 { font-size: clamp(28px, 4vw, 48px); }
+.hata-sahnesi p { max-width: 52ch; margin: 12px auto 26px; color: var(--ink-2); }
+.hata-aksiyonlar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+
+@media (max-width: 1023px) {
+  .metin { padding-block: clamp(32px, 6vw, 48px) 0; }
+  .metin h1 { max-width: 19ch; font-size: clamp(30px, 5.5vw, 44px); }
+  .metin h2 { font-size: clamp(21px, 3.2vw, 25px); }
+  .metin p, .metin li { line-height: 1.7; }
+}
+
+@media (max-width: 639px) {
+  .metin { padding-block-start: 28px; }
+  .metin h1 { max-width: 100%; font-size: clamp(29px, 9vw, 38px); line-height: 1.08; }
+  .metin h2 { margin-top: 28px; font-size: 21px; line-height: 1.2; }
+  .metin h3 { font-size: 18px; line-height: 1.3; }
+  .metin p, .metin li { font-size: 16px; line-height: 1.68; }
+  .metin ul, .metin ol { padding-inline-start: 1.2em; }
+  .metin .hukuk-uyari { padding: 14px; font-size: 14px; line-height: 1.55; }
+  .metin details { padding-block: 10px; }
+  .metin details > summary { min-height: 48px; align-items: center; font-size: 16px; }
+  .metin > p:last-child .btn { width: 100%; min-height: 48px; justify-content: center; }
+  .metin-icindekiler { margin: 20px 0 28px; }
+  .metin-tabla-kaydir { margin-inline: 0; }
+
+  .hata-sahnesi { padding-block: 48px 72px; }
+  .hata-kod { font-size: clamp(84px, 34vw, 132px); -webkit-text-stroke-width: 1.5px; }
+  .hata-sahnesi h1 { font-size: clamp(27px, 8.5vw, 36px); line-height: 1.1; }
+  .hata-aksiyonlar { display: grid; }
+  .hata-aksiyonlar .btn { width: min(100%, 320px); min-height: 48px; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metin { scroll-behavior: auto; }
+}
