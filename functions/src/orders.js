@@ -108,6 +108,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   const ticketAuditRef = () => db.collection('TicketAudit').doc();
   const creditRef = (uid) => db.collection('UserCredit').doc(uid);
   const creditEventRef = (ticketId, seatId) => db.collection('UserCreditEvent').doc(`cancel_${ticketId}_${seatId}`);
+  const paymentCreditEventRef = (orderId, type) => db.collection('UserCreditEvent').doc(`payment_${type}_${orderId}`);
   const seatQrToken = () => crypto.randomBytes(24).toString('base64url');
   function writeTicketAudit(tx, { ticketId, action, actorType, actorUid = null, seatId = null, fromStatus = null, toStatus = null, reason = null, at = null }) {
     tx.create(ticketAuditRef(), {
@@ -438,6 +439,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         if (s && s.status === 'reserved' && s.orderId === orderId) args.push(...releaseArgs(sid));
       }
       if (args.length) tx.update(evRef, ...args);
+      if (['failed', 'expired'].includes(newStatus) && o.creditAppliedKurus > 0 && !o.creditReleasedAt && o.userId) {
+        const amount = Math.max(0, Math.floor(Number(o.creditAppliedKurus) || 0));
+        if (amount > 0) {
+          tx.set(creditRef(o.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          tx.create(paymentCreditEventRef(orderId, 'release'), {
+            userId: o.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+            currency: 'TRY', reason: `payment_${newStatus}`, createdAt: Timestamp.fromMillis(now()),
+          });
+          extra = { ...extra, creditReleasedAt: FieldValue.serverTimestamp() };
+        }
+      }
       tx.update(orderRef, { status: newStatus, updatedAt: FieldValue.serverTimestamp(), ...extra });
       return { previous: o.status, released: args.length / 12 };
     });
@@ -513,7 +525,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       customerId: order.userId, showId: order.showId || '', stageId: order.stageId || '', eventId: order.eventId,
       // phoneKey: yalnızca ÖZET (düz telefon yok). Etkinlik başına limit sayımı için (hesap silmede anonimleşirken silinir).
       ...(((L && L.key) || order.phoneKey) ? { phoneKey: (L && L.key) || order.phoneKey } : {}),
-      orderPrice: kurusStr(order.totalKurus), orderMethod: method,
+      orderPrice: kurusStr(order.originalTotalKurus ?? order.totalKurus), orderMethod: method,
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
       stageName: (stage && stage.name) || '', eventDate, orderId,
@@ -882,6 +894,21 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     return u;
   }
 
+  /** Bakiye bilet tutarının tamamını karşılıyorsa sağlayıcıya 0 TL gönderilmez. */
+  async function settleCreditOnly(orderId) {
+    const orderRef = orders().doc(orderId);
+    await db.runTransaction(async (tx) => {
+      const c = await readFulfillCtx(tx, orderRef, orderId);
+      if (!c) throw err('not-found', 'Sipariş bulunamadı.');
+      if (c.order.status === 'paid') return;
+      if (c.order.status !== 'paying' || !seatsOwned(c)) throw err('failed-precondition', 'Sipariş artık tamamlanamıyor.');
+      writeFulfillment(tx, {
+        ...c, method: 'card', status: 'paid',
+        extraOrder: { paymentId: null, creditOnly: true, creditConsumedAt: FieldValue.serverTimestamp() },
+      });
+    });
+  }
+
   async function startPayment(uid, data, ctx = {}) {
     await assertNotDeleting(uid);
     const { phone } = who(ctx);
@@ -911,7 +938,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (o.status !== 'held') throw err('failed-precondition', 'Bu siparişin süresi doldu ya da ödeme alındı.');
       if (!o.expiresAt || o.expiresAt.toMillis() <= t) throw err('failed-precondition', 'Koltuk tutma süreniz doldu. Lütfen yeniden seçin.');
       const evRef = db.collection('Event').doc(o.eventId);
-      const [evSnap, userSnap] = await Promise.all([tx.get(evRef), tx.get(db.collection('User').doc(uid))]);
+      const [evSnap, userSnap, creditSnap] = await Promise.all([
+        tx.get(evRef), tx.get(db.collection('User').doc(uid)), tx.get(creditRef(uid)),
+      ]);
       const ev = evSnap.exists ? evSnap.data() : null;
       const dateMs = ev && parseEventDateMs(ev.date);
       if (!ev || dateMs == null || dateMs <= t) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
@@ -923,14 +952,39 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const args = [];
       for (const sid of o.seatIds) args.push(seatPath(sid, 'holdExpiresAt'), newExp);
       tx.update(evRef, ...args);
+      const wantsCredit = data && data.useCredit === true;
+      const originalTotalKurus = Number.isFinite(o.originalTotalKurus) ? o.originalTotalKurus : o.totalKurus;
+      const availableCreditKurus = creditSnap.exists ? Math.max(0, Math.floor(Number(creditSnap.data().balanceKurus) || 0)) : 0;
+      const creditAppliedKurus = wantsCredit && !Number.isFinite(o.creditAppliedKurus)
+        ? Math.min(availableCreditKurus, Math.max(0, originalTotalKurus))
+        : (Number.isFinite(o.creditAppliedKurus) ? o.creditAppliedKurus : 0);
+      const payableTotalKurus = Math.max(0, originalTotalKurus - creditAppliedKurus);
+      if (creditAppliedKurus > 0 && !Number.isFinite(o.creditAppliedKurus)) {
+        tx.update(creditRef(uid), { balanceKurus: FieldValue.increment(-creditAppliedKurus), updatedAt: FieldValue.serverTimestamp() });
+        tx.create(paymentCreditEventRef(orderId, 'apply'), {
+          userId: uid, orderId, type: 'payment_credit_applied', amountKurus: creditAppliedKurus,
+          currency: 'TRY', reason: 'payment_start', createdAt: Timestamp.fromMillis(t),
+        });
+      }
       tx.update(orderRef, {
         status: 'paying', provider: providerName, returnUrl, expiresAt: Timestamp.fromMillis(newExp),
+        originalTotalKurus, totalKurus: payableTotalKurus, total: kurusToTl(payableTotalKurus),
+        creditAppliedKurus,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      return { order: o, user: userSnap.exists ? userSnap.data() : {} };
+      return { order: { ...o, originalTotalKurus, totalKurus: payableTotalKurus, creditAppliedKurus }, user: userSnap.exists ? userSnap.data() : {}, creditOnly: payableTotalKurus === 0 };
     });
     if (prep.resume) {
-      return { provider: providerName, ...prep.resume };
+      return { provider: providerName, ...prep.resume, creditAppliedKurus: prep.order.creditAppliedKurus || 0 };
+    }
+    if (prep.creditOnly) {
+      try {
+        await settleCreditOnly(orderId);
+        return { provider: 'credit', token: '', paymentPageUrl: null, checkoutFormContent: null, creditOnly: true, creditAppliedKurus: prep.order.creditAppliedKurus || 0 };
+      } catch (e) {
+        await closeOrder(orderId, 'failed', (cur) => cur.status === 'paying', { failureReason: 'credit_settlement_failed' }).catch(() => {});
+        throw e;
+      }
     }
 
     // 2) sağlayıcı oturumu (ağ çağrısı transaction DIŞINDA)
@@ -958,7 +1012,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     }
     const out = { token: session.token, paymentPageUrl: session.paymentPageUrl || null, checkoutFormContent: session.checkoutFormContent || null };
     await orderRef.update({ providerToken: session.token, conversationId: orderId, paymentSession: out, updatedAt: FieldValue.serverTimestamp() });
-    return { provider: providerName, ...out };
+    return { provider: providerName, ...out, creditAppliedKurus: o.creditAppliedKurus || 0 };
   }
 
   // ------------------------------------------------------------------ doğrulama + sonuçlandırma
@@ -995,7 +1049,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!v.paid) {
         if (order.status === 'paying') {
           releaseOwn();
-          tx.update(orderRef, { status: 'failed', failureReason: 'payment_failed', updatedAt: FieldValue.serverTimestamp() });
+          const creditExtra = order.creditAppliedKurus > 0 && !order.creditReleasedAt
+            ? { creditReleasedAt: FieldValue.serverTimestamp() } : {};
+          if (order.creditAppliedKurus > 0 && !order.creditReleasedAt && order.userId) {
+            const amount = Math.max(0, Math.floor(Number(order.creditAppliedKurus) || 0));
+            tx.set(creditRef(order.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+            tx.create(paymentCreditEventRef(orderId, 'release'), {
+              userId: order.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+              currency: 'TRY', reason: 'payment_failed', createdAt: Timestamp.fromMillis(now()),
+            });
+          }
+          tx.update(orderRef, { status: 'failed', failureReason: 'payment_failed', ...creditExtra, updatedAt: FieldValue.serverTimestamp() });
           outcome = 'failed';
         } else outcome = 'ignored';
         return;
@@ -1007,9 +1071,20 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       }
       // Ödeme alınmış görünüyor ama bilet ÜRETİLEMEZ (tutar uyuşmaz / sipariş artık geçerli değil / koltuk kaybı).
       releaseOwn();
+      const creditExtra = order.creditAppliedKurus > 0 && !order.creditReleasedAt
+        ? { creditReleasedAt: FieldValue.serverTimestamp() } : {};
+      if (order.creditAppliedKurus > 0 && !order.creditReleasedAt && order.userId) {
+        const amount = Math.max(0, Math.floor(Number(order.creditAppliedKurus) || 0));
+        tx.set(creditRef(order.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        tx.create(paymentCreditEventRef(orderId, 'release'), {
+          userId: order.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+          currency: 'TRY', reason: 'paid_but_unfulfillable', createdAt: Timestamp.fromMillis(now()),
+        });
+      }
       tx.update(orderRef, {
         status: 'failed', failureReason: 'paid_but_unfulfillable', refundRequired: true,
         anomaly: v.valid ? [`status:${order.status}`] : v.reasons, paymentId: det.paymentId || null,
+        ...creditExtra,
         updatedAt: FieldValue.serverTimestamp(),
       });
       outcome = 'anomaly';

@@ -48,17 +48,21 @@ class PaymentSession extends Equatable {
   final String? paymentPageUrl;
   final String? checkoutFormContent;
   final String token;
+  final int creditAppliedKurus;
+  final bool creditOnly;
 
   const PaymentSession({
     required this.provider,
     required this.token,
     this.paymentPageUrl,
     this.checkoutFormContent,
+    this.creditAppliedKurus = 0,
+    this.creditOnly = false,
   });
 
   @override
   List<Object?> get props =>
-      [provider, paymentPageUrl, checkoutFormContent, token];
+      [provider, paymentPageUrl, checkoutFormContent, token, creditAppliedKurus, creditOnly];
 }
 
 /// Satış modu (`Config/satis.mode`).

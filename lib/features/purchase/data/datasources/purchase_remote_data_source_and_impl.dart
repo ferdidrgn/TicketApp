@@ -171,7 +171,7 @@ abstract class PurchaseRemoteDataSource {
   Future<SeatHold> holdSeats(final String eventId, final List<String> seatIds);
   Future<void> releaseHold(final String orderId);
   Future<PaymentSession> startPayment(
-      final String orderId, final String returnUrl);
+      final String orderId, final String returnUrl, {final bool useCredit = false});
   Future<List<String>> confirmFree(final String orderId);
   Future<List<String>> confirmReservation(final String orderId);
   Future<void> cancelTicket(final String ticketId);
@@ -258,12 +258,13 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
 
   @override
   Future<PaymentSession> startPayment(
-      final String orderId, final String returnUrl) async {
+      final String orderId, final String returnUrl, {final bool useCredit = false}) async {
     final r = await _call('startPayment',
-        {'orderId': orderId, 'provider': 'iyzico', 'returnUrl': returnUrl});
+        {'orderId': orderId, 'provider': 'iyzico', 'returnUrl': returnUrl, 'useCredit': useCredit});
     final url = _str(r['paymentPageUrl']);
     final html = _str(r['checkoutFormContent']);
-    if (url.isEmpty && html.isEmpty) {
+    final creditOnly = r['creditOnly'] == true;
+    if (url.isEmpty && html.isEmpty && !creditOnly) {
       throw const PurchaseException('unknown', kGenericPurchaseMessage);
     }
     return PaymentSession(
@@ -271,6 +272,8 @@ class PurchaseRemoteDataSourceImpl implements PurchaseRemoteDataSource {
       token: _str(r['token']),
       paymentPageUrl: url.isEmpty ? null : url,
       checkoutFormContent: html.isEmpty ? null : html,
+      creditAppliedKurus: (r['creditAppliedKurus'] as num?)?.toInt() ?? 0,
+      creditOnly: creditOnly,
     );
   }
 

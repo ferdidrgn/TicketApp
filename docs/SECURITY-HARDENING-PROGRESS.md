@@ -27,7 +27,7 @@ Bu dosya; bilet silinmezliği, iptal/koltuk serbest bırakma, uygulama kredisi, 
 - [x] Functions bağımlılıkları lockfile’a göre yeniden kuruldu; emulator testlerinde eksik `protobufjs` dosyası giderildi.
 - [x] Rezervasyon/iptal/QR testleri: 23/23 geçti.
 - [x] Ödeme E2E testleri: 9/9 geçti; yerel sahte iyzico secret’ları yalnız emulator için kullanılıyor.
-- [ ] Uygulama kredisi ödeme ekranında indirim olarak kullanılacak; bakiye düşümü ve harcama hareketi aynı transaction içinde yapılacak.
+- [x] Uygulama kredisi ödeme ekranına bağlandı: bakiye transaction içinde ayrılıyor, başarısız/expired ödemede geri bırakılıyor; ödeme hareketi `UserCreditEvent` ile kaydediliyor. Emulator doğrulaması port çakışması nedeniyle bekliyor.
 - [ ] Admin QR tarayıcısı yeni payload'ı ayrıştırıp `seatId` ve `qrToken` alanlarını ayrı gönderecek.
 - [x] Admin bilet ekranında server-only audit timeline görüntülendi; CSV dışa aktarma hâlâ yapılacak.
 - [x] Functions testleri: 3 koltuk / yalnızca 2 check-in, ikinci taramada idempotency ve iptal kredisi idempotency doğrulandı.
