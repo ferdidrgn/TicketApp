@@ -4,6 +4,7 @@ import '../theme.js';
 import { kabukCiz } from '../ui.js';
 import { db, doc, getDoc } from '../firebase.js';
 import { $ } from '../util.js';
+import { metinSayfasiniHazirla } from '../statik-responsive.js';
 
 kabukCiz('');
 const alan = document.body.dataset.alan; // 'privacyPolicy' | 'termsAndCondition'
@@ -27,10 +28,14 @@ function temizle(html) {
 }
 (async () => {
   // Gizlilik politikası STATİKTİR (Play Console politika denetimi: uygulama/geliştirici adı eşleşmeli, TR+EN); yalnız şartlar canlı okunur.
-  if (alan === 'privacyPolicy') return;
+  if (alan === 'privacyPolicy') {
+    metinSayfasiniHazirla();
+    return;
+  }
   try {
     const s = await getDoc(doc(db, 'AppTools', 'bgVYTTauB9gwd1qOyjix'));
     const t = s.exists() ? s.data()[alan] : '';
     if (typeof t === 'string' && t.trim().length > 200) $('.metin').innerHTML = temizle(t);
   } catch (e) { console.warn('Yasal metin canlı okunamadı, statik kopya gösteriliyor.', e); }
+  metinSayfasiniHazirla();
 })();

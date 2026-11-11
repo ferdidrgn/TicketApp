@@ -2,7 +2,7 @@ name: ticketapp
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.17+36
+version: 1.0.18+37
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
@@ -52,7 +52,8 @@ dependencies:
 
   # Google Services
   google_sign_in: ^5.0.0
-  google_maps_flutter:
+  flutter_map: ^8.3.2
+  latlong2: ^0.9.1
   google_mobile_ads:
   # "Yakınımdakiler" için GERÇEK cihaz konumu (izin + GPS koordinatı) —
   # bkz. lib/core/services/location_service.dart

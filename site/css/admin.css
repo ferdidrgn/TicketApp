@@ -186,3 +186,200 @@ fieldset.opts legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
 .bk-alert { overflow-wrap: anywhere; }
 .bk-sub .bk-row .btn { max-width: 100%; white-space: normal; }
 @media (max-width: 480px) { .bk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bk-card { padding: 16px; } }
+
+/* ---- Koltuk planı yardımcı sayfası ---- */
+.kp { max-width: 880px; margin: 32px auto; padding: 0 16px 64px; min-width: 0; }
+.kp h1 { font-family: var(--font-display, inherit); margin: 0 0 8px; }
+.kp .muted { color: var(--ink-3); }
+.kp .kart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 18px 0; min-width: 0; overflow-wrap: anywhere; }
+.kp label { display: block; font-weight: 600; margin: 14px 0 6px; }
+.kp select, .kp textarea, .kp input[type=text] { width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.kp textarea { min-height: 112px; font-family: ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+.kp select:focus-visible, .kp textarea:focus-visible, .kp input:focus-visible, .kp .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.kp .ozet { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.kp .ozet span { background: var(--accent-soft); border-radius: 999px; padding: 7px 12px; font-weight: 600; }
+.kp .uyari { color: var(--err); font-weight: 600; margin-top: 10px; }
+.kp .ok { color: var(--ok); font-weight: 600; margin-top: 10px; }
+.kp .satirlar { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; font-size: 13px; }
+.kp .satirlar div { background: var(--surface-2, var(--bg)); border-radius: 8px; padding: 8px 10px; min-width: 0; overflow-wrap: anywhere; }
+.kp .btn { min-height: 44px; cursor: pointer; }
+.kp .btn[disabled] { opacity: .4; cursor: not-allowed; }
+.kp #kayitSonuc { margin-top: 12px; font-weight: 600; }
+
+/* ---- Yönetim responsive güvenlik ağı ---- */
+.adm,
+.adm-main,
+.adm-top,
+.tools,
+.stats,
+.dash-grid,
+.bk-card,
+.tbl-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.adm button,
+.adm a.btn,
+.adm .nv,
+.modal button,
+.login button {
+  min-height: 44px;
+}
+
+.adm :focus-visible,
+.modal :focus-visible,
+.login :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .adm { grid-template-columns: 1fr; }
+  .adm-side {
+    position: static;
+    width: 100%;
+    height: auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px 14px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .adm-side .brand { grid-column: 1 / -1; padding: 2px 8px 8px; }
+  .adm-side .sp { display: none; }
+  .adm-side button.nv { min-width: 0; white-space: normal; }
+  .adm-main { padding: 24px; }
+  .stats, .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .login-wrap { align-items: end; padding: 0; }
+  .login {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .adm { grid-template-columns: 1fr; }
+  .adm-side {
+    position: static;
+    height: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .adm-side .brand { display: block; grid-column: 1 / -1; padding: 2px 8px 8px; }
+  .adm-side .sp { display: none; }
+  .adm-side button.nv {
+    min-width: 0;
+    min-height: 48px;
+    white-space: normal;
+    padding: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .adm-main { padding: 20px 14px 40px; }
+  .adm-top { align-items: flex-start; margin-bottom: 18px; }
+  .adm-top h1 { font-size: clamp(26px, 9vw, 34px); line-height: 1.1; }
+
+  .tools,
+  .dash-tools,
+  .bk-row,
+  .modal-act {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+  .tools .in, .tools .btn, .dash-tools .in, .dash-tools .btn,
+  .bk-row .in, .bk-row .btn, .modal-act .btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .stats, .kpis, .bk-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat, .kpi { padding: 14px 12px; }
+  .stat b { font-size: 30px; }
+
+  .dash-grid,
+  .form-grid,
+  .bk-seg,
+  .sk-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid .full { grid-column: auto; }
+
+  .tbl-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+  table.tbl {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 13px;
+  }
+  .tbl th, .tbl td {
+    padding: 10px 6px;
+    overflow-wrap: anywhere;
+  }
+  .tbl th:first-child, .tbl td:first-child { padding-left: 10px; }
+  .tbl th:last-child, .tbl td:last-child { padding-right: 10px; }
+  .tbl .acts {
+    display: grid;
+    justify-content: stretch;
+    gap: 6px;
+  }
+  .tbl .acts .btn, .tbl .acts button { width: 100%; min-width: 44px; padding-inline: 8px; }
+  .tbl img { width: 36px; height: 48px; }
+
+  .modal-bg { place-items: end center; padding: 0; }
+  .modal {
+    width: 100%;
+    max-height: min(90vh, 800px);
+    border-radius: 20px 20px 0 0;
+    padding: 22px 16px calc(22px + env(safe-area-inset-bottom));
+  }
+
+  #toast {
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    width: calc(100% - 28px);
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .hb { grid-template-columns: minmax(64px, 30%) minmax(0, 1fr) auto; }
+  .sk-kitle { display: grid; grid-template-columns: 1fr; }
+  .sk-sayi { width: 100%; }
+
+  .kp { margin-top: 20px; padding: 0 12px 40px; }
+  .kp h1 { font-size: clamp(28px, 9vw, 38px); line-height: 1.1; }
+  .kp .kart { padding: 16px 14px; margin: 14px 0; }
+  .kp .satirlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kp .ozet { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kp .ozet span { min-width: 0; overflow-wrap: anywhere; }
+  .kp .btn { width: 100%; }
+}
+
+@media (max-width: 390px) {
+  .stats, .kpis, .bk-stats { grid-template-columns: 1fr; }
+  .kp .satirlar { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm *, .modal *, .login *, .kp * {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
