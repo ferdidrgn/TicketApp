@@ -1,4 +1,5 @@
 'use strict';
+const crypto = require('crypto');
 /**
  * Bilet satış çekirdeği. Firebase'e bağımlılıkları (db, sağlayıcı, saat) enjekte edilir; böylece
  * testler emülatörde gerçek Firestore ile, sahte ödeme sağlayıcısıyla çalışır.
@@ -105,6 +106,18 @@ const ticketStatusOf = (t) => t.paymentStatus || (t.orderMethod === 'venue' ? 'p
 function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, allowedOrigins = [], log = console, settings = null, phoneSalt = null }) {
   const orders = () => db.collection('Order');
   const satisRef = () => db.collection('Config').doc('satis');
+  const ticketAuditRef = () => db.collection('TicketAudit').doc();
+  const creditRef = (uid) => db.collection('UserCredit').doc(uid);
+  const creditEventRef = (ticketId, seatId) => db.collection('UserCreditEvent').doc(`cancel_${ticketId}_${seatId}`);
+  const paymentCreditEventRef = (orderId, type) => db.collection('UserCreditEvent').doc(`payment_${type}_${orderId}`);
+  const seatQrToken = () => crypto.randomBytes(24).toString('base64url');
+  function writeTicketAudit(tx, { ticketId, action, actorType, actorUid = null, seatId = null, fromStatus = null, toStatus = null, reason = null, at = null }) {
+    tx.create(ticketAuditRef(), {
+      ticketId, action, actorType, ...(actorUid ? { actorUid } : {}), ...(seatId ? { seatId } : {}),
+      ...(fromStatus ? { fromStatus } : {}), ...(toStatus ? { toStatus } : {}), ...(reason ? { reason } : {}),
+      createdAt: at || Timestamp.fromMillis(now()),
+    });
+  }
   /** Sunucu her çağrıda Config/satis'i okur. `settings` yalnızca testlerde sabitlemek içindir. */
   async function readSatis(tx) {
     if (settings) return normalizeSatis(await settings());
@@ -418,6 +431,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         if (s && s.status === 'reserved' && s.orderId === orderId) args.push(...releaseArgs(sid));
       }
       if (args.length) tx.update(evRef, ...args);
+      if (['failed', 'expired'].includes(newStatus) && o.creditAppliedKurus > 0 && !o.creditReleasedAt && o.userId) {
+        const amount = Math.max(0, Math.floor(Number(o.creditAppliedKurus) || 0));
+        if (amount > 0) {
+          tx.set(creditRef(o.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          tx.create(paymentCreditEventRef(orderId, 'release'), {
+            userId: o.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+            currency: 'TRY', reason: `payment_${newStatus}`, createdAt: Timestamp.fromMillis(now()),
+          });
+          extra = { ...extra, creditReleasedAt: FieldValue.serverTimestamp() };
+        }
+      }
       tx.update(orderRef, { status: newStatus, updatedAt: FieldValue.serverTimestamp(), ...extra });
       return { previous: o.status, released: args.length / 12 };
     });
@@ -487,18 +511,22 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     const iso = new Date(now()).toISOString();
     const eventDate = toIso(ev.date);
     const ticketRef = db.collection('Ticket').doc(orderId); // deterministik id -> yinelenen bilet imkânsız
+    const ticketStatus = method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : method === 'protokol' ? 'protokol' : 'paid';
     tx.create(ticketRef, {
       _id: orderId, _createdAt: iso, _updatedAt: iso,
       customerId: order.userId, showId: order.showId || '', stageId: order.stageId || '', eventId: order.eventId,
       // phoneKey: yalnızca ÖZET (düz telefon yok). Etkinlik başına limit sayımı için (hesap silmede anonimleşirken silinir).
       ...(((L && L.key) || order.phoneKey) ? { phoneKey: (L && L.key) || order.phoneKey } : {}),
-      orderPrice: kurusStr(order.totalKurus), orderMethod: method,
+      orderPrice: kurusStr(order.originalTotalKurus ?? order.totalKurus), orderMethod: method,
       buySeats: order.seatIds, isPast: false,
       showName: (show && show.name) || '', showImageUrl: (show && show.imageUrl) || '',
       stageName: (stage && stage.name) || '', eventDate, orderId,
-      paymentStatus: method === 'venue' ? 'pay_at_venue' : method === 'free' ? 'free' : method === 'protokol' ? 'protokol' : 'paid',
+      paymentStatus: ticketStatus,
+      seatTickets: order.seatIds.map((seatId) => ({ seatId, qrToken: seatQrToken(), status: 'active' })),
+      seatCount: order.seatIds.length, checkedInCount: 0,
       ...(extraTicket || {}),
     });
+    writeTicketAudit(tx, { ticketId: orderId, action: 'created', actorType: 'system', toStatus: ticketStatus });
     // skipNotification: alıcı gerçek bir hesap değilse (protokol/davetiye) kimseye gitmeyecek bir bildirim yazılmaz.
     if (!skipNotification) {
       tx.set(db.collection('Notification').doc(`order_${orderId}`), {
@@ -619,7 +647,25 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (s && s.status === 'sold' && s.orderId === ticketId) args.push(...releaseArgs(sid));
     }
     if (args.length) tx.update(evRef, ...args);
-    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt: Timestamp.fromMillis(now()), cancelledBy: by, ...(byUid ? { cancelledByUid: byUid } : {}), _updatedAt: new Date(now()).toISOString() });
+    const cancelledAt = Timestamp.fromMillis(now());
+    const seatTickets = Array.isArray(t.seatTickets)
+      ? t.seatTickets.map((st) => ({ ...st, status: st.status === 'checked_in' ? st.status : 'cancelled', cancelledAt }))
+      : null;
+    tx.update(ticketRef, { paymentStatus: 'cancelled', cancelledAt, cancelledBy: by, ...(byUid ? { cancelledByUid: byUid } : {}), ...(seatTickets ? { seatTickets } : {}), _updatedAt: new Date(now()).toISOString() });
+    writeTicketAudit(tx, { ticketId, action: 'cancelled', actorType: by === 'admin' ? 'admin' : 'customer', actorUid: byUid || (by === 'customer' ? t.customerId : null), fromStatus: ticketStatusOf(t), toStatus: 'cancelled', reason: 'seat_release_without_refund' });
+    const totalKurus = parsePriceKurus(t.orderPrice);
+    const seatCount = Math.max(1, (t.buySeats || []).length);
+    const creditKurus = totalKurus && totalKurus > 0 ? Math.floor(totalKurus / seatCount) : 0;
+    if (creditKurus > 0 && t.customerId) {
+      tx.set(creditRef(t.customerId), { balanceKurus: FieldValue.increment(creditKurus * Math.max(1, dec || seatCount)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      for (const sid of (t.buySeats || [])) {
+        tx.create(creditEventRef(ticketId, sid), {
+          userId: t.customerId, ticketId, seatId: sid, type: 'ticket_cancel_credit',
+          amountKurus: creditKurus, currency: 'TRY', reason: 'ticket_cancelled_no_refund',
+          createdAt: cancelledAt, actorType: by === 'admin' ? 'admin' : 'customer', ...(byUid ? { actorUid: byUid } : {}),
+        });
+      }
+    }
     if (counterField && dec > 0) addLimits(tx, L, counterField, -dec);
     if (orderSnap && orderSnap.exists) tx.update(orderSnap.ref, { status: 'ticket_cancelled', updatedAt: FieldValue.serverTimestamp() });
   }
@@ -638,11 +684,8 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const [evSnap, orderSnap] = await Promise.all([tx.get(evRef), tx.get(orders().doc(ticketId))]);
       const L = await loadLimitsForTicket(tx, uid, orderSnap);
       const cur = ticketStatusOf(t);
-      if (t.orderMethod === 'card' || cur === 'paid') {
-        throw err('failed-precondition', 'Online ödenmiş biletler uygulamadan iptal edilemez. İade için bizimle iletişime geçin.');
-      }
-      if (!['pay_at_venue', 'free'].includes(cur)) throw err('failed-precondition', 'Bu bilet iptal edilemez.');
-      if (t.usedAt) throw err('failed-precondition', 'Kullanılmış bilet iptal edilemez.');
+      if (!['paid', 'pay_at_venue', 'free', 'protokol'].includes(cur)) throw err('failed-precondition', 'Bu bilet iptal edilemez.');
+      if (t.usedAt || (Array.isArray(t.seatTickets) && t.seatTickets.some((s) => s.status === 'checked_in'))) throw err('failed-precondition', 'Giriş yapılmış bilet iptal edilemez.');
       const ev = evSnap.exists ? evSnap.data() : null;
       const dateMs = parseEventDateMs(ev ? ev.date : t.eventDate);
       if (dateMs == null) throw err('failed-precondition', 'Bu biletin seans tarihi okunamadı; iptal için iletişime geçin.');
@@ -673,7 +716,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (cur === 'cancelled') throw err('failed-precondition', 'İptal edilmiş bilet yeniden açılamaz.');
       const method = t.orderMethod;
       const allowed = method === 'venue' ? ['paid', 'pay_at_venue', 'no_show', 'cancelled']
-        : method === 'free' || method === 'protokol' ? ['no_show', 'cancelled'] : ['no_show'];
+        : method === 'free' || method === 'protokol' || method === 'card' ? ['no_show', 'cancelled'] : ['no_show'];
       if (!allowed.includes(target)) {
         throw err('failed-precondition', method === 'card'
           ? 'Online ödenmiş biletlerde yalnızca "gelmedi" işaretlenebilir; iade ödeme panelinden yapılır.'
@@ -697,13 +740,18 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
         }
       }
       tx.update(ticketRef, { paymentStatus: target, _updatedAt: new Date(now()).toISOString() });
+      writeTicketAudit(tx, { ticketId, action: target === 'no_show' ? 'no_show' : 'status_changed', actorType: 'admin', actorUid: uid, fromStatus: cur, toStatus: target });
       return { ok: true, paymentStatus: target };
     });
   }
 
   async function adminCheckIn(uid, data) {
     await assertAdmin(uid);
-    const ticketId = validateId(data && data.ticketId, 'bilet');
+    const raw = validateId(data && data.ticketId, 'bilet');
+    const parts = raw.split(':');
+    const ticketId = validateId(parts[0], 'bilet');
+    const seatId = data && data.seatId ? validateId(data.seatId, 'koltuk') : (parts.length >= 3 ? validateId(parts[1], 'koltuk') : null);
+    const qrToken = data && data.qrToken ? String(data.qrToken) : (parts.length >= 3 ? parts.slice(2).join(':') : null);
     const ticketRef = db.collection('Ticket').doc(ticketId);
     const r = await db.runTransaction(async (tx) => {
       const tSnap = await tx.get(ticketRef);
@@ -711,9 +759,24 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const t = tSnap.data();
       const cur = ticketStatusOf(t);
       if (cur === 'cancelled' || cur === 'no_show') return { t, cur, ok: false, already: false };
+      if (seatId && Array.isArray(t.seatTickets)) {
+        const index = t.seatTickets.findIndex((s) => s.seatId === seatId);
+        if (index < 0) throw err('not-found', 'Koltuk bileti bulunamadı.');
+        const st = t.seatTickets[index];
+        if (qrToken && st.qrToken !== qrToken) throw err('permission-denied', 'QR kod geçersiz.');
+        if (st.status === 'checked_in') return { t, cur, ok: false, already: true };
+        if (st.status !== 'active') return { t, cur, ok: false, already: false };
+        const usedAt = Timestamp.fromMillis(now());
+        const next = t.seatTickets.map((s, i) => i === index ? { ...s, status: 'checked_in', usedAt } : s);
+        const count = next.filter((s) => s.status === 'checked_in').length;
+        tx.update(ticketRef, { seatTickets: next, checkedInCount: count, ...(count === next.length ? { usedAt } : {}), _updatedAt: new Date(now()).toISOString() });
+        writeTicketAudit(tx, { ticketId, action: 'check_in', actorType: 'admin', actorUid: uid, seatId, fromStatus: 'active', toStatus: 'checked_in' });
+        return { t: { ...t, seatTickets: next, checkedInCount: count, ...(count === next.length ? { usedAt } : {}) }, cur, ok: true, already: false };
+      }
       if (t.usedAt) return { t, cur, ok: false, already: true };
       const usedAt = Timestamp.fromMillis(now());
       tx.update(ticketRef, { usedAt, _updatedAt: new Date(now()).toISOString() });
+      writeTicketAudit(tx, { ticketId, action: 'check_in', actorType: 'admin', actorUid: uid, fromStatus: cur, toStatus: 'checked_in' });
       return { t: { ...t, usedAt }, cur, ok: true, already: false };
     });
     let customerName;
@@ -823,6 +886,21 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     return u;
   }
 
+  /** Bakiye bilet tutarının tamamını karşılıyorsa sağlayıcıya 0 TL gönderilmez. */
+  async function settleCreditOnly(orderId) {
+    const orderRef = orders().doc(orderId);
+    await db.runTransaction(async (tx) => {
+      const c = await readFulfillCtx(tx, orderRef, orderId);
+      if (!c) throw err('not-found', 'Sipariş bulunamadı.');
+      if (c.order.status === 'paid') return;
+      if (c.order.status !== 'paying' || !seatsOwned(c)) throw err('failed-precondition', 'Sipariş artık tamamlanamıyor.');
+      writeFulfillment(tx, {
+        ...c, method: 'card', status: 'paid',
+        extraOrder: { paymentId: null, creditOnly: true, creditConsumedAt: FieldValue.serverTimestamp() },
+      });
+    });
+  }
+
   async function startPayment(uid, data, ctx = {}) {
     await assertNotDeleting(uid);
     const { phone } = who(ctx);
@@ -852,7 +930,9 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (o.status !== 'held') throw err('failed-precondition', 'Bu siparişin süresi doldu ya da ödeme alındı.');
       if (!o.expiresAt || o.expiresAt.toMillis() <= t) throw err('failed-precondition', 'Koltuk tutma süreniz doldu. Lütfen yeniden seçin.');
       const evRef = db.collection('Event').doc(o.eventId);
-      const [evSnap, userSnap] = await Promise.all([tx.get(evRef), tx.get(db.collection('User').doc(uid))]);
+      const [evSnap, userSnap, creditSnap] = await Promise.all([
+        tx.get(evRef), tx.get(db.collection('User').doc(uid)), tx.get(creditRef(uid)),
+      ]);
       const ev = evSnap.exists ? evSnap.data() : null;
       const dateMs = ev && parseEventDateMs(ev.date);
       if (!ev || dateMs == null || dateMs <= t) throw err('failed-precondition', 'Bu seans başladı ya da geçti.');
@@ -864,14 +944,39 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       const args = [];
       for (const sid of o.seatIds) args.push(seatPath(sid, 'holdExpiresAt'), newExp);
       tx.update(evRef, ...args);
+      const wantsCredit = data && data.useCredit === true;
+      const originalTotalKurus = Number.isFinite(o.originalTotalKurus) ? o.originalTotalKurus : o.totalKurus;
+      const availableCreditKurus = creditSnap.exists ? Math.max(0, Math.floor(Number(creditSnap.data().balanceKurus) || 0)) : 0;
+      const creditAppliedKurus = wantsCredit && !Number.isFinite(o.creditAppliedKurus)
+        ? Math.min(availableCreditKurus, Math.max(0, originalTotalKurus))
+        : (Number.isFinite(o.creditAppliedKurus) ? o.creditAppliedKurus : 0);
+      const payableTotalKurus = Math.max(0, originalTotalKurus - creditAppliedKurus);
+      if (creditAppliedKurus > 0 && !Number.isFinite(o.creditAppliedKurus)) {
+        tx.update(creditRef(uid), { balanceKurus: FieldValue.increment(-creditAppliedKurus), updatedAt: FieldValue.serverTimestamp() });
+        tx.create(paymentCreditEventRef(orderId, 'apply'), {
+          userId: uid, orderId, type: 'payment_credit_applied', amountKurus: creditAppliedKurus,
+          currency: 'TRY', reason: 'payment_start', createdAt: Timestamp.fromMillis(t),
+        });
+      }
       tx.update(orderRef, {
         status: 'paying', provider: providerName, returnUrl, expiresAt: Timestamp.fromMillis(newExp),
+        originalTotalKurus, totalKurus: payableTotalKurus, total: kurusToTl(payableTotalKurus),
+        creditAppliedKurus,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      return { order: o, user: userSnap.exists ? userSnap.data() : {} };
+      return { order: { ...o, originalTotalKurus, totalKurus: payableTotalKurus, creditAppliedKurus }, user: userSnap.exists ? userSnap.data() : {}, creditOnly: payableTotalKurus === 0 };
     });
     if (prep.resume) {
-      return { provider: providerName, ...prep.resume };
+      return { provider: providerName, ...prep.resume, creditAppliedKurus: prep.order.creditAppliedKurus || 0 };
+    }
+    if (prep.creditOnly) {
+      try {
+        await settleCreditOnly(orderId);
+        return { provider: 'credit', token: '', paymentPageUrl: null, checkoutFormContent: null, creditOnly: true, creditAppliedKurus: prep.order.creditAppliedKurus || 0 };
+      } catch (e) {
+        await closeOrder(orderId, 'failed', (cur) => cur.status === 'paying', { failureReason: 'credit_settlement_failed' }).catch(() => {});
+        throw e;
+      }
     }
 
     // 2) sağlayıcı oturumu (ağ çağrısı transaction DIŞINDA)
@@ -899,7 +1004,7 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
     }
     const out = { token: session.token, paymentPageUrl: session.paymentPageUrl || null, checkoutFormContent: session.checkoutFormContent || null };
     await orderRef.update({ providerToken: session.token, conversationId: orderId, paymentSession: out, updatedAt: FieldValue.serverTimestamp() });
-    return { provider: providerName, ...out };
+    return { provider: providerName, ...out, creditAppliedKurus: o.creditAppliedKurus || 0 };
   }
 
   // ------------------------------------------------------------------ doğrulama + sonuçlandırma
@@ -936,7 +1041,17 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       if (!v.paid) {
         if (order.status === 'paying') {
           releaseOwn();
-          tx.update(orderRef, { status: 'failed', failureReason: 'payment_failed', updatedAt: FieldValue.serverTimestamp() });
+          const creditExtra = order.creditAppliedKurus > 0 && !order.creditReleasedAt
+            ? { creditReleasedAt: FieldValue.serverTimestamp() } : {};
+          if (order.creditAppliedKurus > 0 && !order.creditReleasedAt && order.userId) {
+            const amount = Math.max(0, Math.floor(Number(order.creditAppliedKurus) || 0));
+            tx.set(creditRef(order.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+            tx.create(paymentCreditEventRef(orderId, 'release'), {
+              userId: order.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+              currency: 'TRY', reason: 'payment_failed', createdAt: Timestamp.fromMillis(now()),
+            });
+          }
+          tx.update(orderRef, { status: 'failed', failureReason: 'payment_failed', ...creditExtra, updatedAt: FieldValue.serverTimestamp() });
           outcome = 'failed';
         } else outcome = 'ignored';
         return;
@@ -948,9 +1063,20 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
       }
       // Ödeme alınmış görünüyor ama bilet ÜRETİLEMEZ (tutar uyuşmaz / sipariş artık geçerli değil / koltuk kaybı).
       releaseOwn();
+      const creditExtra = order.creditAppliedKurus > 0 && !order.creditReleasedAt
+        ? { creditReleasedAt: FieldValue.serverTimestamp() } : {};
+      if (order.creditAppliedKurus > 0 && !order.creditReleasedAt && order.userId) {
+        const amount = Math.max(0, Math.floor(Number(order.creditAppliedKurus) || 0));
+        tx.set(creditRef(order.userId), { balanceKurus: FieldValue.increment(amount), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        tx.create(paymentCreditEventRef(orderId, 'release'), {
+          userId: order.userId, orderId, type: 'payment_credit_released', amountKurus: amount,
+          currency: 'TRY', reason: 'paid_but_unfulfillable', createdAt: Timestamp.fromMillis(now()),
+        });
+      }
       tx.update(orderRef, {
         status: 'failed', failureReason: 'paid_but_unfulfillable', refundRequired: true,
         anomaly: v.valid ? [`status:${order.status}`] : v.reasons, paymentId: det.paymentId || null,
+        ...creditExtra,
         updatedAt: FieldValue.serverTimestamp(),
       });
       outcome = 'anomaly';
