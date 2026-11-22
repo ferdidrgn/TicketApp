@@ -1,0 +1,397 @@
+/* Hesap ve kullanıcı sayfaları — mobil/tablet kompozisyonu.
+   Renkler yalnız mevcut tema belirteçlerinden gelir. */
+
+#main,
+#icerik,
+.b-sayfa,
+.ps-sayfa,
+.ek-sayfa,
+.metin {
+  min-width: 0;
+}
+
+.ay-kart,
+.bilet-k,
+.ps-kapak,
+.ps-rozet,
+.ek-kart {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ay-kart button,
+.ay-kart input,
+.b-sekmeler .chip,
+.fav-sek .chip,
+.ps-eylem .btn,
+.bk-act .btn {
+  min-height: 44px;
+}
+
+.ay-kart :focus-visible,
+.b-sayfa :focus-visible,
+.fav-sek :focus-visible,
+.ps-sayfa :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .ay-izgara {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .b-liste {
+    grid-template-columns: 1fr;
+  }
+
+  #fav-icerik .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px 16px;
+  }
+
+  #fav-icerik .venues {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ps-damgalar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ps-damga {
+    justify-self: center;
+  }
+
+  .ek-sayfa {
+    max-width: 100%;
+  }
+
+  .ek-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pg-ust,
+  .b-sayfa,
+  .ps-sayfa,
+  .ek-sayfa,
+  .metin {
+    padding-top: 24px;
+  }
+
+  .pg-ust h1,
+  .b-sayfa > h1,
+  .ps-sayfa h1,
+  .metin h1 {
+    font-size: clamp(30px, 10vw, 40px);
+    line-height: 1.08;
+  }
+
+  .ay-izgara {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 20px;
+  }
+
+  .ay-kart {
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+
+  .ay-kart h2 {
+    font-size: 21px;
+  }
+
+  .ay-kart .seg,
+  .ay-kart .onizleme {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ay-kart .seg button:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .ay-sat {
+    align-items: flex-start;
+  }
+
+  .ay-sat input[type="range"] {
+    width: min(52%, 190px) !important;
+  }
+
+  .b-sekmeler,
+  .fav-sek {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding: 2px 16px 8px;
+  }
+
+  .b-sekmeler::-webkit-scrollbar,
+  .fav-sek::-webkit-scrollbar {
+    display: none;
+  }
+
+  .b-sekmeler .chip,
+  .fav-sek .chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .b-liste {
+    gap: 14px;
+  }
+
+  .bilet-k {
+    border-radius: 16px;
+  }
+
+  .bk-sol {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px 14px;
+  }
+
+  .bk-sol img,
+  .bk-sol .ph {
+    width: 56px;
+    height: 82px;
+  }
+
+  .bk-g h3 {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  .bk-act {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .bk-act .btn {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .bk-sag {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .bk-sag .qr {
+    width: 88px;
+    height: 88px;
+  }
+
+  #fav-icerik .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+  }
+
+  #fav-icerik .venues {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #fav-icerik .venue {
+    min-height: 190px;
+  }
+
+  #fav-icerik .people {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+    overflow: visible;
+  }
+
+  #fav-icerik .person {
+    width: auto;
+    min-width: 0;
+  }
+
+  .ps-sayfa {
+    gap: 22px;
+  }
+
+  .ps-kapak {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .ps-sayilar {
+    gap: 8px;
+  }
+
+  .ps-sayilar b {
+    font-size: clamp(30px, 11vw, 42px);
+  }
+
+  .ps-sayilar span {
+    font-size: 12px;
+  }
+
+  .ps-eylem .btn {
+    width: 100%;
+  }
+
+  .ps-damgalar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 8px;
+  }
+
+  .ps-damga {
+    width: min(104px, 100%);
+    aspect-ratio: 1;
+    height: auto;
+    justify-self: center;
+  }
+
+  .ps-rozet {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 12px;
+  }
+
+  .ps-rozet .oran {
+    max-width: 72px;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .ek-sayfa {
+    gap: 14px;
+  }
+
+  .ek-kart {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .ek-sec,
+  .ek-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ek-sekmeler {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -14px;
+    padding: 2px 14px 8px;
+    scrollbar-width: none;
+  }
+
+  .ek-sekme {
+    flex: 0 0 auto;
+  }
+
+  .ek-ozet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ek-tablo {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .ek-tablo table,
+  .ek-tablo tbody,
+  .ek-tablo tr,
+  .ek-tablo td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ek-tablo thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .ek-tablo tr {
+    display: grid;
+    gap: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+  }
+
+  .ek-tablo td {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 0;
+    border: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .ek-tablo td::before {
+    content: attr(data-label);
+    color: var(--ink-2);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .ek-tablo td[colspan] {
+    display: block;
+    text-align: left;
+  }
+
+  .ek-tablo td[colspan]::before {
+    content: none;
+  }
+
+  .ek-modal-bg {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .ek-modal {
+    width: 100%;
+    max-height: min(88vh, 760px);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .metin {
+    padding-bottom: 32px;
+  }
+
+  .metin .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 390px) {
+  #fav-icerik .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ps-rozet .ik {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ay-kart *,
+  .b-sayfa *,
+  .ps-sayfa *,
+  .ek-sayfa * {
+    scroll-behavior: auto !important;
+  }
+}

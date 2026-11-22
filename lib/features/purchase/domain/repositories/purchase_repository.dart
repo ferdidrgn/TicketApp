@@ -9,7 +9,7 @@ abstract class PurchaseRepository {
   Future<Either<Failure, void>> releaseHold(final String orderId);
 
   Future<Either<Failure, PaymentSession>> startPayment(
-      final String orderId, final String returnUrl);
+      final String orderId, final String returnUrl, {final bool useCredit = false});
 
   /// Ücretsiz sipariş onayı; oluşan bilet kimliklerini döner.
   Future<Either<Failure, List<String>>> confirmFree(final String orderId);

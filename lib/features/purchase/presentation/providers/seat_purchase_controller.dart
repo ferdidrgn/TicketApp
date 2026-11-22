@@ -279,14 +279,16 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     final next = {...state.selected};
     if (!next.remove(seatId)) {
       final q = ref.read(eventQuotaProvider(eventId));
-      final max = q?.remaining ?? kMaxSeatsPerPurchase;
+      final max = q?.selectableRemaining ?? kMaxSeatsPerPurchase;
       if (next.length >= max) {
         _noticeNow(
-            q != null && q.isFull
+            q != null && q.freeLimitFull
+                ? 'Bu etkinlikte ücretsiz bilet hakkın kalmadı.'
+                : q != null && q.selectableFull
                 ? 'Bu etkinlik için bilet hakkını doldurdun (${q.used}/${q.limit}). '
                     'Biletlerim sayfasından biletlerine bakabilirsin.'
                 : q != null
-                    ? 'Bu etkinlikte en fazla $max koltuk daha seçebilirsin.'
+                    ? 'Bu işlemde en fazla $max koltuk seçebilirsin.'
                     : 'En fazla $kMaxSeatsPerPurchase koltuk seçebilirsin.',
             isError: false);
         return false;
@@ -530,14 +532,15 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
     final result = _noteDeletionPending(
-        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId)));
+        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId), useCredit: true));
     if (_disposed) {
       return null;
     }
     return result.fold(
       (final f) {
         if (f is PurchaseFailure && f.isStale) {
-          _resetToSelecting(message: f.message);
+          _resetToSelecting(
+              message: f.message, keepSelection: hold.seatIds.toSet());
         } else {
           _set(state.copyWith(
               phase: phase, notice: PurchaseNotice(++_noticeSeq, f.message)));
@@ -545,7 +548,14 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         return null;
       },
       (final session) {
-        _set(state.copyWith(phase: PurchasePhase.awaitingPayment));
+        _set(state.copyWith(
+          phase: PurchasePhase.awaitingPayment,
+          notice: session.creditAppliedKurus > 0
+              ? PurchaseNotice(++_noticeSeq,
+                  'Uygulama kredisi kullanıldı: ${(session.creditAppliedKurus / 100).toStringAsFixed(2)} ₺',
+                  isError: false)
+              : null,
+        ));
         _track(hold.orderId);
         return session;
       },
@@ -586,9 +596,11 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
           _set(state.copyWith(phase: PurchasePhase.held));
           _requirePhone(_PendingAction.confirmFree);
         } else if (f is PurchaseFailure && f.isLimit) {
-          // Ücretsiz bilet / etkinlik sınırı: koltukları boşuna tutma.
+          // Ücretsiz bilet / etkinlik sınırı: koltukları bırak ama seçimi
+          // koru. Kullanıcı bir koltuğu çıkarıp yeniden deneyebilmeli.
           unawaited(_release(hold.orderId));
-          _resetToSelecting(message: f.message);
+          _resetToSelecting(
+              message: f.message, keepSelection: hold.seatIds.toSet());
           unawaited(_refreshQuota());
         } else if (f is PurchaseFailure && f.isStale) {
           _resetToSelecting(message: f.message);

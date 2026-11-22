@@ -257,6 +257,40 @@ test('startPayment: sağlayıcı oturumu döner, sipariş paying olur, tutar sun
   assert.equal(prov.initCalls.length, 1);
 });
 
+test('startPayment: mevcut uygulama kredisi sağlayıcı tutarından düşer, bilete brüt fiyat yazılır', async () => {
+  const { svc, prov } = makeService({ satis: { mode: 'online' } });
+  const ev = await seedEvent({ price: '100' });
+  const u = uidN();
+  await db.collection('UserCredit').doc(u).set({ balanceKurus: 6000 });
+  const h = await svc.holdSeats(u, { eventId: ev, seatIds: ['A1'] });
+  const p = await svc.startPayment(u, {
+    orderId: h.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app/odeme', useCredit: true,
+  });
+  assert.equal(p.creditAppliedKurus, 6000);
+  assert.equal(prov.initCalls[0].order.totalStr, '40.00');
+  assert.equal((await get('UserCredit', u)).balanceKurus, 0);
+  assert.equal((await get('Order', h.orderId)).totalKurus, 4000);
+  prov.succeed(h.orderId, 40);
+  assert.equal(await svc.settle(h.orderId, await prov.retrieve({ token: p.token, conversationId: h.orderId })), 'paid');
+  assert.equal((await get('Ticket', h.orderId)).orderPrice, '100.00');
+  assert.equal((await db.collection('UserCreditEvent').where('orderId', '==', h.orderId).get()).size, 1);
+});
+
+test('startPayment: kredi toplamı karşılıyorsa sağlayıcı çağrılmaz ve bilet doğrudan kesilir', async () => {
+  const { svc, prov } = makeService({ satis: { mode: 'online' } });
+  const ev = await seedEvent({ price: '100' });
+  const u = uidN();
+  await db.collection('UserCredit').doc(u).set({ balanceKurus: 10000 });
+  const h = await svc.holdSeats(u, { eventId: ev, seatIds: ['A1'] });
+  const p = await svc.startPayment(u, {
+    orderId: h.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol.web.app/odeme', useCredit: true,
+  });
+  assert.equal(p.creditOnly, true);
+  assert.equal(prov.initCalls.length, 0);
+  assert.equal((await get('Ticket', h.orderId)).paymentStatus, 'paid');
+  assert.equal((await get('UserCredit', u)).balanceKurus, 0);
+});
+
 test('startPayment: kötü returnUrl / desteklenmeyen sağlayıcı reddedilir', async () => {
   const { svc } = makeService();
   const ev = await seedEvent();

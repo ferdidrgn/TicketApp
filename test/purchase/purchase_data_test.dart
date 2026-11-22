@@ -107,7 +107,8 @@ void main() {
       expect(session.checkoutFormContent, isNull);
 
       final sent = h.client.callsOf('startPayment').single;
-      expect(sent.keys.toSet(), {'orderId', 'provider', 'returnUrl'});
+      expect(sent.keys.toSet(), {'orderId', 'provider', 'returnUrl', 'useCredit'});
+      expect(sent['useCredit'], isFalse);
       expect(sent['provider'], 'iyzico');
       expect(sent['returnUrl'],
           'https://tiyatrol-web.web.app/odeme-sonuc?order=ord1');
