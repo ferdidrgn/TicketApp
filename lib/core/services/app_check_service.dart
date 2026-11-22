@@ -12,19 +12,19 @@ abstract final class AppCheckService {
 
   static Future<void> init() async {
     await FirebaseAppCheck.instance.activate(
-      webProvider: ReCaptchaV3Provider(_webRecaptchaSiteKey),
+      providerWeb: ReCaptchaV3Provider(_webRecaptchaSiteKey),
 
       // 🔥 DÜZELTME BURASI:
       // Eski: providerAndroid: AndroidPlayIntegrityProvider()  <-- BU ARTIK YOK
-      // Yeni: androidProvider: AndroidProvider.playIntegrity   <-- DOĞRUSU BU
+      // Yeni: providerAndroid: AndroidProvider.playIntegrity   <-- DOĞRUSU BU
 
-      androidProvider: kReleaseMode
-          ? AndroidProvider.playIntegrity // Play Store (Release)
-          : AndroidProvider.debug, // Bilgisayar (Debug)
+      providerAndroid: kReleaseMode
+          ? const AndroidPlayIntegrityProvider() // Play Store (Release)
+          : const AndroidDebugProvider(), // Bilgisayar (Debug)
 
-      appleProvider: kReleaseMode
-          ? AppleProvider.deviceCheck // iOS Release
-          : AppleProvider.debug, // iOS Debug
+      providerApple: kReleaseMode
+          ? const AppleDeviceCheckProvider() // iOS Release
+          : const AppleDebugProvider(), // iOS Debug
     );
   }
 }
