@@ -78,10 +78,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "17"
@@ -89,14 +89,20 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # 🔥 DÜZELTME: Sabit "3.24.5" (Dart 3.5.4) artık pubspec.yaml'daki
-          # riverpod_generator ^3.0.3'ün gerektirdiği Dart ^3.7.0'ı
-          # karşılamıyor — "stable" kanalının güncelini kullanıyoruz.
-          channel: "stable"
+          # pubspec.lock Flutter 3.47.x ile çözümlendi. "stable"ı başıboş
+          # bırakmak, yeni SDK pinleriyle pub get'i bozup AAB üretimini durdurur.
+          flutter-version: "3.47.9"
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Verify Google Play target API
+        shell: bash
+        run: |
+          grep -Eq 'compileSdk.*36' android/app/build.gradle
+          grep -Eq 'targetSdk[[:space:]]*=[[:space:]]*36' android/app/build.gradle
+          echo "Android target API 36 doğrulandı."
 
       # google-services.json BİLEREK .gitignore'da (Firebase config dosyası,
       # repo'ya commit edilmiyor) — bu yüzden CI runner'ında hiç yok ve
@@ -146,7 +152,7 @@ jobs:
         run: flutter build appbundle --release --dart-define=ADS_PROD=true
 
       - name: Upload App Bundle artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-bundle
           path: build/app/outputs/bundle/release/app-release.aab

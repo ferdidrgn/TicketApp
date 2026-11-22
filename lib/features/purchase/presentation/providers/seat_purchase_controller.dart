@@ -532,14 +532,15 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
     _set(state.copyWith(
         phase: PurchasePhase.startingPayment, clearNotice: true));
     final result = _noteDeletionPending(
-        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId)));
+        await _startPayment(hold.orderId, purchaseReturnUrl(hold.orderId), useCredit: true));
     if (_disposed) {
       return null;
     }
     return result.fold(
       (final f) {
         if (f is PurchaseFailure && f.isStale) {
-          _resetToSelecting(message: f.message);
+          _resetToSelecting(
+              message: f.message, keepSelection: hold.seatIds.toSet());
         } else {
           _set(state.copyWith(
               phase: phase, notice: PurchaseNotice(++_noticeSeq, f.message)));
@@ -547,7 +548,14 @@ class SeatPurchaseController extends Notifier<SeatPurchaseState> {
         return null;
       },
       (final session) {
-        _set(state.copyWith(phase: PurchasePhase.awaitingPayment));
+        _set(state.copyWith(
+          phase: PurchasePhase.awaitingPayment,
+          notice: session.creditAppliedKurus > 0
+              ? PurchaseNotice(++_noticeSeq,
+                  'Uygulama kredisi kullanıldı: ${(session.creditAppliedKurus / 100).toStringAsFixed(2)} ₺',
+                  isError: false)
+              : null,
+        ));
         _track(hold.orderId);
         return session;
       },

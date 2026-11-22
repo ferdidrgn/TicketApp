@@ -14,6 +14,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.ferdidrgn.ticketapp"
+    // Google Play güncel hedef API şartı: Android 16 / API 36.
+    // Flutter SDK daha düşük bir varsayılan verse bile uygulama API 36 ile derlenir.
     compileSdk = Math.max(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 

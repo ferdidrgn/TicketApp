@@ -27,20 +27,14 @@ void main() {
 
     test('ücretsiz seans: etkinlik ve global kalan kotanın küçüğü seçilir', () {
       final q = EventQuota.tryParse({
-        'limit': 3,
-        'used': 3,
-        'remaining': 0,
-        'freeEvent': true,
-        'freeRemaining': 2,
+        'limit': 3, 'used': 3, 'remaining': 0,
+        'freeEvent': true, 'freeRemaining': 2,
       })!;
       expect(q.selectableRemaining, 0);
       expect(q.freeLimitFull, false);
       final q2 = EventQuota.tryParse({
-        'limit': 3,
-        'used': 1,
-        'remaining': 2,
-        'freeEvent': true,
-        'freeRemaining': 1,
+        'limit': 3, 'used': 1, 'remaining': 2,
+        'freeEvent': true, 'freeRemaining': 1,
       })!;
       expect(q2.selectableRemaining, 1);
     });
@@ -181,14 +175,10 @@ void main() {
     });
 
     test('ücretsiz global kota 1 kaldıysa ikinci koltuk daha seçilmeden reddedilir', () async {
-      h.client.handlers['getEventQuota'] =
-          (final _) => {
-            'limit': 3,
-            'used': 0,
-            'remaining': 3,
-            'freeEvent': true,
-            'freeRemaining': 1,
-          };
+      h.client.handlers['getEventQuota'] = (final _) => {
+        'limit': 3, 'used': 0, 'remaining': 3,
+        'freeEvent': true, 'freeRemaining': 1,
+      };
       await refresh();
       expect(ctrl().toggleSeat('A1'), isTrue);
       expect(ctrl().toggleSeat('A2'), isFalse);

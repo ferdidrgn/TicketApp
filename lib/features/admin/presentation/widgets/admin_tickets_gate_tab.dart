@@ -188,6 +188,13 @@ String _formatUsedAt(final Object? v) {
   return DateFormat('dd.MM.yyyy HH:mm').format(dt.toLocal());
 }
 
+String _auditActionLabel(final String action) => const {
+      'created': 'Oluşturuldu',
+      'cancelled': 'İptal edildi',
+      'check_in': 'Giriş yapıldı',
+      'status_changed': 'Durum değişti',
+    }[action] ?? action;
+
 /// Teknik ayrıntı sızdırmayan, tek hata-eşleme yardımcısı (bu dosyaya özel,
 /// `purchase_remote_data_source_and_impl.dart`'taki tabloyla aynı ruhta).
 String _friendlyError(final Object e) {
@@ -1001,6 +1008,55 @@ class _TicketListSectionState extends ConsumerState<_TicketListSection> {
     }
   }
 
+  Future<void> _showAudit(final Ticket ticket) async {
+    try {
+      final data = await _callAdmin('adminTicketAudit', {'ticketId': ticket.id});
+      if (!mounted) return;
+      final rows = (data['audit'] is List ? data['audit'] as List : const [])
+          .map(_m)
+          .toList();
+      await showDialog<void>(
+        context: context,
+        builder: (final dialogContext) => AlertDialog(
+          title: Text('Bilet geçmişi · ${ticket.id}'),
+          content: SizedBox(
+            width: 520,
+            child: rows.isEmpty
+                ? const Text('Henüz kayıt yok.')
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) => const Divider(height: 16),
+                    itemBuilder: (_, final i) {
+                      final r = rows[i];
+                      final at = _formatUsedAt(r['createdAt'] is num
+                          ? DateTime.fromMillisecondsSinceEpoch(
+                                  (r['createdAt'] as num).toInt())
+                              .toIso8601String()
+                          : null);
+                      final seat = r['seatId'] == null ? '' : ' · Koltuk ${r['seatId']}';
+                      final actor = r['actorType']?.toString().isNotEmpty == true
+                          ? ' · ${r['actorType']}'
+                          : '';
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('${_auditActionLabel(r['action']?.toString() ?? '')}$seat'),
+                        subtitle: Text('${r['fromStatus'] ?? '—'} → ${r['toStatus'] ?? '—'}$actor\n$at'),
+                      );
+                    },
+                  ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Kapat'))],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_friendlyError(e)), backgroundColor: Colors.red));
+    }
+  }
+
   Widget _rowButton(final String label, final bool busy, final VoidCallback onTap) =>
       TextButton(
         onPressed: busy ? null : onTap,
@@ -1014,16 +1070,18 @@ class _TicketListSectionState extends ConsumerState<_TicketListSection> {
 
   List<Widget> _actionsFor(final Ticket t) {
     final status = _statusOf(t);
-    if (status == 'cancelled') return const [];
     final bool busy = _busyIds.contains(t.id);
     return [
-      if (t.orderMethod == 'venue' && status != 'pay_at_venue')
-        _rowButton('Rezervasyon', busy, () => _mutate(t, 'pay_at_venue')),
-      if (t.orderMethod == 'venue' && status != 'paid')
-        _rowButton('Ödendi', busy, () => _mutate(t, 'paid')),
-      if (status != 'no_show') _rowButton('Gelmedi', busy, () => _mutate(t, 'no_show')),
-      if (t.orderMethod != 'card')
-        _rowButton('İptal', busy, () => _mutate(t, 'cancelled')),
+      _rowButton('Geçmiş', busy, () => _showAudit(t)),
+      if (status != 'cancelled') ...[
+        if (t.orderMethod == 'venue' && status != 'pay_at_venue')
+          _rowButton('Rezervasyon', busy, () => _mutate(t, 'pay_at_venue')),
+        if (t.orderMethod == 'venue' && status != 'paid')
+          _rowButton('Ödendi', busy, () => _mutate(t, 'paid')),
+        if (status != 'no_show') _rowButton('Gelmedi', busy, () => _mutate(t, 'no_show')),
+        if (t.orderMethod != 'card')
+          _rowButton('İptal', busy, () => _mutate(t, 'cancelled')),
+      ],
     ];
   }
 

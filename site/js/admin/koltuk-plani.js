@@ -127,9 +127,13 @@ BB:15</textarea>
       // İzlenebilirlik (13.11.2026): Stage/Show/Event/Ticket ile aynı meta sözleşmesi —
       // _id/stageId/stageName/address + _createdAt (korunur) / _updatedAt (her yazımda).
       const saveSeatPlan = await fonksiyon('adminUpsertSeatPlan');
+      const previousSnap = await seatSnapshot(s);
+      const previous = previousSnap?.exists() ? previousSnap.data() : {};
+      const closedIds = closedSeatIds(previous).filter((id) => seatIds.includes(id));
       await saveSeatPlan({
         stageId: s,
         seatIds,
+        closedSeatIds: closedIds,
         updateStageCapacity: $('kap').checked,
       });
       bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${seatIds.length} koltuk yazıldı.</span>`; await mevcutYaz();

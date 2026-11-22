@@ -194,3 +194,21 @@ test('adminStats: geçmiş ay seçimi o ayın sayaçlarını getirir', async () 
   assert.equal(r4.kpi.viewsMonth, 10);
   assert.equal(r4.trend.shows[0].values[10], 40); assert.equal(r4.trend.shows[0].values[11], 10); // önceki ay trendde
 });
+
+test('adminTicketAudit: yalnız yönetici bilet geçmişini güvenli alanlarla ve yeni önce döner', async () => {
+  const { s, assertAdmin } = makeStats();
+  const admin = await makeAdmin();
+  await db.collection('TicketAudit').doc('a1').set({
+    ticketId: 'ticket-1', action: 'created', actorType: 'system', createdAt: Timestamp.fromMillis(1000),
+    secret: 'must-not-leak',
+  });
+  await db.collection('TicketAudit').doc('a2').set({
+    ticketId: 'ticket-1', action: 'check_in', actorType: 'admin', seatId: 'A1', createdAt: Timestamp.fromMillis(2000),
+    actorUid: 'admin-1',
+  });
+  const r = await s.adminTicketAudit(assertAdmin, admin, { ticketId: 'ticket-1' });
+  assert.deepEqual(r.audit.map((x) => x.action), ['check_in', 'created']);
+  assert.equal(r.audit[0].createdAt, 2000);
+  assert.equal(r.audit[0].secret, undefined);
+  await assert.rejects(() => s.adminTicketAudit(assertAdmin, admin, { ticketId: '../secret' }), (e) => e.code === 'invalid-argument');
+});
