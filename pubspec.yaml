@@ -97,7 +97,7 @@ dev_dependencies:
   # Generators
   flutter_lints:
   injectable_generator: ^2.9.1
-  build_runner: ^2.16.1
+  build_runner: 2.10.4
   freezed: ^3.2.3
   riverpod_generator: ^3.0.3
   json_serializable: ^6.11.2
