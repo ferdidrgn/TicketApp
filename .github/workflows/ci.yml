@@ -44,12 +44,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Upload resolved lockfile (temporary)
-        uses: actions/upload-artifact@v4
-        with:
-          name: resolved-pub-lock
-          path: pubspec.lock
-
       - name: Analyze
         # Eski kodda binlerce 'info' var; yalnızca hata/uyarı CI'yı kırsın.
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
