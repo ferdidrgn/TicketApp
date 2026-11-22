@@ -16,6 +16,7 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
   /// Layout dışı meta alanlar — satır gibi okunmaz.
   static const _metaKeys = {
     'seatIds',
+    'seatsId',
     'closedSeatsId',
     'closedSeatIds',
     '_id',
@@ -35,22 +36,32 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
   const SeatRemoteDataSourceImpl({required final FirebaseFirestore firestore})
       : _firestore = firestore;
 
+  Future<DocumentSnapshot<Map<String, dynamic>>> _seatPlanDocument(
+      final String stageId) async {
+    final canonical = await _firestore.collection(_collection).doc(stageId).get();
+    if (canonical.exists) {
+      return canonical;
+    }
+    final legacy = await _firestore
+        .collection(_collection)
+        .where('stageId', isEqualTo: stageId)
+        .limit(1)
+        .get();
+    return legacy.docs.isNotEmpty ? legacy.docs.first : canonical;
+  }
+
   @override
-  Future<Map<String, List<String?>?>?> getSeatsByStage(final String stageId) async {
-    if (stageId.isEmpty) throw Exception('Stage ID boş olamaz.');
+  Future<Map<String, List<String?>?>?> getSeatsByStage(
+      final String stageId) async {
+    if (stageId.isEmpty) {
+      throw Exception('Stage ID boş olamaz.');
+    }
 
     try {
-      var doc = await _firestore.collection(_collection).doc(stageId).get();
+      final doc = await _seatPlanDocument(stageId);
       if (!doc.exists) {
-        final legacy = await _firestore
-            .collection(_collection)
-            .where('stageId', isEqualTo: stageId)
-            .limit(1)
-            .get();
-        if (legacy.docs.isNotEmpty) doc = legacy.docs.first;
+        throw Exception('Belirtilen sahne bulunamadı.');
       }
-
-      if (!doc.exists) throw Exception('Belirtilen sahne bulunamadı.');
 
       final data = doc.data();
       if (data == null || data.isEmpty) {
@@ -58,11 +69,16 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
       }
 
       final seats = <String, List<String>>{};
+      final seen = <String>{};
+      List<String> ids(final List<dynamic> values) => values
+          .whereType<String>()
+          .where((final id) => id.isNotEmpty && seen.add(id))
+          .toList();
 
-      // Yeni şema: tek düz dizi `seatIds`; `seatsId` eski istemci uyumluluğu.
+      // Yeni şema: tek düz dizi `seatsId` (Halit / SES).
       final dynamic flat = data['seatIds'] ?? data['seatsId'];
       if (flat is List) {
-        seats['seatsId'] = flat.whereType<String>().toList();
+        seats['seatsId'] = ids(flat);
       } else {
         // Eski şema: sıra adı → koltuk listesi
         data.forEach((final row, final seatList) {
@@ -70,12 +86,12 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
             return;
           }
           if (seatList is List) {
-            seats[row] = seatList.whereType<String>().toList();
+            seats[row] = ids(seatList);
           }
         });
       }
 
-      if (seats.isEmpty) {
+      if (seats.values.every((final row) => row.isEmpty)) {
         throw Exception('Sahne üzerinde koltuk bulunamadı.');
       }
 
@@ -89,24 +105,21 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
 
   @override
   Future<SeatPlanMeta> getSeatPlanMeta(final String stageId) async {
-    if (stageId.isEmpty) return SeatPlanMeta.empty;
+    if (stageId.isEmpty) {
+      return SeatPlanMeta.empty;
+    }
     try {
-      var doc = await _firestore.collection(_collection).doc(stageId).get();
+      final doc = await _seatPlanDocument(stageId);
       if (!doc.exists) {
-        final legacy = await _firestore
-            .collection(_collection)
-            .where('stageId', isEqualTo: stageId)
-            .limit(1)
-            .get();
-        if (legacy.docs.isNotEmpty) doc = legacy.docs.first;
+        return SeatPlanMeta.empty;
       }
-      if (!doc.exists) return SeatPlanMeta.empty;
       final data = doc.data();
-      if (data == null) return SeatPlanMeta.empty;
+      if (data == null) {
+        return SeatPlanMeta.empty;
+      }
 
-      String iso(final dynamic v) => v is Timestamp
-          ? v.toDate().toIso8601String()
-          : (v?.toString() ?? '');
+      String iso(final dynamic v) =>
+          v is Timestamp ? v.toDate().toIso8601String() : (v?.toString() ?? '');
 
       return SeatPlanMeta(
         stageId: (data['stageId'] as String?) ?? doc.id,

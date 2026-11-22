@@ -1,9 +1,11 @@
 // Yönetim: sahne koltuk planı oluşturucu. Canonical belge Seats/{stageId};
-// yazma adminUpsertSeatPlan callable'ı üzerinden yapılır.
+// yazma adminUpsertSeatPlan callable'ı üzerinden yapılır. Eski random-ID'li
+// belge varsa callable transaction içinde canonical belgeye taşır.
 import {
   auth, db, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut,
   doc, getDoc, collection, getDocs, query, where, limit, fonksiyon,
 } from '../firebase.js';
+import { seatPlanRows, closedSeatIds } from '../seat-plan.js';
 
 const app = document.getElementById('app');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -82,6 +84,7 @@ BB:15</textarea>
     </div>`;
   const $ = (s) => document.getElementById(s);
   let sonuc = null;
+  let kaydediliyor = false;
 
   const hesapla = () => {
     const z = koltukUret($('zemin').value), b = koltukUret($('balkon').value);
@@ -94,41 +97,48 @@ BB:15</textarea>
     $('ozet').innerHTML = `<span>Zemin: ${z.ids.length}</span><span>Balkon: ${b.ids.length}</span><span>Toplam: ${ids.length}</span>`;
     $('satirlar').innerHTML = [...z.satirlar, ...b.satirlar].map(([a, n]) => `<div><b>${esc(a)}</b> · ${n} koltuk</div>`).join('');
     $('mesaj').innerHTML = hedef && ids.length !== hedef ? `<p class="uyari" role="alert">Toplam ${ids.length}, hedef ${hedef}. Satırları düzelt.</p>` : `<p class="ok">Toplam hedefle uyumlu.</p>`;
-    $('kaydet').disabled = !(hedef ? ids.length === hedef : true);
+    $('kaydet').disabled = kaydediliyor || !ids.length || !$('sahne').value || !$('onay').checked || !!(hedef && ids.length !== hedef);
   };
   const mevcutYaz = async () => {
     const s = $('sahne').value; const d = await seatSnapshot(s);
+    if ($('sahne').value !== s) return;
     if (!d || !d.exists()) { $('mevcut').textContent = 'Bu sahne için kayıtlı koltuk planı yok.'; return; }
     const v = d.data();
-    const tarihYaz = (iso) => { try { return new Date(iso).toLocaleString('tr-TR'); } catch { return iso; } };
-    const parcalar = [`Şu an kayıtlı plan: ${(v.seatIds || v.seatsId || []).length} koltuk (${(v.closedSeatIds || v.closedSeatsId || []).length} kapalı).`];
+    const tarihYaz = (value) => { const date = value?.toDate ? value.toDate() : new Date(value); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('tr-TR'); };
+    const parcalar = [`Şu an kayıtlı plan: ${seatPlanRows(v).flatMap(([, ids]) => ids).length} koltuk (${closedSeatIds(v).length} kapalı).`];
     if (v.address) parcalar.push(`Adres: ${v.address}`);
-    const created = v.createdAt || v._createdAt, updated = v.updatedAt || v._updatedAt;
-    if (created) parcalar.push(`Oluşturma: ${tarihYaz(created?.toDate ? created.toDate() : created)}`);
-    if (updated) parcalar.push(`Son güncelleme: ${tarihYaz(updated?.toDate ? updated.toDate() : updated)}`);
+    if (v.createdAt || v._createdAt) parcalar.push(`Oluşturma: ${tarihYaz(v.createdAt ?? v._createdAt)}`);
+    if (v.updatedAt || v._updatedAt) parcalar.push(`Son güncelleme: ${tarihYaz(v.updatedAt ?? v._updatedAt)}`);
     $('mevcut').textContent = parcalar.join(' · ');
   };
   ['zemin', 'balkon', 'hedef'].forEach((k) => $(k).addEventListener('input', hesapla));
   $('onay').addEventListener('change', hesapla);
-  $('sahne').addEventListener('change', mevcutYaz);
+  $('sahne').addEventListener('change', () => { $('onay').checked = false; hesapla(); mevcutYaz(); });
   $('cik').onclick = () => signOut(auth);
   $('kaydet').addEventListener('click', async () => {
-    if (!sonuc) return;
+    if (!sonuc?.length || kaydediliyor) return;
     if (!$('onay').checked) { bildir('Önce "Satır uzunluklarını … karşılaştırdım" kutusunu işaretle.'); $('onay').focus(); return; }
     const s = $('sahne').value, sahne = sahneler.find((x) => x.id === s) || {}, ad = sahne.name || s;
     if (!confirm(`"${ad}" için ${sonuc.length} koltuk yazılacak. Emin misin?`)) return;
+    const seatIds = [...sonuc];
+    kaydediliyor = true;
     $('kaydet').disabled = true;
     try {
       // İzlenebilirlik (13.11.2026): Stage/Show/Event/Ticket ile aynı meta sözleşmesi —
-      // _id/stageId/stageName/address + server-owned createdAt/updatedAt.
-      const oncekiSnap = await seatSnapshot(s);
-      const onceki = oncekiSnap && oncekiSnap.exists() ? oncekiSnap.data() : {};
-      const closedSeatIds = onceki.closedSeatIds || onceki.closedSeatsId || [];
+      // _id/stageId/stageName/address + _createdAt (korunur) / _updatedAt (her yazımda).
       const saveSeatPlan = await fonksiyon('adminUpsertSeatPlan');
-      await saveSeatPlan({ stageId: s, seatIds: sonuc, closedSeatIds, updateStageCapacity: $('kap').checked });
-      bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${sonuc.length} koltuk yazıldı.</span>`; await mevcutYaz();
-    } catch (e) { const m = e?.code === 'permission-denied' ? 'Yetki reddedildi: bu hesap yönetici değil ya da Firestore kuralları izin vermiyor.' : 'Kaydedilemedi.'; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
-    finally { hesapla(); }
+      const previousSnap = await seatSnapshot(s);
+      const previous = previousSnap?.exists() ? previousSnap.data() : {};
+      const closedIds = closedSeatIds(previous).filter((id) => seatIds.includes(id));
+      await saveSeatPlan({
+        stageId: s,
+        seatIds,
+        closedSeatIds: closedIds,
+        updateStageCapacity: $('kap').checked,
+      });
+      bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${seatIds.length} koltuk yazıldı.</span>`; await mevcutYaz();
+    } catch (e) { const m = String(e?.code || '').endsWith('permission-denied') ? 'Yetki reddedildi: bu işlem için yönetici hesabıyla giriş yap.' : `Kaydedilemedi. ${e?.message || 'Bağlantını kontrol edip tekrar dene.'}`; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
+    finally { kaydediliyor = false; hesapla(); }
   });
   await mevcutYaz(); hesapla();
 }

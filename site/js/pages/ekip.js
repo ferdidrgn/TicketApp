@@ -2,7 +2,8 @@
 // bu dosya yalnız arayüzdür ve admin modüllerini içe aktarmaz. Kişisel veri gösterilmez: yalnız sayılar ve bilet kodu.
 import { kabukCiz } from '../ui.js';
 import { girisGerekli, oturumDinle } from '../auth.js';
-import { db, doc, getDoc, onSnapshot, fonksiyon } from '../firebase.js';
+import { db, doc, getDoc, getDocs, collection, query, where, limit, onSnapshot, fonksiyon } from '../firebase.js';
+import { seatPlanRows } from '../seat-plan.js';
 import { $, $$, esc } from '../util.js';
 
 kabukCiz('');
@@ -275,11 +276,9 @@ const koltukAyir = (id) => { const m = /^(.*?)(\d+)$/.exec(id); return m ? [m[1]
 
 /** `Seats/{stageId}` + canlı `Event.seats`'ten sıra/koltuk düzeni (biletal.css'teki satın alma sayfasıyla aynı algoritma). */
 function koltukDuzenKur(sd, esMap) {
-  const META = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt']);
   const grup = new Map();
   const ekle = (etiket, id) => { if (!grup.has(etiket)) grup.set(etiket, []); grup.get(etiket).push(id); };
-  if (sd && Array.isArray(sd.seatsId)) sd.seatsId.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(koltukAyir(id)[0], id));
-  else if (sd) for (const [k, v] of Object.entries(sd)) { if (!META.has(k) && Array.isArray(v)) v.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(k, id)); }
+  for (const [row, ids] of seatPlanRows(sd)) ids.forEach((id) => ekle(row ?? koltukAyir(id)[0], id));
   if (!grup.size) Object.keys(esMap || {}).forEach((id) => ekle(koltukAyir(id)[0], id));
   const anahtarlar = [...grup.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr', { numeric: true }));
   let satirlar = anahtarlar.map((k) => ({ ad: k, koltuklar: grup.get(k).map((id) => ({ id, num: koltukAyir(id)[1] })).sort((a, b) => (isNaN(a.num) || isNaN(b.num) ? 0 : a.num - b.num)) }));
@@ -344,7 +343,11 @@ async function koltuklar() {
     seats = veri.seats && typeof veri.seats === 'object' ? veri.seats : {};
     if (!satirlar) {
       const sid = String(veri.stageId || '');
-      const ss = sid ? await getDoc(doc(db, 'Seats', sid)) : null;
+      let ss = sid ? await getDoc(doc(db, 'Seats', sid)) : null;
+      if (sid && !ss?.exists()) {
+        const legacy = await getDocs(query(collection(db, 'Seats'), where('stageId', '==', sid), limit(1)));
+        ss = legacy.docs[0] || null;
+      }
       satirlar = koltukDuzenKur(ss && ss.exists() ? ss.data() : null, seats);
     }
     cizGovde();

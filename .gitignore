@@ -151,6 +151,15 @@ desktop.ini
 coverage/
 .lcov.info
 
+# Yerel doğrulama için indirilen Flutter SDK ve geçici çalışma dosyaları
+/tmp/
+
+# Yerel agent çalışma belleği / oturum verileri
+/.claude-flow/
+
+# Kişisel Firebase Emulator port ayarları
+/.fb-test.json
+
 # -----------------------
 # DİĞER ARAÇLAR (Fastlane vb.)
 # -----------------------
