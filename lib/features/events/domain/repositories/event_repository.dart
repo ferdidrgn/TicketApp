@@ -14,6 +14,20 @@ abstract class EventRepository {
   /// ➕ Admin panelinden yeni bir seans (Event) oluşturur.
   Future<Either<Failure, bool>> addEvent(final Event event);
 
+  /// ✏️ Admin panelinden bir seansı düzenler (bağımsız "Seanslar" sekmesi
+  /// VE oyuna gömülü Seanslar bölümü AYNI bu metodu çağırır — mantık tek
+  /// yerde). `updatedData` yalnızca gerçek `Event` alanlarını içerir
+  /// (`showId`/`stageId`/`date`/`price`); `seats` buradan ASLA yazılmaz.
+  Future<Either<Failure, bool>> updateEvent(
+      final String eventId, final Map<String, dynamic> updatedData);
+
+  /// 🗑️ Admin panelinden bir seansı siler. Çağıran taraf (admin UI),
+  /// silmeden önce bu seansa bağlı bilet olup olmadığını
+  /// `blockDeleteIfTickets` ile kontrol eder — burada ek bir kontrol
+  /// YAPILMAZ (web admin panelinin `sil()` deseniyle aynı sorumluluk
+  /// ayrımı).
+  Future<Either<Failure, bool>> deleteEvent(final String eventId);
+
   // 🔥 Model yerine temiz Entity (Event) listesi döndürür
   Future<Either<Failure, List<Event>>> getEventsByIds(
       final List<String> eventIds);

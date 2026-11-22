@@ -4,7 +4,7 @@ import '../entities/purchase_entities.dart';
 import '../repositories/purchase_repository.dart';
 
 abstract class StartPaymentUseCase {
-  Future<Either<Failure, PaymentSession>> call(final String orderId, final String returnUrl);
+  Future<Either<Failure, PaymentSession>> call(final String orderId, final String returnUrl, {final bool useCredit = false});
 }
 
 class StartPaymentUseCaseImpl implements StartPaymentUseCase {
@@ -13,6 +13,6 @@ class StartPaymentUseCaseImpl implements StartPaymentUseCase {
   StartPaymentUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, PaymentSession>> call(final String orderId, final String returnUrl) =>
-      repository.startPayment(orderId, returnUrl);
+  Future<Either<Failure, PaymentSession>> call(final String orderId, final String returnUrl, {final bool useCredit = false}) =>
+      repository.startPayment(orderId, returnUrl, useCredit: useCredit);
 }

@@ -236,7 +236,7 @@ function kapi() {
       <input id="ek-kod" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" ${e ? '' : 'disabled'}>
       <button class="btn btn-primary" type="submit" ${e ? '' : 'disabled'}>Kontrol et</button></form>
     <div id="ek-ks" aria-live="assertive"></div>
-    ${st.kapiSon.length ? `<h2 style="margin-top:8px">Son okutulanlar</h2><div class="ek-tablo"><table><thead><tr><th>Saat</th><th>Kod</th><th>Sonuç</th></tr></thead><tbody>${st.kapiSon.map((x) => `<tr><td>${esc(x.saat)}</td><td>${esc(x.kod)}</td><td>${esc(x.sonuc)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
+    ${st.kapiSon.length ? `<h2 style="margin-top:8px">Son okutulanlar</h2><div class="ek-tablo"><table><thead><tr><th>Saat</th><th>Kod</th><th>Sonuç</th></tr></thead><tbody>${st.kapiSon.map((x) => `<tr><td data-label="Saat">${esc(x.saat)}</td><td data-label="Kod">${esc(x.kod)}</td><td data-label="Sonuç">${esc(x.sonuc)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
   const inp = $('#ek-kod'); inp.focus();
   const ayikla = (v) => { const m = String(v || '').trim().match(/[A-Za-z0-9_-]{6,}/g); return m ? m[m.length - 1] : ''; };
   $('#ek-kf').addEventListener('submit', async (ev) => {
@@ -417,7 +417,7 @@ async function ozet() {
   const s = st.stats.shows;
   g.innerHTML = s.length ? s.map((o) => `<div class="ek-kart"><h2>${esc(o.name)}</h2>
     <div class="ek-ozet"><div><b>${o.totals.sold}</b><span>Satılan</span></div><div><b>${o.totals.held}</b><span>Tutulan</span></div><div><b>${o.totals.checkedIn}</b><span>Girişi yapılan bilet</span></div></div>
-    <div class="ek-tablo"><table><thead><tr><th>Seans</th><th>Satılan</th><th>Doluluk</th><th>Giriş</th></tr></thead><tbody>${o.events.map((x) => `<tr><td>${esc(saatYaz(x.ms))}</td><td>${x.sold}/${x.total}</td><td>%${x.occupancy}</td><td>${x.checkedIn}/${x.activeTickets}</td></tr>`).join('') || '<tr><td colspan="4">Seans yok</td></tr>'}</tbody></table></div></div>`).join('')
+    <div class="ek-tablo"><table><thead><tr><th>Seans</th><th>Satılan</th><th>Doluluk</th><th>Giriş</th></tr></thead><tbody>${o.events.map((x) => `<tr><td data-label="Seans">${esc(saatYaz(x.ms))}</td><td data-label="Satılan">${x.sold}/${x.total}</td><td data-label="Doluluk">%${x.occupancy}</td><td data-label="Giriş">${x.checkedIn}/${x.activeTickets}</td></tr>`).join('') || '<tr><td colspan="4">Seans yok</td></tr>'}</tbody></table></div></div>`).join('')
     : '<div class="ek-kart"><p class="ek-muted">Gösterilecek oyun yok.</p></div>';
 }
 

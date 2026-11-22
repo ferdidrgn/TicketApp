@@ -38,15 +38,14 @@ String ticketPayStateLabel(final TicketPayState s) => switch (s) {
     };
 
 /// Bu bilet kullanıcı tarafından iptal edilebilir görünüyor mu?
-/// (rezervasyon/ücretsiz, kullanılmamış, başlangıca >= [iptalSaat] saat var.)
+/// (kullanılmamış, başlangıca >= [iptalSaat] saat var.)
 bool canCancelTicket(
     final DetailedTicket t, final int iptalSaat, final DateTime now) {
   final tk = t.ticket;
   if (tk.isCancelled || tk.isNoShow || tk.usedAt.isNotEmpty || t.isPast) {
     return false;
   }
-  if (tk.paymentStatus == 'paid') return false;
-  if (tk.orderMethod != 'venue' && tk.orderMethod != 'free') return false;
+  if (tk.orderMethod != 'venue' && tk.orderMethod != 'free' && tk.orderMethod != 'card') return false;
   final DateTime? start = DateFormatter.parseDateString(t.dateText);
   if (start == null) return false;
   return start.difference(now) >= Duration(hours: iptalSaat);
@@ -157,7 +156,8 @@ class _CancelTicketDialogState extends State<_CancelTicketDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Bileti iptal edersen $seats serbest kalır ve başkası '
-              'alabilir. Bu işlem geri alınamaz.'),
+              'alabilir. Para iadesi yapılmaz; uygun ücret tutarı uygulama '
+              'kredisi olarak hesabına tanımlanır. Bu işlem geri alınamaz.'),
           if (_error != null) ...[
             const SizedBox(height: AppSpacing.md),
             Semantics(

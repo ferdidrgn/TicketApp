@@ -118,8 +118,60 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
     const k = $('#bk-kapi', m);
     k.innerHTML = `<h2>Kapı kontrolü</h2>
       <form class="bk-row" id="bk-kf"><label class="fld-in" style="flex:1">Bilet kodu (QR okuyucu buraya yazar)<input id="bk-kod" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus></label>
-      <button class="btn btn-primary" type="submit">Kontrol et</button></form><div id="bk-sonuc" aria-live="assertive"></div>`;
+      <button class="btn btn-ghost" id="bk-kamera" type="button">Kamera ile tara</button><button class="btn btn-primary" type="submit">Kontrol et</button></form>
+      <div id="bk-kamera-alan" hidden><video id="bk-kamera-video" playsinline muted style="width:min(100%,420px);border-radius:12px;background:#111"></video><p class="muted" id="bk-kamera-durum">QR kodu kameraya göster.</p></div>
+      <div id="bk-sonuc" aria-live="assertive"></div>`;
     const inp = $('#bk-kod', k);
+    const cameraButton = $('#bk-kamera', k);
+    const cameraArea = $('#bk-kamera-alan', k);
+    const video = $('#bk-kamera-video', k);
+    let cameraStream = null;
+    let cameraFrame = 0;
+    let detector = null;
+    const stopCamera = () => {
+      if (cameraFrame) cancelAnimationFrame(cameraFrame);
+      cameraFrame = 0;
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+      video.srcObject = null;
+      cameraArea.hidden = true;
+      cameraButton.textContent = 'Kamera ile tara';
+    };
+    const scanCamera = async () => {
+      if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+        sonuc('bad', 'KAMERA DESTEKLENMİYOR', 'Bu tarayıcıda yerleşik QR tarama yok; QR okuyucuyu veya kodu elle kullan.');
+        return;
+      }
+      if (cameraStream) return stopCamera();
+      try {
+        detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        video.srcObject = cameraStream;
+        cameraArea.hidden = false;
+        cameraButton.textContent = 'Kamerayı kapat';
+        await video.play();
+        const frame = async () => {
+          if (!cameraStream) return;
+          try {
+            const codes = await detector.detect(video);
+            const value = codes.find((code) => code.rawValue)?.rawValue;
+            if (value) {
+              inp.value = value;
+              stopCamera();
+              $('#bk-kf', k).requestSubmit();
+              return;
+            }
+          } catch (_) { /* kamera okunamadı; sonraki karede tekrar dene */ }
+          cameraFrame = requestAnimationFrame(frame);
+        };
+        cameraFrame = requestAnimationFrame(frame);
+      } catch (e) {
+        stopCamera();
+        sonuc('bad', 'KAMERA AÇILAMADI', e?.name === 'NotAllowedError' ? 'Kamera izni verilmedi.' : 'Kamera kullanılamıyor; QR okuyucuyu veya kodu elle kullan.');
+      }
+    };
+    cameraButton.addEventListener('click', scanCamera);
+    window.addEventListener('pagehide', stopCamera, { once: true });
     $('#bk-kf', k).addEventListener('submit', async (e) => {
       e.preventDefault();
       const kod = kodAyikla(inp.value);
@@ -182,6 +234,17 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
       listeCiz();
     } catch (e) { k.innerHTML = `<div class="err">${esc(hataMesaji(e))}</div>`; }
   }
+  async function auditGoster(ticketId) {
+    try {
+      const r = await cagir('adminTicketAudit', { ticketId, limit: 100 });
+      const satirlar = (r.audit || []).map((x) => {
+        const at = x.createdAt ? new Date(x.createdAt).toLocaleString('tr-TR') : '—';
+        const koltuk = x.seatId ? ` · koltuk ${x.seatId}` : '';
+        return `${at} — ${x.action || 'olay'}${koltuk} — ${x.fromStatus || '—'} → ${x.toStatus || '—'} (${x.actorType || '—'})`;
+      });
+      window.alert(satirlar.length ? `Bilet geçmişi: ${ticketId}\n\n${satirlar.join('\n')}` : 'Bu bilet için audit kaydı yok.');
+    } catch (e) { bildir(hataMesaji(e), true); }
+  }
   const etkinlikAdi = (id) => {
     const e = (veri.Event || []).find((x) => x.id === id || x.docId === id);
     const s = e && (veri.Show || []).find((y) => y.id === e.showId || y.docId === e.showId);
@@ -203,7 +266,7 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
     return `<tr><td><code title="${esc(t.docId)}">${esc(t.docId.slice(0, 8))}…</code></td><td>${esc(t.showName || '—')}<br><span class="muted">${esc(t.eventDate || '')}</span></td>
           <td>${esc([].concat(t.buySeats || []).join(', '))}</td><td>${esc(t.orderPrice ?? '')}</td>
           <td><span class="tag ${sinif}">${esc(ad)}</span>${t.usedAt ? ' <span class="tag ok">Girdi</span>' : ''}</td>
-          <td><div class="acts">${aktif ? `${t.orderMethod === 'venue' && d !== 'pay_at_venue' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="pay_at_venue">Rezervasyon</button>` : ''}
+          <td><div class="acts"><button class="btn btn-ghost btn-sm" data-audit="${esc(t.docId)}">Geçmiş</button>${aktif ? `${t.orderMethod === 'venue' && d !== 'pay_at_venue' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="pay_at_venue">Rezervasyon</button>` : ''}
             ${t.orderMethod === 'venue' && d !== 'paid' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="paid">Ödendi</button>` : ''}
             ${d !== 'no_show' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="no_show">Gelmedi</button>` : ''}
             ${t.orderMethod !== 'card' ? `<button class="btn btn-ghost btn-sm" data-t="${esc(t.docId)}" data-s="cancelled">İptal</button>` : ''}` : ''}</div></td></tr>`;
@@ -230,6 +293,7 @@ export function biletKapi(m, { veri, bildir, hataMesaji }) {
         bildir('Güncellendi ✓'); listeCiz(); saglik(); if (iptalAcik) iptalCiz(true);
       } catch (e) { bildir(hataMesaji(e), true); b.disabled = false; }
     }));
+    $$('[data-audit]', k).forEach((b) => b.addEventListener('click', () => auditGoster(b.dataset.audit)));
   }
 
   kapiCiz(); satisYukle(); saglik(); biletleriYukle(); iptalCiz();

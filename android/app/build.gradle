@@ -12,18 +12,10 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-// Google Maps API anahtarı: android/local.properties içinden okunur (bu
-// dosya .gitignore'da, hiçbir zaman commit edilmez). MAPS_API_KEY satırı
-// yoksa boş bırakılır — harita anahtarsız açılmaz ama build kırılmaz.
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localProperties.load(new FileInputStream(localPropertiesFile))
-}
-def mapsApiKey = localProperties.getProperty('MAPS_API_KEY', '')
-
 android {
     namespace = "com.ferdidrgn.ticketapp"
+    // Google Play güncel hedef API şartı: Android 16 / API 36.
+    // Flutter SDK daha düşük bir varsayılan verse bile uygulama API 36 ile derlenir.
     compileSdk = Math.max(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
@@ -37,8 +29,6 @@ android {
 
         manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
         manifestPlaceholders["allowBackup"] = "false"
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
-
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
         }

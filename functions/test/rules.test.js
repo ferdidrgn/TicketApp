@@ -95,6 +95,11 @@ test('Diğer kurallar korunur: Show herkese açık okuma, yalnızca admin yazma;
   await assertSucceeds(getDoc(doc(anon(), 'Show/s1')));
   await assertFails(updateDoc(doc(as('alice'), 'Show/s1'), { name: 'y' }));
   await assertSucceeds(updateDoc(doc(as('admin1'), 'Show/s1'), { name: 'y' }));
+  // 09.11.2026 güvenlik denetimi: Show/Stage/Event silme artık admin için bile rules'da
+  // KAPALI — tek yol adminDeleteShow/Stage/Event callable'ı (bilet kontrolünü sunucuda
+  // tekrarlar). Çalıntı bir admin hesabı doğrudan Firestore'dan biletli bir kaydı silemesin.
+  await assertFails(deleteDoc(doc(as('admin1'), 'Show/s1')));
+  await assertFails(deleteDoc(doc(as('admin1'), 'Event/e1')));
   await assertFails(updateDoc(doc(as('alice'), 'User/alice'), { role: 'admin' }));
   await assertSucceeds(updateDoc(doc(as('alice'), 'User/alice'), { city: 'Ankara' }));
   await assertFails(getDoc(doc(as('bob'), 'User/alice')));

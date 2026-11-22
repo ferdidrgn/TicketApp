@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_motion.dart';
@@ -10,6 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/gallery_section.dart';
+import '../../../../shared/widgets/map/stage_map.dart';
 import '../../../../shared/widgets/sahne/sahne_kit.dart';
 import '../../../../shared/widgets/sahne/sketch.dart';
 import '../../../../shared/widgets/ticket/ticket_kit.dart';
@@ -236,8 +236,7 @@ class _StageTicket extends StatelessWidget {
             duration:
                 reduce ? Duration.zero : const Duration(milliseconds: 1100),
             curve: Curves.easeOutCubic,
-            builder: (_, final v, __) =>
-                TicketField(label: label, value: '$v'),
+            builder: (_, final v, __) => TicketField(label: label, value: '$v'),
           ),
         );
 
@@ -370,7 +369,7 @@ void _openDirections(final Stage stage) {
   }
   final String name = stage.name.trim();
   final String address = stage.address.trim();
-  TiyatrolCommunicationActions.openAddressOnGoogleMaps(
+  TiyatrolCommunicationActions.openAddressOnMap(
       address.isEmpty ? name : '$name, $address');
 }
 
@@ -415,8 +414,9 @@ class _SessionsTableState extends State<_SessionsTable> {
                       ? Icons.expand_less_rounded
                       : Icons.expand_more_rounded,
                   size: 20),
-              label:
-                  Text(_expanded ? 'Daha az göster' : 'Tüm seansları göster ($total)'),
+              label: Text(_expanded
+                  ? 'Daha az göster'
+                  : 'Tüm seansları göster ($total)'),
             ),
           ),
       ],
@@ -447,26 +447,24 @@ class _SessionRowState extends State<_SessionRow> {
       width: 64,
       child: Column(children: [
         Text('${d.day}',
-            style: Sk.display(context, size: 38, height: 1.0, color: cs.primary)),
+            style:
+                Sk.display(context, size: 38, height: 1.0, color: cs.primary)),
         Text(kMonthsTr[d.month - 1],
             style: Sk.ui(context,
                 size: 13, color: cs.onSurfaceVariant, weight: FontWeight.w700)),
       ]),
     );
-    final Widget info = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(show.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Sk.ui(context, size: 17, weight: FontWeight.w800)),
-          const SizedBox(height: 3),
-          Text('${kDaysTr[d.weekday - 1]} · ${skClock(d)}',
-              style: Sk.ui(context,
-                  size: 14,
-                  color: cs.onSurfaceVariant,
-                  weight: FontWeight.w600)),
-        ]);
+    final Widget info =
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(show.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Sk.ui(context, size: 17, weight: FontWeight.w800)),
+      const SizedBox(height: 3),
+      Text('${kDaysTr[d.weekday - 1]} · ${skClock(d)}',
+          style: Sk.ui(context,
+              size: 14, color: cs.onSurfaceVariant, weight: FontWeight.w600)),
+    ]);
     final Widget cta = Row(mainAxisSize: MainAxisSize.min, children: [
       if (price.isNotEmpty)
         Text(price, style: Sk.display(context, size: 22, height: 1.0)),
@@ -573,7 +571,8 @@ class _StageLocation extends StatelessWidget {
     final String contact = stage.communication.trim();
     final String? phone = _phone;
     final bool hasMap = _hasCoordinates(stage);
-    final bool canDirect = hasMap || address.isNotEmpty || stage.name.isNotEmpty;
+    final bool canDirect =
+        hasMap || address.isNotEmpty || stage.name.isNotEmpty;
 
     final List<Widget> rows = [
       if (address.isNotEmpty || canDirect)
@@ -619,23 +618,10 @@ class _StageLocation extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(stage.locationLat, stage.locationLng),
-                      zoom: 15,
-                    ),
-                    markers: {
-                      Marker(
-                        markerId: const MarkerId('stage'),
-                        position:
-                            LatLng(stage.locationLat, stage.locationLng),
-                      ),
-                    },
-                    zoomControlsEnabled: false,
-                    scrollGesturesEnabled: false,
-                    zoomGesturesEnabled: false,
-                    rotateGesturesEnabled: false,
-                    tiltGesturesEnabled: false,
+                  child: StageMap(
+                    latitude: stage.locationLat,
+                    longitude: stage.locationLng,
+                    stageName: stage.name,
                   ),
                 ),
               ),

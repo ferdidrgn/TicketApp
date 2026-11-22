@@ -15,6 +15,8 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/admin_test_entry.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../team/presentation/pages/team_manager_page.dart';
+import '../../../team/presentation/providers/team_providers.dart';
 import '../providers/app_version_provider.dart';
 import '../widgets/announcement_switch_row.dart';
 import '../widgets/preference_widgets.dart';
@@ -105,6 +107,8 @@ class AppSettingsPage extends ConsumerWidget {
               ..._share(context),
               const SizedBox(height: AppSpacing.huge),
               ..._support(context),
+              const SizedBox(height: AppSpacing.huge),
+              ..._teamManager(context, ref),
               const SizedBox(height: AppSpacing.huge),
               ..._motion(context),
               const SizedBox(height: AppSpacing.huge),
@@ -235,6 +239,42 @@ class AppSettingsPage extends ConsumerWidget {
         ),
       ];
 
+  /// Kendi topluluğu için ekip yöneticisi (`TeamManager` belgesi aktif)
+  /// olan hesaplara görünür — admin/küratör rolünden bağımsız, gizli bir
+  /// jest değil (ekip yöneticileri bunu kolayca bulabilmeli). Gerçek yetki
+  /// sınırı yine sunucuda (`assertCanManageEvent`/`assertCanManageShow`).
+  List<Widget> _teamManager(final BuildContext context, final WidgetRef ref) {
+    final teams = ref.watch(myManagedTeamsProvider).value ?? const [];
+    if (teams.isEmpty) return const [];
+    return [
+      PreferenceSectionTitle(
+        prefText(context, 'Ekip yöneticisi', 'Team manager'),
+        caption: prefText(
+          context,
+          'Kendi topluluğunun seanslarını yönet.',
+          "Manage your own team's sessions.",
+        ),
+      ),
+      PreferenceGroup(
+        children: [
+          PreferenceRow(
+            icon: Icons.groups_2_rounded,
+            title: prefText(context, 'Ekip paneli', 'Team panel'),
+            subtitle: prefText(
+              context,
+              'Bildirim gönder, özet gör.',
+              'Send notifications, view summary.',
+            ),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TeamManagerPage()),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
   List<Widget> _motion(final BuildContext context) => [
         PreferenceSectionTitle(
           prefText(context, 'Hareket', 'Motion'),
@@ -355,6 +395,8 @@ class AppSettingsPage extends ConsumerWidget {
                                 ..._share(context),
                                 const SizedBox(height: AppSpacing.huge),
                                 ..._support(context),
+                                const SizedBox(height: AppSpacing.huge),
+                                ..._teamManager(context, ref),
                                 const SizedBox(height: AppSpacing.huge),
                                 ..._motion(context),
                               ],

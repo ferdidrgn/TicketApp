@@ -70,6 +70,7 @@ function sayfa(sablon, { baslik, aciklama, adres, gorsel, govde, jsonld }) {
   let h = sablon;
   h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(baslik)}</title>`);
   h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${esc(kisalt(aciklama))}">`);
+  h = h.replace('</head>', '<meta name="google-adsense-account" content="ca-pub-5779807348211992">\n</head>');
   h = h.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${esc(baslik)}">`);
   h = h.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${esc(gorsel || SITE + '/img/logo.png')}">`);
   const ek = `<link rel="canonical" href="${SITE}${adres}">\n<meta property="og:url" content="${SITE}${adres}">\n<meta property="og:locale" content="tr_TR">\n<meta name="twitter:card" content="summary_large_image">` + (jsonld ? `\n<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : '');
@@ -208,6 +209,11 @@ for (const [il, mp] of ilShows) {
 
 // sitemap + robots
 const bugun = new Date().toISOString().slice(0, 10);
-await writeFile(join(CIKTI, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${adresler.map((a) => `  <url><loc>${SITE}${esc(a.u)}</loc><lastmod>${bugun}</lastmod><priority>${a.p}</priority></url>`).join('\n')}\n</urlset>\n`, 'utf8');
+const sonGuncelleme = (v) => {
+  if (!v) return bugun;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? bugun : d.toISOString().slice(0, 10);
+};
+await writeFile(join(CIKTI, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${adresler.map((a) => `  <url><loc>${SITE}${esc(a.u)}</loc><lastmod>${sonGuncelleme(a.son)}</lastmod><priority>${a.p}</priority></url>`).join('\n')}\n</urlset>\n`, 'utf8');
 await writeFile(join(CIKTI, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /yonetim\nDisallow: /ekip\nDisallow: /*?q=\nDisallow: /*?al=\nDisallow: /ayarlar\nDisallow: /koltuk\nDisallow: /odeme-sonuc\nDisallow: /biletlerim\nDisallow: /pasaport\nDisallow: /plan\n\nSitemap: ${SITE}/sitemap.xml\n`, 'utf8');
 console.log(`Bitti: ${adresler.length} sayfa → ${CIKTI}`);

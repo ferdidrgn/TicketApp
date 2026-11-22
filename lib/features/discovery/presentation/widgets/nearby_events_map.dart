@@ -1,27 +1,23 @@
-import 'dart:math' as math;
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/map/tiyatrol_map.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../providers/location_provider.dart';
 import '../providers/nearby_events_provider.dart';
-import 'dark_map_style.dart';
 
-/// Yakındakiler haritası — stil asset, zoom, tam ekran, yeniden ortala.
+/// Anahtar gerektirmeyen OpenStreetMap tabanlı Yakınımdakiler haritası.
 class NearbyEventsMap extends ConsumerStatefulWidget {
   final double? height;
   final Stage? focusedStage;
   final ValueChanged<NearbyPin>? onPinTap;
-  /// Tam ekran sheet içindeyken büyüt butonu gizlenir (iç içe sheet yok).
   final bool expandable;
 
   const NearbyEventsMap({
@@ -37,251 +33,136 @@ class NearbyEventsMap extends ConsumerStatefulWidget {
 }
 
 class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
-  GoogleMapController? _controller;
+  final MapController _controller = MapController();
   String? _fittedForKey;
-  bool _disposed = false;
-  String? _style;
+  NearbyPin? _selectedPin;
+  bool _ready = false;
 
-  @override
-  void initState() {
-    super.initState();
-    loadDarkMapStyle().then((final s) {
-      if (mounted) setState(() => _style = s);
-    });
-  }
+  bool _valid(final double lat, final double lng) =>
+      !(lat == 0 && lng == 0) && lat.abs() <= 90 && lng.abs() <= 180;
 
   @override
   void didUpdateWidget(covariant final NearbyEventsMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final Stage? stage = widget.focusedStage;
-    if (stage == null || stage.id == oldWidget.focusedStage?.id) return;
-    if (!_hasCoords(stage.locationLat, stage.locationLng)) return;
-    _safeCamera(() async {
-      final GoogleMapController? c = _controller;
-      if (c == null) return;
-      await c.animateCamera(CameraUpdate.newLatLngZoom(
-          LatLng(stage.locationLat, stage.locationLng), 14));
-      try {
-        await c.showMarkerInfoWindow(MarkerId('stage-${stage.id}'));
-      } catch (_) {}
-    });
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    final GoogleMapController? c = _controller;
-    _controller = null;
-    c?.dispose();
-    super.dispose();
-  }
-
-  bool _hasCoords(final double lat, final double lng) =>
-      !(lat == 0 && lng == 0) && lat.abs() <= 90 && lng.abs() <= 180;
-
-  Future<void> _safeCamera(final Future<void> Function() fn) async {
-    try {
-      await fn();
-    } catch (e, st) {
-      debugPrint('NearbyEventsMap camera: $e\n$st');
+    final stage = widget.focusedStage;
+    if (!_ready || stage == null || stage.id == oldWidget.focusedStage?.id) {
+      return;
+    }
+    if (_valid(stage.locationLat, stage.locationLng)) {
+      _controller.move(LatLng(stage.locationLat, stage.locationLng), 14);
     }
   }
 
-  void _fit(final NearbyOverview o, {final bool force = false}) {
-    final GoogleMapController? controller = _controller;
-    final String key =
-        '${o.position.latitude},${o.position.longitude}|${o.pins.length}|${o.softRadiusKm}';
-    if (controller == null || _disposed) return;
-    if (!force && _fittedForKey == key) return;
+  void _fit(final NearbyOverview overview, {final bool force = false}) {
+    final key =
+        '${overview.position.latitude},${overview.position.longitude}|${overview.pins.length}|${overview.softRadiusKm}';
+    if (!_ready || (!force && _fittedForKey == key)) {
+      return;
+    }
     _fittedForKey = key;
-
-    final LatLng me = LatLng(o.position.latitude, o.position.longitude);
     final points = <LatLng>[
-      me,
-      for (final p in o.pins)
-        if (_hasCoords(p.stage.locationLat, p.stage.locationLng))
-          LatLng(p.stage.locationLat, p.stage.locationLng),
+      LatLng(overview.position.latitude, overview.position.longitude),
+      for (final pin in overview.pins)
+        if (_valid(pin.stage.locationLat, pin.stage.locationLng))
+          LatLng(pin.stage.locationLat, pin.stage.locationLng),
     ];
+    if (points.length == 1) {
+      _controller.move(points.first, 11);
+    } else {
+      _controller.fitCamera(CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(points),
+        padding: const EdgeInsets.all(56),
+        maxZoom: 14,
+      ));
+    }
+  }
 
-    _safeCamera(() async {
-      if (_disposed || _controller == null) return;
-      if (points.length < 2) {
-        await _controller!.moveCamera(CameraUpdate.newLatLngZoom(me, 11));
-        return;
-      }
-      double s = points.first.latitude, n = s;
-      double w = points.first.longitude, e = w;
-      for (final p in points) {
-        s = math.min(s, p.latitude);
-        n = math.max(n, p.latitude);
-        w = math.min(w, p.longitude);
-        e = math.max(e, p.longitude);
-      }
-      const double pad = 0.04;
-      if ((n - s).abs() < pad) {
-        s -= pad;
-        n += pad;
-      }
-      if ((e - w).abs() < pad) {
-        w -= pad;
-        e += pad;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 80));
-      if (_disposed || _controller == null) return;
-      await _controller!.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(s, w),
-            northeast: LatLng(n, e),
-          ),
-          56,
+  void _zoom(final double delta) {
+    if (!_ready) {
+      return;
+    }
+    final camera = _controller.camera;
+    _controller.move(camera.center, (camera.zoom + delta).clamp(3, 18));
+  }
+
+  void _select(final NearbyPin pin) {
+    setState(() => _selectedPin = pin);
+    _controller.move(
+      LatLng(pin.stage.locationLat, pin.stage.locationLng),
+      _controller.camera.zoom.clamp(11, 16),
+    );
+    widget.onPinTap?.call(pin);
+  }
+
+  void _openShow(final NearbyPin pin) {
+    final show = pin.externalShow ??
+        (pin.entries.length == 1 ? pin.entries.first.show : null);
+    if (show == null) {
+      return;
+    }
+    NavigationHandler.goToShow(context, show.id, show.name,
+        imageUrl: show.imageUrl, title: show.name);
+  }
+
+  void _expand() => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (final context) => _ExpandedMapSheet(
+          focusedStage: widget.focusedStage,
+          onPinTap: widget.onPinTap,
         ),
       );
-    });
-  }
-
-  Future<void> _zoomBy(final double delta) async {
-    final GoogleMapController? c = _controller;
-    if (c == null) return;
-    await _safeCamera(() async {
-      final double z = await c.getZoomLevel();
-      await c.animateCamera(CameraUpdate.zoomTo((z + delta).clamp(3, 18)));
-    });
-  }
-
-  void _openExpanded() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (final ctx) => _ExpandedMapSheet(
-        focusedStage: widget.focusedStage,
-        onPinTap: widget.onPinTap,
-      ),
-    );
-  }
-
-  Set<Factory<OneSequenceGestureRecognizer>> get _gestures =>
-      <Factory<OneSequenceGestureRecognizer>>{
-        Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-      };
 
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final posAsync = ref.watch(devicePositionProvider);
-    final overviewState = ref.watch(nearbyOverviewProvider);
-    final String? style =
-        Theme.of(context).brightness == Brightness.dark
-            ? (_style ?? kDarkMapStyleFallback)
-            : null;
-
-    final Widget body = posAsync.when(
-        loading: () => const _StatusPane(
-          icon: Icons.my_location_rounded,
-          label: 'Konumun alınıyor…',
-          hint: 'Konum izni açıksa kısa sürede burada görünür.',
-        ),
-        error: (final err, final _) => _StatusPane(
-          icon: Icons.location_off_rounded,
-          label: err is LocationFailure
-              ? 'Konum gerekli'
-              : 'Konum alınamadı',
-          hint: err is LocationFailure
-              ? err.message
-              : 'Konum iznini kontrol edip tekrar dene.',
-        ),
-        data: (final pos) {
-          // Konum hazır; sahneler hâlâ geliyor olabilir.
-          if (overviewState.isLoading && !overviewState.hasValue) {
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                GoogleMap(
-                  style: style,
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(pos.latitude, pos.longitude),
-                    zoom: 12,
-                  ),
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('device-position'),
-                      position: LatLng(pos.latitude, pos.longitude),
-                      infoWindow: const InfoWindow(title: 'Konumun'),
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueAzure),
-                    ),
-                  },
-                  myLocationEnabled: false,
-                  zoomControlsEnabled: false,
-                  gestureRecognizers: _gestures,
-                  onMapCreated: (final c) {
-                    if (_disposed) {
-                      c.dispose();
-                      return;
-                    }
-                    _controller = c;
-                  },
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Material(
-                    color: cs.surface.withValues(alpha: 0.92),
-                    child: const Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: Text(
-                        'Sahneler yükleniyor…',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          if (overviewState.hasError && !overviewState.hasValue) {
-            return _StatusPane(
-              icon: Icons.cloud_off_rounded,
-              label: 'Seanslar yüklenemedi',
-              hint: 'İnterneti kontrol edip sayfayı yenile.',
-            );
-          }
-
-          final NearbyOverview? o = overviewState.value;
-          if (o == null) {
-            return _StatusPane(
-              icon: Icons.map_outlined,
-              label: 'Harita hazırlanıyor',
-            );
-          }
-
-          return _MapBody(
-            overview: o,
-            focusedStage: widget.focusedStage,
-            style: style,
-            gestureRecognizers: _gestures,
-            expandable: widget.expandable,
-            onMapCreated: (final c) {
-              if (_disposed) {
-                c.dispose();
-                return;
-              }
-              _controller = c;
-              _fit(o);
-            },
-            onPinTap: widget.onPinTap,
-            onExpand: _openExpanded,
-            onRecenter: () => _fit(o, force: true),
-            onZoomIn: () => _zoomBy(1),
-            onZoomOut: () => _zoomBy(-1),
+    final position = ref.watch(devicePositionProvider);
+    final overview = ref.watch(nearbyOverviewProvider);
+    final body = position.when(
+      loading: () => const _StatusPane(
+        icon: Icons.my_location_rounded,
+        label: 'Konumun alınıyor…',
+        hint: 'Konum izni açıksa kısa sürede burada görünür.',
+      ),
+      error: (final error, final _) => _StatusPane(
+        icon: Icons.location_off_rounded,
+        label: error is LocationFailure ? 'Konum gerekli' : 'Konum alınamadı',
+        hint: error is LocationFailure
+            ? error.message
+            : 'Konum iznini kontrol edip tekrar dene.',
+      ),
+      data: (final current) {
+        if (overview.isLoading && !overview.hasValue) {
+          final point = LatLng(current.latitude, current.longitude);
+          return Stack(fit: StackFit.expand, children: [
+            TiyatrolMap(
+              center: point,
+              zoom: 12,
+              markers: [_deviceMarker(context, point)],
+            ),
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: TiyatrolMapLoadingBar(label: 'Sahneler yükleniyor…'),
+            ),
+          ]);
+        }
+        if (overview.hasError && !overview.hasValue) {
+          return const _StatusPane(
+            icon: Icons.cloud_off_rounded,
+            label: 'Seanslar yüklenemedi',
+            hint: 'İnterneti kontrol edip sayfayı yenile.',
           );
-        },
-      );
+        }
+        final data = overview.value;
+        return data == null
+            ? const _StatusPane(
+                icon: Icons.map_outlined, label: 'Harita hazırlanıyor')
+            : _map(context, data);
+      },
+    );
 
     return Container(
       height: widget.height,
@@ -295,6 +176,178 @@ class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
       child: body,
     );
   }
+
+  Widget _map(final BuildContext context, final NearbyOverview data) {
+    final cs = Theme.of(context).colorScheme;
+    final me = LatLng(data.position.latitude, data.position.longitude);
+    final focusedId = widget.focusedStage?.id;
+    return Stack(children: [
+      TiyatrolMap(
+        controller: _controller,
+        center: me,
+        zoom: 11,
+        options: MapOptions(
+          initialCenter: me,
+          initialZoom: 11,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+          ),
+          onMapReady: () {
+            _ready = true;
+            _fit(data);
+          },
+        ),
+        circles: [
+          CircleMarker(
+            point: me,
+            radius: data.softRadiusMeters,
+            useRadiusInMeter: true,
+            color: cs.primary.withValues(alpha: 0.08),
+            borderColor: cs.primary.withValues(alpha: 0.7),
+            borderStrokeWidth: 2,
+          ),
+        ],
+        markers: [
+          _deviceMarker(context, me),
+          for (final pin in data.pins)
+            if (_valid(pin.stage.locationLat, pin.stage.locationLng))
+              Marker(
+                point: LatLng(pin.stage.locationLat, pin.stage.locationLng),
+                width: 52,
+                height: 52,
+                child: TiyatrolMapPin(
+                  semanticsLabel: '${pin.stage.name}, ${_summary(pin)}',
+                  color: pin.stage.id == focusedId || _selectedPin == pin
+                      ? cs.tertiary
+                      : pin.isApproximate
+                          ? cs.secondary
+                          : pin.inside
+                              ? cs.primary
+                              : cs.onSurfaceVariant,
+                  selected: pin.stage.id == focusedId || _selectedPin == pin,
+                  onTap: () => _select(pin),
+                ),
+              ),
+        ],
+      ),
+      Positioned(
+        left: AppSpacing.sm,
+        top: AppSpacing.sm,
+        child: _Legend(
+          city: data.metro.name,
+          softKm: data.softRadiusKm,
+          inside: data.inside.length,
+          outside: data.outside.length,
+        ),
+      ),
+      Positioned(
+        right: AppSpacing.sm,
+        top: AppSpacing.sm,
+        child: Column(children: [
+          if (widget.expandable) ...[
+            _MapFab(
+                icon: Icons.open_in_full_rounded,
+                label: 'Haritayı büyüt',
+                onTap: _expand),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          _MapFab(
+              icon: Icons.add_rounded,
+              label: 'Yakınlaştır',
+              onTap: () => _zoom(1)),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+              icon: Icons.remove_rounded,
+              label: 'Uzaklaştır',
+              onTap: () => _zoom(-1)),
+          const SizedBox(height: AppSpacing.sm),
+          _MapFab(
+              icon: Icons.my_location_rounded,
+              label: 'Konumuma dön',
+              onTap: () => _fit(data, force: true)),
+        ]),
+      ),
+      if (_selectedPin case final pin?)
+        Positioned(
+          left: AppSpacing.sm,
+          right: AppSpacing.sm,
+          // OSM lisans atfını hiçbir durumda kartın altında bırakma.
+          bottom: AppSpacing.massive,
+          child: _PinCard(
+            pin: pin,
+            onOpen: pin.externalShow != null || pin.entries.length == 1
+                ? () => _openShow(pin)
+                : null,
+            onClose: () => setState(() => _selectedPin = null),
+          ),
+        ),
+    ]);
+  }
+
+  Marker _deviceMarker(final BuildContext context, final LatLng point) =>
+      Marker(
+        point: point,
+        width: 48,
+        height: 48,
+        child: TiyatrolMapPin(
+          color: Theme.of(context).colorScheme.primary,
+          icon: Icons.my_location_rounded,
+          semanticsLabel: 'Konumun',
+        ),
+      );
+
+  String _summary(final NearbyPin pin) =>
+      '${pin.distanceKm.toStringAsFixed(pin.distanceKm < 10 ? 1 : 0)} kilometre, '
+      '${pin.entries.isEmpty ? 'harici oyun' : '${pin.entries.length} seans'}';
+}
+
+class _PinCard extends StatelessWidget {
+  final NearbyPin pin;
+  final VoidCallback? onOpen;
+  final VoidCallback onClose;
+  const _PinCard(
+      {required this.pin, required this.onOpen, required this.onClose});
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surface,
+      elevation: 4,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Row(children: [
+          Icon(Icons.theater_comedy_rounded, color: cs.primary),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(pin.stage.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(
+                '${pin.distanceKm.toStringAsFixed(pin.distanceKm < 10 ? 1 : 0)} km · ${pin.entries.isEmpty ? 'Harici oyun' : '${pin.entries.length} seans'}',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+              ),
+            ],
+          )),
+          if (onOpen != null)
+            IconButton(
+                tooltip: 'Oyunu aç',
+                onPressed: onOpen,
+                icon: const Icon(Icons.arrow_forward_rounded)),
+          IconButton(
+              tooltip: 'Kapat',
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded)),
+        ]),
+      ),
+    );
+  }
 }
 
 class _StatusPane extends StatelessWidget {
@@ -306,223 +359,45 @@ class _StatusPane extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ShimmerLoading(
-            width: double.infinity, height: double.infinity, borderRadius: 0),
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 22, color: cs.onSurfaceVariant),
-              const SizedBox(height: AppSpacing.sm),
-              Text(label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-              if (hint != null) ...[
-                const SizedBox(height: 6),
-                Text(hint!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        height: 1.35)),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MapBody extends StatelessWidget {
-  final NearbyOverview overview;
-  final Stage? focusedStage;
-  final String? style;
-  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
-  final bool expandable;
-  final MapCreatedCallback onMapCreated;
-  final ValueChanged<NearbyPin>? onPinTap;
-  final VoidCallback onExpand;
-  final VoidCallback onRecenter;
-  final VoidCallback onZoomIn;
-  final VoidCallback onZoomOut;
-
-  const _MapBody({
-    required this.overview,
-    required this.focusedStage,
-    required this.style,
-    required this.gestureRecognizers,
-    required this.expandable,
-    required this.onMapCreated,
-    required this.onPinTap,
-    required this.onExpand,
-    required this.onRecenter,
-    required this.onZoomIn,
-    required this.onZoomOut,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final o = overview;
-    final LatLng me = LatLng(o.position.latitude, o.position.longitude);
-    final String? focusedId = focusedStage?.id;
-    final markers = <Marker>{
-      Marker(
-        markerId: const MarkerId('device-position'),
-        position: me,
-        infoWindow: const InfoWindow(title: 'Konumun'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+    return Stack(fit: StackFit.expand, children: [
+      const ShimmerLoading(
+          width: double.infinity, height: double.infinity, borderRadius: 0),
+      Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 22, color: cs.onSurfaceVariant),
+          const SizedBox(height: AppSpacing.sm),
+          Text(label,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          if (hint != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(hint!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: cs.onSurfaceVariant, fontSize: 12, height: 1.35)),
+          ],
+        ]),
       ),
-      for (final p in o.pins)
-        if (!(p.stage.locationLat == 0 && p.stage.locationLng == 0))
-          Marker(
-            markerId: MarkerId('stage-${p.stage.id}'),
-            position: LatLng(p.stage.locationLat, p.stage.locationLng),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              p.stage.id == focusedId
-                  ? BitmapDescriptor.hueYellow
-                  : (p.isApproximate
-                      ? BitmapDescriptor.hueOrange
-                      : (p.inside
-                          ? BitmapDescriptor.hueRed
-                          : BitmapDescriptor.hueViolet)),
-            ),
-            infoWindow: InfoWindow(
-              title: p.stage.name,
-              snippet: p.isExternalOnly
-                  ? 'Harici · ${p.cityLabel ?? 'şehir'} · ${p.distanceKm.toStringAsFixed(p.distanceKm < 10 ? 1 : 0)} km'
-                  : '${p.isApproximate ? 'Yaklaşık · ' : ''}${p.distanceKm.toStringAsFixed(p.distanceKm < 10 ? 1 : 0)} km · '
-                      '${p.entries.length == 1 ? p.entries.first.show.name : '${p.entries.length} seans'}',
-            ),
-            onTap: () {
-              if (onPinTap != null) {
-                onPinTap!(p);
-              } else if (p.externalShow != null) {
-                final show = p.externalShow!;
-                NavigationHandler.goToShow(context, show.id, show.name,
-                    imageUrl: show.imageUrl, title: show.name);
-              } else if (p.entries.length == 1) {
-                final show = p.entries.first.show;
-                NavigationHandler.goToShow(context, show.id, show.name,
-                    imageUrl: show.imageUrl, title: show.name);
-              }
-            },
-          ),
-    };
-
-    return Stack(
-      children: [
-        GoogleMap(
-          style: style,
-          initialCameraPosition: CameraPosition(target: me, zoom: 11),
-          markers: markers,
-          circles: {
-            Circle(
-              circleId: const CircleId('soft-radius'),
-              center: me,
-              radius: o.softRadiusMeters,
-              strokeWidth: 2,
-              strokeColor: cs.primary.withValues(alpha: 0.7),
-              fillColor: cs.primary.withValues(alpha: 0.08),
-            ),
-          },
-          myLocationEnabled: false,
-          myLocationButtonEnabled: false,
-          zoomControlsEnabled: false,
-          compassEnabled: true,
-          mapToolbarEnabled: false,
-          zoomGesturesEnabled: true,
-          scrollGesturesEnabled: true,
-          rotateGesturesEnabled: true,
-          tiltGesturesEnabled: false,
-          gestureRecognizers: gestureRecognizers,
-          onMapCreated: onMapCreated,
-        ),
-        Positioned(
-          left: AppSpacing.sm,
-          top: AppSpacing.sm,
-          child: _Legend(
-            city: o.metro.name,
-            softKm: o.softRadiusKm,
-            inside: o.inside.length,
-            outside: o.outside.length,
-          ),
-        ),
-        Positioned(
-          right: AppSpacing.sm,
-          top: AppSpacing.sm,
-          child: Column(
-            children: [
-              if (expandable) ...[
-                _MapFab(
-                  icon: Icons.open_in_full_rounded,
-                  tooltip: 'Haritayı büyüt',
-                  onTap: onExpand,
-                ),
-                const SizedBox(height: 8),
-              ],
-              _MapFab(
-                icon: Icons.add_rounded,
-                tooltip: 'Yakınlaştır',
-                onTap: onZoomIn,
-              ),
-              const SizedBox(height: 8),
-              _MapFab(
-                icon: Icons.remove_rounded,
-                tooltip: 'Uzaklaştır',
-                onTap: onZoomOut,
-              ),
-              const SizedBox(height: 8),
-              _MapFab(
-                icon: Icons.my_location_rounded,
-                tooltip: 'Konumuma dön',
-                onTap: onRecenter,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+    ]);
   }
 }
 
 class _MapFab extends StatelessWidget {
   final IconData icon;
-  final String tooltip;
+  final String label;
   final VoidCallback onTap;
-  const _MapFab(
-      {required this.icon, required this.tooltip, required this.onTap});
+  const _MapFab({required this.icon, required this.label, required this.onTap});
 
   @override
-  Widget build(final BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: cs.surface.withValues(alpha: 0.94),
-      elevation: 2,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Tooltip(
-          message: tooltip,
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(icon, size: 20, color: cs.onSurface),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => Material(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.94),
+        elevation: 2,
+        shape: const CircleBorder(),
+        child: IconButton(
+            tooltip: label, onPressed: onTap, icon: Icon(icon, size: 20)),
+      );
 }
 
 class _Legend extends StatelessWidget {
@@ -530,127 +405,87 @@ class _Legend extends StatelessWidget {
   final int softKm;
   final int inside;
   final int outside;
-  const _Legend({
-    required this.city,
-    required this.softKm,
-    required this.inside,
-    required this.outside,
-  });
+  const _Legend(
+      {required this.city,
+      required this.softKm,
+      required this.inside,
+      required this.outside});
 
   @override
   Widget build(final BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    Widget dot(final Color c) => Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-        );
     final style = TextStyle(
         color: cs.onSurface, fontSize: 11.5, fontWeight: FontWeight.w700);
-    final String cityLabel = city == 'Türkiye' ? 'Bölge' : city;
+    Widget item(final Color color, final String label) =>
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: AppSpacing.xs),
+          Text(label, style: style),
+        ]);
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm + 2, vertical: AppSpacing.xs + 2),
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: cs.surface.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: cs.outlineVariant),
       ),
       child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: AppSpacing.sm,
-        runSpacing: 4,
-        children: [
-          Text(cityLabel, style: style.copyWith(color: cs.primary)),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              dot(const Color(0xFFE53935)),
-              const SizedBox(width: 4),
-              Text('$softKm km ($inside)', style: style),
-            ],
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              dot(const Color(0xFF8E24AA)),
-              const SizedBox(width: 4),
-              Text('Uzak ($outside)', style: style),
-            ],
-          ),
-        ],
-      ),
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(city == 'Türkiye' ? 'Bölge' : city,
+                style: style.copyWith(color: cs.primary)),
+            item(cs.primary, '$softKm km ($inside)'),
+            item(cs.onSurfaceVariant, 'Uzak ($outside)'),
+          ]),
     );
   }
 }
 
-/// Tam ekrana yakın büyütülmüş harita (bottom sheet).
 class _ExpandedMapSheet extends StatelessWidget {
   final Stage? focusedStage;
   final ValueChanged<NearbyPin>? onPinTap;
-
-  const _ExpandedMapSheet({
-    required this.focusedStage,
-    required this.onPinTap,
-  });
+  const _ExpandedMapSheet({required this.focusedStage, required this.onPinTap});
 
   @override
-  Widget build(final BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final double h = MediaQuery.sizeOf(context).height * 0.92;
-    return Container(
-      height: h,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: cs.outlineVariant,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
+  Widget build(final BuildContext context) => Container(
+        height: MediaQuery.sizeOf(context).height * 0.92,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        ),
+        child: Column(children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Yakınımdakiler haritası',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ),
-                IconButton(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm),
+            child: Row(children: [
+              const Expanded(
+                  child: Text('Yakınımdakiler haritası',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w800))),
+              IconButton(
                   tooltip: 'Kapat',
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
+                  icon: const Icon(Icons.close_rounded)),
+            ]),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: NearbyEventsMap(
+              child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
+            child: NearbyEventsMap(
                 height: null,
                 expandable: false,
                 focusedStage: focusedStage,
-                onPinTap: onPinTap,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+                onPinTap: onPinTap),
+          )),
+        ]),
+      );
 }

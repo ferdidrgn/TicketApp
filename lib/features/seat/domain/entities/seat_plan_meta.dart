@@ -2,8 +2,9 @@ import 'package:equatable/equatable.dart';
 
 /// `Seats/{stageId}` dökümanının meta verisi — koltuk DÜZENİNİ değil, hangi
 /// sahneye ait olduğunu ve ne zaman oluşturulup güncellendiğini taşır.
-/// Diğer koleksiyonlarla (Stage/Show/Event/Ticket) aynı `_id`/`_createdAt`/
-/// `_updatedAt` sözleşmesi; bkz. firestore.rules `match /Seats/{stageId}`.
+/// Diğer koleksiyonlarla aynı kimlik, adres, audit zamanı ve schemaVersion
+/// sözleşmesinin mobilde kullanılan görünümüdür; bkz. firestore.rules
+/// `match /Seats/{stageId}`.
 class SeatPlanMeta extends Equatable {
   final String stageId;
   final String stageName;
