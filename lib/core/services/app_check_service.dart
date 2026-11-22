@@ -19,12 +19,12 @@ abstract final class AppCheckService {
       // Yeni: providerAndroid: AndroidProvider.playIntegrity   <-- DOĞRUSU BU
 
       providerAndroid: kReleaseMode
-          ? AndroidProvider.playIntegrity // Play Store (Release)
-          : AndroidProvider.debug, // Bilgisayar (Debug)
+          ? const AndroidPlayIntegrityProvider() // Play Store (Release)
+          : const AndroidDebugProvider(), // Bilgisayar (Debug)
 
       providerApple: kReleaseMode
-          ? AppleProvider.deviceCheck // iOS Release
-          : AppleProvider.debug, // iOS Debug
+          ? const AppleDeviceCheckProvider() // iOS Release
+          : const AppleDebugProvider(), // iOS Debug
     );
   }
 }
