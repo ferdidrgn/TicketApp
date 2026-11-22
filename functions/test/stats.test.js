@@ -141,11 +141,16 @@ test('adminStats: KPI, oyun tablosu, doluluk, mekân, trend ve dönüşüm değe
   for (let i = 0; i < 2; i++) await tv.trackView(req({ ip: `10.0.1.${i}`, body: { k: 'show', id: 'B' } }));
   await db.collection('Stage').doc('S1').set({ name: 'Sahne Bir' });
   await tv.trackView(req({ ip: '10.0.2.1', body: { k: 'stage', id: 'S1' } }));
+  // 09.11.2026 QA bulgusu: topPlayers/topTeams boş Map ile çağrılıp ham doküman ID'si gösteriyordu.
+  await db.collection('Player').doc('p1').set({ firstName: 'Ayşe', lastName: 'Kaya' });
+  await db.collection('Team').doc('t1').set({ name: 'Tiyatro Kafa' });
+  await tv.trackView(req({ ip: '10.0.3.1', body: { k: 'player', id: 'p1' } }));
+  await tv.trackView(req({ ip: '10.0.3.2', body: { k: 'team', id: 't1' } }));
 
   const r = await s.adminStats(assertAdmin, admin, {});
   assert.equal(r.month, monthKey(Date.now()));
   const k = r.kpi;
-  assert.equal(k.viewsMonth, 8); assert.equal(k.showViewsMonth, 7);
+  assert.equal(k.viewsMonth, 10); assert.equal(k.showViewsMonth, 7); // +2: player/team görüntülenmeleri de toplam sayaca girer
   assert.equal(k.reservations.total, 3); // pay_at_venue, paid, no_show (iptal hariç)
   assert.equal(k.freeTickets.total, 1);
   assert.equal(k.ticketsAllTime, 6); assert.equal(k.cancelled, 2); assert.equal(k.ticketsActiveTotal, 4);
@@ -163,10 +168,12 @@ test('adminStats: KPI, oyun tablosu, doluluk, mekân, trend ve dönüşüm değe
   assert.equal(e1.seatsSold, 6); assert.equal(e1.seatsHeld, 1); assert.equal(e1.seatsTotal, 10); assert.equal(e1.occupancy, 0.6); assert.equal(e1.show, 'Oyun A'); assert.equal(e1.stage, 'Sahne Bir');
   assert.equal(r.venues[0].stageId, 'S1');
   assert.equal(r.topStages[0].name, 'Sahne Bir');
+  assert.equal(r.topPlayers[0].name, 'Ayşe Kaya'); // ham id değil, ad soyad
+  assert.equal(r.topTeams[0].name, 'Tiyatro Kafa');
   assert.equal(r.trend.months.length, 12); assert.equal(r.trend.months[11], r.month);
-  assert.equal(r.trend.total[11], 8);
+  assert.equal(r.trend.total[11], 10);
   assert.equal(r.trend.shows.find((x) => x.showId === 'A').values[11], 5);
-  assert.equal(r.days.length, 1); assert.equal(r.days[0].views, 8);
+  assert.equal(r.days.length, 1); assert.equal(r.days[0].views, 10);
   // dönüşüm: bu ay oluşan bilet / bu ay oyun görüntülenmesi (venue 4 + free 2 = 6 / 7)
   assert.equal(k.conversion, 0.857);
   assert.equal(a.conversion, 0.8); // A: 4 bilet (iptal dahil, bu ay) / 5 görüntülenme
@@ -186,4 +193,22 @@ test('adminStats: geçmiş ay seçimi o ayın sayaçlarını getirir', async () 
   const r4 = await s.adminStats(assertAdmin, admin, { month: '2026-04' });
   assert.equal(r4.kpi.viewsMonth, 10);
   assert.equal(r4.trend.shows[0].values[10], 40); assert.equal(r4.trend.shows[0].values[11], 10); // önceki ay trendde
+});
+
+test('adminTicketAudit: yalnız yönetici bilet geçmişini güvenli alanlarla ve yeni önce döner', async () => {
+  const { s, assertAdmin } = makeStats();
+  const admin = await makeAdmin();
+  await db.collection('TicketAudit').doc('a1').set({
+    ticketId: 'ticket-1', action: 'created', actorType: 'system', createdAt: Timestamp.fromMillis(1000),
+    secret: 'must-not-leak',
+  });
+  await db.collection('TicketAudit').doc('a2').set({
+    ticketId: 'ticket-1', action: 'check_in', actorType: 'admin', seatId: 'A1', createdAt: Timestamp.fromMillis(2000),
+    actorUid: 'admin-1',
+  });
+  const r = await s.adminTicketAudit(assertAdmin, admin, { ticketId: 'ticket-1' });
+  assert.deepEqual(r.audit.map((x) => x.action), ['check_in', 'created']);
+  assert.equal(r.audit[0].createdAt, 2000);
+  assert.equal(r.audit[0].secret, undefined);
+  await assert.rejects(() => s.adminTicketAudit(assertAdmin, admin, { ticketId: '../secret' }), (e) => e.code === 'invalid-argument');
 });

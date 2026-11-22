@@ -214,7 +214,7 @@ test('cancelTicket: ücretsiz bilet iptali freeTickets sayacını düşürür (l
   assert.equal((await lim(u)).freeTickets, 3);
 });
 
-test('cancelTicket: başkasının bileti, bilinmeyen bilet, online ödenmiş bilet, kullanılmış bilet reddedilir', async () => {
+test('cancelTicket: başkasının bileti/bilinmeyen/kullanılmış bilet reddedilir; online bilet krediye dönüşür', async () => {
   const { svc } = makeService({ satis: REZ });
   const ev = await seedEvent({ price: '100' });
   const [a, b] = [uidN(), uidN()];
@@ -231,8 +231,11 @@ test('cancelTicket: başkasının bileti, bilinmeyen bilet, online ödenmiş bil
   prov.succeed(h.orderId, 100);
   assert.equal(await on.settle(h.orderId, await prov.retrieve({ token: `tok_${h.orderId}`, conversationId: h.orderId })), 'paid');
   assert.equal((await get('Ticket', h.orderId)).paymentStatus, 'paid');
-  await expectCode(svc.cancelTicket(a, { ticketId: h.orderId }), 'failed-precondition');
-  assert.equal((await seatOf(ev2, 'A1')).status, 'sold');
+  await on.cancelTicket(a, { ticketId: h.orderId });
+  assert.equal((await get('Ticket', h.orderId)).paymentStatus, 'cancelled');
+  assert.equal((await seatOf(ev2, 'A1')).status, 'available');
+  assert.equal((await get('UserCredit', a)).balanceKurus, 10000);
+  assert.equal((await db.collection('UserCreditEvent').where('ticketId', '==', h.orderId).get()).size, 1);
 
   // kapıdan geçmiş bilet
   const admin = await makeAdmin();
@@ -277,7 +280,7 @@ test('adminSetTicketStatus: ödendi / gelmedi (sayaç düşer) / geri alma / ipt
   await expectCode(svc.adminSetTicketStatus(admin, { ticketId: 'yok', paymentStatus: 'paid' }), 'not-found');
 });
 
-test('adminSetTicketStatus: kart biletinde yalnızca gelmedi; ücretsiz biletin iptali freeTickets düşürür', async () => {
+test('adminSetTicketStatus: kart biletinde no-show veya kredi karşılığı iptal; ücretsiz iptal freeTickets düşürür', async () => {
   const { svc, prov } = makeService({ satis: { mode: 'online' } });
   const admin = await makeAdmin();
   const u = uidN();
@@ -286,10 +289,12 @@ test('adminSetTicketStatus: kart biletinde yalnızca gelmedi; ücretsiz biletin 
   await svc.startPayment(u, { orderId: h.orderId, provider: 'iyzico', returnUrl: 'https://tiyatrol-web.web.app/x' });
   prov.succeed(h.orderId, 100);
   await svc.settle(h.orderId, await prov.retrieve({ token: `tok_${h.orderId}`, conversationId: h.orderId }));
-  await expectCode(svc.adminSetTicketStatus(admin, { ticketId: h.orderId, paymentStatus: 'cancelled' }), 'failed-precondition');
+  await svc.adminSetTicketStatus(admin, { ticketId: h.orderId, paymentStatus: 'cancelled' });
+  assert.equal((await get('Ticket', h.orderId)).paymentStatus, 'cancelled');
+  assert.equal((await get('UserCredit', u)).balanceKurus, 10000);
+  assert.equal((await seatOf(ev, 'A1')).status, 'available');
   await expectCode(svc.adminSetTicketStatus(admin, { ticketId: h.orderId, paymentStatus: 'pay_at_venue' }), 'failed-precondition');
-  await svc.adminSetTicketStatus(admin, { ticketId: h.orderId, paymentStatus: 'no_show' });
-  assert.equal((await get('Ticket', h.orderId)).paymentStatus, 'no_show');
+  await expectCode(svc.adminSetTicketStatus(admin, { ticketId: h.orderId, paymentStatus: 'no_show' }), 'failed-precondition');
 
   const fev = await seedEvent({ price: '0', showId: 'fr' });
   const fh = await svc.holdSeats(u, { eventId: fev, seatIds: ['A1', 'A2'] });
@@ -298,6 +303,31 @@ test('adminSetTicketStatus: kart biletinde yalnızca gelmedi; ücretsiz biletin 
   await svc.adminSetTicketStatus(admin, { ticketId: fh.orderId, paymentStatus: 'cancelled' });
   assert.equal((await lim(u)).freeTickets, 0);
   assert.equal((await seatOf(fev, 'A1')).status, 'available');
+});
+
+test('koltuk başına QR: üç koltukta iki giriş üçüncüyü kapatmaz; son QR tamamlayınca bilet kullanılmış olur', async () => {
+  const { svc } = makeService({ satis: REZ });
+  const admin = await makeAdmin();
+  const u = uidN();
+  const ev = await seedEvent({ price: '100' });
+  const r = await reserve(svc, u, ev, ['A1', 'A2', 'A3']);
+  const created = await get('Ticket', r.orderId);
+  assert.equal(created.seatTickets.length, 3);
+  assert.equal(new Set(created.seatTickets.map((s) => s.qrToken)).size, 3);
+  const a1 = created.seatTickets.find((s) => s.seatId === 'A1');
+  const a2 = created.seatTickets.find((s) => s.seatId === 'A2');
+  const a3 = created.seatTickets.find((s) => s.seatId === 'A3');
+  const c1 = await svc.adminCheckIn(admin, { ticketId: `${r.orderId}:A1:${a1.qrToken}` });
+  const c2 = await svc.adminCheckIn(admin, { ticketId: `${r.orderId}:A2:${a2.qrToken}` });
+  assert.equal(c1.ok, true); assert.equal(c2.ok, true);
+  assert.equal((await get('Ticket', r.orderId)).usedAt, undefined);
+  const auditRows = (await db.collection('TicketAudit').where('ticketId', '==', r.orderId).get()).docs.map((d) => d.data());
+  assert.ok(auditRows.some((d) => d.action === 'check_in' && d.seatId === 'A1'));
+  const repeat = await svc.adminCheckIn(admin, { ticketId: `${r.orderId}:A1:${a1.qrToken}` });
+  assert.equal(repeat.already, true);
+  const c3 = await svc.adminCheckIn(admin, { ticketId: `${r.orderId}:A3:${a3.qrToken}` });
+  assert.equal(c3.ok, true);
+  assert.ok((await get('Ticket', r.orderId)).usedAt);
 });
 
 test('adminCheckIn: ilk okuma geçerli, ikincisi already; iptal/gelmedi geçersiz; bilinmeyen not-found', async () => {

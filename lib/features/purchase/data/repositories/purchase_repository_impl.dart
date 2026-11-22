@@ -32,8 +32,8 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
 
   @override
   Future<Either<Failure, PaymentSession>> startPayment(
-          final String orderId, final String returnUrl) =>
-      _run(() => remoteDataSource.startPayment(orderId, returnUrl));
+          final String orderId, final String returnUrl, {final bool useCredit = false}) =>
+      _run(() => remoteDataSource.startPayment(orderId, returnUrl, useCredit: useCredit));
 
   @override
   Future<Either<Failure, List<String>>> confirmFree(final String orderId) =>

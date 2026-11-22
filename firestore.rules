@@ -193,6 +193,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Bilet yaşam döngüsünün değişmez denetim izi. Yalnızca sunucu yazar;
+    // müşteri kendi biletinin olaylarını, yönetici tüm olayları okuyabilir.
+    match /TicketAudit/{auditId} {
+      allow read: if isSignedIn() && (isAdmin() ||
+        (resource.data.ticketId != null &&
+          get(/databases/$(database)/documents/Ticket/$(resource.data.ticketId)).data.customerId == request.auth.uid));
+      allow write: if false;
+    }
+
+    // İptal sonrası para iadesi yerine verilen uygulama kredisi. Bakiye ve
+    // hareketler Admin SDK ile güncellenir; istemci yalnızca kendi bakiyesini
+    // ve kendi hareketlerini okuyabilir.
+    match /UserCredit/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if false;
+    }
+    match /UserCreditEvent/{eventId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
     // -------------------------------------------------------------------
     // Notification — lib/features/notifications/domain/entities/
     // app_notification.dart (bu oturumda eklendi). Koleksiyon adı:
@@ -320,14 +341,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Silme (delete) SADECE adminDeleteShow callable'ı üzerinden (functions/src/catalog.js) —
+    // biletli bir oyun doğrudan Firestore'dan silinemesin diye (09.11.2026 güvenlik denetimi;
+    // o callable "bu oyunda bilet var mı" kontrolünü sunucuda tekrar yapar). create/update admin
+    // için hâlâ doğrudan açık.
     match /Show/{showId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     match /Stage/{stageId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     match /Team/{teamId} {
@@ -350,18 +377,17 @@ service cloud.firestore {
     // bkz. seat_remote_data_source_and_impl.dart (_collection = 'Seats',
     // doküman ID'si = stageId). Sadece
     // `EventRemoteDataSourceImpl.initializeAndGetEventSeats` tarafından
-    // OKUNUYOR; kod tabanında client-side hiçbir yazma yok — admin/seed
-    // script'i tarafından doldurulduğu varsayılıyor.
+    // OKUNUYOR; istemci doğrudan yazamaz. Yönetim paneli callable üzerinden,
+    // bakım/migration işleri ise Admin SDK ile doldurulur.
     // Diğer koleksiyonlarla (Stage/Show/Event/Ticket) aynı meta alan
     // sözleşmesi (13.11.2026): `_id` (= stageId), `stageId`, `stageName`,
-    // `address` (Stage'den denormalize), `_createdAt`/`_updatedAt` (ISO
-    // string). Bunlar yalnızca izlenebilirlik/admin gösterimi içindir —
-    // koltuk durumunu etkilemez; layout alanları (`seatsId`/`closedSeatsId`
-    // ya da eski satır->liste biçimi) ve okuyucudaki `_metaKeys` listesi
-    // değişmedi. Admin yazıcı: site/js/admin/koltuk-plani.js.
+    // `address` (Stage'den denormalize), `createdAt`/`updatedAt` ve eski
+    // `_createdAt`/`_updatedAt` uyumluluk alanları. Yazma yalnızca
+    // adminUpsertSeatPlan callable'ı üzerinden yapılır; server timestamp,
+    // Stage ilişkisi ve eski random-ID migration'ı sunucuda doğrulanır.
     match /Seats/{stageId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     // AppTools: gizlilik politikası / kullanım koşulları gibi statik uygulama
@@ -382,9 +408,11 @@ service cloud.firestore {
     // rezervasyon/satın alma yalnızca Cloud Functions (holdSeats/startPayment/confirmFree/
     // iyzicoCallback/expireHolds) üzerinden, Admin SDK ile yapılır; istemci koltuk yazımı KAPALI.
     // -------------------------------------------------------------------
+    // Silme SADECE adminDeleteEvent callable'ı üzerinden (functions/src/catalog.js) — bkz. Show/Stage.
     match /Event/{eventId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------------

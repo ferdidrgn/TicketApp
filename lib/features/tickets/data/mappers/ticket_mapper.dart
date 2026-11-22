@@ -14,6 +14,7 @@ extension TicketModelMapper on TicketModel {
         orderMethod: orderMethod ?? '',
         orderPrice: orderPrice ?? '0',
         buySeats: buySeats?.whereType<String>().toList() ?? [],
+        seatTickets: seatTickets ?? const [],
         isPast: isPast ?? false,
         showName: showName ?? '',
         showImageUrl: showImageUrl ?? '',

@@ -13,13 +13,9 @@
 name: Deploy Web
 
 on:
+  # Her main push'ında statik HTML/CSS/JS siteyi yeniden derle ve yayınla.
   push:
     branches: [main]
-    paths:
-      - "site/**"
-      - "firebase.site.json"
-      - ".firebaserc"
-      - ".github/workflows/deploy-web.yml"
   # Otomatik yenileme: yeni oyun/seans Firestore'a girince prerender + sitemap güncellensin.
   # Zamanlanmış çalışmalar YALNIZ varsayılan dalda (main) çalışır; `site/**` değişikliği gerekmez.
   schedule:

@@ -13,15 +13,21 @@ Future<bool> blockDeleteIfTickets(
   final BuildContext context, {
   final String? showId,
   final String? stageId,
+  final String? eventId,
   required final String label,
 }) async {
-  assert((showId == null) != (stageId == null));
+  assert([showId, stageId, eventId].whereType<String>().length == 1);
+  final field = showId != null
+      ? 'showId'
+      : stageId != null
+          ? 'stageId'
+          : 'eventId';
+  final value = showId ?? stageId ?? eventId;
   int count;
   try {
     final snap = await FirebaseFirestore.instance
         .collection('Ticket')
-        .where(showId != null ? 'showId' : 'stageId',
-            isEqualTo: showId ?? stageId)
+        .where(field, isEqualTo: value)
         .count()
         .get();
     count = snap.count ?? 0;
