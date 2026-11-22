@@ -64,9 +64,9 @@ const List<_Act> _acts = [
   ),
   _Act(
     'III. PERDE',
-    'Sahneni seç',
-    'Uygulamanın renklerini şimdi seç — dokunduğun an her şey değişir. '
-        'Sonra Profil > Görünüm\'den istediğin zaman değiştirebilirsin.',
+    'Rengini sahneye taşı',
+    'Her seyircinin sahneyle kurduğu bağ başka. Hazır paletlerden birini '
+        'seç ya da kendi tonunu yarat; TiyatRol seçimini her ekranda hatırlasın.',
   ),
 ];
 
@@ -702,12 +702,12 @@ class _ThemeStage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Bu akşam sahnede',
+                          Text('Bu sahne senin',
                               style: TextStyle(
                                   color: cs.onSurfaceVariant, fontSize: 12)),
                           const SizedBox(height: 2),
                           Text(
-                            'Senin sahnen, senin renklerin',
+                            'Rengin, ritmin, TiyatRol’ün',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.playfairDisplay(

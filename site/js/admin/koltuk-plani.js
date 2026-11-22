@@ -1,9 +1,11 @@
-// Yönetim: sahne koltuk planı oluşturucu. Seats/{sahneId} = { seatsId: [...], closedSeatsId?: [...] }.
-// Yalnız admin (Firestore rules: Seats yazma = isAdmin). Giriş: Google (admin hesabı). Üretim yazımı kullanıcının kendi oturumuyla yapılır.
+// Yönetim: sahne koltuk planı oluşturucu. Canonical belge Seats/{stageId};
+// yazma adminUpsertSeatPlan callable'ı üzerinden yapılır. Eski random-ID'li
+// belge varsa callable transaction içinde canonical belgeye taşır.
 import {
   auth, db, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut,
-  doc, getDoc, setDoc, updateDoc, collection, getDocs,
+  doc, getDoc, collection, getDocs, query, where, limit, fonksiyon,
 } from '../firebase.js';
+import { seatPlanRows, closedSeatIds } from '../seat-plan.js';
 
 const app = document.getElementById('app');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -49,6 +51,12 @@ async function panelCiz(user) {
   if (rol !== 'admin') { app.innerHTML = `<h1>Koltuk planı</h1><p class="uyari">Bu hesap yönetici değil.</p><button class="btn btn-ghost" id="cik" type="button">Çıkış</button>`; document.getElementById('cik').onclick = () => signOut(auth); return; }
 
   const sahneler = (await getDocs(collection(db, 'Stage'))).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name), 'tr'));
+  const seatSnapshot = async (stageId) => {
+    const canonical = await getDoc(doc(db, 'Seats', stageId)).catch(() => null);
+    if (canonical && canonical.exists()) return canonical;
+    const legacy = await getDocs(query(collection(db, 'Seats'), where('stageId', '==', stageId), limit(1))).catch(() => null);
+    return legacy && !legacy.empty ? legacy.docs[0] : null;
+  };
   const varsayilan = sahneler.find((s) => /mustafa saffet/i.test(s.name || '')) || sahneler[0];
   app.innerHTML = `<h1>Koltuk planı</h1>
     <p class="muted">Sahnenin koltuk kimliklerini (<code>A1, A2…</code>) üretip <code>Seats</code> koleksiyonuna yazar. Mevcut kapalı koltuk listesi (<code>closedSeatsId</code>) korunur. Daha önce oluşturulmuş seansların koltuk durumu değişmez.</p>
@@ -76,6 +84,7 @@ BB:15</textarea>
     </div>`;
   const $ = (s) => document.getElementById(s);
   let sonuc = null;
+  let kaydediliyor = false;
 
   const hesapla = () => {
     const z = koltukUret($('zemin').value), b = koltukUret($('balkon').value);
@@ -88,48 +97,44 @@ BB:15</textarea>
     $('ozet').innerHTML = `<span>Zemin: ${z.ids.length}</span><span>Balkon: ${b.ids.length}</span><span>Toplam: ${ids.length}</span>`;
     $('satirlar').innerHTML = [...z.satirlar, ...b.satirlar].map(([a, n]) => `<div><b>${esc(a)}</b> · ${n} koltuk</div>`).join('');
     $('mesaj').innerHTML = hedef && ids.length !== hedef ? `<p class="uyari" role="alert">Toplam ${ids.length}, hedef ${hedef}. Satırları düzelt.</p>` : `<p class="ok">Toplam hedefle uyumlu.</p>`;
-    $('kaydet').disabled = !(hedef ? ids.length === hedef : true);
+    $('kaydet').disabled = kaydediliyor || !ids.length || !$('sahne').value || !$('onay').checked || !!(hedef && ids.length !== hedef);
   };
   const mevcutYaz = async () => {
-    const s = $('sahne').value; const d = await getDoc(doc(db, 'Seats', s)).catch(() => null);
+    const s = $('sahne').value; const d = await seatSnapshot(s);
+    if ($('sahne').value !== s) return;
     if (!d || !d.exists()) { $('mevcut').textContent = 'Bu sahne için kayıtlı koltuk planı yok.'; return; }
     const v = d.data();
-    const tarihYaz = (iso) => { try { return new Date(iso).toLocaleString('tr-TR'); } catch { return iso; } };
-    const parcalar = [`Şu an kayıtlı plan: ${(v.seatsId || []).length} koltuk (${(v.closedSeatsId || []).length} kapalı).`];
+    const tarihYaz = (value) => { const date = value?.toDate ? value.toDate() : new Date(value); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('tr-TR'); };
+    const parcalar = [`Şu an kayıtlı plan: ${seatPlanRows(v).flatMap(([, ids]) => ids).length} koltuk (${closedSeatIds(v).length} kapalı).`];
     if (v.address) parcalar.push(`Adres: ${v.address}`);
-    if (v._createdAt) parcalar.push(`Oluşturma: ${tarihYaz(v._createdAt)}`);
-    if (v._updatedAt) parcalar.push(`Son güncelleme: ${tarihYaz(v._updatedAt)}`);
+    if (v.createdAt || v._createdAt) parcalar.push(`Oluşturma: ${tarihYaz(v.createdAt ?? v._createdAt)}`);
+    if (v.updatedAt || v._updatedAt) parcalar.push(`Son güncelleme: ${tarihYaz(v.updatedAt ?? v._updatedAt)}`);
     $('mevcut').textContent = parcalar.join(' · ');
   };
   ['zemin', 'balkon', 'hedef'].forEach((k) => $(k).addEventListener('input', hesapla));
   $('onay').addEventListener('change', hesapla);
-  $('sahne').addEventListener('change', mevcutYaz);
+  $('sahne').addEventListener('change', () => { $('onay').checked = false; hesapla(); mevcutYaz(); });
   $('cik').onclick = () => signOut(auth);
   $('kaydet').addEventListener('click', async () => {
-    if (!sonuc) return;
+    if (!sonuc?.length || kaydediliyor) return;
     if (!$('onay').checked) { bildir('Önce "Satır uzunluklarını … karşılaştırdım" kutusunu işaretle.'); $('onay').focus(); return; }
     const s = $('sahne').value, sahne = sahneler.find((x) => x.id === s) || {}, ad = sahne.name || s;
     if (!confirm(`"${ad}" için ${sonuc.length} koltuk yazılacak. Emin misin?`)) return;
+    const seatIds = [...sonuc];
+    kaydediliyor = true;
     $('kaydet').disabled = true;
     try {
       // İzlenebilirlik (13.11.2026): Stage/Show/Event/Ticket ile aynı meta sözleşmesi —
       // _id/stageId/stageName/address + _createdAt (korunur) / _updatedAt (her yazımda).
-      const oncekiSnap = await getDoc(doc(db, 'Seats', s)).catch(() => null);
-      const simdi = new Date().toISOString();
-      const eskiOlusturma = oncekiSnap && oncekiSnap.exists() ? oncekiSnap.data()._createdAt : null;
-      await setDoc(doc(db, 'Seats', s), {
-        seatsId: sonuc,
-        _id: s,
+      const saveSeatPlan = await fonksiyon('adminUpsertSeatPlan');
+      await saveSeatPlan({
         stageId: s,
-        stageName: ad,
-        address: sahne.address || '',
-        _createdAt: eskiOlusturma || simdi,
-        _updatedAt: simdi,
-      }, { merge: true });
-      if ($('kap').checked) await updateDoc(doc(db, 'Stage', s), { capacity: String(sonuc.length), _updatedAt: simdi });
-      bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${sonuc.length} koltuk yazıldı.</span>`; await mevcutYaz();
-    } catch (e) { const m = e?.code === 'permission-denied' ? 'Yetki reddedildi: bu hesap yönetici değil ya da Firestore kuralları izin vermiyor.' : 'Kaydedilemedi.'; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
-    finally { hesapla(); }
+        seatIds,
+        updateStageCapacity: $('kap').checked,
+      });
+      bildir('Koltuk planı kaydedildi.'); $('kayitSonuc').innerHTML = `<span class="ok">✓ Kaydedildi: ${seatIds.length} koltuk yazıldı.</span>`; await mevcutYaz();
+    } catch (e) { const m = String(e?.code || '').endsWith('permission-denied') ? 'Yetki reddedildi: bu işlem için yönetici hesabıyla giriş yap.' : `Kaydedilemedi. ${e?.message || 'Bağlantını kontrol edip tekrar dene.'}`; bildir(m); $('kayitSonuc').innerHTML = `<span class="uyari">✗ ${esc(m)}</span>`; }
+    finally { kaydediliyor = false; hesapla(); }
   });
   await mevcutYaz(); hesapla();
 }

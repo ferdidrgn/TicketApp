@@ -28,6 +28,7 @@ const { createQuestions } = require('./src/questions');
 const { createPolls } = require('./src/polls');
 const { createPlans } = require('./src/plans');
 const { createCatalog } = require('./src/catalog');
+const { createSeatPlans } = require('./src/seatPlans');
 const { deleteProfileImages } = require('./src/storage');
 const { createProvider } = require('./providers');
 
@@ -213,6 +214,8 @@ exports.deleteQuestion = onCall(base, guarded((req) => getQuestions().deleteQues
 exports.adminDeleteShow = onCall(base, guarded((req) => getCatalog().adminDeleteShow(req.auth.uid, req.data)));
 exports.adminDeleteStage = onCall(base, guarded((req) => getCatalog().adminDeleteStage(req.auth.uid, req.data)));
 exports.adminDeleteEvent = onCall(base, guarded((req) => getCatalog().adminDeleteEvent(req.auth.uid, req.data)));
+exports.adminUpsertSeatPlan = onCall(base, guarded((req) =>
+  createSeatPlans({ db: getFirestore() }).adminUpsertSeatPlan(req.auth.uid, req.data)));
 exports.teamQuestions = onCall(base, guarded((req) => getQuestions().teamQuestions(req.auth.uid, req.data)));
 // Anket (F-5) + arkadaşa gönder / grup planı (F-6). Ayrıntı: docs/ANKET-PLAN.md
 exports.votePoll = onCall(salted, guarded((req) => getPolls().votePoll(req.auth.uid, req.data, phoneCtx(req))));

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,13 +26,11 @@ import '../../../../shared/widgets/ticket/ticket_kit.dart';
 
 /// Yeni eklenen kısa metinler için TR/EN seçimi (ARB'ye eklemek gen-l10n
 /// gerektiriyor; bu sandbox'ta Flutter SDK yok).
-String prefText(
-        final BuildContext context, final String tr, final String en) =>
+String prefText(final BuildContext context, final String tr, final String en) =>
     Localizations.localeOf(context).languageCode == 'en' ? en : tr;
 
 /// CSS `clamp()` karşılığı: ekran genişliğine göre [min]–[max] arası.
-double prefFluid(final BuildContext context, final double min,
-    final double max,
+double prefFluid(final BuildContext context, final double min, final double max,
     {final double minW = 375, final double maxW = 1440}) {
   final double w = MediaQuery.sizeOf(context).width;
   final double t = ((w - minW) / (maxW - minW)).clamp(0.0, 1.0);
@@ -398,8 +399,7 @@ class _Segmented extends StatelessWidget {
                         color: o.value == selected
                             ? cs.primary
                             : Colors.transparent,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.sm - 2),
+                        borderRadius: BorderRadius.circular(AppRadius.sm - 2),
                       ),
                       child: Text(
                         o.label,
@@ -437,23 +437,37 @@ class _StyleInfo {
 }
 
 const Map<AppThemeStyle, _StyleInfo> _styleInfo = {
-  AppThemeStyle.appLight: _StyleInfo('Gündüz', 'Day',
-      'Açık zemin, TiyatRol kırmızısı', 'Light, TiyatRol red',
+  AppThemeStyle.appLight: _StyleInfo(
+      'Gündüz',
+      'Day',
+      'Açık zemin, TiyatRol kırmızısı',
+      'Light, TiyatRol red',
       Icons.wb_sunny_rounded),
-  AppThemeStyle.appDark: _StyleInfo('Gece', 'Night',
-      'Koyu zemin, göz yormaz', 'Dark, easy on the eyes',
-      Icons.nights_stay_rounded),
-  AppThemeStyle.system: _StyleInfo('Oto', 'Auto',
-      'Cihazının açık/koyu ayarını izler', 'Follows your device',
+  AppThemeStyle.appDark: _StyleInfo('Gece', 'Night', 'Koyu zemin, göz yormaz',
+      'Dark, easy on the eyes', Icons.nights_stay_rounded),
+  AppThemeStyle.system: _StyleInfo(
+      'Oto',
+      'Auto',
+      'Cihazının açık/koyu ayarını izler',
+      'Follows your device',
       Icons.auto_mode_rounded),
-  AppThemeStyle.materialLight: _StyleInfo('Doğa', 'Nature',
-      'Duvar kağıdının renkleri, açık', 'Wallpaper colours, light',
+  AppThemeStyle.materialLight: _StyleInfo(
+      'Doğa',
+      'Nature',
+      'Duvar kağıdının renkleri, açık',
+      'Wallpaper colours, light',
       Icons.palette_outlined),
-  AppThemeStyle.materialDark: _StyleInfo('Ahenk', 'Harmony',
-      'Duvar kağıdının renkleri, koyu', 'Wallpaper colours, dark',
+  AppThemeStyle.materialDark: _StyleInfo(
+      'Ahenk',
+      'Harmony',
+      'Duvar kağıdının renkleri, koyu',
+      'Wallpaper colours, dark',
       Icons.blur_on_rounded),
-  AppThemeStyle.custom: _StyleInfo('Özel', 'Custom',
-      'Seçtiğin renk; cihaza göre açık/koyu', 'Your colour, light or dark',
+  AppThemeStyle.custom: _StyleInfo(
+      'Özel',
+      'Custom',
+      'Seçtiğin renk; cihaza göre açık/koyu',
+      'Your colour, light or dark',
       Icons.colorize_rounded),
 };
 
@@ -533,8 +547,10 @@ class ThemeStylePicker extends ConsumerWidget {
     final Color materialSeed =
         materialActive ? cs.primary : AppLightColors.primary;
 
-    void select(final AppThemeStyle s) =>
-        ref.read(themeProvider.notifier).setTheme(s);
+    void select(final AppThemeStyle s) {
+      unawaited(HapticFeedback.selectionClick());
+      unawaited(ref.read(themeProvider.notifier).setTheme(s));
+    }
 
     if (compact) {
       return Row(
@@ -632,7 +648,8 @@ class _PreviewSwatch extends StatelessWidget {
     return DecoratedBox(
       position: DecorationPosition.foreground,
       decoration: circle
-          ? BoxDecoration(shape: BoxShape.circle, border: Border.fromBorderSide(edge))
+          ? BoxDecoration(
+              shape: BoxShape.circle, border: Border.fromBorderSide(edge))
           : BoxDecoration(
               border: Border.fromBorderSide(edge),
               borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -854,16 +871,13 @@ class _ThemeChip extends StatelessWidget {
 /// tek dokunuşla). Seçim `ThemeNotifier.setCustomAccentColor` ile yapılır:
 /// renk kaydedilir ve tema otomatik "Özel"e geçer.
 const List<({Color color, String tr, String en})> accentColorPresets = [
-  (color: Color(0xFFC50337), tr: 'Kızıl', en: 'Crimson'),
-  (color: Color(0xFF9C27B0), tr: 'Kadife mor', en: 'Velvet purple'),
-  (color: Color(0xFF3F51B5), tr: 'Sahne mavisi', en: 'Stage blue'),
-  (color: Color(0xFF009688), tr: 'Kulis yeşili', en: 'Backstage green'),
-  (color: Color(0xFFFF9800), tr: 'Sahne ışığı amber', en: 'Stage-light amber'),
-  (color: Color(0xFFE91E63), tr: 'Perde pembesi', en: 'Curtain pink'),
-  (color: Color(0xFF795548), tr: 'Tahta sahne kahvesi', en: 'Wooden brown'),
-  (color: Color(0xFF607D8B), tr: 'Fırtına grisi', en: 'Storm grey'),
-  (color: Color(0xFFFF5722), tr: 'Kırmızı turuncu', en: 'Red orange'),
-  (color: Color(0xFF673AB7), tr: 'Derin gece moru', en: 'Deep night purple'),
+  (color: Color(0xFFC50337), tr: 'Şarap', en: 'Wine'),
+  (color: Color(0xFF1E6FD9), tr: 'Okyanus', en: 'Ocean'),
+  (color: Color(0xFF2E8B57), tr: 'Orman', en: 'Forest'),
+  (color: Color(0xFF7E4BD8), tr: 'Menekşe', en: 'Violet'),
+  (color: Color(0xFFD98A00), tr: 'Kehribar', en: 'Amber'),
+  (color: Color(0xFF4F8A5B), tr: 'Doğa', en: 'Nature'),
+  (color: Color(0xFF8A63C7), tr: 'Ahenk', en: 'Harmony'),
 ];
 
 class AccentColorPalette extends ConsumerWidget {
@@ -875,6 +889,26 @@ class AccentColorPalette extends ConsumerWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool customActive = ref.watch(themeProvider) == AppThemeStyle.custom;
     final Color? current = ref.watch(customAccentColorProvider);
+    final bool presetSelected = current != null &&
+        accentColorPresets
+            .any((final p) => p.color.toARGB32() == current.toARGB32());
+
+    Future<void> selectCustomColor() async {
+      unawaited(HapticFeedback.selectionClick());
+      final Color? picked = await showModalBottomSheet<Color>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (final context) => _CustomColorSheet(
+          initialColor: current ?? accentColorPresets.first.color,
+        ),
+      );
+      if (picked == null || !context.mounted) {
+        return;
+      }
+      await ref.read(themeProvider.notifier).setCustomAccentColor(picked);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,10 +924,13 @@ class AccentColorPalette extends ConsumerWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          customActive && current != null
-              ? l10n.settingsAccentColorCustomSubtitle
-              : '${l10n.settingsAccentColorDefaultSubtitle} '
-                  '${prefText(context, 'Seçince tema "Özel"e geçer.', 'Picking one switches to "Custom".')}',
+          prefText(
+            context,
+            'Hazır paletlerden birini seç ya da yalnız sana ait bir ton yarat. '
+                'Seçimin tüm uygulamada canlı görünür ve hatırlanır.',
+            'Pick a palette or create a shade that is entirely yours. '
+                'Your choice updates the whole app live and is remembered.',
+          ),
           style: TextStyle(
             color: cs.onSurfaceVariant,
             fontSize: 13,
@@ -909,14 +946,250 @@ class AccentColorPalette extends ConsumerWidget {
               _AccentSwatch(
                 color: p.color,
                 name: prefText(context, p.tr, p.en),
-                selected: customActive && current?.value == p.color.value,
-                onTap: () => ref
-                    .read(themeProvider.notifier)
-                    .setCustomAccentColor(p.color),
+                selected:
+                    customActive && current?.toARGB32() == p.color.toARGB32(),
+                onTap: () {
+                  unawaited(HapticFeedback.selectionClick());
+                  unawaited(ref
+                      .read(themeProvider.notifier)
+                      .setCustomAccentColor(p.color));
+                },
               ),
+            _AccentSwatch(
+              color: current ?? accentColorPresets.first.color,
+              name: prefText(context, 'Kendi rengin', 'Your colour'),
+              selected: customActive && current != null && !presetSelected,
+              icon: Icons.colorize_rounded,
+              onTap: selectCustomColor,
+            ),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _CustomColorSheet extends StatefulWidget {
+  final Color initialColor;
+
+  const _CustomColorSheet({required this.initialColor});
+
+  @override
+  State<_CustomColorSheet> createState() => _CustomColorSheetState();
+}
+
+class _CustomColorSheetState extends State<_CustomColorSheet> {
+  late HSVColor _hsv = HSVColor.fromColor(widget.initialColor);
+  late final TextEditingController _hex =
+      TextEditingController(text: _hexOf(widget.initialColor));
+
+  static String _hexOf(final Color color) =>
+      '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+  Color get _color => _hsv.toColor();
+  bool get _validHex => RegExp(r'^#?[0-9a-fA-F]{6}$').hasMatch(_hex.text);
+
+  void _setHsv(final HSVColor value) {
+    setState(() {
+      _hsv = value;
+      _hex.text = _hexOf(value.toColor());
+    });
+  }
+
+  void _readHex(final String raw) {
+    setState(() {
+      if (!_validHex) {
+        return;
+      }
+      final String clean = raw.startsWith('#') ? raw.substring(1) : raw;
+      _hsv =
+          HSVColor.fromColor(Color(0xFF000000 | int.parse(clean, radix: 16)));
+    });
+  }
+
+  @override
+  void dispose() {
+    _hex.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    Widget slider({
+      required final String label,
+      required final double value,
+      required final double max,
+      required final ValueChanged<double> onChanged,
+      required final String semanticValue,
+    }) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(semanticValue,
+                    style: TextStyle(color: cs.onSurfaceVariant)),
+              ],
+            ),
+            Semantics(
+              label: label,
+              value: semanticValue,
+              child: Slider(
+                value: value,
+                min: 0,
+                max: max,
+                activeColor: _color,
+                onChanged: onChanged,
+              ),
+            ),
+          ],
+        );
+
+    return Material(
+      color: cs.surface,
+      borderRadius:
+          const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xxl,
+          AppSpacing.md,
+          AppSpacing.xxl,
+          AppSpacing.xxl + bottomInset,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: AppSpacing.huge,
+                height: AppSpacing.xs,
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              prefText(context, 'Kendi rengini yarat', 'Create your colour'),
+              style: GoogleFonts.playfairDisplay(
+                color: cs.onSurface,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              prefText(
+                context,
+                'Tonunu karıştır; TiyatRol seçtiğin renkten açık ve koyu yüzeyleri otomatik üretir.',
+                'Mix your shade; TiyatRol automatically creates light and dark surfaces from it.',
+              ),
+              style: TextStyle(color: cs.onSurfaceVariant, height: 1.45),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            AnimatedContainer(
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : AppMotion.fast,
+              height: 84,
+              decoration: BoxDecoration(
+                color: _color,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.theater_comedy_rounded,
+                size: 36,
+                color: ThemeData.estimateBrightnessForColor(_color) ==
+                        Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            slider(
+              label: prefText(context, 'Renk', 'Hue'),
+              value: _hsv.hue,
+              max: 360,
+              semanticValue: '${_hsv.hue.round()}°',
+              onChanged: (final v) => _setHsv(_hsv.withHue(v)),
+            ),
+            slider(
+              label: prefText(context, 'Canlılık', 'Saturation'),
+              value: _hsv.saturation,
+              max: 1,
+              semanticValue: '${(_hsv.saturation * 100).round()}%',
+              onChanged: (final v) => _setHsv(_hsv.withSaturation(v)),
+            ),
+            slider(
+              label: prefText(context, 'Parlaklık', 'Brightness'),
+              value: _hsv.value,
+              max: 1,
+              semanticValue: '${(_hsv.value * 100).round()}%',
+              onChanged: (final v) => _setHsv(_hsv.withValue(v)),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              controller: _hex,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
+                LengthLimitingTextInputFormatter(7),
+              ],
+              onChanged: _readHex,
+              decoration: InputDecoration(
+                labelText:
+                    prefText(context, 'HEX renk kodu', 'HEX colour code'),
+                errorText: _validHex
+                    ? null
+                    : prefText(context, '6 haneli renk kodu gir.',
+                        'Enter a 6-digit colour code.'),
+                prefixIcon: const Icon(Icons.tag_rounded),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(prefText(context, 'Vazgeç', 'Cancel')),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: !_validHex
+                        ? null
+                        : () {
+                            unawaited(HapticFeedback.lightImpact());
+                            Navigator.of(context).pop(_color);
+                          },
+                    icon: const Icon(Icons.check_rounded),
+                    label: Text(prefText(
+                        context, 'Bu rengi kullan', 'Use this colour')),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -925,12 +1198,14 @@ class _AccentSwatch extends StatelessWidget {
   final Color color;
   final String name;
   final bool selected;
+  final IconData? icon;
   final VoidCallback onTap;
 
   const _AccentSwatch({
     required this.color,
     required this.name,
     required this.selected,
+    this.icon,
     required this.onTap,
   });
 
@@ -941,39 +1216,62 @@ class _AccentSwatch extends StatelessWidget {
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
             ? Colors.white
             : Colors.black;
-    return Tooltip(
-      message: name,
-      child: _Pressable(
-        label:
-            '$name. ${AppLocalizations.of(context)!.settingsAccentColorSemanticLabel}',
-        selected: selected,
-        onTap: onTap,
-        radius: BorderRadius.circular(AppRadius.pill),
-        builder: (final hovered, final focused) => SizedBox.square(
-          dimension: 48,
-          child: Center(
-            child: AnimatedContainer(
-              duration: AppMotion.fast,
-              curve: AppMotion.standard,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected || focused
-                      ? cs.onSurface
-                      : (hovered ? cs.outline : Colors.transparent),
-                  width: 2,
+    return SizedBox(
+      width: 72,
+      child: Tooltip(
+        message: name,
+        child: _Pressable(
+          label:
+              '$name. ${AppLocalizations.of(context)!.settingsAccentColorSemanticLabel}',
+          selected: selected,
+          onTap: onTap,
+          radius: BorderRadius.circular(AppRadius.sm),
+          builder: (final hovered, final focused) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox.square(
+                dimension: 48,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: AppMotion.fast,
+                    curve: AppMotion.standard,
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected || focused
+                            ? cs.onSurface
+                            : (hovered ? cs.outline : Colors.transparent),
+                        width: 2,
+                      ),
+                    ),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
+                      child: selected
+                          ? Icon(Icons.check_rounded, size: 18, color: check)
+                          : icon == null
+                              ? null
+                              : Icon(icon, size: 17, color: check),
+                    ),
+                  ),
                 ),
               ),
-              child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                child: selected
-                    ? Icon(Icons.check_rounded, size: 18, color: check)
-                    : null,
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? cs.onSurface : cs.onSurfaceVariant,
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

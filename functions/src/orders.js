@@ -15,6 +15,7 @@ const { FieldPath, FieldValue, Timestamp } = require('firebase-admin/firestore')
 const { HttpsError } = require('firebase-functions/v2/https');
 const cfg = require('./config');
 const { requirePhone } = require('./phone');
+const { findSeatPlan, readSeatPlan } = require('./seatPlans');
 const { deletionPendingError, isBlocking } = require('./accountDeletion');
 const { err, parsePriceKurus, parseEventDateMs, kurusToTl, kurusStr, validateId, validateSeatIds } = require('./util');
 
@@ -238,14 +239,10 @@ function createService({ db, getProvider, now = Date.now, callbackUrl, siteUrl, 
   async function seatsFromStage(tx, stageId) {
     // Event.seats henüz oluşmamışsa sahne planından üret (mobil initializeAndGetEventSeats ile aynı).
     if (!stageId) return null;
-    const snap = await tx.get(db.collection('Seats').doc(stageId));
+    const snap = await findSeatPlan(tx, db, stageId);
     if (!snap.exists) return null;
-    const d = snap.data();
-    const closed = new Set(Array.isArray(d.closedSeatsId) ? d.closedSeatsId : []);
-    const meta = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt', 'stageId', 'stageName', 'address']);
-    const ids = [];
-    if (Array.isArray(d.seatsId)) ids.push(...d.seatsId);
-    else for (const [k, v] of Object.entries(d)) if (!meta.has(k) && Array.isArray(v)) ids.push(...v);
+    const { seatIds: ids, closedSeatIds } = readSeatPlan(snap.data());
+    const closed = new Set(closedSeatIds);
     const out = {};
     for (const s of ids) {
       if (typeof s !== 'string') continue;

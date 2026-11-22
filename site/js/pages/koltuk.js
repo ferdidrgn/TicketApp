@@ -4,7 +4,8 @@
 // 3 koltuk sınırı istemcide yalnızca KOLAYLIKTIR; asıl sınır sunucudadır.
 import { kabukCiz, resim } from '../ui.js';
 import { yukle } from '../store.js';
-import { db, doc, onSnapshot, getDoc, collection, query, where } from '../firebase.js';
+import { db, doc, onSnapshot, getDoc, getDocs, collection, query, where, limit } from '../firebase.js';
+import { seatPlanRows, closedSeatIds } from '../seat-plan.js';
 import { girisGerekli, telefonGerekli, oturumDinle, oturumBekle, mevcut } from '../auth.js';
 import { koltukTut, tutmaBirak, odemeBaslat, ucretsizOnayla, guvenliUrl, rezervasyonOnayla, satisAyari, etkinlikKotasi } from '../bilet-api.js';
 import { silmeyiIptalEt } from '../hesap-sil.js';
@@ -107,12 +108,10 @@ const ayir = (id) => {
   return m ? [m[1].trim().replace(/[\s\-_.:]+$/, ''), +m[2]] : ['', NaN];
 };
 function duzenKur(sd, esMap) {
-  const META = new Set(['closedSeatsId', '_id', '_createdAt', '_updatedAt']);
-  const kapali = new Set((Array.isArray(sd?.closedSeatsId) ? sd.closedSeatsId : []).map(String));
+  const kapali = new Set(closedSeatIds(sd));
   const grup = new Map();
   const ekle = (etiket, id) => { if (!grup.has(etiket)) grup.set(etiket, []); grup.get(etiket).push(id); };
-  if (sd && Array.isArray(sd.seatsId)) sd.seatsId.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(ayir(id)[0], id));
-  else if (sd) for (const [k, v] of Object.entries(sd)) { if (!META.has(k) && Array.isArray(v)) v.filter((x) => typeof x === 'string' && x).forEach((id) => ekle(k, id)); }
+  for (const [row, ids] of seatPlanRows(sd)) ids.forEach((id) => ekle(row ?? ayir(id)[0], id));
   if (!grup.size) Object.keys(esMap || {}).forEach((id) => ekle(ayir(id)[0], id));
   const anahtarlar = [...grup.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr', { numeric: true }));
   let satirlar = anahtarlar.map((k) => ({
@@ -606,8 +605,18 @@ await oturumBekle();
       // salon planı
       const sid = String(veri.stageId || '');
       if (!sid) { S.duzen = duzenKur(null, S.koltuklar); S.duzenHazir = true; S.duzen.satirlar.length ? planCiz() : planYok(); return; }
-      onSnapshot(doc(db, 'Seats', sid), (ss) => {
-        const yeni = duzenKur(ss.exists() ? ss.data() : null, S.koltuklar);
+      let planVersion = 0;
+      onSnapshot(doc(db, 'Seats', sid), async (ss) => {
+        const version = ++planVersion;
+        let data = ss.exists() ? ss.data() : null;
+        if (!data) {
+          try {
+            const legacy = await getDocs(query(collection(db, 'Seats'), where('stageId', '==', sid), limit(1)));
+            data = legacy.docs[0]?.data() || null;
+          } catch { /* Event.seats remains the fallback when no plan can be read. */ }
+        }
+        if (version !== planVersion) return;
+        const yeni = duzenKur(data, S.koltuklar);
         S.duzen = yeni;
         if (!yeni.satirlar.length) return planYok();
         const imza = yeni.satirlar.map((r) => r.ad + ':' + r.koltuklar.map((k) => k.id).join(',')).join('|');
