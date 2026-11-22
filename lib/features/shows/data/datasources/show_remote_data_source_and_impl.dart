@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../purchase/data/datasources/purchase_remote_data_source_and_impl.dart'
+    show kPurchaseFunctionsRegion;
 import '../models/show_model.dart';
 
 abstract class ShowRemoteDataSource {
@@ -129,10 +132,17 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
 
   @override
   Future<bool> deleteShow(final String showId) async {
+    // Silme artık yalnızca sunucuda (bkz. functions/src/catalog.js,
+    // firestore.rules'da Show.delete kapalı) — biletli bir oyun doğrudan
+    // Firestore'dan silinemesin diye (09.11.2026 güvenlik denetimi). Görsel
+    // de aynı callable içinde sunucuda siliniyor.
     try {
-      await _deleteImage(showId);
-      await _showCollection.doc(showId).delete();
+      await FirebaseFunctions.instanceFor(region: kPurchaseFunctionsRegion)
+          .httpsCallable('adminDeleteShow')
+          .call<Map<String, dynamic>>({'showId': showId});
       return true;
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception(e.message ?? 'Delete show failed: ${e.code}');
     } catch (e) {
       throw Exception('Delete show failed: $e');
     }
@@ -168,13 +178,5 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
     final ref = storage.ref('ShowImages/$showId.jpg');
     await ref.putFile(imageFile);
     return await ref.getDownloadURL();
-  }
-
-  Future<void> _deleteImage(final String showId) async {
-    try {
-      await storage.ref('ShowImages/$showId.jpg').delete();
-    } catch (_) {
-      // Resim yoksa hatayı yut, sorun değil.
-    }
   }
 }

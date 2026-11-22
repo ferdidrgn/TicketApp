@@ -1,5 +1,20 @@
 import 'package:equatable/equatable.dart';
 
+class TicketSeat extends Equatable {
+  final String seatId;
+  final String qrToken;
+  final String status;
+  final String usedAt;
+
+  const TicketSeat({required this.seatId, required this.qrToken, required this.status, this.usedAt = ''});
+
+  bool get isCheckedIn => status == 'checked_in';
+  bool get isCancelled => status == 'cancelled';
+
+  @override
+  List<Object?> get props => [seatId, qrToken, status, usedAt];
+}
+
 class Ticket extends Equatable {
   final String id;
   final String createdAt, updatedAt;
@@ -7,6 +22,7 @@ class Ticket extends Equatable {
   final String showId, stageId, eventId;
   final String orderPrice, orderMethod;
   final List<String> buySeats;
+  final List<TicketSeat> seatTickets;
   final bool? isPast;
 
   /// Satın alma anında bilete KOPYALANAN özet (denormalizasyon). Oyun/seans/
@@ -33,6 +49,7 @@ class Ticket extends Equatable {
     required this.orderMethod,
     required this.orderPrice,
     required this.buySeats,
+    this.seatTickets = const [],
     required this.isPast,
     this.showName = '',
     this.showImageUrl = '',
@@ -62,6 +79,7 @@ class Ticket extends Equatable {
         orderMethod,
         orderPrice,
         buySeats,
+        seatTickets,
         isPast,
         showName,
         showImageUrl,

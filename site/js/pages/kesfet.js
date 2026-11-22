@@ -19,7 +19,7 @@ document.addEventListener('il-degisti', () => location.reload());
 function ciz(d) {
   const il = ilOku();
   const ozel = ['sahneler', 'topluluklar', 'oyuncular'].includes(st.tur);
-  ic.innerHTML = `<div class="cat-layout"><aside class="side">
+  ic.innerHTML = `<div class="cat-layout"><button class="filter-open" id="filter-open" type="button" aria-expanded="false" aria-controls="kesfet-filtre">Süzgeçler</button><button class="filter-backdrop" id="filter-backdrop" type="button" aria-label="Süzgeçleri kapat" tabindex="-1"></button><aside class="side" id="kesfet-filtre" aria-label="Keşif süzgeçleri"><button class="filter-close" id="filter-close" type="button" aria-label="Süzgeçleri kapat">×</button>
     <div class="box"><h4>Ara</h4><input type="search" id="f-q" placeholder="Oyun adı…" value="${esc(st.q)}"></div>
     <div class="box"><h4>Ne arıyorsun?</h4>${[['', 'Oyunlar'], ['oyuncular', 'Oyuncular'], ['sahneler', 'Sahneler'], ['topluluklar', 'Topluluklar']].map(([k, a]) => `<label><input type="radio" name="f-t" value="${k}" ${(ozel ? st.tur === k : k === '') ? 'checked' : ''}>${a}</label>`).join('')}</div>
     <div class="box" id="b-tur"><h4>Tür</h4><label><input type="radio" name="f-c" value="" ${!st.tur || ozel ? 'checked' : ''}>Tümü</label>${d.kategoriler.map((k) => `<label><input type="radio" name="f-c" value="${esc(k)}" ${st.tur === k ? 'checked' : ''}>${esc(k)}</label>`).join('')}</div>
@@ -63,6 +63,15 @@ function ciz(d) {
     $('#oneri-b')?.addEventListener('click', () => { st.q = oneri; $('#f-q').value = oneri; gor(); yaz(); });
   };
   const yaz = () => history.replaceState(null, '', `/kesfet?${new URLSearchParams(Object.entries({ q: st.q, tur: st.tur, zaman: st.zaman }).filter(([, v]) => v))}`);
+  const filtreAc = (acik) => {
+    document.body.classList.toggle('filters-open', acik);
+    $('#filter-open')?.setAttribute('aria-expanded', String(acik));
+    if (acik) $('#filter-close')?.focus(); else $('#filter-open')?.focus();
+  };
+  $('#filter-open')?.addEventListener('click', () => filtreAc(true));
+  $('#filter-close')?.addEventListener('click', () => filtreAc(false));
+  $('#filter-backdrop')?.addEventListener('click', () => filtreAc(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('filters-open')) filtreAc(false); });
   $('#f-q').addEventListener('input', (e) => { st.q = e.target.value; gor(); yaz(); });
   $$('[name=f-t]').forEach((r) => r.addEventListener('change', () => { st.tur = r.value; $$('[name=f-c]')[0].checked = true; gor(); yaz(); }));
   $$('[name=f-c]').forEach((r) => r.addEventListener('change', () => { st.tur = r.value; $$('[name=f-t]')[0].checked = true; gor(); yaz(); }));

@@ -20,6 +20,15 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
       });
 
   @override
+  Future<Either<Failure, bool>> updateEvent(
+          final String eventId, final Map<String, dynamic> updatedData) async =>
+      execute(() => remoteDataSource.updateEvent(eventId, updatedData));
+
+  @override
+  Future<Either<Failure, bool>> deleteEvent(final String eventId) async =>
+      execute(() => remoteDataSource.deleteEvent(eventId));
+
+  @override
   Future<Either<Failure, List<Event>>> getEventsByIds(
           final List<String> eventIds) async =>
       execute(() async {
